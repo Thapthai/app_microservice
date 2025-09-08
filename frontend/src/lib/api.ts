@@ -1,0 +1,94 @@
+import axios from 'axios';
+import type {
+  ApiResponse,
+  User,
+  RegisterDto,
+  LoginDto,
+  Item,
+  CreateItemDto,
+  UpdateItemDto,
+  GetItemsQuery
+} from '@/types/api';
+
+// Create axios instance
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/auth/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth API
+export const authApi = {
+  register: async (data: RegisterDto): Promise<ApiResponse<User>> => {
+    const response = await api.post('/auth/register', data);
+    return response.data;
+  },
+
+  login: async (data: LoginDto): Promise<ApiResponse<User>> => {
+    const response = await api.post('/auth/login', data);
+    return response.data;
+  },
+
+  getProfile: async (): Promise<ApiResponse<User>> => {
+    const response = await api.get('/auth/profile');
+    return response.data;
+  },
+};
+
+// Items API
+export const itemsApi = {
+  create: async (data: CreateItemDto): Promise<ApiResponse<Item>> => {
+    const response = await api.post('/items', data);
+    return response.data;
+  },
+
+  getAll: async (query?: GetItemsQuery): Promise<ApiResponse<Item[]>> => {
+    const response = await api.get('/items', { params: query });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ApiResponse<Item>> => {
+    const response = await api.get(`/items/${id}`);
+    return response.data;
+  },
+
+  update: async (id: number, data: UpdateItemDto): Promise<ApiResponse<Item>> => {
+    const response = await api.put(`/items/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse> => {
+    const response = await api.delete(`/items/${id}`);
+    return response.data;
+  },
+
+  getByUser: async (userId: number): Promise<ApiResponse<Item[]>> => {
+    const response = await api.get(`/users/${userId}/items`);
+    return response.data;
+  },
+};
+
+export default api;
