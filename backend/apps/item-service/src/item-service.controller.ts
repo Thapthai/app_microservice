@@ -1,44 +1,29 @@
-import { Controller } from '@nestjs/common';
+import { Controller, DefaultValuePipe, ParseIntPipe, Query } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ItemServiceService } from './item-service.service';
+import { CreateItemDto } from './dto/create-item.dto';
+import { UpdateItemDto } from './dto/update-item.dto';
 
-export interface CreateItemDto {
-  name: string;
-  description?: string;
-  price: number;
-  quantity?: number;
-  category?: string;
-  userId: number;
-}
-
-export interface UpdateItemDto {
-  name?: string;
-  description?: string;
-  price?: number;
-  quantity?: number;
-  category?: string;
-  isActive?: boolean;
-}
-
-export interface GetItemsQuery {
-  userId?: number;
-  category?: string;
-  isActive?: boolean;
-}
 
 @Controller()
 export class ItemServiceController {
-  constructor(private readonly itemServiceService: ItemServiceService) {}
+  constructor(private readonly itemServiceService: ItemServiceService) { }
 
   @MessagePattern('item.create')
   async createItem(@Payload() createItemDto: CreateItemDto) {
     return this.itemServiceService.createItem(createItemDto);
+    // return "createItem";
   }
 
   @MessagePattern('item.findAll')
-  async findAllItems(@Payload() query: GetItemsQuery) {
-    return this.itemServiceService.findAllItems(query);
+  findAll(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('keyword') keyword?: string,
+  ) {
+    return this.itemServiceService.findAllItems(page, limit, keyword);
   }
+
 
   @MessagePattern('item.findOne')
   async findOneItem(@Payload() id: number) {

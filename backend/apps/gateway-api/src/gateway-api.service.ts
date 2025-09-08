@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { RegisterDto, LoginDto } from './gateway-api.controller';
+import { RegisterDto, LoginDto } from './dto';
 
 @Injectable()
 export class GatewayApiService {
@@ -25,12 +25,13 @@ export class GatewayApiService {
     return this.authClient.send('auth.validate', token).toPromise();
   }
 
-  // Item Service Methods
+  // ==================================== Item Service Methods ====================================
   async createItem(createItemDto: any) {
     return this.itemClient.send('item.create', createItemDto).toPromise();
   }
 
-  async findAllItems(query: any = {}) {
+  async findAllItems(page: number, limit: number, keyword?: string) {
+    const query = { page, limit, keyword };
     return this.itemClient.send('item.findAll', query).toPromise();
   }
 

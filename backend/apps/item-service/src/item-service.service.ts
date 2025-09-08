@@ -1,36 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { CreateItemDto, UpdateItemDto, GetItemsQuery } from './item-service.controller';
+import { CreateItemDto } from './dto/create-item.dto';
+import { UpdateItemDto } from './dto/update-item.dto';
 
 @Injectable()
 export class ItemServiceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async createItem(createItemDto: CreateItemDto) {
     try {
-      // Check if user exists
-      const user = await this.prisma.user.findUnique({
-        where: { id: createItemDto.userId },
-      });
-
-      if (!user) {
-        return { success: false, message: 'User not found' };
-      }
 
       const item = await this.prisma.item.create({
-        data: {
-          name: createItemDto.name,
-          description: createItemDto.description,
-          price: createItemDto.price,
-          quantity: createItemDto.quantity || 0,
-          category: createItemDto.category,
-          userId: createItemDto.userId,
-        },
-        include: {
-          user: {
-            select: { id: true, name: true, email: true },
-          },
-        },
+        data: createItemDto,
       });
 
       return {
@@ -43,28 +24,33 @@ export class ItemServiceService {
     }
   }
 
-  async findAllItems(query: GetItemsQuery = {}) {
+  async findAllItems(page: number, limit: number, keyword?: string) {
     try {
-      const where: any = {};
 
-      if (query.userId) where.userId = query.userId;
-      if (query.category) where.category = query.category;
-      if (query.isActive !== undefined) where.isActive = query.isActive;
+      const skip = (page - 1) * limit;
+      const where = keyword
+        ? {
+          name: {
+            contains: keyword,
+          }
+        }
+        : {};
 
-      const items = await this.prisma.item.findMany({
-        where,
-        include: {
-          user: {
-            select: { id: true, name: true, email: true },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+      const [data, total] = await Promise.all([
+        this.prisma.item.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { id: 'desc' },
+        }),
+        this.prisma.item.count({ where }),
+      ]);
 
       return {
-        success: true,
-        data: items,
-        count: items.length,
+        data,
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
       };
     } catch (error) {
       return { success: false, message: 'Failed to fetch items', error: error.message };
@@ -75,11 +61,7 @@ export class ItemServiceService {
     try {
       const item = await this.prisma.item.findUnique({
         where: { id },
-        include: {
-          user: {
-            select: { id: true, name: true, email: true },
-          },
-        },
+
       });
 
       if (!item) {
@@ -108,11 +90,7 @@ export class ItemServiceService {
       const item = await this.prisma.item.update({
         where: { id },
         data: updateItemDto,
-        include: {
-          user: {
-            select: { id: true, name: true, email: true },
-          },
-        },
+
       });
 
       return {
@@ -159,8 +137,8 @@ export class ItemServiceService {
       }
 
       const items = await this.prisma.item.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
+        where: {},
+        orderBy: { created_at: 'desc' },
       });
 
       return {
