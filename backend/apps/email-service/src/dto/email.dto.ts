@@ -7,7 +7,8 @@ export enum EmailTemplate {
   LOGIN_NOTIFICATION = 'login_notification',
   API_KEY_CREATED = 'api_key_created',
   OAUTH_LINKED = 'oauth_linked',
-  SECURITY_ALERT = 'security_alert'
+  SECURITY_ALERT = 'security_alert',
+  EMAIL_OTP = 'email_otp'
 }
 
 export enum EmailPriority {

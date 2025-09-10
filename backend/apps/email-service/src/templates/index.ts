@@ -1,12 +1,14 @@
 import { welcomeTemplate } from './welcome.template';
 import { emailVerificationTemplate } from './email-verification.template';
 import { passwordResetTemplate } from './password-reset.template';
+import { emailOTPTemplate } from './email-otp.template';
 import { EmailTemplate } from '../dto/email.dto';
 
 export const emailTemplates = {
   [EmailTemplate.WELCOME]: welcomeTemplate,
   [EmailTemplate.EMAIL_VERIFICATION]: emailVerificationTemplate,
   [EmailTemplate.PASSWORD_RESET]: passwordResetTemplate,
+  [EmailTemplate.EMAIL_OTP]: emailOTPTemplate,
   [EmailTemplate.LOGIN_NOTIFICATION]: {
     subject: 'การเข้าสู่ระบบใหม่ - {{appName}}',
     text: `

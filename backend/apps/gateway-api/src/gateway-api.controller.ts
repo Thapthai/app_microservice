@@ -148,6 +148,37 @@ export class GatewayApiController {
     }
   }
 
+  // ==================================== Email Endpoints ====================================
+  
+  @Post('email/test')
+  async testEmail(@Body() data: { email: string; name?: string }) {
+    try {
+      const result = await this.gatewayApiService.sendWelcomeEmail(
+        data.email, 
+        data.name || 'Test User'
+      );
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to send test email',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('email/connection')
+  async testEmailConnection() {
+    try {
+      const result = await this.gatewayApiService.testEmailConnection();
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to test email connection',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // ==================================== Item Endpoints ====================================
 
 }

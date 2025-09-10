@@ -19,6 +19,13 @@ model User {
   emailVerified       Boolean           @default(false)
   preferredAuthMethod String            @default("jwt") // jwt, oauth2, api_key
   lastLoginAt         DateTime?
+  
+  // 2FA Fields
+  twoFactorEnabled    Boolean           @default(false) @map("two_factor_enabled")
+  twoFactorSecret     String?           @map("two_factor_secret") // TOTP secret
+  backupCodes         String?           @map("backup_codes") @db.Text // JSON string of backup codes
+  twoFactorVerifiedAt DateTime?         @map("two_factor_verified_at")
+  
   createdAt           DateTime          @default(now()) @map("created_at")
   updatedAt           DateTime          @updatedAt @map("updated_at")
   
@@ -26,6 +33,7 @@ model User {
   oauthAccounts       OAuthAccount[]
   apiKeys             ApiKey[]
   refreshTokens       RefreshToken[]
+  twoFactorTokens     TwoFactorToken[]
   
   @@map("users")
 }
@@ -78,6 +86,21 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("refresh_tokens")
+}
+
+model TwoFactorToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   
+  type      String   // 'email_otp', 'sms_otp', 'backup_code'
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, type])
+  @@map("two_factor_tokens")
 }
 
 model Item {

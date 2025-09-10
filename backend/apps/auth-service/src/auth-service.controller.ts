@@ -7,7 +7,15 @@ import {
   OAuth2LoginDto, 
   ApiKeyCreateDto, 
   RefreshTokenDto,
-  OAuth2Provider 
+  OAuth2Provider,
+  Enable2FADto,
+  Verify2FASetupDto,
+  Disable2FADto,
+  Verify2FADto,
+  Generate2FABackupCodesDto,
+  SendEmailOTPDto,
+  LoginWith2FADto,
+  TwoFactorType
 } from './dto/auth.dto';
 
 @Controller()
@@ -63,5 +71,63 @@ export class AuthServiceController {
   @MessagePattern('auth.token.refresh')
   async refreshTokens(@Payload() refreshTokenDto: RefreshTokenDto) {
     return this.authServiceService.refreshTokens(refreshTokenDto);
+  }
+
+  // ================================ 2FA Endpoints ================================
+
+  @MessagePattern('auth.2fa.setup')
+  async setup2FA(@Payload() data: { userId: number; enable2FADto: Enable2FADto }) {
+    return this.authServiceService.setupTOTP(data.userId, data.enable2FADto.password);
+  }
+
+  @MessagePattern('auth.2fa.verify-setup')
+  async verifyAndEnable2FA(@Payload() data: { userId: number; verifyDto: Verify2FASetupDto }) {
+    return this.authServiceService.verifyAndEnable2FA(
+      data.userId, 
+      data.verifyDto.secret, 
+      data.verifyDto.token
+    );
+  }
+
+  @MessagePattern('auth.2fa.disable')
+  async disable2FA(@Payload() data: { userId: number; disable2FADto: Disable2FADto }) {
+    return this.authServiceService.disable2FA(
+      data.userId, 
+      data.disable2FADto.password, 
+      data.disable2FADto.token
+    );
+  }
+
+  @MessagePattern('auth.2fa.verify')
+  async verify2FA(@Payload() data: { userId: number; verifyDto: Verify2FADto }) {
+    return this.authServiceService.verify2FA(
+      data.userId, 
+      data.verifyDto.token, 
+      data.verifyDto.type || 'totp'
+    );
+  }
+
+  @MessagePattern('auth.2fa.send-email-otp')
+  async sendEmailOTP(@Payload() data: { userId: number; purpose?: string }) {
+    return this.authServiceService.sendEmailOTP(data.userId, data.purpose);
+  }
+
+  @MessagePattern('auth.2fa.regenerate-backup-codes')
+  async regenerateBackupCodes(@Payload() data: { userId: number; generateDto: Generate2FABackupCodesDto }) {
+    return this.authServiceService.regenerateBackupCodes(data.userId, data.generateDto.password);
+  }
+
+  @MessagePattern('auth.2fa.status')
+  async get2FAStatus(@Payload() userId: number) {
+    return this.authServiceService.get2FAStatus(userId);
+  }
+
+  @MessagePattern('auth.login.2fa')
+  async loginWith2FA(@Payload() loginWith2FADto: LoginWith2FADto) {
+    return this.authServiceService.loginWith2FA(
+      loginWith2FADto.tempToken, 
+      loginWith2FADto.code, 
+      loginWith2FADto.type
+    );
   }
 }

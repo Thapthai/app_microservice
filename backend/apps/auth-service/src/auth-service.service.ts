@@ -14,6 +14,8 @@ import {
 } from './dto/auth.dto';
 import { OAuth2Strategy, OAuth2UserInfo } from './strategies/oauth2.strategy';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
+import { TOTPService } from './services/totp.service';
+import { EmailOTPService } from './services/email-otp.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -23,6 +25,8 @@ export class AuthServiceService {
     private prisma: PrismaService,
     private oauth2Strategy: OAuth2Strategy,
     private apiKeyStrategy: ApiKeyStrategy,
+    private totpService: TOTPService,
+    private emailOTPService: EmailOTPService,
     @Inject('EMAIL_SERVICE') private readonly emailClient: ClientProxy,
   ) {}
 
@@ -82,6 +86,11 @@ export class AuthServiceService {
         return { success: false, message: 'Invalid credentials' };
       }
 
+      // Check if user is active
+      if (!user.isActive) {
+        return { success: false, message: 'Account is deactivated' };
+      }
+
       // Verify password (check if user has password for non-OAuth users)
       if (!user.password) {
         return { success: false, message: 'Please use OAuth login for this account' };
@@ -92,6 +101,39 @@ export class AuthServiceService {
         return { success: false, message: 'Invalid credentials' };
       }
 
+      // Check if 2FA is enabled
+      if (user.twoFactorEnabled) {
+        // Generate temporary token for 2FA step
+        const tempPayload = { 
+          sub: user.id, 
+          email: user.email, 
+          temp2FA: true,
+          iat: Math.floor(Date.now() / 1000)
+        };
+        const tempToken = this.jwtService.sign(tempPayload, { expiresIn: '10m' });
+
+        return {
+          success: true,
+          message: '2FA verification required',
+          requiresTwoFactor: true,
+          data: {
+            tempToken,
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              twoFactorEnabled: true
+            }
+          }
+        };
+      }
+
+      // Update last login
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() }
+      });
+
       // Generate JWT token
       const payload = { sub: user.id, email: user.email, name: user.name };
       const token = this.jwtService.sign(payload);
@@ -100,7 +142,12 @@ export class AuthServiceService {
         success: true,
         message: 'Login successful',
         data: {
-          user: { id: user.id, email: user.email, name: user.name },
+          user: { 
+            id: user.id, 
+            email: user.email, 
+            name: user.name,
+            twoFactorEnabled: user.twoFactorEnabled 
+          },
           token,
         },
       };
@@ -445,6 +492,340 @@ export class AuthServiceService {
       }).toPromise();
     } catch (error) {
       console.error('Failed to send OAuth linked email:', error);
+    }
+  }
+
+  // ================================ 2FA Methods ================================
+
+  async setupTOTP(userId: number, password: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      // Verify current password
+      if (user.password && !(await bcrypt.compare(password, user.password))) {
+        return { success: false, message: 'Invalid password' };
+      }
+
+      // Check if 2FA is already enabled
+      if (user.twoFactorEnabled) {
+        return { success: false, message: '2FA is already enabled' };
+      }
+
+      // Generate TOTP setup
+      const totpSetup = await this.totpService.generateTOTPSetup(user.email);
+
+      return {
+        success: true,
+        message: 'TOTP setup generated',
+        data: {
+          secret: totpSetup.secret,
+          qrCodeUrl: totpSetup.qrCodeUrl,
+          qrCodeDataURL: totpSetup.qrCodeDataURL,
+          backupCodes: totpSetup.backupCodes
+        }
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to setup TOTP', error: error.message };
+    }
+  }
+
+  async verifyAndEnable2FA(userId: number, secret: string, token: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      // Verify TOTP token
+      if (!this.totpService.verifyTOTP(token, secret)) {
+        return { success: false, message: 'Invalid TOTP code' };
+      }
+
+      // Generate and hash backup codes
+      const backupCodes = this.totpService.generateBackupCodes();
+      const hashedBackupCodes = this.totpService.hashBackupCodes(backupCodes);
+
+      // Enable 2FA
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          twoFactorEnabled: true,
+          twoFactorSecret: secret,
+          backupCodes: JSON.stringify(hashedBackupCodes),
+          twoFactorVerifiedAt: new Date()
+        }
+      });
+
+      return {
+        success: true,
+        message: '2FA enabled successfully',
+        data: {
+          backupCodes // Show backup codes once
+        }
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to enable 2FA', error: error.message };
+    }
+  }
+
+  async disable2FA(userId: number, password: string, token?: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      if (!user.twoFactorEnabled) {
+        return { success: false, message: '2FA is not enabled' };
+      }
+
+      // Verify current password
+      if (user.password && !(await bcrypt.compare(password, user.password))) {
+        return { success: false, message: 'Invalid password' };
+      }
+
+      // If token provided, verify it
+      if (token) {
+        const isValidTOTP = user.twoFactorSecret && 
+          this.totpService.verifyTOTP(token, user.twoFactorSecret);
+        const isValidBackup = user.backupCodes && 
+          this.totpService.verifyBackupCode(token, user.backupCodes);
+
+        if (!isValidTOTP && !isValidBackup) {
+          return { success: false, message: 'Invalid 2FA code' };
+        }
+      }
+
+      // Disable 2FA
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          twoFactorEnabled: false,
+          twoFactorSecret: null,
+          backupCodes: null,
+          twoFactorVerifiedAt: null
+        }
+      });
+
+      return {
+        success: true,
+        message: '2FA disabled successfully'
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to disable 2FA', error: error.message };
+    }
+  }
+
+  async verify2FA(userId: number, token: string, type: string = 'totp') {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user || !user.twoFactorEnabled) {
+        return { success: false, message: '2FA not enabled for this user' };
+      }
+
+      let isValid = false;
+
+      switch (type) {
+        case 'totp':
+          if (user.twoFactorSecret) {
+            isValid = this.totpService.verifyTOTP(token, user.twoFactorSecret);
+          }
+          break;
+
+        case 'email_otp':
+          const emailResult = await this.emailOTPService.verifyEmailOTP(userId, token);
+          isValid = emailResult.success;
+          break;
+
+        case 'backup_code':
+          if (user.backupCodes) {
+            isValid = this.totpService.verifyBackupCode(token, user.backupCodes);
+            
+            // Remove used backup code
+            if (isValid) {
+              const updatedCodes = this.totpService.removeUsedBackupCode(token, user.backupCodes);
+              await this.prisma.user.update({
+                where: { id: userId },
+                data: { backupCodes: updatedCodes }
+              });
+            }
+          }
+          break;
+      }
+
+      return {
+        success: isValid,
+        message: isValid ? '2FA verified successfully' : 'Invalid 2FA code'
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to verify 2FA', error: error.message };
+    }
+  }
+
+  async sendEmailOTP(userId: number, purpose: string = 'login') {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      // Check rate limiting
+      const canRequest = await this.emailOTPService.canRequestNewOTP(userId);
+      if (!canRequest.canRequest) {
+        return { 
+          success: false, 
+          message: `Please wait ${canRequest.waitTime} seconds before requesting a new OTP` 
+        };
+      }
+
+      // Send OTP
+      const result = await this.emailOTPService.sendEmailOTP(userId, user.email, purpose);
+      return result;
+    } catch (error) {
+      return { success: false, message: 'Failed to send email OTP', error: error.message };
+    }
+  }
+
+  async regenerateBackupCodes(userId: number, password: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      if (!user.twoFactorEnabled) {
+        return { success: false, message: '2FA is not enabled' };
+      }
+
+      // Verify current password
+      if (user.password && !(await bcrypt.compare(password, user.password))) {
+        return { success: false, message: 'Invalid password' };
+      }
+
+      // Generate new backup codes
+      const backupCodes = this.totpService.generateBackupCodes();
+      const hashedBackupCodes = this.totpService.hashBackupCodes(backupCodes);
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { backupCodes: JSON.stringify(hashedBackupCodes) }
+      });
+
+      return {
+        success: true,
+        message: 'Backup codes regenerated successfully',
+        data: { backupCodes }
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to regenerate backup codes', error: error.message };
+    }
+  }
+
+  async get2FAStatus(userId: number) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          twoFactorEnabled: true,
+          twoFactorVerifiedAt: true,
+          backupCodes: true
+        }
+      });
+
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      return {
+        success: true,
+        data: {
+          enabled: user.twoFactorEnabled,
+          verifiedAt: user.twoFactorVerifiedAt,
+          backupCodesCount: user.backupCodes ? JSON.parse(user.backupCodes).length : 0
+        }
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to get 2FA status', error: error.message };
+    }
+  }
+
+  async loginWith2FA(tempToken: string, code: string, type: string = 'totp') {
+    try {
+      // Verify temporary token
+      let payload;
+      try {
+        payload = this.jwtService.verify(tempToken);
+      } catch (error) {
+        return { success: false, message: 'Invalid or expired temporary token' };
+      }
+
+      if (!payload.temp2FA) {
+        return { success: false, message: 'Invalid temporary token' };
+      }
+
+      const userId = payload.sub;
+
+      // Verify 2FA code
+      const verify2FAResult = await this.verify2FA(userId, code, type);
+      if (!verify2FAResult.success) {
+        return verify2FAResult;
+      }
+
+      // Get user info
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      // Update last login
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { lastLoginAt: new Date() }
+      });
+
+      // Generate final JWT token
+      const finalPayload = { sub: user.id, email: user.email, name: user.name };
+      const token = this.jwtService.sign(finalPayload);
+
+      return {
+        success: true,
+        message: 'Login successful',
+        data: {
+          user: { 
+            id: user.id, 
+            email: user.email, 
+            name: user.name,
+            twoFactorEnabled: user.twoFactorEnabled 
+          },
+          token,
+        },
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to complete 2FA login', error: error.message };
     }
   }
 }

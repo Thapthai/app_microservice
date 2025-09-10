@@ -7,6 +7,8 @@ import { PrismaService } from './prisma.service';
 import { OAuth2Strategy } from './strategies/oauth2.strategy';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { AuthGuard } from './guards/auth.guard';
+import { TOTPService } from './services/totp.service';
+import { EmailOTPService } from './services/email-otp.service';
 
 @Module({
   imports: [
@@ -28,10 +30,12 @@ import { AuthGuard } from './guards/auth.guard';
   controllers: [AuthServiceController],
   providers: [
     AuthServiceService, 
-    PrismaService,
-    OAuth2Strategy,
-    ApiKeyStrategy,
-    AuthGuard
+    PrismaService, 
+    OAuth2Strategy, 
+    ApiKeyStrategy, 
+    AuthGuard,
+    TOTPService,
+    EmailOTPService
   ],
   exports: [AuthGuard, OAuth2Strategy, ApiKeyStrategy],
 })

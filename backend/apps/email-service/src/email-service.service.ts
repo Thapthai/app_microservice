@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
-import { 
-  SendEmailDto, 
-  SendTemplateEmailDto, 
-  BulkEmailDto, 
+import * as dotenv from 'dotenv';
+import {
+  SendEmailDto,
+  SendTemplateEmailDto,
+  BulkEmailDto,
   EmailTemplate,
-  EmailPriority 
+  EmailPriority
 } from './dto/email.dto';
 import { EmailConfig, EmailResult } from './interfaces/email.interface';
 import { emailTemplates } from './templates';
@@ -17,11 +18,15 @@ export class EmailServiceService {
   private emailConfig: EmailConfig;
 
   constructor() {
+    // Load environment variables first
+    dotenv.config();
+    console.log('dotenv loaded, checking .env file...');
+    
     this.initializeEmailConfig();
     this.createTransporter();
   }
 
-  private initializeEmailConfig() {
+  private initializeEmailConfig() {  
     this.emailConfig = {
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
@@ -32,6 +37,13 @@ export class EmailServiceService {
       },
       from: process.env.SMTP_FROM || 'noreply@example.com'
     };
+    
+    console.log('Final SMTP config:', {
+      host: this.emailConfig.host,
+      port: this.emailConfig.port,
+      secure: this.emailConfig.secure,
+      user: this.emailConfig.auth.user
+    });
   }
 
   private createTransporter() {
@@ -80,7 +92,7 @@ export class EmailServiceService {
       };
     } catch (error) {
       this.logger.error(`Failed to send email to ${sendEmailDto.to}:`, error);
-      
+
       return {
         success: false,
         message: 'Failed to send email',
@@ -92,7 +104,7 @@ export class EmailServiceService {
   async sendTemplateEmail(sendTemplateEmailDto: SendTemplateEmailDto): Promise<EmailResult> {
     try {
       const template = emailTemplates[sendTemplateEmailDto.template];
-      
+
       if (!template) {
         return {
           success: false,
@@ -118,7 +130,7 @@ export class EmailServiceService {
       return await this.sendEmail(emailDto);
     } catch (error) {
       this.logger.error(`Failed to send template email:`, error);
-      
+
       return {
         success: false,
         message: 'Failed to send template email',
