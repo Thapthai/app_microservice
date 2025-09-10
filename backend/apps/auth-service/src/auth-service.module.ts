@@ -3,6 +3,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthServiceController } from './auth-service.controller';
 import { AuthServiceService } from './auth-service.service';
 import { PrismaService } from './prisma.service';
+import { OAuth2Strategy } from './strategies/oauth2.strategy';
+import { ApiKeyStrategy } from './strategies/api-key.strategy';
+import { AuthGuard } from './guards/auth.guard';
 
 @Module({
   imports: [
@@ -12,6 +15,13 @@ import { PrismaService } from './prisma.service';
     }),
   ],
   controllers: [AuthServiceController],
-  providers: [AuthServiceService, PrismaService],
+  providers: [
+    AuthServiceService, 
+    PrismaService,
+    OAuth2Strategy,
+    ApiKeyStrategy,
+    AuthGuard
+  ],
+  exports: [AuthGuard, OAuth2Strategy, ApiKeyStrategy],
 })
 export class AuthServiceModule {}
