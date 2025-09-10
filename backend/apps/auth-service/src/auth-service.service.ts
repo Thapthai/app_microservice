@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ClientProxy } from '@nestjs/microservices';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from './prisma.service';
 import { 
@@ -22,6 +23,7 @@ export class AuthServiceService {
     private prisma: PrismaService,
     private oauth2Strategy: OAuth2Strategy,
     private apiKeyStrategy: ApiKeyStrategy,
+    @Inject('EMAIL_SERVICE') private readonly emailClient: ClientProxy,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -50,6 +52,11 @@ export class AuthServiceService {
       // Generate JWT token
       const payload = { sub: newUser.id, email: newUser.email, name: newUser.name };
       const token = this.jwtService.sign(payload);
+
+      // Send welcome email (async, don't wait for it)
+      this.sendWelcomeEmail(newUser.email, newUser.name).catch(error => {
+        console.error('Failed to send welcome email:', error);
+      });
 
       return {
         success: true,
@@ -249,6 +256,15 @@ export class AuthServiceService {
         }
       });
 
+      // Send API key created email (async, don't wait for it)
+      this.sendApiKeyCreatedEmail(user.email, user.name, {
+        name: apiKey.name,
+        prefix,
+        expiresAt: apiKey.expiresAt
+      }).catch(error => {
+        console.error('Failed to send API key created email:', error);
+      });
+
       return {
         success: true,
         message: 'API key created successfully',
@@ -378,5 +394,57 @@ export class AuthServiceService {
     });
 
     return { accessToken, refreshToken };
+  }
+
+  // ================================ Email Helper Methods ================================
+
+  private async sendWelcomeEmail(email: string, name: string): Promise<void> {
+    try {
+      await this.emailClient.send('email.sendWelcome', { 
+        email, 
+        name,
+        additionalData: {
+          registrationDate: new Date().toISOString()
+        }
+      }).toPromise();
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+    }
+  }
+
+  private async sendLoginNotificationEmail(email: string, name: string, loginDetails: any): Promise<void> {
+    try {
+      await this.emailClient.send('email.sendLoginNotification', { 
+        email, 
+        name, 
+        loginDetails 
+      }).toPromise();
+    } catch (error) {
+      console.error('Failed to send login notification email:', error);
+    }
+  }
+
+  private async sendApiKeyCreatedEmail(email: string, name: string, keyDetails: any): Promise<void> {
+    try {
+      await this.emailClient.send('email.sendApiKeyCreated', { 
+        email, 
+        name, 
+        keyDetails 
+      }).toPromise();
+    } catch (error) {
+      console.error('Failed to send API key created email:', error);
+    }
+  }
+
+  private async sendOAuthLinkedEmail(email: string, name: string, provider: string): Promise<void> {
+    try {
+      await this.emailClient.send('email.sendOAuthLinked', { 
+        email, 
+        name, 
+        provider 
+      }).toPromise();
+    } catch (error) {
+      console.error('Failed to send OAuth linked email:', error);
+    }
   }
 }

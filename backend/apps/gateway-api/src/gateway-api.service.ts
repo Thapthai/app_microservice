@@ -7,6 +7,7 @@ export class GatewayApiService {
   constructor(
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
     @Inject('ITEM_SERVICE') private readonly itemClient: ClientProxy,
+    @Inject('EMAIL_SERVICE') private readonly emailClient: ClientProxy,
   ) { }
 
   getHello(): string {
@@ -49,5 +50,41 @@ export class GatewayApiService {
 
   async findItemsByUser(userId: number) {
     return this.itemClient.send('item.findByUser', userId).toPromise();
+  }
+
+  // ==================================== Email Service Methods ====================================
+  
+  async sendEmail(emailData: any) {
+    return this.emailClient.send('email.send', emailData).toPromise();
+  }
+
+  async sendTemplateEmail(templateData: any) {
+    return this.emailClient.send('email.sendTemplate', templateData).toPromise();
+  }
+
+  async sendWelcomeEmail(email: string, name: string, additionalData?: any) {
+    return this.emailClient.send('email.sendWelcome', { email, name, additionalData }).toPromise();
+  }
+
+  async sendEmailVerification(email: string, name: string, verificationCode: string, verificationUrl: string) {
+    return this.emailClient.send('email.sendVerification', { 
+      email, 
+      name, 
+      verificationCode, 
+      verificationUrl 
+    }).toPromise();
+  }
+
+  async sendPasswordReset(email: string, name: string, resetCode: string, resetUrl: string) {
+    return this.emailClient.send('email.sendPasswordReset', { 
+      email, 
+      name, 
+      resetCode, 
+      resetUrl 
+    }).toPromise();
+  }
+
+  async testEmailConnection() {
+    return this.emailClient.send('email.testConnection', {}).toPromise();
   }
 }
