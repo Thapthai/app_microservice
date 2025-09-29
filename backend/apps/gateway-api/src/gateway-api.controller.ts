@@ -71,6 +71,35 @@ export class GatewayApiController {
     }
   }
 
+  @Post('auth/oauth2/url')
+  async getOAuthUrl(@Body() data: { provider: string; state?: string }) {
+    try {
+      const result = await this.gatewayApiService.getOAuthUrl(data.provider, data.state);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get OAuth URL',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('auth/oauth2/login')
+  async oauthLogin(@Body() data: { provider: string; code: string; state?: string; redirectUri?: string }) {
+    try {
+      const result = await this.gatewayApiService.oauthLogin(data);
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.UNAUTHORIZED);
+      }
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'OAuth login failed',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // ==================================== Item Endpoints ====================================
   @Post('items')
   async createItem(@Body() createItemDto: CreateItemDto) {

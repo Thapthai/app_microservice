@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type {
   ApiResponse,
+  AuthResponse,
   User,
   RegisterDto,
   LoginDto,
@@ -42,18 +43,28 @@ api.interceptors.response.use(
 
 // Auth API
 export const authApi = {
-  register: async (data: RegisterDto): Promise<ApiResponse<User>> => {
+  register: async (data: RegisterDto): Promise<ApiResponse<AuthResponse>> => {
     const response = await api.post('/auth/register', data);
     return response.data;
   },
 
-  login: async (data: LoginDto): Promise<ApiResponse<User>> => {
+  login: async (data: LoginDto): Promise<ApiResponse<AuthResponse>> => {
     const response = await api.post('/auth/login', data);
     return response.data;
   },
 
   getProfile: async (): Promise<ApiResponse<User>> => {
     const response = await api.get('/auth/profile');
+    return response.data;
+  },
+
+  getOAuthUrl: async (provider: 'google' | 'microsoft'): Promise<ApiResponse<{ authUrl: string; provider: string; state?: string }>> => {
+    const response = await api.post('/auth/oauth2/url', { provider });
+    return response.data;
+  },
+
+  oauthLogin: async (provider: 'google' | 'microsoft', code: string, state?: string): Promise<ApiResponse<AuthResponse>> => {
+    const response = await api.post('/auth/oauth2/login', { provider, code, state });
     return response.data;
   },
 };

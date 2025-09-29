@@ -1,0 +1,32 @@
+# Auth Service Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY apps/auth-service ./apps/auth-service
+COPY prisma ./prisma
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build the application
+RUN npm run build:auth
+
+# Expose port
+EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD netstat -an | grep 3001 > /dev/null; if [ 0 != $? ]; then exit 1; fi;
+
+# Start the application
+CMD ["npm", "run", "start:auth:prod"]

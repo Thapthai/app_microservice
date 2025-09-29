@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, IsOptional, IsEnum, IsUrl } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsOptional, IsEnum, IsUrl, Matches, MinLength } from 'class-validator';
 
 export enum AuthMethod {
   JWT = 'jwt',
@@ -18,6 +18,10 @@ export class RegisterDto {
 
   @IsNotEmpty()
   @IsString()
+  @MinLength(8, { message: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/, {
+    message: 'รหัสผ่านต้องมีตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และอักษรพิเศษ'
+  })
   password: string;
 
   @IsNotEmpty()

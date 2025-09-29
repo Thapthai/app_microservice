@@ -6,13 +6,21 @@ export interface ApiResponse<T = any> {
   token?: string;
 }
 
+// Auth Response Types
+export interface AuthResponse {
+  user: User;
+  token: string;
+  accessToken?: string;
+}
+
 // User Types
 export interface User {
   id: number;
   email: string;
   name: string;
-  createdAt: string;
-  updatedAt: string;
+  twoFactorEnabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RegisterDto {

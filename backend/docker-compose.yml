@@ -1,0 +1,147 @@
+version: '3.8'
+
+services:
+  # Database
+  database:
+    image: mysql:8.0
+    container_name: pose-database
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-pose_microservice}
+      MYSQL_USER: ${DB_USER:-pose_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-userpassword}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - pose-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis (for caching and sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: pose-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pose-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 20s
+      retries: 10
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.auth
+    container_name: pose-auth-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+    ports:
+      - "3001:3001"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Item Service
+  item-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.item
+    container_name: pose-item-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "3002:3002"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Email Service
+  email-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.email
+    container_name: pose-email-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - APP_NAME=${APP_NAME:-POSE Microservice}
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL}
+    ports:
+      - "3003:3003"
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Gateway API
+  gateway-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: pose-gateway-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_HOST=auth-service
+      - AUTH_SERVICE_PORT=3001
+      - ITEM_SERVICE_HOST=item-service
+      - ITEM_SERVICE_PORT=3002
+      - EMAIL_SERVICE_HOST=email-service
+      - EMAIL_SERVICE_PORT=3003
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth-service
+      - item-service
+      - email-service
+      - redis
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+
+networks:
+  pose-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local

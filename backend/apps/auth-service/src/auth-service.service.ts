@@ -265,12 +265,15 @@ export class AuthServiceService {
 
       return {
         success: true,
-        message: 'OAuth login successful',
+        message: 'Login successful',
         data: {
-          user: { id: user.id, email: user.email, name: user.name },
-          accessToken,
-          refreshToken,
-          provider: oauth2LoginDto.provider
+          user: { 
+            id: user.id, 
+            email: user.email, 
+            name: user.name,
+            twoFactorEnabled: user.twoFactorEnabled || false
+          },
+          token: accessToken
         }
       };
     } catch (error) {

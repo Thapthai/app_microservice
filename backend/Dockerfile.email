@@ -1,0 +1,32 @@
+# Email Service Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY apps/email-service ./apps/email-service
+COPY prisma ./prisma
+
+# Generate Prisma client (for database connection if needed)
+RUN npx prisma generate
+
+# Build the application
+RUN npm run build:email
+
+# Expose port
+EXPOSE 3003
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD netstat -an | grep 3003 > /dev/null; if [ 0 != $? ]; then exit 1; fi;
+
+# Start the application
+CMD ["npm", "run", "start:email:prod"]

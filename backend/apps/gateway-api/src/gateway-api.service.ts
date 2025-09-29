@@ -26,6 +26,14 @@ export class GatewayApiService {
     return this.authClient.send('auth.validate', token).toPromise();
   }
 
+  async getOAuthUrl(provider: string, state?: string) {
+    return this.authClient.send('auth.oauth2.getAuthUrl', { provider, state }).toPromise();
+  }
+
+  async oauthLogin(data: { provider: string; code: string; state?: string; redirectUri?: string }) {
+    return this.authClient.send('auth.oauth2.login', data).toPromise();
+  }
+
   // ==================================== Item Service Methods ====================================
   async createItem(createItemDto: any) {
     return this.itemClient.send('item.create', createItemDto).toPromise();
