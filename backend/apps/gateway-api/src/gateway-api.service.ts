@@ -61,7 +61,7 @@ export class GatewayApiService {
   }
 
   // ==================================== Email Service Methods ====================================
-  
+
   async sendEmail(emailData: any) {
     return this.emailClient.send('email.send', emailData).toPromise();
   }
@@ -75,24 +75,95 @@ export class GatewayApiService {
   }
 
   async sendEmailVerification(email: string, name: string, verificationCode: string, verificationUrl: string) {
-    return this.emailClient.send('email.sendVerification', { 
-      email, 
-      name, 
-      verificationCode, 
-      verificationUrl 
+    return this.emailClient.send('email.sendVerification', {
+      email,
+      name,
+      verificationCode,
+      verificationUrl
     }).toPromise();
   }
 
   async sendPasswordReset(email: string, name: string, resetCode: string, resetUrl: string) {
-    return this.emailClient.send('email.sendPasswordReset', { 
-      email, 
-      name, 
-      resetCode, 
-      resetUrl 
+    return this.emailClient.send('email.sendPasswordReset', {
+      email,
+      name,
+      resetCode,
+      resetUrl
     }).toPromise();
   }
 
   async testEmailConnection() {
     return this.emailClient.send('email.testConnection', {}).toPromise();
+  }
+
+  // ================================ 2FA Methods ================================
+
+  async enable2FA(token: string, password: string) {
+    // First validate the token to get user info
+    const tokenValidation = await this.validateToken(token);
+
+    if (!tokenValidation.success) {
+      throw new Error('Invalid token');
+    }
+
+    const userId = tokenValidation.data.user.id;
+    return this.authClient.send('auth.2fa.enable', { userId, password }).toPromise();
+  }
+
+  async verify2FASetup(token: string, secret: string, totpToken: string) {
+    // First validate the token to get user info
+    const tokenValidation = await this.validateToken(token);
+    if (!tokenValidation.success) {
+      throw new Error('Invalid token');
+    }
+
+    const userId = tokenValidation.data.user.id;
+    return this.authClient.send('auth.2fa.verify-setup', {
+      userId,
+      verifyDto: {
+        secret,
+        token: totpToken
+      }
+    }).toPromise();
+  }
+
+  async disable2FA(token: string, password: string, totpToken?: string) {
+    // First validate the token to get user info
+    const tokenValidation = await this.validateToken(token);
+    if (!tokenValidation.success) {
+      throw new Error('Invalid token');
+    }
+
+    const userId = tokenValidation.data.user.id;
+    return this.authClient.send('auth.2fa.disable', { userId, password, token: totpToken }).toPromise();
+  }
+
+  async loginWith2FA(tempToken: string, code: string, type?: string) {
+    return this.authClient.send('auth.login.2fa', { tempToken, code, type }).toPromise();
+  }
+
+  // ================================ User Management Methods ================================
+
+  async getUserProfile(userId: number) {
+    return this.authClient.send('auth.user.profile', userId).toPromise();
+  }
+
+  async updateUserProfile(userId: number, updateUserProfileDto: any) {
+    return this.authClient.send('auth.user.update-profile', {
+      userId,
+      updateUserProfileDto
+    }).toPromise();
+  }
+
+  async changePassword(userId: number, changePasswordDto: any) {
+ 
+    return this.authClient.send('auth.user.change-password', {
+      userId,
+      changePasswordDto
+    }).toPromise();
+  }
+
+  async requestPasswordReset(resetPasswordDto: any) {
+    return this.authClient.send('auth.password.reset-request', resetPasswordDto).toPromise();
   }
 }

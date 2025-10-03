@@ -12,12 +12,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Mail, Lock, Chrome, User } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Mail, Lock, Chrome, User, Smartphone } from 'lucide-react';
+import { toast } from 'sonner';
+import { authApi } from '@/lib/api';
 
 export default function LoginPage() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string>('');
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
   const { login, loginWithOAuth } = useAuth();
   const router = useRouter();
 
@@ -33,8 +40,38 @@ export default function LoginPage() {
     try {
       setError('');
       setLoading(true);
-      await login(data);
-      router.push('/dashboard');
+      
+      // Call login API directly to handle 2FA response
+      const response = await authApi.login(data);
+      
+      if (response.success && response.data) {
+        // Check if 2FA is required
+        if (response.requiresTwoFactor && response.data.tempToken) {
+          // Show 2FA modal
+          setTempToken(response.data.tempToken);
+          setShow2FAModal(true);
+          setLoading(false);
+          return;
+        }
+        
+        // Normal login - set auth data and redirect
+        const { user, token } = response.data;
+        if (user && token) {
+          // Update localStorage directly (same as AuthContext)
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(user));
+          
+          // Dispatch custom event to notify other components
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('userUpdated'));
+          }
+          
+          // Force page reload to ensure AuthContext re-initializes
+          window.location.href = '/dashboard';
+        }
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -52,6 +89,46 @@ export default function LoginPage() {
       setError(err.message);
     } finally {
       setOauthLoading('');
+    }
+  };
+
+  const handle2FAVerification = async () => {
+    if (!twoFactorCode || twoFactorCode.length !== 6) {
+      toast.error('กรุณาใส่รหัส 2FA 6 หลัก');
+      return;
+    }
+
+    try {
+      setTwoFactorLoading(true);
+      
+      // Call 2FA verification API
+      const response = await authApi.loginWith2FA(tempToken, twoFactorCode);
+      
+      if (response.success && response.data) {
+        const { user, token } = response.data;
+        if (user && token) {
+          // Update localStorage and redirect
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(user));
+          
+          // Dispatch custom event to notify other components
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('userUpdated'));
+          }
+          
+          setShow2FAModal(false);
+          toast.success('เข้าสู่ระบบสำเร็จ');
+          
+          // Force page reload to ensure AuthContext re-initializes
+          window.location.href = '/dashboard';
+        }
+      } else {
+        throw new Error(response.message || 'รหัส 2FA ไม่ถูกต้อง');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'รหัส 2FA ไม่ถูกต้อง');
+    } finally {
+      setTwoFactorLoading(false);
     }
   };
 
@@ -207,6 +284,61 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* 2FA Verification Modal */}
+      <Dialog open={show2FAModal} onOpenChange={setShow2FAModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5 text-blue-600" />
+              ยืนยันตัวตนสองขั้นตอน
+            </DialogTitle>
+            <DialogDescription>
+              กรุณาใส่รหัส 6 หลักจากแอป Authenticator ของคุณ
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="twoFactorCode" className="text-sm font-medium">
+                รหัส 2FA (6 หลัก)
+              </Label>
+              <Input
+                id="twoFactorCode"
+                type="text"
+                placeholder="123456"
+                maxLength={6}
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
+                className="text-center text-lg tracking-widest font-mono"
+                autoComplete="off"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShow2FAModal(false);
+                  setTwoFactorCode('');
+                  setTempToken('');
+                }}
+                className="flex-1"
+                disabled={twoFactorLoading}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                onClick={handle2FAVerification}
+                disabled={twoFactorLoading || twoFactorCode.length !== 6}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                {twoFactorLoading ? 'กำลังตรวจสอบ...' : 'ยืนยัน'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

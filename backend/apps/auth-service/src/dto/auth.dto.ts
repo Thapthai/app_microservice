@@ -170,3 +170,63 @@ export class LoginWith2FADto {
   @IsEnum(TwoFactorType)
   type?: TwoFactorType;
 }
+
+// ================================ User Management DTOs ================================
+
+export class ChangePasswordDto {
+  @IsNotEmpty()
+  @IsString()
+  currentPassword: string; // Current password for verification
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8, { message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร' })
+
+  newPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  confirmPassword: string; // Must match newPassword
+}
+
+export class UpdateUserProfileDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsEnum(AuthMethod)
+  preferredAuthMethod?: AuthMethod;
+
+  @IsNotEmpty()
+  @IsString()
+  currentPassword: string; // Required for verification when updating sensitive data
+}
+
+export class ResetPasswordDto {
+  @IsEmail()
+  email: string;
+}
+
+export class ConfirmResetPasswordDto {
+  @IsNotEmpty()
+  @IsString()
+  token: string; // Reset token from email
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8, { message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/, {
+    message: 'รหัสผ่านใหม่ต้องมีตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และอักษรพิเศษ'
+  })
+  newPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  confirmPassword: string; // Must match newPassword
+}

@@ -28,7 +28,24 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize user from localStorage synchronously to prevent null flash
+  const getInitialUser = (): User | null => {
+    if (typeof window !== 'undefined') {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          return userData.user || userData;
+        } catch (error) {
+          console.error('Failed to parse saved user:', error);
+          return null;
+        }
+      }
+    }
+    return null;
+  };
+
+  const [user, setUser] = useState<User | null>(getInitialUser());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,13 +55,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (token && savedUser) {
         try {
-          // Parse and set user data from localStorage first
+          // Parse and set user data from localStorage first (if not already set)
           const userData = JSON.parse(savedUser);
-
-          // Check if userData is wrapped in another object
           const actualUser = userData.user || userData;
 
-          setUser(actualUser);
+          // Only set if user is not already set (to prevent unnecessary re-renders)
+          if (!user) {
+            setUser(actualUser);
+          }
 
           // Then validate token with backend (optional)
           try {

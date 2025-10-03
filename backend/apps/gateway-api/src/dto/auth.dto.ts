@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, IsOptional, IsEnum } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsOptional, IsEnum, MinLength, Matches } from 'class-validator';
 
 export enum AuthMethod {
   JWT = 'jwt',
@@ -54,4 +54,46 @@ export class OAuth2LoginDto {
   @IsOptional()
   @IsString()
   state?: string;
+}
+
+// ================================ User Management DTOs ================================
+
+export class ChangePasswordDto {
+  @IsNotEmpty()
+  @IsString()
+  currentPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8, { message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร' })
+
+  newPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  confirmPassword: string;
+}
+
+export class UpdateUserProfileDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsEnum(AuthMethod)
+  preferredAuthMethod?: AuthMethod;
+
+  @IsNotEmpty()
+  @IsString()
+  currentPassword: string;
+}
+
+export class ResetPasswordDto {
+  @IsEmail()
+  email: string;
 }

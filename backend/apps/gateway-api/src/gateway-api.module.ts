@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { GatewayApiController } from './gateway-api.controller';
 import { GatewayApiService } from './gateway-api.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -33,6 +34,6 @@ import { GatewayApiService } from './gateway-api.service';
     ]),
   ],
   controllers: [GatewayApiController],
-  providers: [GatewayApiService],
+  providers: [GatewayApiService, JwtAuthGuard],
 })
 export class GatewayApiModule {}

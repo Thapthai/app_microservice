@@ -38,12 +38,6 @@ export class EmailServiceService {
       from: process.env.SMTP_FROM || 'noreply@example.com'
     };
     
-    console.log('Final SMTP config:', {
-      host: this.emailConfig.host,
-      port: this.emailConfig.port,
-      secure: this.emailConfig.secure,
-      user: this.emailConfig.auth.user
-    });
   }
 
   private createTransporter() {

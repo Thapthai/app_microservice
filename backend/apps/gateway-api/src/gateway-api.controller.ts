@@ -1,6 +1,7 @@
-import { Controller, Post, Body, Get, Headers, HttpException, HttpStatus, Put, Delete, Param, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
+import { Controller, Post, Body, Get, Headers, HttpException, HttpStatus, Put, Delete, Param, Query, ParseIntPipe, DefaultValuePipe, UseGuards, Request } from '@nestjs/common';
 import { GatewayApiService } from './gateway-api.service';
-import { RegisterDto, LoginDto, CreateItemDto, UpdateItemDto } from './dto';
+import { RegisterDto, LoginDto, CreateItemDto, UpdateItemDto, ChangePasswordDto, UpdateUserProfileDto, ResetPasswordDto } from './dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('api')
 export class GatewayApiController {
@@ -100,12 +101,161 @@ export class GatewayApiController {
     }
   }
 
+  // ================================ 2FA Endpoints ================================
+
+  @Post('auth/2fa/enable')
+  async enable2FA(@Body() data: { password: string }, @Headers('authorization') authorization: string) {
+    try {
+      if (!authorization) {
+        throw new HttpException('Authorization header is required', HttpStatus.UNAUTHORIZED);
+      }
+
+      const token = authorization.replace('Bearer ', '');
+      const result = await this.gatewayApiService.enable2FA(token, data.password);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to enable 2FA',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('auth/2fa/verify-setup')
+  async verify2FASetup(@Body() data: { secret: string; token: string }, @Headers('authorization') authorization: string) {
+    try {
+      if (!authorization) {
+        throw new HttpException('Authorization header is required', HttpStatus.UNAUTHORIZED);
+      }
+
+      const authToken = authorization.replace('Bearer ', '');
+      const result = await this.gatewayApiService.verify2FASetup(authToken, data.secret, data.token);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to verify 2FA setup',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('auth/2fa/disable')
+  async disable2FA(@Body() data: { password: string; token?: string }, @Headers('authorization') authorization: string) {
+    try {
+      if (!authorization) {
+        throw new HttpException('Authorization header is required', HttpStatus.UNAUTHORIZED);
+      }
+
+      const authToken = authorization.replace('Bearer ', '');
+      const result = await this.gatewayApiService.disable2FA(authToken, data.password, data.token);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to disable 2FA',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('auth/login/2fa')
+  async loginWith2FA(@Body() data: { tempToken: string; code: string; type?: string }) {
+    try {
+      const result = await this.gatewayApiService.loginWith2FA(data.tempToken, data.code, data.type);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || '2FA verification failed',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ==================================== User Management Endpoints ====================================
+
+  @Get('auth/user/profile')
+  @UseGuards(JwtAuthGuard)
+  async getUserProfile(@Request() req: any) {
+    try {
+      const userId = req.user.user.id;
+      const result = await this.gatewayApiService.getUserProfile(userId);
+
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+      }
+
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get user profile',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Put('auth/user/profile')
+  @UseGuards(JwtAuthGuard)
+  async updateUserProfile(@Body() updateUserProfileDto: UpdateUserProfileDto, @Request() req: any) {
+    try {
+      const userId = req.user.user.id;
+      const result = await this.gatewayApiService.updateUserProfile(userId, updateUserProfileDto);
+
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+      }
+
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update user profile',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('auth/user/change-password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(@Body() changePasswordDto: ChangePasswordDto, @Request() req: any) {
+    try {
+      const userId = req.user.user.id;
+
+      const result = await this.gatewayApiService.changePassword(userId, changePasswordDto);
+
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+      }
+
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to change password',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+  }
+
+  @Post('auth/password/reset-request')
+  async requestPasswordReset(@Body() resetPasswordDto: ResetPasswordDto) {
+    try {
+      const result = await this.gatewayApiService.requestPasswordReset(resetPasswordDto);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to request password reset',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // ==================================== Item Endpoints ====================================
   @Post('items')
-  async createItem(@Body() createItemDto: CreateItemDto) {
+  @UseGuards(JwtAuthGuard)
+  async createItem(@Body() createItemDto: CreateItemDto, @Request() req: any) {
     try {
-      const result = await this.gatewayApiService.createItem(createItemDto);
+      // User data is available from JWT token via req.user
+      // console.log('Authenticated user:', req.user);
 
+      const result = await this.gatewayApiService.createItem(createItemDto);
       return result;
     } catch (error) {
       throw new HttpException(
@@ -116,7 +266,9 @@ export class GatewayApiController {
   }
 
   @Get('items')
+  @UseGuards(JwtAuthGuard)
   async findAllItems(
+    @Request() req: any,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('keyword') keyword?: string,
@@ -135,7 +287,8 @@ export class GatewayApiController {
   }
 
   @Get('items/:id')
-  async findOneItem(@Param('id', ParseIntPipe) id: number) {
+  @UseGuards(JwtAuthGuard)
+  async findOneItem(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     try {
       const result = await this.gatewayApiService.findOneItem(id);
 
@@ -149,9 +302,11 @@ export class GatewayApiController {
   }
 
   @Put('items/:id')
+  @UseGuards(JwtAuthGuard)
   async updateItem(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateItemDto: UpdateItemDto,
+    @Request() req: any,
   ) {
     try {
       const result = await this.gatewayApiService.updateItem(id, updateItemDto);
@@ -165,7 +320,8 @@ export class GatewayApiController {
   }
 
   @Delete('items/:id')
-  async removeItem(@Param('id', ParseIntPipe) id: number) {
+  @UseGuards(JwtAuthGuard)
+  async removeItem(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     try {
       const result = await this.gatewayApiService.removeItem(id);
       return result;
@@ -178,12 +334,12 @@ export class GatewayApiController {
   }
 
   // ==================================== Email Endpoints ====================================
-  
+
   @Post('email/test')
   async testEmail(@Body() data: { email: string; name?: string }) {
     try {
       const result = await this.gatewayApiService.sendWelcomeEmail(
-        data.email, 
+        data.email,
         data.name || 'Test User'
       );
       return result;

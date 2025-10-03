@@ -4,6 +4,7 @@ export interface ApiResponse<T = any> {
   message?: string;
   data?: T;
   token?: string;
+  requiresTwoFactor?: boolean;
 }
 
 // Auth Response Types
@@ -11,6 +12,7 @@ export interface AuthResponse {
   user: User;
   token: string;
   accessToken?: string;
+  tempToken?: string;
 }
 
 // User Types
@@ -19,6 +21,8 @@ export interface User {
   email: string;
   name: string;
   twoFactorEnabled: boolean;
+  preferredAuthMethod?: string; // 'jwt' | 'oauth2' | 'api_key'
+  hasPassword?: boolean; // true if user has password (for JWT users)
   createdAt?: string;
   updatedAt?: string;
 }
