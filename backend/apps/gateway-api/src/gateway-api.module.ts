@@ -11,24 +11,32 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
         name: 'AUTH_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
-          port: 3001,
+          host: process.env.AUTH_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.AUTH_SERVICE_PORT || '3001', 10),
         },
       },
       {
         name: 'ITEM_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
-          port: 3002,
-        },
+          host: process.env.ITEM_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.ITEM_SERVICE_PORT || '3002', 10),
+        }, 
       },
       {
         name: 'EMAIL_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
-          port: 3003,
+          host: process.env.EMAIL_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.EMAIL_SERVICE_PORT || '3003', 10),
+        },
+      },
+      {
+        name: 'CATEGORY_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: process.env.CATEGORY_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.CATEGORY_SERVICE_PORT || '3004', 10),
         },
       },
     ]),

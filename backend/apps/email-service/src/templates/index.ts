@@ -84,7 +84,7 @@ API Key ใหม่ถูกสร้างสำหรับบัญชีข
 - ชื่อ: {{keyName}}
 - Prefix: {{keyPrefix}}
 - สร้างเมื่อ: {{createdAt}}
-- หมดอายุ: {{expiresAt}}
+- หมดอายุ: {{expires_at}}
 
 กรุณาเก็บ API Key ไว้อย่างปลอดภัย
 
@@ -122,7 +122,7 @@ API Key ใหม่ถูกสร้างสำหรับบัญชีข
                     <li><strong>ชื่อ:</strong> {{keyName}}</li>
                     <li><strong>Prefix:</strong> {{keyPrefix}}</li>
                     <li><strong>สร้างเมื่อ:</strong> {{createdAt}}</li>
-                    <li><strong>หมดอายุ:</strong> {{expiresAt}}</li>
+                    <li><strong>หมดอายุ:</strong> {{expires_at}}</li>
                 </ul>
             </div>
             

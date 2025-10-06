@@ -7,7 +7,7 @@ export interface TOTPSetupResult {
   secret: string;
   qrCodeUrl: string;
   qrCodeDataURL: string;
-  backupCodes: string[];
+  backup_codes: string[];
 }
 
 @Injectable()
@@ -41,13 +41,13 @@ export class TOTPService {
     const qrCodeDataURL = await qrcode.toDataURL(otpauthUrl);
     
     // Generate backup codes
-    const backupCodes = this.generateBackupCodes();
+    const backup_codes = this.generateBackupCodes();
     
     return {
       secret,
       qrCodeUrl: otpauthUrl,
       qrCodeDataURL,
-      backupCodes
+      backup_codes
     };
   }
 
@@ -99,9 +99,9 @@ export class TOTPService {
   /**
    * Verify backup code
    */
-  verifyBackupCode(inputCode: string, backupCodesJson: string): boolean {
+  verifyBackupCode(inputCode: string, backup_codes_json: string): boolean {
     try {
-      const hashedCodes = JSON.parse(backupCodesJson);
+      const hashedCodes = JSON.parse(backup_codes_json);
       const hashedInput = crypto.createHash('sha256').update(inputCode).digest('hex');
       return hashedCodes.includes(hashedInput);
     } catch (error) {
@@ -112,14 +112,14 @@ export class TOTPService {
   /**
    * Remove used backup code
    */
-  removeUsedBackupCode(usedCode: string, backupCodesJson: string): string {
+  removeUsedBackupCode(usedCode: string, backup_codes_json: string): string {
     try {
-      const hashedCodes = JSON.parse(backupCodesJson);
+      const hashedCodes = JSON.parse(backup_codes_json);
       const hashedUsed = crypto.createHash('sha256').update(usedCode).digest('hex');
       const updatedCodes = hashedCodes.filter((code: string) => code !== hashedUsed);
       return JSON.stringify(updatedCodes);
     } catch (error) {
-      return backupCodesJson;
+      return backup_codes_json;
     }
   }
 

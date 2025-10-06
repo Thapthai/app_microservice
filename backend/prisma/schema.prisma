@@ -11,96 +11,112 @@ datasource db {
 }
 
 model User {
-  id                  Int               @id @default(autoincrement())
-  email               String            @unique
-  password            String?           // Optional for OAuth users
-  name                String
-  isActive            Boolean           @default(true)
-  emailVerified       Boolean           @default(false)
-  preferredAuthMethod String            @default("jwt") // jwt, oauth2, api_key
-  lastLoginAt         DateTime?
-  
+  id                    Int       @id @default(autoincrement())
+  email                 String    @unique
+  password              String? // Optional for OAuth users
+  name                  String
+  is_active             Boolean   @default(true)
+  email_verified        Boolean   @default(false)
+  preferred_auth_method String    @default("jwt") // jwt, oauth2, api_key
+  last_login_at         DateTime?
+
   // 2FA Fields
-  twoFactorEnabled    Boolean           @default(false) @map("two_factor_enabled")
-  twoFactorSecret     String?           @map("two_factor_secret") // TOTP secret
-  backupCodes         String?           @map("backup_codes") @db.Text // JSON string of backup codes
-  twoFactorVerifiedAt DateTime?         @map("two_factor_verified_at")
-  
-  createdAt           DateTime          @default(now()) @map("created_at")
-  updatedAt           DateTime          @updatedAt @map("updated_at")
-  
+  two_factor_enabled     Boolean   @default(false) @map("two_factor_enabled")
+  two_factor_secret      String?   @map("two_factor_secret") // TOTP secret
+  backup_codes           String?   @map("backup_codes") @db.Text // JSON string of backup codes
+  two_factor_verified_at DateTime? @map("two_factor_verified_at")
+
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
+
   // Relations
-  oauthAccounts       OAuthAccount[]
-  apiKeys             ApiKey[]
-  refreshTokens       RefreshToken[]
-  twoFactorTokens     TwoFactorToken[]
-  
+  oauth_accounts    OAuthAccount[]
+  api_keys          ApiKey[]
+  refreshTokens     RefreshToken[]
+  two_factor_tokens TwoFactorToken[]
+
   @@map("users")
 }
 
 model OAuthAccount {
-  id           Int      @id @default(autoincrement())
-  userId       Int      @map("user_id")
-  provider     String   // google, github, facebook, etc.
-  providerId   String   @map("provider_id")
-  accessToken  String?  @map("access_token") @db.Text
-  refreshToken String?  @map("refresh_token") @db.Text
-  expiresAt    DateTime? @map("expires_at")
-  tokenType    String?  @map("token_type")
-  scope        String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([provider, providerId])
+  id            Int       @id @default(autoincrement())
+  user_id       Int       @map("user_id")
+  provider      String // google, github, facebook, etc.
+  provider_id   String    @map("provider_id")
+  access_token  String?   @map("access_token") @db.Text
+  refresh_token String?   @map("refresh_token") @db.Text
+  expires_at    DateTime? @map("expires_at")
+  token_type    String?   @map("token_type")
+  scope         String?
+  created_at    DateTime  @default(now()) @map("created_at")
+  updated_at    DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, provider_id])
   @@map("oauth_accounts")
 }
 
 model ApiKey {
-  id          Int       @id @default(autoincrement())
-  userId      Int       @map("user_id")
-  name        String
-  description String?
-  keyHash     String    @unique @map("key_hash")
-  prefix      String    // First 8 chars for identification
-  isActive    Boolean   @default(true) @map("is_active")
-  lastUsedAt  DateTime? @map("last_used_at")
-  expiresAt   DateTime? @map("expires_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id           Int       @id @default(autoincrement())
+  user_id      Int       @map("user_id")
+  name         String
+  description  String?
+  key_hash     String    @unique @map("key_hash")
+  prefix       String // First 8 chars for identification
+  is_active    Boolean   @default(true) @map("is_active")
+  last_used_at DateTime? @map("last_used_at")
+  expires_at   DateTime? @map("expires_at")
+  created_at   DateTime  @default(now()) @map("created_at")
+  updated_at   DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@map("api_keys")
 }
 
 model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  token     String   @unique
-  expiresAt DateTime @map("expires_at")
-  isRevoked Boolean  @default(false) @map("is_revoked")
-  createdAt DateTime @default(now()) @map("created_at")
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id         Int      @id @default(autoincrement())
+  user_id    Int      @map("user_id")
+  token      String   @unique
+  expires_at DateTime @map("expires_at")
+  is_revoked Boolean  @default(false) @map("is_revoked")
+  created_at DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@map("refresh_tokens")
 }
 
 model TwoFactorToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  token     String   
-  type      String   // 'email_otp', 'sms_otp', 'backup_code'
-  expiresAt DateTime @map("expires_at")
-  isUsed    Boolean  @default(false) @map("is_used")
-  createdAt DateTime @default(now()) @map("created_at")
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, type])
+  id         Int      @id @default(autoincrement())
+  user_id    Int      @map("user_id")
+  token      String
+  type       String // 'email_otp', 'sms_otp', 'backup_code'
+  expires_at DateTime @map("expires_at")
+  isUsed     Boolean  @default(false) @map("is_used")
+  created_at DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, type])
   @@map("two_factor_tokens")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  slug        String   @unique
+  image       String?
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now()) @map("created_at")
+  updated_at  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  items Item[]
+
+  @@map("categories")
 }
 
 model Item {
@@ -109,8 +125,13 @@ model Item {
   description String?
   price       Float
   quantity    Int      @default(0)
-  category    String?
-  isActive    Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  category_id Int?     @map("category_id")
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now()) @map("created_at")
+  updated_at  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  category Category? @relation(fields: [category_id], references: [id], onDelete: Cascade)
+
+  @@map("items")
 }

@@ -1,5 +1,8 @@
 # Email Service Dockerfile
-FROM node:18-alpine
+FROM node:18-alpine AS base
+
+# Install curl for health checks
+RUN apk add --no-cache curl
 
 WORKDIR /app
 
@@ -8,25 +11,48 @@ COPY package*.json ./
 COPY tsconfig*.json ./
 COPY nest-cli.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Development stage
+FROM base AS development
+RUN npm ci
+COPY . .
+CMD ["npm", "run", "start:email:dev"]
 
-# Copy source code
-COPY apps/email-service ./apps/email-service
-COPY prisma ./prisma
-
-# Generate Prisma client (for database connection if needed)
-RUN npx prisma generate
-
-# Build the application
+# Build stage
+FROM base AS build
+RUN npm ci --include=dev
+COPY . .
 RUN npm run build:email
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy package files and install production dependencies
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application
+COPY --from=build /app/dist ./dist
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nestjs -u 1001
+USER nestjs
 
 # Expose port
 EXPOSE 3003
 
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=3003
+
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD netstat -an | grep 3003 > /dev/null; if [ 0 != $? ]; then exit 1; fi;
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3003/health || exit 1
 
 # Start the application
-CMD ["npm", "run", "start:email:prod"]
+CMD ["node", "dist/apps/email-service/main"]

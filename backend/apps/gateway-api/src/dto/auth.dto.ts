@@ -26,7 +26,7 @@ export class RegisterDto {
 
   @IsOptional()
   @IsEnum(AuthMethod)
-  preferredAuthMethod?: AuthMethod;
+  preferred_auth_method?: AuthMethod;
 }
 
 export class LoginDto {
@@ -86,7 +86,7 @@ export class UpdateUserProfileDto {
 
   @IsOptional()
   @IsEnum(AuthMethod)
-  preferredAuthMethod?: AuthMethod;
+  preferred_auth_method?: AuthMethod;
 
   @IsNotEmpty()
   @IsString()

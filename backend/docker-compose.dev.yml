@@ -1,0 +1,169 @@
+version: '3.8'
+
+services:
+  # Database
+  database:
+    image: mysql:8.0
+    container_name: pose-database-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-userpassword}
+      MYSQL_DATABASE: ${DB_NAME:-pose_microservice_dev}
+      MYSQL_USER: ${DB_USER:-pose_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-userpassword}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+    networks:
+      - pose-dev-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis (for caching and sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: pose-redis-dev
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - pose-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 20s
+      retries: 10
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.auth
+      target: development
+    container_name: pose-auth-service-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-24h}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3001}
+    ports:
+      - "${AUTH_SERVICE_PORT:-3001}:3001"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - pose-dev-network
+    volumes:
+      - ./apps/auth-service:/app/apps/auth-service
+      - ./prisma:/app/prisma
+      - /app/node_modules
+
+  # Item Service
+  item-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.item
+      target: development
+    container_name: pose-item-service-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-encryption-key-32-chars-long}
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3001}
+    ports:
+      - "${ITEM_SERVICE_PORT:-3002}:3002"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - pose-dev-network
+    volumes:
+      - ./apps/item-service:/app/apps/item-service
+      - ./prisma:/app/prisma
+      - /app/node_modules
+
+  # Email Service
+  email-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.email
+      target: development
+    container_name: pose-email-service-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - APP_NAME=${APP_NAME:-POSE Microservice Dev}
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL}
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+    ports:
+      - "${EMAIL_SERVICE_PORT:-3003}:3003"
+    networks:
+      - pose-dev-network
+    volumes:
+      - ./apps/email-service:/app/apps/email-service
+      - /app/node_modules
+
+  # Gateway API
+  gateway-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+      target: development
+    container_name: pose-gateway-api-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-24h}
+      - AUTH_SERVICE_HOST=${AUTH_SERVICE_HOST:-auth-service}
+      - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT:-3001}
+      - ITEM_SERVICE_HOST=${ITEM_SERVICE_HOST:-item-service}
+      - ITEM_SERVICE_PORT=${ITEM_SERVICE_PORT:-3002}
+      - EMAIL_SERVICE_HOST=${EMAIL_SERVICE_HOST:-email-service}
+      - EMAIL_SERVICE_PORT=${EMAIL_SERVICE_PORT:-3003}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3001}
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    depends_on:
+      - auth-service
+      - item-service
+      - email-service
+      - redis
+    networks:
+      - pose-dev-network
+    volumes:
+      - ./apps/gateway-api:/app/apps/gateway-api
+      - ./prisma:/app/prisma
+      - /app/node_modules
+
+networks:
+  pose-dev-network:
+    driver: bridge
+
+volumes:
+  mysql_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local

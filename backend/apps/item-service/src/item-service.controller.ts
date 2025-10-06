@@ -41,7 +41,7 @@ export class ItemServiceController {
   }
 
   @MessagePattern('item.findByUser')
-  async findItemsByUser(@Payload() userId: number) {
-    return this.itemServiceService.findItemsByUser(userId);
+  async findItemsByUser(@Payload() user_id: number) {
+    return this.itemServiceService.findItemsByUser(user_id);
   }
 }

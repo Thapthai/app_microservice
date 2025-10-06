@@ -30,7 +30,7 @@ export class RegisterDto {
 
   @IsOptional()
   @IsEnum(AuthMethod)
-  preferredAuthMethod?: AuthMethod;
+  preferred_auth_method?: AuthMethod;
 }
 
 export class LoginDto {
@@ -43,7 +43,7 @@ export class LoginDto {
 
   @IsOptional()
   @IsEnum(AuthMethod)
-  authMethod?: AuthMethod;
+  auth_method?: AuthMethod;
 }
 
 export class OAuth2LoginDto {
@@ -75,13 +75,13 @@ export class ApiKeyCreateDto {
 
   @IsOptional()
   @IsString()
-  expiresAt?: string; // ISO date string
+  expires_at?: string; // ISO date string
 }
 
 export class RefreshTokenDto {
   @IsNotEmpty()
   @IsString()
-  refreshToken: string;
+  refresh_token: string;
 }
 
 export class RevokeTokenDto {
@@ -91,7 +91,7 @@ export class RevokeTokenDto {
 
   @IsOptional()
   @IsEnum(AuthMethod)
-  tokenType?: AuthMethod;
+  token_type?: AuthMethod;
 }
 
 // ================================ 2FA DTOs ================================
@@ -201,7 +201,7 @@ export class UpdateUserProfileDto {
 
   @IsOptional()
   @IsEnum(AuthMethod)
-  preferredAuthMethod?: AuthMethod;
+  preferred_auth_method?: AuthMethod;
 
   @IsNotEmpty()
   @IsString()

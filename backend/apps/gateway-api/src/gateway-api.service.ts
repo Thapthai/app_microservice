@@ -8,6 +8,7 @@ export class GatewayApiService {
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
     @Inject('ITEM_SERVICE') private readonly itemClient: ClientProxy,
     @Inject('EMAIL_SERVICE') private readonly emailClient: ClientProxy,
+    @Inject('CATEGORY_SERVICE') private readonly categoryClient: ClientProxy,
   ) { }
 
   getHello(): string {
@@ -56,8 +57,8 @@ export class GatewayApiService {
     return this.itemClient.send('item.remove', id).toPromise();
   }
 
-  async findItemsByUser(userId: number) {
-    return this.itemClient.send('item.findByUser', userId).toPromise();
+  async findItemsByUser(user_id: number) {
+    return this.itemClient.send('item.findByUser', user_id).toPromise();
   }
 
   // ==================================== Email Service Methods ====================================
@@ -106,8 +107,8 @@ export class GatewayApiService {
       throw new Error('Invalid token');
     }
 
-    const userId = tokenValidation.data.user.id;
-    return this.authClient.send('auth.2fa.enable', { userId, password }).toPromise();
+    const user_id = tokenValidation.data.user.id;
+    return this.authClient.send('auth.2fa.enable', { user_id, password }).toPromise();
   }
 
   async verify2FASetup(token: string, secret: string, totpToken: string) {
@@ -117,9 +118,9 @@ export class GatewayApiService {
       throw new Error('Invalid token');
     }
 
-    const userId = tokenValidation.data.user.id;
+    const user_id = tokenValidation.data.user.id;
     return this.authClient.send('auth.2fa.verify-setup', {
-      userId,
+      user_id,
       verifyDto: {
         secret,
         token: totpToken
@@ -134,8 +135,8 @@ export class GatewayApiService {
       throw new Error('Invalid token');
     }
 
-    const userId = tokenValidation.data.user.id;
-    return this.authClient.send('auth.2fa.disable', { userId, password, token: totpToken }).toPromise();
+    const user_id = tokenValidation.data.user.id;
+    return this.authClient.send('auth.2fa.disable', { user_id, password, token: totpToken }).toPromise();
   }
 
   async loginWith2FA(tempToken: string, code: string, type?: string) {
@@ -144,26 +145,60 @@ export class GatewayApiService {
 
   // ================================ User Management Methods ================================
 
-  async getUserProfile(userId: number) {
-    return this.authClient.send('auth.user.profile', userId).toPromise();
+  async getUserProfile(user_id: number) {
+    return this.authClient.send('auth.user.profile', user_id).toPromise();
   }
 
-  async updateUserProfile(userId: number, updateUserProfileDto: any) {
+  async updateUserProfile(user_id: number, updateUserProfileDto: any) {
     return this.authClient.send('auth.user.update-profile', {
-      userId,
+      user_id,
       updateUserProfileDto
     }).toPromise();
   }
 
-  async changePassword(userId: number, changePasswordDto: any) {
- 
+  async changePassword(user_id: number, changePasswordDto: any) {
+
     return this.authClient.send('auth.user.change-password', {
-      userId,
+      user_id,
       changePasswordDto
     }).toPromise();
   }
 
   async requestPasswordReset(resetPasswordDto: any) {
     return this.authClient.send('auth.password.reset-request', resetPasswordDto).toPromise();
+  }
+
+  // ==================================== Category Service Methods ====================================
+
+  async createCategory(createCategoryDto: any) {
+    return this.categoryClient.send('category.create', createCategoryDto).toPromise();
+  }
+
+  async getCategories(params: { page: number; limit: number; parentId?: string }) {
+    return this.categoryClient.send('category.findAll', params).toPromise();
+  }
+
+  async getCategoryById(id: string) {
+    return this.categoryClient.send('category.findOne', id).toPromise();
+  }
+
+  async getCategoryBySlug(slug: string) {
+    return this.categoryClient.send('category.findBySlug', slug).toPromise();
+  }
+
+  async updateCategory(id: string, updateCategoryDto: any) {
+    return this.categoryClient.send('category.update', { id, updateCategoryDto }).toPromise();
+  }
+
+  async deleteCategory(id: string) {
+    return this.categoryClient.send('category.remove', id).toPromise();
+  }
+
+  async getCategoryTree() {
+    return this.categoryClient.send('category.getTree', {}).toPromise();
+  }
+
+  async getCategoryChildren(parentId: string) {
+    return this.categoryClient.send('category.getChildren', parentId).toPromise();
   }
 }

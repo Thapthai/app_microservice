@@ -71,12 +71,12 @@ export class AuthGuard implements CanActivate {
           id: true,
           email: true,
           name: true,
-          isActive: true,
-          preferredAuthMethod: true
+          is_active: true,
+          preferred_auth_method: true
         }
       });
 
-      if (!user || !user.isActive) {
+      if (!user || !user.is_active) {
         return null;
       }
 
@@ -101,7 +101,7 @@ export class AuthGuard implements CanActivate {
       const apiKeyRecord = await this.prisma.apiKey.findFirst({
         where: {
           prefix,
-          isActive: true
+          is_active: true
         },
         include: {
           user: {
@@ -109,24 +109,24 @@ export class AuthGuard implements CanActivate {
               id: true,
               email: true,
               name: true,
-              isActive: true,
-              preferredAuthMethod: true
+              is_active: true,
+              preferred_auth_method: true
             }
           }
         }
       });
 
-      if (!apiKeyRecord || !apiKeyRecord.user.isActive) {
+      if (!apiKeyRecord || !apiKeyRecord.user.is_active) {
         return null;
       }
 
       // Check if API key is expired
-      if (apiKeyRecord.expiresAt && this.apiKeyStrategy.isApiKeyExpired(apiKeyRecord.expiresAt)) {
+      if (apiKeyRecord.expires_at && this.apiKeyStrategy.isApiKeyExpired(apiKeyRecord.expires_at)) {
         return null;
       }
 
       // Verify the actual key
-      const isValid = await this.apiKeyStrategy.verifyApiKey(key, apiKeyRecord.keyHash);
+      const isValid = await this.apiKeyStrategy.verifyApiKey(key, apiKeyRecord.key_hash);
       if (!isValid) {
         return null;
       }
@@ -134,7 +134,7 @@ export class AuthGuard implements CanActivate {
       // Update last used timestamp
       await this.prisma.apiKey.update({
         where: { id: apiKeyRecord.id },
-        data: { lastUsedAt: new Date() }
+        data: { last_used_at: new Date() }
       });
 
       return {

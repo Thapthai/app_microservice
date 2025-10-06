@@ -1,8 +1,5 @@
-# Item Service Dockerfile
+# Category Service Dockerfile
 FROM node:18-alpine AS base
-
-# Install curl for health checks
-RUN apk add --no-cache curl
 
 WORKDIR /app
 
@@ -16,20 +13,17 @@ FROM base AS development
 RUN npm ci
 COPY . .
 RUN npx prisma generate
-CMD ["npm", "run", "start:item:dev"]
+CMD ["npm", "run", "start:category:dev"]
 
 # Build stage
 FROM base AS build
 RUN npm ci --include=dev
 COPY . .
 RUN npx prisma generate
-RUN npm run build:item
+RUN npm run build:category
 
 # Production stage
 FROM node:18-alpine AS production
-
-# Install curl for health checks
-RUN apk add --no-cache curl
 
 WORKDIR /app
 
@@ -48,15 +42,11 @@ RUN adduser -S nestjs -u 1001
 USER nestjs
 
 # Expose port
-EXPOSE 3002
+EXPOSE 3004
 
 # Environment variables
 ENV NODE_ENV=production
-ENV PORT=3002
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:3002/health || exit 1
+ENV PORT=3004
 
 # Start the application
-CMD ["node", "dist/apps/item-service/main"]
+CMD ["node", "dist/apps/category-service/main"]

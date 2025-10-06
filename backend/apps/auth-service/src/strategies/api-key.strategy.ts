@@ -4,12 +4,12 @@ import * as bcrypt from 'bcryptjs';
 
 export interface ApiKeyInfo {
   id: number;
-  userId: number;
+  user_id: number;
   name: string;
   prefix: string;
-  isActive: boolean;
-  lastUsedAt?: Date;
-  expiresAt?: Date;
+  is_active: boolean;
+  last_used_at?: Date;
+  expires_at?: Date;
 }
 
 @Injectable()
@@ -85,9 +85,9 @@ export class ApiKeyStrategy {
   /**
    * Check if API key is expired
    */
-  isApiKeyExpired(expiresAt?: Date): boolean {
-    if (!expiresAt) return false;
-    return new Date() > expiresAt;
+  isApiKeyExpired(expires_at?: Date): boolean {
+    if (!expires_at) return false;
+    return new Date() > expires_at;
   }
 
   /**

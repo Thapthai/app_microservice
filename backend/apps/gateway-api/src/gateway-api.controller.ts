@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Headers, HttpException, HttpStatus, Put, Delete, Param, Query, ParseIntPipe, DefaultValuePipe, UseGuards, Request } from '@nestjs/common';
 import { GatewayApiService } from './gateway-api.service';
-import { RegisterDto, LoginDto, CreateItemDto, UpdateItemDto, ChangePasswordDto, UpdateUserProfileDto, ResetPasswordDto } from './dto';
+import { RegisterDto, LoginDto, CreateItemDto, UpdateItemDto, ChangePasswordDto, UpdateUserProfileDto, ResetPasswordDto, CreateCategoryDto, UpdateCategoryDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('api')
@@ -176,8 +176,8 @@ export class GatewayApiController {
   @UseGuards(JwtAuthGuard)
   async getUserProfile(@Request() req: any) {
     try {
-      const userId = req.user.user.id;
-      const result = await this.gatewayApiService.getUserProfile(userId);
+      const user_id = req.user.user.id;
+      const result = await this.gatewayApiService.getUserProfile(user_id);
 
       if (!result.success) {
         throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
@@ -196,8 +196,8 @@ export class GatewayApiController {
   @UseGuards(JwtAuthGuard)
   async updateUserProfile(@Body() updateUserProfileDto: UpdateUserProfileDto, @Request() req: any) {
     try {
-      const userId = req.user.user.id;
-      const result = await this.gatewayApiService.updateUserProfile(userId, updateUserProfileDto);
+      const user_id = req.user.user.id;
+      const result = await this.gatewayApiService.updateUserProfile(user_id, updateUserProfileDto);
 
       if (!result.success) {
         throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
@@ -216,9 +216,9 @@ export class GatewayApiController {
   @UseGuards(JwtAuthGuard)
   async changePassword(@Body() changePasswordDto: ChangePasswordDto, @Request() req: any) {
     try {
-      const userId = req.user.user.id;
+      const user_id = req.user.user.id;
 
-      const result = await this.gatewayApiService.changePassword(userId, changePasswordDto);
+      const result = await this.gatewayApiService.changePassword(user_id, changePasswordDto);
 
       if (!result.success) {
         throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
@@ -365,5 +365,141 @@ export class GatewayApiController {
   }
 
   // ==================================== Item Endpoints ====================================
+
+  // ==================================== Category Endpoints ====================================
+
+  @Post('categories')
+  @UseGuards(JwtAuthGuard)
+  async createCategory(@Body() createCategoryDto: CreateCategoryDto) {
+    try {
+      const result = await this.gatewayApiService.createCategory(createCategoryDto);
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+      }
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to create category',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('categories')
+  @UseGuards(JwtAuthGuard)
+  async getCategories(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('parentId') parentId?: string,
+  ) {
+    try {
+      const result = await this.gatewayApiService.getCategories({ page, limit, parentId });
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch categories',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('categories/tree')
+  @UseGuards(JwtAuthGuard)
+  async getCategoryTree() {
+    try {
+      const result = await this.gatewayApiService.getCategoryTree();
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch category tree',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('categories/:id')
+  @UseGuards(JwtAuthGuard)
+  async getCategoryById(@Param('id') id: string) {
+    try {
+      const result = await this.gatewayApiService.getCategoryById(id);
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.NOT_FOUND);
+      }
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch category',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('categories/slug/:slug')
+  @UseGuards(JwtAuthGuard)
+  async getCategoryBySlug(@Param('slug') slug: string) {
+    try {
+      const result = await this.gatewayApiService.getCategoryBySlug(slug);
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.NOT_FOUND);
+      }
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch category',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Put('categories/:id')
+  @UseGuards(JwtAuthGuard)
+  async updateCategory(
+    @Param('id') id: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+  ) {
+    try {
+      const result = await this.gatewayApiService.updateCategory(id, updateCategoryDto);
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+      }
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update category',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete('categories/:id')
+  @UseGuards(JwtAuthGuard)
+  async deleteCategory(@Param('id') id: string) {
+    try {
+      const result = await this.gatewayApiService.deleteCategory(id);
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+      }
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to delete category',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('categories/:parentId/children')
+  @UseGuards(JwtAuthGuard)
+  async getCategoryChildren(@Param('parentId') parentId: string) {
+    try {
+      const result = await this.gatewayApiService.getCategoryChildren(parentId);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch category children',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
 }

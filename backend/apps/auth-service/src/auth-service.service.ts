@@ -87,7 +87,7 @@ export class AuthServiceService {
       }
 
       // Check if user is active
-      if (!user.isActive) {
+      if (!user.is_active) {
         return { success: false, message: 'Account is deactivated' };
       }
 
@@ -102,7 +102,7 @@ export class AuthServiceService {
       }
 
       // Check if 2FA is enabled
-      if (user.twoFactorEnabled) {
+      if (user.two_factor_enabled) {
         // Generate temporary token for 2FA step
         const tempPayload = {
           sub: user.id,
@@ -122,8 +122,8 @@ export class AuthServiceService {
               id: user.id,
               email: user.email,
               name: user.name,
-              twoFactorEnabled: true,
-              preferredAuthMethod: user.preferredAuthMethod,
+              two_factor_enabled: true,
+              preferred_auth_method: user.preferred_auth_method,
               hasPassword: !!user.password
             }
           }
@@ -133,7 +133,7 @@ export class AuthServiceService {
       // Update last login
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { lastLoginAt: new Date() }
+        data: { last_login_at: new Date() }
       });
 
       // Generate JWT token
@@ -148,8 +148,8 @@ export class AuthServiceService {
             id: user.id,
             email: user.email,
             name: user.name,
-            twoFactorEnabled: user.twoFactorEnabled,
-            preferredAuthMethod: user.preferredAuthMethod,
+            two_factor_enabled: user.two_factor_enabled,
+            preferred_auth_method: user.preferred_auth_method,
             hasPassword: !!user.password
           },
           token,
@@ -178,8 +178,8 @@ export class AuthServiceService {
             id: user.id,
             email: user.email,
             name: user.name,
-            twoFactorEnabled: user.twoFactorEnabled,
-            preferredAuthMethod: user.preferredAuthMethod,
+            two_factor_enabled: user.two_factor_enabled,
+            preferred_auth_method: user.preferred_auth_method,
             hasPassword: !!user.password
           },
         },
@@ -232,8 +232,8 @@ export class AuthServiceService {
           data: {
             email: userInfo.email,
             name: userInfo.name,
-            preferredAuthMethod: AuthMethod.OAUTH2,
-            emailVerified: true
+            preferred_auth_method: AuthMethod.OAUTH2,
+            email_verified: true
           }
         });
       }
@@ -241,38 +241,38 @@ export class AuthServiceService {
       // Update last login
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { lastLoginAt: new Date() }
+        data: { last_login_at: new Date() }
       });
 
       // Create or update OAuth account
       await this.prisma.oAuthAccount.upsert({
         where: {
-          provider_providerId: {
+          provider_provider_id: {
             provider: oauth2LoginDto.provider,
-            providerId: userInfo.id
+            provider_id: userInfo.id
           }
         },
         update: {
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          expiresAt: tokenData.expires_in ?
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_at: tokenData.expires_in ?
             new Date(Date.now() + tokenData.expires_in * 1000) : null,
-          tokenType: tokenData.token_type
+          token_type: tokenData.token_type
         },
         create: {
-          userId: user.id,
+          user_id: user.id,
           provider: oauth2LoginDto.provider,
-          providerId: userInfo.id,
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          expiresAt: tokenData.expires_in ?
+          provider_id: userInfo.id,
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_at: tokenData.expires_in ?
             new Date(Date.now() + tokenData.expires_in * 1000) : null,
-          tokenType: tokenData.token_type
+          token_type: tokenData.token_type
         }
       });
 
       // Generate JWT tokens
-      const { accessToken, refreshToken } = await this.generateTokens(user);
+      const { access_token, refresh_token } = await this.generateTokens(user);
 
       return {
         success: true,
@@ -282,11 +282,11 @@ export class AuthServiceService {
             id: user.id,
             email: user.email,
             name: user.name,
-            twoFactorEnabled: user.twoFactorEnabled || false,
-            preferredAuthMethod: user.preferredAuthMethod,
+            two_factor_enabled: user.two_factor_enabled || false,
+            preferred_auth_method: user.preferred_auth_method,
             hasPassword: !!user.password
           },
-          token: accessToken
+          token: access_token
         }
       };
     } catch (error) {
@@ -296,10 +296,10 @@ export class AuthServiceService {
 
   // ================================ API Key Methods ================================
 
-  async createApiKey(userId: number, apiKeyDto: ApiKeyCreateDto) {
+  async createApiKey(user_id: number, apiKeyDto: ApiKeyCreateDto) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: user_id }
       });
 
       if (!user) {
@@ -310,12 +310,12 @@ export class AuthServiceService {
 
       const apiKey = await this.prisma.apiKey.create({
         data: {
-          userId,
+          user_id,
           name: apiKeyDto.name,
           description: apiKeyDto.description,
-          keyHash: hash,
+          key_hash: hash,
           prefix,
-          expiresAt: apiKeyDto.expiresAt ? new Date(apiKeyDto.expiresAt) : null
+          expires_at: apiKeyDto.expires_at ? new Date(apiKeyDto.expires_at) : null
         }
       });
 
@@ -323,7 +323,7 @@ export class AuthServiceService {
       this.sendApiKeyCreatedEmail(user.email, user.name, {
         name: apiKey.name,
         prefix,
-        expiresAt: apiKey.expiresAt
+        expires_at: apiKey.expires_at
       }).catch(error => {
         console.error('Failed to send API key created email:', error);
       });
@@ -336,7 +336,7 @@ export class AuthServiceService {
           name: apiKey.name,
           key, // Only return the actual key once during creation
           prefix,
-          expiresAt: apiKey.expiresAt
+          expires_at: apiKey.expires_at
         }
       };
     } catch (error) {
@@ -344,20 +344,20 @@ export class AuthServiceService {
     }
   }
 
-  async listApiKeys(userId: number) {
+  async listApiKeys(user_id: number) {
     try {
       const apiKeys = await this.prisma.apiKey.findMany({
-        where: { userId, isActive: true },
+        where: { user_id, is_active: true },
         select: {
           id: true,
           name: true,
           description: true,
           prefix: true,
-          lastUsedAt: true,
-          expiresAt: true,
-          createdAt: true
+          last_used_at: true,
+          expires_at: true,
+          created_at: true
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { created_at: 'desc' }
       });
 
       return {
@@ -369,10 +369,10 @@ export class AuthServiceService {
     }
   }
 
-  async revokeApiKey(userId: number, apiKeyId: number) {
+  async revokeApiKey(user_id: number, apiKeyId: number) {
     try {
       const apiKey = await this.prisma.apiKey.findFirst({
-        where: { id: apiKeyId, userId }
+        where: { id: apiKeyId, user_id }
       });
 
       if (!apiKey) {
@@ -381,7 +381,7 @@ export class AuthServiceService {
 
       await this.prisma.apiKey.update({
         where: { id: apiKeyId },
-        data: { isActive: false }
+        data: { is_active: false }
       });
 
       return {
@@ -395,40 +395,40 @@ export class AuthServiceService {
 
   // ================================ Refresh Token Methods ================================
 
-  async refreshTokens(refreshTokenDto: RefreshTokenDto) {
+  async refresh_tokens(refreshTokenDto: RefreshTokenDto) {
     try {
-      const refreshTokenRecord = await this.prisma.refreshToken.findUnique({
-        where: { token: refreshTokenDto.refreshToken },
+      const refresh_token_record = await this.prisma.refreshToken.findUnique({
+        where: { token: refreshTokenDto.refresh_token },
         include: { user: true }
       });
 
-      if (!refreshTokenRecord || refreshTokenRecord.isRevoked) {
+      if (!refresh_token_record || refresh_token_record.is_revoked) {
         return { success: false, message: 'Invalid refresh token' };
       }
 
-      if (new Date() > refreshTokenRecord.expiresAt) {
+      if (new Date() > refresh_token_record.expires_at) {
         return { success: false, message: 'Refresh token expired' };
       }
 
       // Revoke old refresh token
       await this.prisma.refreshToken.update({
-        where: { id: refreshTokenRecord.id },
-        data: { isRevoked: true }
+        where: { id: refresh_token_record.id },
+        data: { is_revoked: true }
       });
 
       // Generate new tokens
-      const { accessToken, refreshToken } = await this.generateTokens(refreshTokenRecord.user);
+      const { access_token, refresh_token } = await this.generateTokens(refresh_token_record.user);
 
       return {
         success: true,
         message: 'Tokens refreshed successfully',
         data: {
-          accessToken,
-          refreshToken,
+          access_token,
+          refresh_token,
           user: {
-            id: refreshTokenRecord.user.id,
-            email: refreshTokenRecord.user.email,
-            name: refreshTokenRecord.user.name
+            id: refresh_token_record.user.id,
+            email: refresh_token_record.user.email,
+            name: refresh_token_record.user.name
           }
         }
       };
@@ -441,22 +441,22 @@ export class AuthServiceService {
 
   private async generateTokens(user: any) {
     const payload = { sub: user.id, email: user.email, name: user.name };
-    const accessToken = this.jwtService.sign(payload);
+    const access_token = this.jwtService.sign(payload);
 
     // Generate refresh token
-    const refreshToken = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+    const refresh_token = crypto.randomBytes(32).toString('hex');
+    const expires_at = new Date();
+    expires_at.setDate(expires_at.getDate() + 30); // 30 days
 
     await this.prisma.refreshToken.create({
       data: {
-        userId: user.id,
-        token: refreshToken,
-        expiresAt
+        user_id: user.id,
+        token: refresh_token,
+        expires_at
       }
     });
 
-    return { accessToken, refreshToken };
+    return { access_token, refresh_token };
   }
 
   // ================================ Email Helper Methods ================================
@@ -513,10 +513,10 @@ export class AuthServiceService {
 
   // ================================ 2FA Methods ================================
 
-  async setupTOTP(userId: number, password: string) {
+  async setupTOTP(user_id: number, password: string) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: user_id }
       });
 
       if (!user) {
@@ -529,7 +529,7 @@ export class AuthServiceService {
       }
 
       // Check if 2FA is already enabled
-      if (user.twoFactorEnabled) {
+      if (user.two_factor_enabled) {
         return { success: false, message: '2FA is already enabled' };
       }
 
@@ -543,7 +543,7 @@ export class AuthServiceService {
           secret: totpSetup.secret,
           qrCodeUrl: totpSetup.qrCodeUrl,
           qrCodeDataURL: totpSetup.qrCodeDataURL,
-          backupCodes: totpSetup.backupCodes
+          backup_codes: totpSetup.backup_codes
         }
       };
     } catch (error) {
@@ -551,10 +551,10 @@ export class AuthServiceService {
     }
   }
 
-  async verifyAndEnable2FA(userId: number, secret: string, token: string) {
+  async verifyAndEnable2FA(user_id: number, secret: string, token: string) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: user_id }
       });
 
       if (!user) {
@@ -567,17 +567,17 @@ export class AuthServiceService {
       }
 
       // Generate and hash backup codes
-      const backupCodes = this.totpService.generateBackupCodes();
-      const hashedBackupCodes = this.totpService.hashBackupCodes(backupCodes);
+      const backup_codes = this.totpService.generateBackupCodes();
+      const hashedBackupCodes = this.totpService.hashBackupCodes(backup_codes);
 
       // Enable 2FA
       await this.prisma.user.update({
-        where: { id: userId },
+        where: { id: user_id },
         data: {
-          twoFactorEnabled: true,
-          twoFactorSecret: secret,
-          backupCodes: JSON.stringify(hashedBackupCodes),
-          twoFactorVerifiedAt: new Date()
+          two_factor_enabled: true,
+          two_factor_secret: secret,
+          backup_codes: JSON.stringify(hashedBackupCodes),
+          two_factor_verified_at: new Date()
         }
       });
 
@@ -585,7 +585,7 @@ export class AuthServiceService {
         success: true,
         message: '2FA enabled successfully',
         data: {
-          backupCodes // Show backup codes once
+          backup_codes: backup_codes // Show backup codes once
         }
       };
     } catch (error) {
@@ -593,23 +593,23 @@ export class AuthServiceService {
     }
   }
 
-  async enable2FA(enable2FADto: { userId: number; password: string }) {
+  async enable2FA(enable2FADto: { user_id: number; password: string }) {
     try {
-      const { userId, password } = enable2FADto;
+      const { user_id, password } = enable2FADto;
 
-      if (!userId) {
+      if (!user_id) {
         return { success: false, message: 'User ID is required' };
       }
 
       const user = await this.prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: user_id }
       });
 
       if (!user) {
         return { success: false, message: 'User not found' };
       }
 
-      if (user.twoFactorEnabled) {
+      if (user.two_factor_enabled) {
         return { success: false, message: '2FA is already enabled' };
       }
 
@@ -634,12 +634,12 @@ export class AuthServiceService {
     }
   }
 
-  async verify2FASetup(verify2FASetupDto: { userId: number; secret: string; token: string }) {
+  async verify2FASetup(verify2FASetupDto: { user_id: number; secret: string; token: string }) {
     try {
-      const { userId, secret, token } = verify2FASetupDto;
+      const { user_id, secret, token } = verify2FASetupDto;
 
       const user = await this.prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: user_id }
       });
 
       if (!user) {
@@ -653,16 +653,16 @@ export class AuthServiceService {
       }
 
       // Generate backup codes
-      const backupCodes = this.totpService.generateBackupCodes();
-      const hashedBackupCodes = this.totpService.hashBackupCodes(backupCodes);
+      const backup_codes = this.totpService.generateBackupCodes();
+      const hashedBackupCodes = this.totpService.hashBackupCodes(backup_codes);
 
       // Enable 2FA for the user
       await this.prisma.user.update({
-        where: { id: userId },
+        where: { id: user_id },
         data: {
-          twoFactorEnabled: true,
-          twoFactorSecret: secret,
-          backupCodes: JSON.stringify(hashedBackupCodes)
+          two_factor_enabled: true,
+          two_factor_secret: secret,
+          backup_codes: JSON.stringify(hashedBackupCodes)
         }
       });
 
@@ -670,7 +670,7 @@ export class AuthServiceService {
         success: true,
         message: '2FA enabled successfully',
         data: {
-          backupCodes
+          backup_codes: backup_codes
         }
       };
     } catch (error) {
@@ -678,17 +678,17 @@ export class AuthServiceService {
     }
   }
 
-  async disable2FA(userId: number, password: string, token?: string) {
+  async disable2FA(user_id: number, password: string, token?: string) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: user_id }
       });
 
       if (!user) {
         return { success: false, message: 'User not found' };
       }
 
-      if (!user.twoFactorEnabled) {
+      if (!user.two_factor_enabled) {
         return { success: false, message: '2FA is not enabled' };
       }
 
@@ -699,10 +699,10 @@ export class AuthServiceService {
 
       // If token provided, verify it
       if (token) {
-        const isValidTOTP = user.twoFactorSecret &&
-          this.totpService.verifyTOTP(token, user.twoFactorSecret);
-        const isValidBackup = user.backupCodes &&
-          this.totpService.verifyBackupCode(token, user.backupCodes);
+        const isValidTOTP = user.two_factor_secret &&
+          this.totpService.verifyTOTP(token, user.two_factor_secret);
+        const isValidBackup = user.backup_codes &&
+          this.totpService.verifyBackupCode(token, user.backup_codes);
 
         if (!isValidTOTP && !isValidBackup) {
           return { success: false, message: 'Invalid 2FA code' };
@@ -711,12 +711,12 @@ export class AuthServiceService {
 
       // Disable 2FA
       await this.prisma.user.update({
-        where: { id: userId },
+        where: { id: user_id },
         data: {
-          twoFactorEnabled: false,
-          twoFactorSecret: null,
-          backupCodes: null,
-          twoFactorVerifiedAt: null
+          two_factor_enabled: false,
+          two_factor_secret: null,
+          backup_codes: null,
+          two_factor_verified_at: null
         }
       });
 
@@ -729,13 +729,13 @@ export class AuthServiceService {
     }
   }
 
-  async verify2FA(userId: number, token: string, type: string = 'totp') {
+  async verify2FA(user_id: number, token: string, type: string = 'totp') {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: user_id }
       });
 
-      if (!user || !user.twoFactorEnabled) {
+      if (!user || !user.two_factor_enabled) {
         return { success: false, message: '2FA not enabled for this user' };
       }
 
@@ -743,26 +743,26 @@ export class AuthServiceService {
 
       switch (type) {
         case 'totp':
-          if (user.twoFactorSecret) {
-            isValid = this.totpService.verifyTOTP(token, user.twoFactorSecret);
+          if (user.two_factor_secret) {
+            isValid = this.totpService.verifyTOTP(token, user.two_factor_secret);
           }
           break;
 
         case 'email_otp':
-          const emailResult = await this.emailOTPService.verifyEmailOTP(userId, token);
+          const emailResult = await this.emailOTPService.verifyEmailOTP(user_id, token);
           isValid = emailResult.success;
           break;
 
         case 'backup_code':
-          if (user.backupCodes) {
-            isValid = this.totpService.verifyBackupCode(token, user.backupCodes);
+          if (user.backup_codes) {
+            isValid = this.totpService.verifyBackupCode(token, user.backup_codes);
 
             // Remove used backup code
             if (isValid) {
-              const updatedCodes = this.totpService.removeUsedBackupCode(token, user.backupCodes);
+              const updatedCodes = this.totpService.removeUsedBackupCode(token, user.backup_codes);
               await this.prisma.user.update({
-                where: { id: userId },
-                data: { backupCodes: updatedCodes }
+                where: { id: user_id },
+                data: { backup_codes: updatedCodes }
               });
             }
           }
@@ -778,10 +778,10 @@ export class AuthServiceService {
     }
   }
 
-  async sendEmailOTP(userId: number, purpose: string = 'login') {
+  async sendEmailOTP(user_id: number, purpose: string = 'login') {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: user_id }
       });
 
       if (!user) {
@@ -789,7 +789,7 @@ export class AuthServiceService {
       }
 
       // Check rate limiting
-      const canRequest = await this.emailOTPService.canRequestNewOTP(userId);
+      const canRequest = await this.emailOTPService.canRequestNewOTP(user_id);
       if (!canRequest.canRequest) {
         return {
           success: false,
@@ -798,24 +798,24 @@ export class AuthServiceService {
       }
 
       // Send OTP
-      const result = await this.emailOTPService.sendEmailOTP(userId, user.email, purpose);
+      const result = await this.emailOTPService.sendEmailOTP(user_id, user.email, purpose);
       return result;
     } catch (error) {
       return { success: false, message: 'Failed to send email OTP', error: error.message };
     }
   }
 
-  async regenerateBackupCodes(userId: number, password: string) {
+  async regenerateBackupCodes(user_id: number, password: string) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: user_id }
       });
 
       if (!user) {
         return { success: false, message: 'User not found' };
       }
 
-      if (!user.twoFactorEnabled) {
+      if (!user.two_factor_enabled) {
         return { success: false, message: '2FA is not enabled' };
       }
 
@@ -825,32 +825,32 @@ export class AuthServiceService {
       }
 
       // Generate new backup codes
-      const backupCodes = this.totpService.generateBackupCodes();
-      const hashedBackupCodes = this.totpService.hashBackupCodes(backupCodes);
+      const backup_codes = this.totpService.generateBackupCodes();
+      const hashedBackupCodes = this.totpService.hashBackupCodes(backup_codes);
 
       await this.prisma.user.update({
-        where: { id: userId },
-        data: { backupCodes: JSON.stringify(hashedBackupCodes) }
+        where: { id: user_id },
+        data: { backup_codes: JSON.stringify(hashedBackupCodes) }
       });
 
       return {
         success: true,
         message: 'Backup codes regenerated successfully',
-        data: { backupCodes }
+        data: { backup_codes: backup_codes }
       };
     } catch (error) {
       return { success: false, message: 'Failed to regenerate backup codes', error: error.message };
     }
   }
 
-  async get2FAStatus(userId: number) {
+  async get2FAStatus(user_id: number) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: user_id },
         select: {
-          twoFactorEnabled: true,
-          twoFactorVerifiedAt: true,
-          backupCodes: true
+          two_factor_enabled: true,
+          two_factor_verified_at: true,
+          backup_codes: true
         }
       });
 
@@ -861,9 +861,9 @@ export class AuthServiceService {
       return {
         success: true,
         data: {
-          enabled: user.twoFactorEnabled,
-          verifiedAt: user.twoFactorVerifiedAt,
-          backupCodesCount: user.backupCodes ? JSON.parse(user.backupCodes).length : 0
+          enabled: user.two_factor_enabled,
+          verifiedAt: user.two_factor_verified_at,
+          backupCodesCount: user.backup_codes ? JSON.parse(user.backup_codes).length : 0
         }
       };
     } catch (error) {
@@ -885,17 +885,17 @@ export class AuthServiceService {
         return { success: false, message: 'Invalid temporary token' };
       }
 
-      const userId = payload.sub;
+      const user_id = payload.sub;
 
       // Verify 2FA code
-      const verify2FAResult = await this.verify2FA(userId, code, type);
+      const verify2FAResult = await this.verify2FA(user_id, code, type);
       if (!verify2FAResult.success) {
         return verify2FAResult;
       }
 
       // Get user info
       const user = await this.prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: user_id }
       });
 
       if (!user) {
@@ -904,8 +904,8 @@ export class AuthServiceService {
 
       // Update last login
       await this.prisma.user.update({
-        where: { id: userId },
-        data: { lastLoginAt: new Date() }
+        where: { id: user_id },
+        data: { last_login_at: new Date() }
       });
 
       // Generate final JWT token
@@ -920,8 +920,8 @@ export class AuthServiceService {
             id: user.id,
             email: user.email,
             name: user.name,
-            twoFactorEnabled: user.twoFactorEnabled,
-            preferredAuthMethod: user.preferredAuthMethod,
+            two_factor_enabled: user.two_factor_enabled,
+            preferred_auth_method: user.preferred_auth_method,
             hasPassword: !!user.password
           },
           token,
@@ -934,9 +934,9 @@ export class AuthServiceService {
 
   // ================================ User Management Methods ================================
 
-  async changePassword(userId: number, currentPassword: string, newPassword: string, confirmPassword: string) {
+  async changePassword(user_id: number, currentPassword: string, newPassword: string, confirmPassword: string) {
 
-    console.log("userId", userId);
+    console.log("user_id", user_id);
     console.log("currentPassword", currentPassword);
     console.log("newPassword", newPassword);
     console.log("confirmPassword", confirmPassword);
@@ -950,7 +950,7 @@ export class AuthServiceService {
 
       // Find user
       const user = await this.prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: user_id },
       });
 
       if (!user) {
@@ -979,10 +979,10 @@ export class AuthServiceService {
 
       // Update password
       await this.prisma.user.update({
-        where: { id: userId },
+        where: { id: user_id },
         data: {
           password: hashedNewPassword,
-          updatedAt: new Date()
+          updated_at: new Date()
         },
       });
 
@@ -995,11 +995,11 @@ export class AuthServiceService {
     }
   }
 
-  async updateUserProfile(userId: number, updateData: { name?: string; email?: string; preferredAuthMethod?: string }, currentPassword: string) {
+  async updateUserProfile(user_id: number, updateData: { name?: string; email?: string; preferred_auth_method?: string }, currentPassword: string) {
     try {
       // Find user
       const user = await this.prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: user_id },
       });
 
       if (!user) {
@@ -1027,7 +1027,7 @@ export class AuthServiceService {
 
       // Prepare update data
       const dataToUpdate: any = {
-        updatedAt: new Date(),
+        updated_at: new Date(),
       };
 
       if (updateData.name) {
@@ -1037,16 +1037,17 @@ export class AuthServiceService {
       if (updateData.email) {
         dataToUpdate.email = updateData.email;
         // If email is changed, mark as unverified
-        dataToUpdate.emailVerified = false;
+        dataToUpdate.email_verified = false;
       }
 
-      if (updateData.preferredAuthMethod) {
-        dataToUpdate.preferredAuthMethod = updateData.preferredAuthMethod;
+      if (updateData.preferred_auth_method) {
+        dataToUpdate.preferred_auth_method = updateData.preferred_auth_method;
+        dataToUpdate.updated_at = new Date();
       }
 
       // Update user
       const updatedUser = await this.prisma.user.update({
-        where: { id: userId },
+        where: { id: user_id },
         data: dataToUpdate,
       });
 
@@ -1057,9 +1058,9 @@ export class AuthServiceService {
           id: updatedUser.id,
           email: updatedUser.email,
           name: updatedUser.name,
-          preferredAuthMethod: updatedUser.preferredAuthMethod,
-          emailVerified: updatedUser.emailVerified,
-          twoFactorEnabled: updatedUser.twoFactorEnabled,
+          preferred_auth_method: updatedUser.preferred_auth_method,
+          email_verified: updatedUser.email_verified,
+          two_factor_enabled: updatedUser.two_factor_enabled,
         },
       };
     } catch (error) {
@@ -1067,21 +1068,21 @@ export class AuthServiceService {
     }
   }
 
-  async getUserProfile(userId: number) {
+  async getUserProfile(user_id: number) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: user_id },
         select: {
           id: true,
           email: true,
           name: true,
-          isActive: true,
-          emailVerified: true,
-          preferredAuthMethod: true,
-          twoFactorEnabled: true,
-          lastLoginAt: true,
-          createdAt: true,
-          updatedAt: true,
+          is_active: true,
+          email_verified: true,
+          preferred_auth_method: true,
+          two_factor_enabled: true,
+          last_login_at: true,
+          created_at: true,
+          updated_at: true,
           // Don't include password or sensitive data
         },
       });

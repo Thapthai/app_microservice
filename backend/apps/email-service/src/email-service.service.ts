@@ -252,7 +252,7 @@ export class EmailServiceService {
       keyName: keyDetails.name,
       keyPrefix: keyDetails.prefix,
       createdAt: new Date().toLocaleString('th-TH'),
-      expiresAt: keyDetails.expiresAt ? new Date(keyDetails.expiresAt).toLocaleString('th-TH') : 'ไม่มีกำหนด'
+      expires_at: keyDetails.expires_at ? new Date(keyDetails.expires_at).toLocaleString('th-TH') : 'ไม่มีกำหนด'
     };
 
     return await this.sendTemplateEmail({

@@ -23,10 +23,12 @@ export class CreateItemDto {
     quantity?: number;
 
     @IsOptional()
-    @IsString()
-    category?: string;
+    @IsNumber()
+    @Type(() => Number)
+    category_id?: number;
 
+    @IsOptional()
     @IsBoolean()
-    isActive?: boolean;
+    is_active?: boolean;
 
 }

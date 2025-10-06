@@ -19,28 +19,28 @@ export class EmailOTPService {
   /**
    * Generate and send Email OTP
    */
-  async sendEmailOTP(userId: number, email: string, purpose: string = 'login'): Promise<EmailOTPResult> {
+  async sendEmailOTP(user_id: number, email: string, purpose: string = 'login'): Promise<EmailOTPResult> {
     try {
       // Generate 6-digit OTP
       const otp = this.generateOTP();
       
       // Set expiration time (5 minutes)
-      const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+      const expires_at = new Date();
+      expires_at.setMinutes(expires_at.getMinutes() + 5);
 
       // Save OTP to database
       await this.prisma.twoFactorToken.create({
         data: {
-          userId,
+          user_id,
           token: otp,
           type: 'email_otp',
-          expiresAt,
+          expires_at,
         },
       });
 
       // Get user info
       const user = await this.prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: user_id },
         select: { name: true, email: true }
       });
 
@@ -69,16 +69,16 @@ export class EmailOTPService {
   /**
    * Verify Email OTP
    */
-  async verifyEmailOTP(userId: number, inputOTP: string): Promise<{ success: boolean; message: string }> {
+  async verifyEmailOTP(user_id: number, inputOTP: string): Promise<{ success: boolean; message: string }> {
     try {
       // Find valid OTP token
       const otpRecord = await this.prisma.twoFactorToken.findFirst({
         where: {
-          userId,
+          user_id,
           token: inputOTP,
           type: 'email_otp',
           isUsed: false,
-          expiresAt: {
+          expires_at: {
             gt: new Date()
           }
         }
@@ -104,14 +104,14 @@ export class EmailOTPService {
   /**
    * Clean up expired OTP tokens
    */
-  async cleanupExpiredTokens(userId?: number): Promise<void> {
+  async cleanupExpiredTokens(user_id?: number): Promise<void> {
     try {
       const where = {
         type: 'email_otp',
-        expiresAt: {
+        expires_at: {
           lt: new Date()
         },
-        ...(userId && { userId })
+        ...(user_id && { user_id })
       };
 
       await this.prisma.twoFactorToken.deleteMany({ where });
@@ -159,16 +159,16 @@ export class EmailOTPService {
   /**
    * Get remaining attempts for user
    */
-  async getRemainingAttempts(userId: number): Promise<number> {
+  async getRemainingAttempts(user_id: number): Promise<number> {
     try {
       const maxAttempts = 5;
       const timeWindow = 15; // minutes
 
       const recentAttempts = await this.prisma.twoFactorToken.count({
         where: {
-          userId,
+          user_id,
           type: 'email_otp',
-          createdAt: {
+          created_at: {
             gt: new Date(Date.now() - timeWindow * 60 * 1000)
           }
         }
@@ -184,17 +184,17 @@ export class EmailOTPService {
   /**
    * Check if user can request new OTP (rate limiting)
    */
-  async canRequestNewOTP(userId: number): Promise<{ canRequest: boolean; waitTime?: number }> {
+  async canRequestNewOTP(user_id: number): Promise<{ canRequest: boolean; waitTime?: number }> {
     try {
       const cooldownPeriod = 1; // 1 minute between requests
 
       const lastOTP = await this.prisma.twoFactorToken.findFirst({
         where: {
-          userId,
+          user_id,
           type: 'email_otp'
         },
         orderBy: {
-          createdAt: 'desc'
+          created_at: 'desc'
         }
       });
 
@@ -202,7 +202,7 @@ export class EmailOTPService {
         return { canRequest: true };
       }
 
-      const timeSinceLastRequest = Date.now() - lastOTP.createdAt.getTime();
+      const timeSinceLastRequest = Date.now() - lastOTP.created_at.getTime();
       const cooldownMs = cooldownPeriod * 60 * 1000;
 
       if (timeSinceLastRequest < cooldownMs) {

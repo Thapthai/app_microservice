@@ -56,82 +56,82 @@ export class AuthServiceController {
   // ================================ 2FA Endpoints ================================
 
   @MessagePattern('auth.2fa.enable')
-  async enable2FA(@Payload() data: { userId: number; password: string }) {
+  async enable2FA(@Payload() data: { user_id: number; password: string }) {
     return this.authServiceService.enable2FA(data);
   }
 
   @MessagePattern('auth.2fa.verify-setup')
-  async verify2FASetup(@Payload() data: { userId: number; secret: string; token: string }) {
+  async verify2FASetup(@Payload() data: { user_id: number; secret: string; token: string }) {
     return this.authServiceService.verify2FASetup(data);
   }
 
   @MessagePattern('auth.2fa.disable')
-  async disable2FA(@Payload() data: { userId: number; password: string; token?: string }) {
-    return this.authServiceService.disable2FA(data.userId, data.password, data.token);
+  async disable2FA(@Payload() data: { user_id: number; password: string; token?: string }) {
+    return this.authServiceService.disable2FA(data.user_id, data.password, data.token);
   }
 
   // ================================ API Key Endpoints ================================
 
   @MessagePattern('auth.apikey.create')
-  async createApiKey(@Payload() data: { userId: number; apiKeyDto: ApiKeyCreateDto }) {
-    return this.authServiceService.createApiKey(data.userId, data.apiKeyDto);
+  async createApiKey(@Payload() data: { user_id: number; apiKeyDto: ApiKeyCreateDto }) {
+    return this.authServiceService.createApiKey(data.user_id, data.apiKeyDto);
   }
 
   @MessagePattern('auth.apikey.list')
-  async listApiKeys(@Payload() userId: number) {
-    return this.authServiceService.listApiKeys(userId);
+  async listApiKeys(@Payload() user_id: number) {
+    return this.authServiceService.listApiKeys(user_id);
   }
 
   @MessagePattern('auth.apikey.revoke')
-  async revokeApiKey(@Payload() data: { userId: number; apiKeyId: number }) {
-    return this.authServiceService.revokeApiKey(data.userId, data.apiKeyId);
+  async revokeApiKey(@Payload() data: { user_id: number; apiKeyId: number }) {
+    return this.authServiceService.revokeApiKey(data.user_id, data.apiKeyId);
   }
 
   // ================================ Token Management ================================
 
   @MessagePattern('auth.token.refresh')
-  async refreshTokens(@Payload() refreshTokenDto: RefreshTokenDto) {
-    return this.authServiceService.refreshTokens(refreshTokenDto);
+  async refresh_tokens(@Payload() refreshTokenDto: RefreshTokenDto) {
+    return this.authServiceService.refresh_tokens(refreshTokenDto);
   }
 
   // ================================ 2FA Endpoints ================================
 
   @MessagePattern('auth.2fa.setup')
-  async setup2FA(@Payload() data: { userId: number; enable2FADto: Enable2FADto }) {
-    return this.authServiceService.setupTOTP(data.userId, data.enable2FADto.password);
+  async setup2FA(@Payload() data: { user_id: number; enable2FADto: Enable2FADto }) {
+    return this.authServiceService.setupTOTP(data.user_id, data.enable2FADto.password);
   }
 
   @MessagePattern('auth.2fa.verify-setup')
-  async verifyAndEnable2FA(@Payload() data: { userId: number; verifyDto: Verify2FASetupDto }) {
+  async verifyAndEnable2FA(@Payload() data: { user_id: number; verifyDto: Verify2FASetupDto }) {
     return this.authServiceService.verifyAndEnable2FA(
-      data.userId,
+      data.user_id,
       data.verifyDto.secret,
       data.verifyDto.token
     );
   }
 
   @MessagePattern('auth.2fa.verify')
-  async verify2FA(@Payload() data: { userId: number; verifyDto: Verify2FADto }) {
+  async verify2FA(@Payload() data: { user_id: number; verifyDto: Verify2FADto }) {
     return this.authServiceService.verify2FA(
-      data.userId,
+      data.user_id,
       data.verifyDto.token,
       data.verifyDto.type || 'totp'
     );
   }
 
   @MessagePattern('auth.2fa.send-email-otp')
-  async sendEmailOTP(@Payload() data: { userId: number; purpose?: string }) {
-    return this.authServiceService.sendEmailOTP(data.userId, data.purpose);
+  async sendEmailOTP(@Payload() data: { user_id: number; purpose?: string }) {
+    return this.authServiceService.sendEmailOTP(data.user_id, data.purpose);
   }
 
   @MessagePattern('auth.2fa.regenerate-backup-codes')
-  async regenerateBackupCodes(@Payload() data: { userId: number; generateDto: Generate2FABackupCodesDto }) {
-    return this.authServiceService.regenerateBackupCodes(data.userId, data.generateDto.password);
+  async regenerateBackupCodes(@Payload() data: { user_id: number; generateDto: Generate2FABackupCodesDto }) {
+    return this.authServiceService.regenerateBackupCodes(data.user_id, data.generateDto.password);
   }
 
   @MessagePattern('auth.2fa.status')
-  async get2FAStatus(@Payload() userId: number) {
-    return this.authServiceService.get2FAStatus(userId);
+  async get2FAStatus(@Payload() user_id: number) {
+    return this.authServiceService.get2FAStatus(user_id);
   }
 
   @MessagePattern('auth.login.2fa')
@@ -146,28 +146,28 @@ export class AuthServiceController {
   // ================================ User Management Endpoints ================================
 
   @MessagePattern('auth.user.profile')
-  async getUserProfile(@Payload() userId: number) {
-    return this.authServiceService.getUserProfile(userId);
+  async getUserProfile(@Payload() user_id: number) {
+    return this.authServiceService.getUserProfile(user_id);
   }
 
   @MessagePattern('auth.user.update-profile')
-  async updateUserProfile(@Payload() data: { userId: number; updateUserProfileDto: UpdateUserProfileDto }) {
+  async updateUserProfile(@Payload() data: { user_id: number; updateUserProfileDto: UpdateUserProfileDto }) {
     return this.authServiceService.updateUserProfile(
-      data.userId,
+      data.user_id,
       {
         name: data.updateUserProfileDto.name,
         email: data.updateUserProfileDto.email,
-        preferredAuthMethod: data.updateUserProfileDto.preferredAuthMethod,
+        preferred_auth_method: data.updateUserProfileDto.preferred_auth_method,
       },
       data.updateUserProfileDto.currentPassword
     );
   }
 
   @MessagePattern('auth.user.change-password')
-  async changePassword(@Payload() data: { userId: number; changePasswordDto: ChangePasswordDto }) {
+  async changePassword(@Payload() data: { user_id: number; changePasswordDto: ChangePasswordDto }) {
  
     return this.authServiceService.changePassword(
-      data.userId,
+      data.user_id,
       data.changePasswordDto.currentPassword,
       data.changePasswordDto.newPassword,
       data.changePasswordDto.confirmPassword

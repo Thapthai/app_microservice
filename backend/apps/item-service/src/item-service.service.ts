@@ -11,7 +11,14 @@ export class ItemServiceService {
     try {
 
       const item = await this.prisma.item.create({
-        data: createItemDto,
+        data: {
+          name: createItemDto.name,
+          description: createItemDto.description,
+          price: createItemDto.price,
+          quantity: createItemDto.quantity ?? 0,
+          category_id: createItemDto.category_id ?? null,
+          is_active: createItemDto.is_active ?? true,
+        },
       });
 
       return {
@@ -41,7 +48,7 @@ export class ItemServiceService {
           where,
           skip,
           take: limit,
-          orderBy: { id: 'desc' },
+          orderBy: { created_at: 'desc' },
         }),
         this.prisma.item.count({ where }),
       ]);
@@ -126,10 +133,10 @@ export class ItemServiceService {
     }
   }
 
-  async findItemsByUser(userId: number) {
+  async findItemsByUser(user_id: number) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: user_id },
       });
 
       if (!user) {
