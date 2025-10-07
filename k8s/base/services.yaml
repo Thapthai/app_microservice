@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: pose-microservices
+  labels:
+    app: redis
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: pose-microservices
+  labels:
+    app: auth-service
+spec:
+  selector:
+    app: auth-service
+  ports:
+  - port: 3001
+    targetPort: 3001
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: item-service
+  namespace: pose-microservices
+  labels:
+    app: item-service
+spec:
+  selector:
+    app: item-service
+  ports:
+  - port: 3002
+    targetPort: 3002
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: email-service
+  namespace: pose-microservices
+  labels:
+    app: email-service
+spec:
+  selector:
+    app: email-service
+  ports:
+  - port: 3003
+    targetPort: 3003
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: category-service
+  namespace: pose-microservices
+  labels:
+    app: category-service
+spec:
+  selector:
+    app: category-service
+  ports:
+  - port: 3004
+    targetPort: 3004
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-service
+  namespace: pose-microservices
+  labels:
+    app: gateway-api
+spec:
+  selector:
+    app: gateway-api
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+  type: LoadBalancer
+

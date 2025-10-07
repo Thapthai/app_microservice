@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pose-config
+  namespace: pose-microservices
+data:
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  AUTH_SERVICE_HOST: "auth-service"
+  AUTH_SERVICE_PORT: "3001"
+  ITEM_SERVICE_HOST: "item-service"
+  ITEM_SERVICE_PORT: "3002"
+  EMAIL_SERVICE_HOST: "email-service"
+  EMAIL_SERVICE_PORT: "3003"
+  CATEGORY_SERVICE_HOST: "category-service"
+  CATEGORY_SERVICE_PORT: "3004"
+  GATEWAY_SERVICE_HOST: "gateway-service"
+  GATEWAY_SERVICE_PORT: "3000"
+  NODE_ENV: "production"
+  APP_NAME: "POSE Microservice"
+  FRONTEND_URL: "http://localhost:3000"
+  SUPPORT_EMAIL: "support@nlinen.com"
+  
+  # SMTP Settings (non-sensitive)
+  SMTP_HOST: "smtp.gmail.com"
+  SMTP_PORT: "2525"
+  SMTP_SECURE: "false"
+  SMTP_FROM: "noreply@nlinen.com"
+
