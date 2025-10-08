@@ -38,3 +38,4 @@ build/
 # Testing
 coverage/
 .nyc_output/
+backend/k8s/base/secrets.yaml

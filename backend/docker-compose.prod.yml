@@ -1,0 +1,144 @@
+version: "3.8"
+
+services:
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: pose-nginx
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - gateway-api
+      - auth-service
+      - item-service
+      - email-service
+      - category-service
+    networks:
+      - pose-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      timeout: 3s
+      retries: 3
+
+  # Redis (for caching and sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: pose-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pose-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 20s
+      retries: 10
+
+  # Auth Service
+  auth-service:
+    image: YOUR_USERNAME/pose-auth:latest  # เปลี่ยน YOUR_USERNAME
+    container_name: pose-auth-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - BCRYPT_ROUNDS=${BCRYPT_ROUNDS}
+      - RATE_LIMIT_TTL=${RATE_LIMIT_TTL}
+      - RATE_LIMIT_LIMIT=${RATE_LIMIT_LIMIT}
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Item Service
+  item-service:
+    image: YOUR_USERNAME/pose-item:latest  # เปลี่ยน YOUR_USERNAME
+    container_name: pose-item-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Email Service
+  email-service:
+    image: YOUR_USERNAME/pose-email:latest  # เปลี่ยน YOUR_USERNAME
+    container_name: pose-email-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_FROM=${SMTP_FROM}
+      - APP_NAME=${APP_NAME}
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL}
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Category Service
+  category-service:
+    image: YOUR_USERNAME/pose-category:latest  # เปลี่ยน YOUR_USERNAME
+    container_name: pose-category-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Gateway API
+  gateway-api:
+    image: YOUR_USERNAME/pose-gateway:latest  # เปลี่ยน YOUR_USERNAME
+    container_name: pose-gateway-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_HOST=auth-service
+      - AUTH_SERVICE_PORT=3001
+      - ITEM_SERVICE_HOST=item-service
+      - ITEM_SERVICE_PORT=3002
+      - EMAIL_SERVICE_HOST=email-service
+      - EMAIL_SERVICE_PORT=3003
+      - CATEGORY_SERVICE_HOST=category-service
+      - CATEGORY_SERVICE_PORT=3004
+      - FRONTEND_URL=${FRONTEND_URL}
+    depends_on:
+      - auth-service
+      - item-service
+      - email-service
+      - category-service
+      - redis
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+
+networks:
+  pose-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local
