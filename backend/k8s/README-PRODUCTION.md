@@ -137,7 +137,7 @@ kubectl create namespace pose-microservices
 
 # สร้าง secrets
 kubectl -n pose-microservices create secret generic pose-secrets \
-  --from-literal=DATABASE_URL="mysql://user:pass@10.11.9.29:3306/dbname" \
+  --from-literal=DATABASE_URL="mysql://user:pass@your-db-host:3306/dbname" \
   --from-literal=JWT_SECRET="$(openssl rand -base64 32)" \
   --from-literal=SMTP_USER="your-email@gmail.com" \
   --from-literal=SMTP_PASS="your-app-password" \
@@ -152,8 +152,8 @@ kubectl -n pose-microservices get secrets
 
 **⚠️ สำคัญ:** ถ้า password มีอักขระพิเศษ (เช่น `$`, `@`, `#`) ต้อง URL encode:
 ```bash
-# ตัวอย่าง: password "A$192dijd" → "A%24192dijd"
-DATABASE_URL="mysql://root:A%24192dijd@10.11.9.29:3306/dbname"
+# ตัวอย่าง: password "Pass$word123" → "Pass%24word123"
+DATABASE_URL="mysql://user:password@localhost/dbname"
 ```
 
 ---
@@ -209,7 +209,7 @@ curl http://10.11.9.43:3000/api
 kubectl -n pose-microservices get svc gateway-service -o jsonpath='{.spec.ports[0].nodePort}'
 
 # เข้าถึงผ่าน Server IP + NodePort
-curl http://10.11.9.29:31589/api
+curl http://YOUR_SERVER_IP:31589/api
 ```
 
 ---
@@ -300,8 +300,8 @@ kubectl -n nline-monitoring patch svc kube-prometheus-stack-prometheus -p '{"spe
 kubectl -n nline-monitoring get svc | grep -E "(grafana|prometheus)"
 
 # เข้าถึงผ่าน Server IP
-# Grafana: http://10.11.9.29:<GRAFANA-NODEPORT>
-# Prometheus: http://10.11.9.29:<PROMETHEUS-NODEPORT>
+# Grafana: http://YOUR_SERVER_IP:<GRAFANA-NODEPORT>
+# Prometheus: http://YOUR_SERVER_IP:<PROMETHEUS-NODEPORT>
 ```
 
 ---
@@ -309,7 +309,7 @@ kubectl -n nline-monitoring get svc | grep -E "(grafana|prometheus)"
 ### 3. ใช้งาน Grafana
 
 **Login:**
-- URL: `http://10.11.9.29:<NodePort>` หรือ `http://localhost:3001`
+- URL: `http://YOUR_SERVER_IP:<NodePort>` หรือ `http://localhost:3001`
 - Username: `admin`
 - Password: `admin123` (หรือตามที่ตั้งไว้)
 
@@ -559,7 +559,7 @@ kubectl -n pose-microservices logs <pod-name> --previous
 kubectl -n pose-microservices get secret pose-secrets -o jsonpath='{.data.DATABASE_URL}' | base64 -d
 
 # ทดสอบ database connection
-kubectl -n pose-microservices run test-db --rm -it --image=mysql:8 -- mysql -h 10.11.9.29 -u root -p
+kubectl -n pose-microservices run test-db --rm -it --image=mysql:8 -- mysql -h YOUR_DB_HOST -u root -p
 ```
 
 ---
@@ -665,7 +665,7 @@ kubectl create namespace pose-microservices
 
 echo "=== Creating secrets ==="
 kubectl -n pose-microservices create secret generic pose-secrets \
-  --from-literal=DATABASE_URL="mysql://root:password@10.11.9.29:3306/dbname" \
+  --from-literal=DATABASE_URL="mysql://root:password@your-db-host:3306/dbname" \
   --from-literal=JWT_SECRET="$(openssl rand -base64 32)" \
   --from-literal=SMTP_USER="your-email@gmail.com" \
   --from-literal=SMTP_PASS="your-app-password" \
