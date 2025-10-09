@@ -1,0 +1,110 @@
+---
+# ServiceMonitor for Gateway API
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gateway-api
+  namespace: nline-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: gateway-api
+spec:
+  selector:
+    matchLabels:
+      app: gateway-api
+  namespaceSelector:
+    matchNames:
+    - pose-microservices
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+
+---
+# ServiceMonitor for Auth Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: auth-service
+  namespace: nline-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: auth-service
+spec:
+  selector:
+    matchLabels:
+      app: auth-service
+  namespaceSelector:
+    matchNames:
+    - pose-microservices
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+
+---
+# ServiceMonitor for Item Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: item-service
+  namespace: nline-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: item-service
+spec:
+  selector:
+    matchLabels:
+      app: item-service
+  namespaceSelector:
+    matchNames:
+    - pose-microservices
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+
+---
+# ServiceMonitor for Category Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: category-service
+  namespace: nline-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: category-service
+spec:
+  selector:
+    matchLabels:
+      app: category-service
+  namespaceSelector:
+    matchNames:
+    - pose-microservices
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+
+---
+# ServiceMonitor for Email Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: email-service
+  namespace: nline-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: email-service
+spec:
+  selector:
+    matchLabels:
+      app: email-service
+  namespaceSelector:
+    matchNames:
+    - pose-microservices
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+

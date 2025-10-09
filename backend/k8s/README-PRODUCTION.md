@@ -8,7 +8,7 @@
 - [Prerequisites / ข้อกำหนดเบื้องต้น](#prerequisites--ข้อกำหนดเบื้องต้น)
 - [🏭 Install K3s](#-install-k3s)
 - [🚀 Deploy Application](#-deploy-application)
-- [🔍 Monitoring (Prometheus + Grafana)](#-monitoring-prometheus--grafana)
+- [🔍 Monitoring Setup](#-monitoring-setup)
 - [🔧 Maintenance](#-maintenance--การบำรุงรักษา)
 - [🐛 Troubleshooting](#-troubleshooting--การแก้ปัญหา)
 
@@ -199,7 +199,7 @@ K3s มี **Traefik** เป็น Load Balancer built-in
 kubectl -n pose-microservices get svc gateway-service
 
 # เข้าถึงผ่าน LoadBalancer IP
-curl http://10.11.9.43:3000/api
+curl http://YOUR_SERVER_IP:3000/api
 ```
 
 #### วิธีที่ 2: ใช้ NodePort
@@ -240,25 +240,25 @@ curl -X POST http://10.11.9.43:3000/auth/login \
 
 ---
 
-## 🔍 Monitoring (Prometheus + Grafana)
+## 🔍 Monitoring Setup
 
-### 1. ติดตั้ง kube-prometheus-stack
+POSE Microservices มีระบบ Monitoring ครบชุดสำหรับ Production:
+
+### 📊 ครอบคลุม 4 ส่วนหลัก:
+1. **Node Metrics** - Server/Hardware (CPU, RAM, Disk, Network)
+2. **Load Balancer Metrics** - Traefik (Requests, Response Time, Traffic)
+3. **Database Metrics** - Redis (Connections, Memory, Commands)
+4. **Application Metrics** - NestJS Services (Custom metrics)
+
+### 🚀 Quick Setup:
 
 ```bash
-# ติดตั้ง Helm (วิธีที่ง่ายที่สุด)
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-# ตรวจสอบว่าติดตั้งสำเร็จ
-helm version
-
-# Add Helm repo
+# 1. Install Prometheus + Grafana
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 
-# Create monitoring namespace
 kubectl create namespace nline-monitoring
 
-# Install stack
 helm upgrade --install kube-prometheus-stack \
   prometheus-community/kube-prometheus-stack \
   -n nline-monitoring \
@@ -267,32 +267,9 @@ helm upgrade --install kube-prometheus-stack \
   --set grafana.adminPassword=admin123 \
   --wait
 
-# Check status
-kubectl -n nline-monitoring get pods
-```
 
----
-
-### 2. เข้าถึง Prometheus และ Grafana
-
-#### วิธีที่ 1: Port Forward (สำหรับทดสอบ)
-
-```bash
-# Terminal 1: Prometheus
-kubectl -n nline-monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
-
-# Terminal 2: Grafana
-kubectl -n nline-monitoring port-forward svc/kube-prometheus-stack-grafana 3001:80
-
-# เปิดเบราว์เซอร์:
-# Prometheus: http://localhost:9090
-# Grafana: http://localhost:3001 (admin / admin123)
-```
-
-#### วิธีที่ 2: NodePort (สำหรับ Production)
-
-```bash
-# เปลี่ยน service type เป็น NodePort
+ 
+# 2. Configure NodePort (Fixed ports)
 kubectl -n nline-monitoring patch svc kube-prometheus-stack-grafana -p '{"spec":{"type":"NodePort"}}'
 kubectl -n nline-monitoring patch svc kube-prometheus-stack-prometheus -p '{"spec":{"type":"NodePort"}}'
 
@@ -302,53 +279,31 @@ kubectl -n nline-monitoring get svc | grep -E "(grafana|prometheus)"
 # เข้าถึงผ่าน Server IP
 # Grafana: http://YOUR_SERVER_IP:<GRAFANA-NODEPORT>
 # Prometheus: http://YOUR_SERVER_IP:<PROMETHEUS-NODEPORT>
+ 
+# 3. Apply custom monitoring configs (Traefik, Redis, Application)
+kubectl apply -k k8s/monitoring/
+
+# 4. Check status
+kubectl -n nline-monitoring get pods
+kubectl -n nline-monitoring get servicemonitor
 ```
 
----
+### 🎯 Access URLs:
 
-### 3. ใช้งาน Grafana
+- **Grafana:** `http://YOUR_SERVER_IP:3001` (admin/admin123)
+- **Prometheus:** `http://YOUR_SERVER_IP:9090`
 
-**Login:**
-- URL: `http://YOUR_SERVER_IP:<NodePort>` หรือ `http://localhost:3001`
-- Username: `admin`
-- Password: `admin123` (หรือตามที่ตั้งไว้)
+### 📚 รายละเอียดเพิ่มเติม:
 
-**ดู Built-in Dashboards:**
-1. คลิก **Dashboards** (เมนูซ้าย) → **Browse**
-2. เลือก Dashboard:
-   - **Kubernetes / Compute Resources / Cluster** - ภาพรวม cluster
-   - **Kubernetes / Compute Resources / Namespace (Pods)** - ดูแต่ละ namespace
-   - **Kubernetes / Compute Resources / Pod** - ดูแต่ละ pod
+สำหรับคู่มือการใช้งาน Monitoring แบบละเอียด ดูที่:
+- **[monitoring/README.md](monitoring/README.md)** - คู่มือ Monitoring ฉบับสมบูรณ์
 
-**ดู POSE Microservices:**
-1. เข้า **"Kubernetes / Compute Resources / Namespace (Pods)"**
-2. เลือก Namespace: **`pose-microservices`**
-3. จะเห็น:
-   - CPU Usage
-   - Memory Usage
-   - Network I/O
-   - Disk I/O
-
----
-
-### 4. Prometheus Queries ที่มีประโยชน์
-
-```promql
-# ดูว่า services ทำงานหรือไม่
-up{namespace="pose-microservices"}
-
-# นับจำนวน pods
-count(kube_pod_info{namespace="pose-microservices"})
-
-# ดู CPU usage
-rate(container_cpu_usage_seconds_total{namespace="pose-microservices"}[5m])
-
-# ดู Memory usage
-container_memory_working_set_bytes{namespace="pose-microservices"}
-
-# ดู Pod restarts
-kube_pod_container_status_restarts_total{namespace="pose-microservices"}
-```
+เนื้อหาใน Monitoring README:
+- ติดตั้งและตั้งค่า Prometheus + Grafana
+- เพิ่ม Traefik, Redis, Application metrics
+- Import Grafana dashboards
+- ตัวอย่าง PromQL queries
+- Troubleshooting
 
 ---
 

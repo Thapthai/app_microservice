@@ -1,0 +1,75 @@
+---
+# Redis Exporter Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-exporter
+  namespace: pose-microservices
+  labels:
+    app: redis-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-exporter
+  template:
+    metadata:
+      labels:
+        app: redis-exporter
+    spec:
+      containers:
+      - name: redis-exporter
+        image: oliver006/redis_exporter:latest
+        ports:
+        - containerPort: 9121
+          name: metrics
+        env:
+        - name: REDIS_ADDR
+          value: "redis:6379"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+
+---
+# Redis Exporter Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-exporter
+  namespace: pose-microservices
+  labels:
+    app: redis-exporter
+spec:
+  selector:
+    app: redis-exporter
+  ports:
+  - name: metrics
+    port: 9121
+    targetPort: 9121
+
+---
+# ServiceMonitor for Redis
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis
+  namespace: nline-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis-exporter
+  namespaceSelector:
+    matchNames:
+    - pose-microservices
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
