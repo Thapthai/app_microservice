@@ -265,20 +265,15 @@ helm upgrade --install kube-prometheus-stack \
   --set prometheus.prometheusSpec.retention=7d \
   --set prometheus.prometheusSpec.resources.requests.memory=512Mi \
   --set grafana.adminPassword=admin123 \
+  --set prometheus-node-exporter.hostNetwork=false \
   --wait
 
+# 2. Configure NodePort (Fixed ports - ต้องอยู่ในช่วง 30000-32767)
+kubectl -n nline-monitoring patch svc kube-prometheus-stack-grafana \
+  -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":3000,"nodePort":30001,"name":"http-web"}]}}'
 
- 
-# 2. Configure NodePort (Fixed ports)
-kubectl -n nline-monitoring patch svc kube-prometheus-stack-grafana -p '{"spec":{"type":"NodePort"}}'
-kubectl -n nline-monitoring patch svc kube-prometheus-stack-prometheus -p '{"spec":{"type":"NodePort"}}'
-
-# ดู NodePort
-kubectl -n nline-monitoring get svc | grep -E "(grafana|prometheus)"
-
-# เข้าถึงผ่าน Server IP
-# Grafana: http://YOUR_SERVER_IP:<GRAFANA-NODEPORT>
-# Prometheus: http://YOUR_SERVER_IP:<PROMETHEUS-NODEPORT>
+kubectl -n nline-monitoring patch svc kube-prometheus-stack-prometheus \
+  -p '{"spec":{"type":"NodePort","ports":[{"port":9090,"targetPort":9090,"nodePort":30090,"name":"http-web"}]}}'
  
 # 3. Apply custom monitoring configs (Traefik, Redis, Application)
 kubectl apply -k k8s/monitoring/
@@ -290,8 +285,8 @@ kubectl -n nline-monitoring get servicemonitor
 
 ### 🎯 Access URLs:
 
-- **Grafana:** `http://YOUR_SERVER_IP:3001` (admin/admin123)
-- **Prometheus:** `http://YOUR_SERVER_IP:9090`
+- **Grafana:** `http://YOUR_SERVER_IP:30001` (admin/admin123)
+- **Prometheus:** `http://YOUR_SERVER_IP:30090`
 
 ### 📚 รายละเอียดเพิ่มเติม:
 

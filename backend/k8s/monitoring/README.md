@@ -18,8 +18,6 @@
 
 ```
 monitoring/
-├── setup-monitoring.sh         → ติดตั้งอัตโนมัติ (แนะนำ) ⭐
-├── cleanup-monitoring.sh       → ลบ Monitoring
 ├── kustomization.yaml          → Kustomize config
 ├── traefik-metrics.yaml        → Load Balancer metrics
 ├── redis-metrics.yaml          → Database metrics
@@ -29,30 +27,7 @@ monitoring/
 
 ---
 
-## 🚀 การติดตั้ง (แนะนำ - ใช้ Script)
-
-### วิธีที่ 1: ใช้ Setup Script (ง่ายที่สุด) ⭐
-
-```bash
-# ไปที่ directory
-cd /var/www/app_microservice/backend/k8s/monitoring
-
-# ให้สิทธิ์ execute
-chmod +x setup-monitoring.sh
-
-# รัน script
-./setup-monitoring.sh
-```
-
-Script จะทำอัตโนมัติ:
-- ✅ ติดตั้ง Helm (ถ้ายังไม่มี)
-- ✅ สร้าง namespace
-- ✅ ติดตั้ง Prometheus + Grafana (แก้ port conflict อัตโนมัติ)
-- ✅ ตั้งค่า Fixed NodePort (Grafana: 3001, Prometheus: 9090)
-- ✅ Deploy Traefik, Redis, Application metrics
-- ✅ แสดง URLs และคำแนะนำ
-
-### วิธีที่ 2: ติดตั้งแบบ Manual
+## 🚀 การติดตั้ง
 
 ### ขั้นตอนที่ 1: ติดตั้ง Prometheus + Grafana
 
@@ -64,21 +39,22 @@ helm repo update
 # Create namespace
 kubectl create namespace nline-monitoring
 
-# Install kube-prometheus-stack
+# Install kube-prometheus-stack (⚠️ ต้องมี hostNetwork=false แก้ port conflict)
 helm upgrade --install kube-prometheus-stack \
   prometheus-community/kube-prometheus-stack \
   -n nline-monitoring \
   --set prometheus.prometheusSpec.retention=7d \
   --set prometheus.prometheusSpec.resources.requests.memory=512Mi \
   --set grafana.adminPassword=admin123 \
+  --set prometheus-node-exporter.hostNetwork=false \
   --wait
 
-# Patch services to use fixed NodePort
+# Patch services to use fixed NodePort (ต้องอยู่ในช่วง 30000-32767)
 kubectl -n nline-monitoring patch svc kube-prometheus-stack-grafana \
-  -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":3000,"nodePort":3001,"name":"http-web"}]}}'
+  -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":3000,"nodePort":30001,"name":"http-web"}]}}'
 
 kubectl -n nline-monitoring patch svc kube-prometheus-stack-prometheus \
-  -p '{"spec":{"type":"NodePort","ports":[{"port":9090,"targetPort":9090,"nodePort":9090,"name":"http-web"}]}}'
+  -p '{"spec":{"type":"NodePort","ports":[{"port":9090,"targetPort":9090,"nodePort":30090,"name":"http-web"}]}}'
 ```
 
 ### ขั้นตอนที่ 2: Apply Custom Metrics
@@ -222,29 +198,6 @@ Metrics จะอยู่ที่: `http://service:port/metrics`
 
 ## 🗑️ การลบ Monitoring
 
-### วิธีที่ 1: ใช้ Cleanup Script (แนะนำ) ⭐
-
-```bash
-# ไปที่ directory
-cd /var/www/app_microservice/backend/k8s/monitoring
-
-# ให้สิทธิ์ execute
-chmod +x cleanup-monitoring.sh
-
-# รัน script
-./cleanup-monitoring.sh
-```
-
-Script จะลบอัตโนมัติ:
-- ✅ Uninstall Helm release
-- ✅ ลบ PVCs (ข้อมูล metrics เก่า)
-- ✅ ลบ custom monitoring configs
-- ✅ ลบ Redis Exporter
-- ✅ ลบ namespace
-- ✅ ตรวจสอบว่าลบหมดแล้ว
-
-### วิธีที่ 2: ลบแบบ Manual
-
 ```bash
 # Uninstall Helm
 helm uninstall kube-prometheus-stack -n nline-monitoring
@@ -281,8 +234,8 @@ kubectl delete namespace nline-monitoring
 
 ## 🎯 URLs
 
-- **Grafana:** `http://YOUR_SERVER_IP:3001` (admin/admin123)
-- **Prometheus:** `http://YOUR_SERVER_IP:9090`
+- **Grafana:** `http://YOUR_SERVER_IP:30001` (admin/admin123)
+- **Prometheus:** `http://YOUR_SERVER_IP:30090`
 - **Gateway API:** `http://10.11.9.84:3000`
 
 ---
