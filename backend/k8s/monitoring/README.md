@@ -49,7 +49,7 @@ cd /var/www/app_microservice/backend
 
 # 2. Install Prometheus + Grafana
 helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --namespace nline-monitoring \
+  --namespace pose-monitoring \
   --values k8s/monitoring/prometheus-values.yaml \
   --create-namespace
 
@@ -59,7 +59,7 @@ kubectl apply -f k8s/monitoring/traefik-servicemonitor.yaml
 
 # 4. Deploy Grafana Dashboards
 kubectl apply -f k8s/monitoring/grafana-dashboards.yaml
-kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-grafana
+kubectl -n pose-monitoring rollout restart deployment kube-prometheus-stack-grafana
 
 # 5. Access Grafana
 # http://YOUR_SERVER_IP:30001
@@ -266,11 +266,11 @@ Create alert rules in Prometheus:
 Backup Grafana dashboards and Prometheus data:
 ```bash
 # Backup Grafana
-kubectl -n nline-monitoring exec deployment/kube-prometheus-stack-grafana -- \
+kubectl -n pose-monitoring exec deployment/kube-prometheus-stack-grafana -- \
   tar -czf /tmp/grafana-backup.tar.gz /var/lib/grafana
 
 # Copy to local
-kubectl cp nline-monitoring/pod-name:/tmp/grafana-backup.tar.gz ./grafana-backup.tar.gz
+kubectl cp pose-monitoring/pod-name:/tmp/grafana-backup.tar.gz ./grafana-backup.tar.gz
 ```
 
 ## 🐛 Common Issues
@@ -310,7 +310,7 @@ kubectl cp nline-monitoring/pod-name:/tmp/grafana-backup.tar.gz ./grafana-backup
 
 สำหรับปัญหาหรือคำถาม:
 1. ดู DEPLOYMENT-GUIDE.md Troubleshooting section
-2. ตรวจสอบ logs: `kubectl logs -n nline-monitoring <pod-name>`
+2. ตรวจสอบ logs: `kubectl logs -n pose-monitoring <pod-name>`
 3. ตรวจสอบ Prometheus targets: http://YOUR_SERVER_IP:30090/targets
 4. ตรวจสอบ ServiceMonitors: `kubectl get servicemonitors -A`
 
@@ -320,14 +320,14 @@ kubectl cp nline-monitoring/pod-name:/tmp/grafana-backup.tar.gz ./grafana-backup
 ```bash
 # Update Helm chart
 helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --namespace nline-monitoring \
+  --namespace pose-monitoring \
   --values k8s/monitoring/prometheus-values.yaml
 
 # Update ServiceMonitors
 kubectl apply -f k8s/monitoring/
 
 # Restart components if needed
-kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-grafana
+kubectl -n pose-monitoring rollout restart deployment kube-prometheus-stack-grafana
 ```
 
 ---

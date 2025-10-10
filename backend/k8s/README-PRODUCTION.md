@@ -38,6 +38,12 @@
 - **RAM:** 2 GB+ (แนะนำ 4 GB+)
 - **CPU:** 2+ cores
 - **Disk:** 20 GB+ free space
+- **Docker:** ติดตั้งแล้ว (สำหรับ build images)
+
+**⚠️ หมายเหตุสำคัญ:**
+- **ไม่ต้องติดตั้ง Node.js บน server** - Dockerfile จะ build TypeScript เองข้างใน
+- **ไม่ต้องติดตั้ง npm บน server** - ใช้ Docker multi-stage build
+- แค่มี **Docker** และ **K3s** ก็พอ!
 - **OS:** Ubuntu 20.04+, Debian 10+, CentOS 7+, RHEL 8+
 
 **Required Software:**
@@ -69,61 +75,71 @@ server   Ready    control-plane,master   30s   v1.28.x+k3s1
 
 ---
 
-### 2. ตั้งค่า kubectl (ไม่ต้องใช้ sudo)
+### 2. Setup kubectl
 
 ```bash
-# สร้าง directory สำหรับ kubeconfig
-mkdir -p ~/.kube
+# ตั้งค่า KUBECONFIG (เพื่อใช้ kubectl โดยไม่ต้อง sudo)
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-# Copy kubeconfig
-sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-
-# เปลี่ยน ownership
-sudo chown $(id -u):$(id -g) ~/.kube/config
-
-# Set permission
-chmod 600 ~/.kube/config
-
-# Export KUBECONFIG (เพิ่มใน .bashrc หรือ .zshrc)
-echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+# เพิ่มใน bashrc เพื่อให้ใช้งานได้ตลอด
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
 source ~/.bashrc
 
-# ทดสอบ (ไม่ต้องใช้ sudo)
+# ทดสอบ
 kubectl get nodes
 kubectl cluster-info
 ```
 
 ---
 
-### 3. เตรียม Docker Images
+### 3. Build และ Import Docker Images
 
-**⚠️ สำคัญ:** K3s ใช้ **containerd** (ไม่ใช่ Docker) ต้อง import images เข้า K3s
+**⚠️ สำคัญ:** 
+- Dockerfile ใช้ **multi-stage build** - จะ build TypeScript เองข้างใน Docker
+- **ไม่ต้องติดตั้ง Node.js บน server**
+- K3s ใช้ **containerd** ต้อง import images เข้า K3s
 
 ```bash
-# 1. ตรวจสอบ images ที่มี
-docker images | grep backend
+cd /var/www/app_microservice/backend
 
-# 2. Import ทั้งหมดในคำสั่งเดียว
+# 1. Pull code ล่าสุด
+git pull origin main
+
+# 2. Build Docker images (Docker จะ build TypeScript ให้เอง)
+docker build --target production -f Dockerfile.auth -t backend-auth-service:latest .
+docker build --target production -f Dockerfile.gateway -t backend-gateway-api:latest .
+docker build --target production -f Dockerfile.item -t backend-item-service:latest .
+docker build --target production -f Dockerfile.email -t backend-email-service:latest .
+docker build --target production -f Dockerfile.category -t backend-category-service:latest .
+
+# 3. Import images เข้า K3s
 docker save \
   backend-gateway-api:latest \
   backend-auth-service:latest \
   backend-item-service:latest \
   backend-email-service:latest \
   backend-category-service:latest \
-  redis:7-alpine \
   | sudo k3s ctr images import -
 
-# 3. ตรวจสอบว่า import สำเร็จ
+# 4. Pull Redis image
+docker pull redis:7-alpine
+docker save redis:7-alpine | sudo k3s ctr images import -
+
+# 5. ตรวจสอบว่า import สำเร็จ
 sudo k3s ctr images ls | grep -E "(backend|redis)"
 ```
 
 **ผลลัพธ์ควรเห็น 6 images:**
-- backend-gateway-api:latest
-- backend-auth-service:latest
-- backend-item-service:latest
-- backend-email-service:latest
-- backend-category-service:latest
-- redis:7-alpine
+- docker.io/library/backend-gateway-api:latest
+- docker.io/library/backend-auth-service:latest
+- docker.io/library/backend-item-service:latest
+- docker.io/library/backend-email-service:latest
+- docker.io/library/backend-category-service:latest
+- docker.io/library/redis:7-alpine
+
+**💡 Tips:**
+- Build ใหม่เมื่อมีการแก้ code: รัน `docker build` และ `k3s ctr images import` อีกครั้ง
+- ลบ pods เก่าเพื่อใช้ image ใหม่: `kubectl delete pod -n pose-microservices --all`
 
 ---
 
@@ -132,6 +148,8 @@ sudo k3s ctr images ls | grep -E "(backend|redis)"
 ### 1. Setup Secrets
 
 ```bash
+
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 # สร้าง namespace
 kubectl create namespace pose-microservices
 
@@ -571,6 +589,86 @@ kubectl -n nline-monitoring logs -l app.kubernetes.io/name=grafana --tail=50
 # Restart
 kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-grafana
 kubectl -n nline-monitoring rollout restart statefulset prometheus-kube-prometheus-stack-prometheus
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### **ปัญหา: Pods ไม่มี /metrics endpoint**
+
+**สาเหตุ:** Docker images เป็นเวอร์ชันเก่าที่ยังไม่มี MetricsModule
+
+**วิธีแก้:**
+```bash
+# 1. Rebuild images ใหม่
+cd /var/www/app_microservice/backend
+git pull origin main
+
+docker build --target production -f Dockerfile.item -t backend-item-service:latest .
+# ... build services อื่นๆ
+
+# 2. Import เข้า k3s
+docker save backend-item-service:latest | sudo k3s ctr images import -
+
+# 3. ลบ pods เก่า
+kubectl delete pod -n pose-microservices -l app=item-service
+
+# 4. ทดสอบ metrics
+kubectl exec -n pose-microservices $(kubectl get pod -n pose-microservices -l app=item-service -o jsonpath='{.items[0].metadata.name}') -- curl -s http://localhost:3002/metrics --max-time 5 | head -20
+```
+
+---
+
+### **ปัญหา: kubectl error "tls: failed to verify certificate"**
+
+**สาเหตุ:** ยังไม่ได้ตั้งค่า KUBECONFIG
+
+**วิธีแก้:**
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
+source ~/.bashrc
+```
+
+---
+
+### **ปัญหา: Image ใหม่ไม่ update ใน pods**
+
+**สาเหตุ:** K3s ยังใช้ image เก่าที่ cache ไว้
+
+**วิธีแก้:**
+```bash
+# 1. ลบ image เก่าใน k3s
+sudo k3s ctr images rm docker.io/library/backend-item-service:latest
+
+# 2. Import ใหม่
+docker save backend-item-service:latest | sudo k3s ctr images import -
+
+# 3. Delete pods
+kubectl delete pod -n pose-microservices --all
+```
+
+---
+
+### **ปัญหา: Build Docker ช้ามาก**
+
+**แนะนำ:** ใช้ build cache หรือ build บน local แล้วส่งมา
+
+**วิธีเร็วกว่า - Build บน Local (Mac):**
+```bash
+# บน Local
+cd /Users/night/Desktop/POSE/app_microservice/backend
+docker-compose -f docker-compose.yml build
+docker save backend-gateway-api:latest backend-auth-service:latest backend-item-service:latest backend-email-service:latest backend-category-service:latest -o services.tar
+
+# ส่งไป Server
+scp services.tar root@YOUR_SERVER_IP:/tmp/
+
+# บน Server
+sudo k3s ctr images import /tmp/services.tar
+kubectl delete pod -n pose-microservices --all
+rm /tmp/services.tar
 ```
 
 ---

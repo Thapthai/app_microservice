@@ -13,16 +13,28 @@
 
 ---
 
+```bash
+# ดู RAM
+free -h
+
+# ดู CPU
+top
+# กด 'q' เพื่อออก
+
+# หรือดูแบบสรุป
+top -bn1 | head -20
+```
+
 ## 🚀 ขั้นตอนการติดตั้ง
 
 ### **1. เตรียม Namespace**
 
 ```bash
 # สร้าง namespace สำหรับ monitoring
-kubectl create namespace nline-monitoring
+kubectl create namespace pose-monitoring
 
 # Label namespace เพื่อให้ ServiceMonitor ทำงาน
-kubectl label namespace nline-monitoring monitoring=enabled
+kubectl label namespace pose-monitoring monitoring=enabled
 kubectl label namespace pose-microservices monitoring=enabled
 kubectl label namespace kube-system monitoring=enabled
 ```
@@ -45,15 +57,16 @@ cd /var/www/app_microservice/backend
 
 # ติดตั้งด้วย custom values
 helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --namespace nline-monitoring \
+  --namespace pose-monitoring \
   --values k8s/monitoring/prometheus-values.yaml \
   --wait
 
 # ตรวจสอบการติดตั้ง
-kubectl -n nline-monitoring get pods
+kubectl -n pose-monitoring get pods
 ```
 
 **ผลลัพธ์ที่คาดหวัง:**
+
 ```
 NAME                                                        READY   STATUS    RESTARTS   AGE
 alertmanager-kube-prometheus-stack-alertmanager-0           2/2     Running   0          2m
@@ -89,15 +102,16 @@ cd /var/www/app_microservice/backend
 kubectl apply -f k8s/monitoring/grafana-dashboards.yaml
 
 # Restart Grafana เพื่อโหลด dashboards
-kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-grafana
+kubectl -n pose-monitoring rollout restart deployment kube-prometheus-stack-grafana
 
 # รอให้ Grafana พร้อม
-kubectl -n nline-monitoring rollout status deployment kube-prometheus-stack-grafana
+kubectl -n pose-monitoring rollout status deployment kube-prometheus-stack-grafana
 ```
 
 ### **6. เปิดใช้งาน Metrics ใน NestJS Apps**
 
 ดู instructions ใน `nestjs-metrics-setup.md` เพื่อ:
+
 1. ติดตั้ง `prom-client`
 2. เพิ่ม MetricsModule ในแต่ละ service
 3. Rebuild และ redeploy services
@@ -127,6 +141,7 @@ kubectl rollout restart deployment -n pose-microservices
 ## 🌐 เข้าถึง Monitoring UIs
 
 ### **Grafana**
+
 ```
 URL: http://YOUR_SERVER_IP:30001
 Username: admin
@@ -134,11 +149,13 @@ Password: admin123
 ```
 
 ### **Prometheus**
+
 ```
 URL: http://YOUR_SERVER_IP:30090
 ```
 
 ### **Alertmanager**
+
 ```
 URL: http://YOUR_SERVER_IP:30093
 ```
@@ -163,12 +180,13 @@ URL: http://YOUR_SERVER_IP:30093
 
 ```bash
 # Port-forward Prometheus
-kubectl port-forward -n nline-monitoring svc/kube-prometheus-stack-prometheus 9090:9090
+kubectl port-forward -n pose-monitoring svc/kube-prometheus-stack-prometheus 9090:9090
 
 # เปิด browser: http://localhost:9090/targets
 ```
 
 **ควรเห็น targets:**
+
 - node-exporter (1/1)
 - kube-state-metrics (1/1)
 - auth-service (1/1)
@@ -185,7 +203,7 @@ kubectl port-forward -n nline-monitoring svc/kube-prometheus-stack-prometheus 90
 kubectl get servicemonitors -A
 
 # ตรวจสอบว่า Prometheus scrape ServiceMonitors
-kubectl -n nline-monitoring logs prometheus-kube-prometheus-stack-prometheus-0 -c prometheus | grep servicemonitor
+kubectl -n pose-monitoring logs prometheus-kube-prometheus-stack-prometheus-0 -c prometheus | grep servicemonitor
 ```
 
 ### **3. ทดสอบ Metrics Endpoints**
@@ -209,9 +227,10 @@ curl http://localhost:8080/metrics
 **สาเหตุ:** ไม่มี storage หรือ resource ไม่พอ
 
 **วิธีแก้:**
+
 ```bash
 # ตรวจสอบ PVC
-kubectl -n nline-monitoring get pvc
+kubectl -n pose-monitoring get pvc
 
 # ถ้า PVC pending ตรวจสอบ StorageClass
 kubectl get storageclass
@@ -225,6 +244,7 @@ kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisione
 **สาเหตุ:** Prometheus ไม่เห็น ServiceMonitor
 
 **วิธีแก้:**
+
 ```bash
 # ตรวจสอบ namespace labels
 kubectl get namespace pose-microservices --show-labels
@@ -233,7 +253,7 @@ kubectl get namespace pose-microservices --show-labels
 kubectl label namespace pose-microservices monitoring=enabled
 
 # Restart Prometheus
-kubectl -n nline-monitoring delete pod -l app.kubernetes.io/name=prometheus
+kubectl -n pose-monitoring delete pod -l app.kubernetes.io/name=prometheus
 ```
 
 ### **ปัญหา: NestJS metrics ไม่มี**
@@ -241,6 +261,7 @@ kubectl -n nline-monitoring delete pod -l app.kubernetes.io/name=prometheus
 **สาเหตุ:** ยังไม่ได้เพิ่ม PrometheusModule หรือ metrics port
 
 **วิธีแก้:**
+
 1. ตรวจสอบว่าติดตั้ง `@willsoto/nestjs-prometheus` แล้ว
 2. ตรวจสอบว่าเพิ่ม PrometheusModule ใน module
 3. ตรวจสอบว่าเปิด HTTP server port 8080 สำหรับ metrics
@@ -256,12 +277,13 @@ curl http://localhost:8080/metrics
 ### **ปัญหา: Grafana Dashboards ไม่แสดง**
 
 **วิธีแก้:**
+
 ```bash
 # ตรวจสอบ ConfigMap
-kubectl -n nline-monitoring get configmap grafana-dashboards
+kubectl -n pose-monitoring get configmap grafana-dashboards
 
 # Restart Grafana
-kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-grafana
+kubectl -n pose-monitoring rollout restart deployment kube-prometheus-stack-grafana
 
 # Import dashboards manually ใน Grafana UI:
 # Dashboard → Import → Upload JSON file
@@ -272,17 +294,18 @@ kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-gra
 **สาเหตุ:** Prometheus ใช้ memory เยอะเพราะเก็บ 90 วัน
 
 **วิธีแก้:**
+
 ```bash
 # ลด retention period
 helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --namespace nline-monitoring \
+  --namespace pose-monitoring \
   --set prometheus.prometheusSpec.retention=30d \
   --set prometheus.prometheusSpec.retentionSize=20GB \
   --reuse-values
 
 # หรือลด scrape interval
 helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --namespace nline-monitoring \
+  --namespace pose-monitoring \
   --set prometheus.prometheusSpec.scrapeInterval=1m \
   --reuse-values
 ```
@@ -292,6 +315,7 @@ helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
 ## 📈 ตัวอย่าง Prometheus Queries
 
 ### **Node Metrics**
+
 ```promql
 # CPU usage
 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
@@ -304,6 +328,7 @@ helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
 ```
 
 ### **Application Metrics**
+
 ```promql
 # Request rate
 sum(rate(http_requests_total[5m])) by (service)
@@ -315,7 +340,6 @@ sum(rate(http_requests_total{status_code=~"5.."}[5m])) by (service)
 histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) by (service)
 ```
 
-
 ---
 
 ## 🔄 การอัพเดท Monitoring Stack
@@ -325,7 +349,7 @@ cd /var/www/app_microservice/backend
 
 # อัพเดท Helm values
 helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --namespace nline-monitoring \
+  --namespace pose-monitoring \
   --values k8s/monitoring/prometheus-values.yaml
 
 # อัพเดท ServiceMonitors
@@ -334,7 +358,7 @@ kubectl apply -f k8s/monitoring/traefik-servicemonitor.yaml
 
 # อัพเดท Dashboards
 kubectl apply -f k8s/monitoring/grafana-dashboards.yaml
-kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-grafana
+kubectl -n pose-monitoring rollout restart deployment kube-prometheus-stack-grafana
 ```
 
 ---
@@ -343,17 +367,17 @@ kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-gra
 
 ```bash
 # Uninstall Helm chart
-helm uninstall kube-prometheus-stack -n nline-monitoring
+helm uninstall kube-prometheus-stack -n pose-monitoring
 
 # ลบ PVCs (ข้อมูล Prometheus และ Grafana จะหายไป!)
-kubectl -n nline-monitoring delete pvc --all
+kubectl -n pose-monitoring delete pvc --all
 
 # ลบ ServiceMonitors
 kubectl delete -f k8s/monitoring/application-servicemonitor.yaml
 kubectl delete -f k8s/monitoring/traefik-servicemonitor.yaml
 
 # ลบ namespace
-kubectl delete namespace nline-monitoring
+kubectl delete namespace pose-monitoring
 ```
 
 ---
@@ -364,4 +388,3 @@ kubectl delete namespace nline-monitoring
 - [Grafana Documentation](https://grafana.com/docs/)
 - [Kube Prometheus Stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
 - [prom-client](https://github.com/siimon/prom-client)
-
