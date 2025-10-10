@@ -115,35 +115,14 @@ grafana:
     storageClassName: local-path
     size: 5Gi
   
-  # Grafana dashboards
-  dashboardProviders:
-    dashboardproviders.yaml:
-      apiVersion: 1
-      providers:
-        - name: 'default'
-          orgId: 1
-          folder: ''
-          type: file
-          disableDeletion: false
-          editable: true
-          options:
-            path: /var/lib/grafana/dashboards/default
-  
-  dashboardsConfigMaps:
-    default: "grafana-dashboards"
-  
-  # Data sources
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: Prometheus
-          type: prometheus
-          url: http://kube-prometheus-stack-prometheus:9090
-          access: proxy
-          isDefault: true
-          jsonData:
-            timeInterval: 30s
+  # Use sidecar to load dashboards and datasources automatically
+  sidecar:
+    dashboards:
+      enabled: true
+      defaultDashboardsEnabled: true
+    datasources:
+      enabled: true
+      defaultDatasourceEnabled: true
   
   # NodePort for external access
   service:
