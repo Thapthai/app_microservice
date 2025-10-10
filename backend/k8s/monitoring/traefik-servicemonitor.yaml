@@ -1,0 +1,62 @@
+# Traefik Load Balancer Monitoring
+# Monitors: requests, response times, status codes, backends, frontends
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: traefik-monitor
+  namespace: kube-system
+  labels:
+    app: traefik
+    monitoring: enabled
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: traefik
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    relabelings:
+      - sourceLabels: [__meta_kubernetes_pod_name]
+        targetLabel: pod
+      - sourceLabels: [__meta_kubernetes_namespace]
+        targetLabel: namespace
+      - targetLabel: component
+        replacement: load-balancer
+
+---
+# If Traefik doesn't have metrics port, add this to enable it
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-metrics-config
+  namespace: kube-system
+data:
+  traefik.yaml: |
+    # Enable Prometheus metrics
+    metrics:
+      prometheus:
+        addEntryPointsLabels: true
+        addRoutersLabels: true
+        addServicesLabels: true
+        buckets:
+          - 0.1
+          - 0.3
+          - 1.0
+          - 3.0
+          - 5.0
+          - 10.0
+        entryPoint: metrics
+    
+    # Metrics endpoint
+    entryPoints:
+      metrics:
+        address: ":9100"
+      web:
+        address: ":80"
+      websecure:
+        address: ":443"
+

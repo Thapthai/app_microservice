@@ -1,274 +1,387 @@
-# Monitoring Setup Guide
-# คู่มือการตั้งค่า Monitoring
+# Monitoring Stack Documentation
 
----
+Complete monitoring solution สำหรับ microservices architecture
 
-## 📊 ภาพรวม Monitoring Stack
+## 📊 Overview
 
-ระบบ Monitoring นี้ครอบคลุม 4 ส่วนหลัก:
+Monitoring stack นี้ให้ข้อมูลครบถ้วนสำหรับการ monitor:
 
-1. **Node Metrics** - Server/Hardware (CPU, RAM, Disk, Network)
-2. **Load Balancer Metrics** - Traefik (Requests, Response Time, Traffic)
-3. **Database Metrics** - Redis (Connections, Memory, Commands)
-4. **Application Metrics** - NestJS Services (Custom metrics)
+### 1. **Node Exporter - Full System Metrics**
+- CPU usage (all cores, per process)
+- Memory usage (total, available, cached, swap)
+- Disk usage (per mount point, I/O stats)
+- Network traffic (per interface, errors, dropped packets)
+- System load (1min, 5min, 15min averages)
+- Process stats (running, blocked, zombie)
 
----
+### 2. **Database Query Monitoring**
+- Query execution times (min, max, avg, p95, p99)
+- Query call counts
+- Active connections (per database, per user, per state)
+- Slow queries (> 1 second)
+- Database sizes
+- Table statistics (scans, inserts, updates, deletes)
+- Lock statistics
+- Index usage
 
-## 📁 ไฟล์ใน monitoring/
+### 3. **Load Balancer (Traefik)**
+- Requests per second (total, per service, per route)
+- Response times (p50, p95, p99)
+- HTTP status codes distribution
+- Backend health status
+- Connection counts
+- Error rates
 
-```
-monitoring/
-├── kustomization.yaml          → Kustomize config
-├── traefik-metrics.yaml        → Load Balancer metrics
-├── redis-metrics.yaml          → Database metrics
-├── application-metrics.yaml    → Application metrics
-└── README.md                   → คู่มือนี้
-```
+### 4. **Application Metrics (NestJS)**
+- HTTP requests (total, rate, per endpoint)
+- Request latency (p50, p95, p99)
+- Error rates (4xx, 5xx)
+- Memory usage (heap, RSS)
+- CPU usage
+- Event loop lag
+- Active handles
+- Business metrics (custom)
 
----
+### 5. **Service Monitoring**
+- Service health status (up/down)
+- Service uptime percentage
+- Request counts (per service, per endpoint)
+- Service restarts
+- Most called endpoints
+- Error rates per service
+- Resource usage per service
 
-## 🚀 การติดตั้ง
-
-### ขั้นตอนที่ 1: ติดตั้ง Prometheus + Grafana
-
-```bash
-# Add Helm repo
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-
-# Create namespace
-kubectl create namespace nline-monitoring
-
-# Install kube-prometheus-stack (⚠️ ต้องมี hostNetwork=false แก้ port conflict)
-helm upgrade --install kube-prometheus-stack \
-  prometheus-community/kube-prometheus-stack \
-  -n nline-monitoring \
-  --set prometheus.prometheusSpec.retention=7d \
-  --set prometheus.prometheusSpec.resources.requests.memory=512Mi \
-  --set grafana.adminPassword=admin123 \
-  --set prometheus-node-exporter.hostNetwork=false \
-  --wait
-
-# Patch services to use fixed NodePort (ต้องอยู่ในช่วง 30000-32767)
-kubectl -n nline-monitoring patch svc kube-prometheus-stack-grafana \
-  -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":3000,"nodePort":30001,"name":"http-web"}]}}'
-
-kubectl -n nline-monitoring patch svc kube-prometheus-stack-prometheus \
-  -p '{"spec":{"type":"NodePort","ports":[{"port":9090,"targetPort":9090,"nodePort":30090,"name":"http-web"}]}}'
-```
-
-### ขั้นตอนที่ 2: Apply Custom Metrics
+## 🚀 Quick Start
 
 ```bash
-# Go to backend directory
+# 1. Deploy monitoring stack
 cd /var/www/app_microservice/backend
 
-# Apply all monitoring configs
-kubectl apply -k k8s/monitoring/
+# 2. Install Prometheus + Grafana
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace nline-monitoring \
+  --values k8s/monitoring/prometheus-values.yaml \
+  --create-namespace
 
-# Check status
-kubectl -n nline-monitoring get servicemonitor
-kubectl -n pose-microservices get pods | grep redis-exporter
+# 3. Deploy PostgreSQL Exporter (อัพเดท connection string ก่อน)
+kubectl apply -f k8s/monitoring/postgres-exporter.yaml
+
+# 4. Deploy ServiceMonitors
+kubectl apply -f k8s/monitoring/application-servicemonitor.yaml
+kubectl apply -f k8s/monitoring/traefik-servicemonitor.yaml
+
+# 5. Deploy Grafana Dashboards
+kubectl apply -f k8s/monitoring/grafana-dashboards.yaml
+kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-grafana
+
+# 6. Access Grafana
+# http://YOUR_SERVER_IP:30001
+# Username: admin
+# Password: admin123
 ```
 
----
+## 📁 Files Structure
 
-## 📊 ตรวจสอบการทำงาน
+```
+k8s/monitoring/
+├── prometheus-values.yaml              # Prometheus Helm values (90d retention)
+├── postgres-exporter.yaml              # PostgreSQL database monitoring
+├── application-servicemonitor.yaml     # NestJS services monitoring
+├── traefik-servicemonitor.yaml         # Load balancer monitoring
+├── grafana-dashboards.yaml             # Pre-configured dashboards
+├── nestjs-metrics-setup.md             # How to add metrics to NestJS
+├── DEPLOYMENT-GUIDE.md                 # Complete deployment guide
+└── README.md                           # This file
+```
 
-### 1. Prometheus Targets
+## 🎯 Features
 
-เปิด Prometheus UI: `http://YOUR_SERVER_IP:9090`
+### **Prometheus Configuration**
+- ✅ 90 days retention
+- ✅ 50GB storage
+- ✅ 30s scrape interval
+- ✅ Optimized for 7.8GB RAM server
+- ✅ Auto-discovery ServiceMonitors
+- ✅ Custom scrape configs
 
-ไปที่: **Status → Targets**
+### **Grafana Dashboards**
+- ✅ Node Exporter Full - Complete system metrics
+- ✅ Database Query Performance - PostgreSQL analytics
+- ✅ Load Balancer - Traefik metrics
+- ✅ Application Services - NestJS microservices
+- ✅ Service Health & Requests - Uptime and usage
 
-ควรเห็น targets เหล่านี้ (สีเขียว = UP):
-- ✅ `serviceMonitor/nline-monitoring/traefik/0`
-- ✅ `serviceMonitor/nline-monitoring/redis/0`
-- ✅ `serviceMonitor/nline-monitoring/gateway-api/0`
-- ✅ `serviceMonitor/nline-monitoring/auth-service/0`
-- ✅ `serviceMonitor/nline-monitoring/item-service/0`
-- ✅ `serviceMonitor/nline-monitoring/category-service/0`
-- ✅ `serviceMonitor/nline-monitoring/email-service/0`
+### **Exporters**
+- ✅ Node Exporter - System metrics
+- ✅ Kube State Metrics - Kubernetes metrics
+- ✅ PostgreSQL Exporter - Database metrics
+- ✅ Redis Exporter - Cache metrics
+- ✅ NestJS Prometheus - Application metrics
 
-### 2. Grafana Dashboards
+## 📊 Metrics Examples
 
-เปิด Grafana: `http://YOUR_SERVER_IP:3001`
-Login: `admin` / `admin123`
-
-#### Import Dashboards:
-
-**Node Metrics:**
-- Built-in: **Node Exporter Full**
-
-**Load Balancer:**
-- Import ID: **11462** (Traefik 2.x)
-
-**Redis:**
-- Import ID: **11835** (Redis Dashboard for Prometheus)
-
-**Application:**
-- Import ID: **315** (Kubernetes cluster monitoring)
-- Import ID: **12006** (Kubernetes API Server)
-
----
-
-## 🔍 ตัวอย่าง Queries
-
-### Node Metrics (Hardware)
-
+### System Metrics
 ```promql
 # CPU Usage
-100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
 
-# Memory Usage
-node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+# Memory Usage %
+100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
 
-# Disk Usage
-(node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100
+# Disk I/O
+irate(node_disk_read_bytes_total[5m])
+irate(node_disk_written_bytes_total[5m])
+
+# Network Traffic
+irate(node_network_receive_bytes_total[5m])
+irate(node_network_transmit_bytes_total[5m])
 ```
 
-### Traefik (Load Balancer)
-
+### Database Metrics
 ```promql
-# Request Rate
-rate(traefik_entrypoint_requests_total[5m])
+# Slow Queries
+sum(rate(pg_stat_statements_calls{mean_exec_time > 1000}[5m]))
 
-# Response Time
-traefik_entrypoint_request_duration_seconds_sum
+# Active Connections
+pg_stat_activity_count{state="active"}
 
-# HTTP Status Codes
-traefik_service_requests_total{code=~"2.*|4.*|5.*"}
-```
+# Database Size
+pg_database_size_size_bytes / 1024 / 1024 / 1024  # in GB
 
-### Redis (Database)
-
-```promql
-# Connected Clients
-redis_connected_clients
-
-# Memory Usage
-redis_memory_used_bytes
-
-# Commands Per Second
-rate(redis_commands_processed_total[5m])
-
-# Keys Total
-redis_db_keys
+# Top 10 Slowest Queries
+topk(10, rate(pg_stat_statements_mean_exec_time[5m]))
 ```
 
 ### Application Metrics
-
 ```promql
-# HTTP Requests
-rate(http_requests_total{namespace="pose-microservices"}[5m])
+# Request Rate (per service)
+sum(rate(http_requests_total[5m])) by (service)
 
-# Pod CPU Usage
-rate(container_cpu_usage_seconds_total{namespace="pose-microservices"}[5m])
+# Error Rate
+sum(rate(http_requests_total{status_code=~"5.."}[5m])) by (service) / 
+sum(rate(http_requests_total[5m])) by (service) * 100
 
-# Pod Memory Usage
-container_memory_working_set_bytes{namespace="pose-microservices"}
+# Response Time p95
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) by (service)
+
+# Memory Usage
+process_resident_memory_bytes{job=~".*-service"} / 1024 / 1024  # in MB
 ```
 
----
+### Service Health
+```promql
+# Service Up/Down
+up{job=~".*-service"}
 
-## ⚠️ หมายเหตุสำหรับ Application Metrics
+# Uptime %
+avg_over_time(up{job=~".*-service"}[24h]) * 100
 
-**NestJS Services ต้องเพิ่ม Prometheus metrics endpoint:**
+# Restart Count
+increase(kube_pod_container_status_restarts_total[24h])
 
-ติดตั้ง package:
+# Request Count (24h)
+sum(increase(http_requests_total[24h])) by (service)
+```
+
+## 🔧 Configuration
+
+### Adjust Retention Period
+
+แก้ไข `prometheus-values.yaml`:
+```yaml
+prometheus:
+  prometheusSpec:
+    retention: 90d          # เปลี่ยนเป็น 30d, 60d, 180d
+    retentionSize: "50GB"   # เปลี่ยนตามความจุ
+```
+
+### Adjust Resource Limits
+
+แก้ไข `prometheus-values.yaml`:
+```yaml
+prometheus:
+  prometheusSpec:
+    resources:
+      requests:
+        memory: 1Gi     # เพิ่ม/ลดตาม RAM ที่มี
+      limits:
+        memory: 2Gi
+```
+
+### Change Scrape Interval
+
+แก้ไข `prometheus-values.yaml`:
+```yaml
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 30s    # เปลี่ยนเป็น 15s, 1m, 2m
+    evaluationInterval: 30s
+```
+
+## 📈 Grafana Dashboards
+
+### Available Dashboards
+
+1. **Node Exporter Full** (`uid: node-exporter-full`)
+   - System overview
+   - CPU, Memory, Disk, Network
+   - Load average and processes
+
+2. **Database Query Performance** (`uid: database-queries`)
+   - Top slow queries
+   - Active connections
+   - Database sizes
+   - Query statistics
+
+3. **Load Balancer** (`uid: load-balancer`)
+   - Request rate
+   - Response times
+   - Status codes
+   - Backend health
+
+4. **Application Services** (`uid: application-services`)
+   - Service health
+   - Request rates
+   - Error rates
+   - Memory usage
+
+5. **Service Health & Requests** (`uid: service-monitoring`)
+   - Uptime percentage
+   - Request counts
+   - Service restarts
+   - Top endpoints
+
+### Import Custom Dashboards
+
+1. Go to Grafana UI (http://YOUR_SERVER_IP:30001)
+2. Navigate to **Dashboards → Import**
+3. Upload JSON or paste dashboard ID
+4. Select Prometheus as data source
+
+### Popular Dashboard IDs
+- Node Exporter Full: **1860**
+- Kubernetes Cluster: **7249**
+- PostgreSQL: **9628**
+- Traefik: **4475**
+- NestJS: Create custom or use provided
+
+## 🔍 Monitoring Best Practices
+
+### 1. Set Up Alerts
+
+Create alert rules in Prometheus:
+```yaml
+# High CPU Usage
+- alert: HighCPUUsage
+  expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+  for: 5m
+  annotations:
+    summary: "High CPU usage detected"
+
+# Service Down
+- alert: ServiceDown
+  expr: up{job=~".*-service"} == 0
+  for: 1m
+  annotations:
+    summary: "Service {{ $labels.service }} is down"
+```
+
+### 2. Monitor Key Metrics
+
+**Golden Signals:**
+- **Latency** - Response times
+- **Traffic** - Requests per second
+- **Errors** - Error rates
+- **Saturation** - Resource usage
+
+### 3. Set Retention Based on Needs
+
+- **Development**: 7-30 days
+- **Staging**: 30-60 days
+- **Production**: 90-365 days
+
+### 4. Regular Backups
+
+Backup Grafana dashboards and Prometheus data:
 ```bash
-npm install @willsoto/nestjs-prometheus prom-client
+# Backup Grafana
+kubectl -n nline-monitoring exec deployment/kube-prometheus-stack-grafana -- \
+  tar -czf /tmp/grafana-backup.tar.gz /var/lib/grafana
+
+# Copy to local
+kubectl cp nline-monitoring/pod-name:/tmp/grafana-backup.tar.gz ./grafana-backup.tar.gz
 ```
 
-เพิ่มใน `main.ts`:
-```typescript
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+## 🐛 Common Issues
 
-// In module imports
-PrometheusModule.register({
-  defaultMetrics: {
-    enabled: true,
-  },
-})
-```
+### Issue: Prometheus OOMKilled
 
-Metrics จะอยู่ที่: `http://service:port/metrics`
+**Solution:**
+1. Reduce retention: `retention: 30d`
+2. Increase memory limits
+3. Reduce scrape interval
+4. Disable unnecessary metrics
 
----
+### Issue: ServiceMonitor not working
 
-## 🗑️ การลบ Monitoring
+**Solution:**
+1. Check namespace labels: `kubectl label namespace pose-microservices monitoring=enabled`
+2. Verify service selector matches
+3. Check service port name matches ServiceMonitor
+4. Restart Prometheus
 
+### Issue: No application metrics
+
+**Solution:**
+1. Verify NestJS apps have PrometheusModule
+2. Check /metrics endpoint works
+3. Verify service has correct port (8080)
+4. Check ServiceMonitor targets in Prometheus UI
+
+## 📚 Documentation
+
+- **DEPLOYMENT-GUIDE.md** - Complete deployment instructions
+- **nestjs-metrics-setup.md** - How to add metrics to NestJS
+- **prometheus-values.yaml** - Prometheus configuration
+- **grafana-dashboards.yaml** - Dashboard definitions
+
+## 🆘 Support
+
+สำหรับปัญหาหรือคำถาม:
+1. ดู DEPLOYMENT-GUIDE.md Troubleshooting section
+2. ตรวจสอบ logs: `kubectl logs -n nline-monitoring <pod-name>`
+3. ตรวจสอบ Prometheus targets: http://YOUR_SERVER_IP:30090/targets
+4. ตรวจสอบ ServiceMonitors: `kubectl get servicemonitors -A`
+
+## 🔄 Updates
+
+เพื่ออัพเดท monitoring stack:
 ```bash
-# Uninstall Helm
-helm uninstall kube-prometheus-stack -n nline-monitoring
+# Update Helm chart
+helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace nline-monitoring \
+  --values k8s/monitoring/prometheus-values.yaml
 
-# Delete PVCs
-kubectl -n nline-monitoring delete pvc --all
+# Update ServiceMonitors
+kubectl apply -f k8s/monitoring/
 
-# Delete custom resources
-kubectl delete -k k8s/monitoring/
-
-# Delete redis-exporter (in pose-microservices namespace)
-kubectl -n pose-microservices delete deployment redis-exporter
-kubectl -n pose-microservices delete svc redis-exporter
-
-# Delete namespace
-kubectl delete namespace nline-monitoring
+# Restart components if needed
+kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-grafana
 ```
 
 ---
 
-## 📚 Dashboard IDs สำหรับ Grafana
+## ✨ Summary
 
-| Dashboard | ID | คำอธิบาย |
-|-----------|----|----|
-| **Node Exporter Full** | Built-in | Server hardware metrics |
-| **Traefik** | 11462 | Load Balancer metrics |
-| **Traefik** | 4475 | Traefik Official Dashboard |
-| **Redis** | 11835 | Redis Dashboard |
-| **Redis** | 763 | Redis Metrics |
-| **Kubernetes** | 315 | Kubernetes cluster |
-| **Kubernetes** | 7249 | Kubernetes Cluster Monitoring |
+Monitoring stack นี้ให้ความสามารถในการ:
 
----
+✅ **Monitor System** - CPU, Memory, Disk, Network (Node Exporter)  
+✅ **Monitor Database** - Query performance, connections, locks  
+✅ **Monitor Load Balancer** - Traefik requests, response times  
+✅ **Monitor Applications** - NestJS services metrics  
+✅ **Monitor Services** - Health, uptime, request counts  
+✅ **90 Days Retention** - เก็บ logs ย้อนหลัง 90 วัน  
+✅ **Beautiful Dashboards** - Grafana pre-configured dashboards  
+✅ **Production Ready** - Optimized สำหรับ 7.8GB RAM server  
 
-## 🎯 URLs
-
-- **Grafana:** `http://YOUR_SERVER_IP:30001` (admin/admin123)
-- **Prometheus:** `http://YOUR_SERVER_IP:30090`
-- **Gateway API:** `http://10.11.9.84:3000`
-
----
-
-## 📞 Troubleshooting
-
-### ServiceMonitor ไม่ทำงาน
-
-```bash
-# เช็ค ServiceMonitor
-kubectl -n nline-monitoring get servicemonitor
-
-# เช็ค labels ของ service
-kubectl -n pose-microservices get svc --show-labels
-
-# เช็ค Prometheus logs
-kubectl -n nline-monitoring logs prometheus-kube-prometheus-stack-prometheus-0 -c prometheus
-```
-
-### Redis Exporter ไม่ทำงาน
-
-```bash
-# เช็ค pod
-kubectl -n pose-microservices get pods | grep redis-exporter
-
-# เช็ค logs
-kubectl -n pose-microservices logs deployment/redis-exporter
-
-# Test connection
-kubectl -n pose-microservices exec -it deployment/redis-exporter -- wget -qO- http://localhost:9121/metrics
-```
-
----
-
-**สำเร็จ!** 🎉 Monitoring Stack พร้อมใช้งาน
-
+Happy Monitoring! 📊✨

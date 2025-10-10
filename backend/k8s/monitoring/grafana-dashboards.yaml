@@ -1,0 +1,379 @@
+# Grafana Dashboards ConfigMap
+# Contains JSON definitions for all monitoring dashboards
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: nline-monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  # Dashboard 1: Node Exporter Full
+  node-exporter-full.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "node-exporter-full",
+        "title": "Node Exporter Full",
+        "tags": ["node", "system"],
+        "timezone": "Asia/Bangkok",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "30s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "CPU Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+                "legendFormat": "{{instance}} CPU"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))",
+                "legendFormat": "{{instance}} Memory"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Disk Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"}) * 100)",
+                "legendFormat": "{{instance}} Disk"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Network Traffic",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "irate(node_network_receive_bytes_total{device!~\"lo|veth.*|docker.*|br-.*\"}[5m])",
+                "legendFormat": "{{instance}} {{device}} RX"
+              },
+              {
+                "expr": "irate(node_network_transmit_bytes_total{device!~\"lo|veth.*|docker.*|br-.*\"}[5m])",
+                "legendFormat": "{{instance}} {{device}} TX"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }
+  
+  # Dashboard 2: Database Queries
+  database-queries.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "database-queries",
+        "title": "Database Query Performance",
+        "tags": ["database", "postgresql"],
+        "timezone": "Asia/Bangkok",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "30s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Query Execution Time (Top 10)",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "topk(10, rate(pg_stat_statements_mean_exec_time[5m]))",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Active Connections by Database",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "pg_stat_activity_count",
+                "legendFormat": "{{database}} - {{state}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10}
+          },
+          {
+            "id": 3,
+            "title": "Database Size",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "pg_database_size_size_bytes",
+                "legendFormat": "{{database}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10}
+          },
+          {
+            "id": 4,
+            "title": "Slow Queries (> 1s)",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(rate(pg_stat_statements_calls{mean_exec_time > 1000}[5m]))"
+              }
+            ],
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 18}
+          },
+          {
+            "id": 5,
+            "title": "Total Queries/sec",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(rate(pg_stat_statements_calls[5m]))"
+              }
+            ],
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 18}
+          }
+        ]
+      }
+    }
+  
+  # Dashboard 3: Load Balancer (Traefik)
+  load-balancer.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "load-balancer",
+        "title": "Load Balancer (Traefik)",
+        "tags": ["traefik", "load-balancer"],
+        "timezone": "Asia/Bangkok",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "30s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Requests per Second",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(traefik_service_requests_total[5m])) by (service)",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Response Time (p95)",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(traefik_service_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "HTTP Status Codes",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(traefik_service_requests_total[5m])) by (code)",
+                "legendFormat": "HTTP {{code}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Backend Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "traefik_backend_server_up",
+                "legendFormat": "{{backend}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }
+  
+  # Dashboard 4: Application Services
+  application-services.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "application-services",
+        "title": "Application Services",
+        "tags": ["nestjs", "microservices"],
+        "timezone": "Asia/Bangkok",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "30s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Health Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=~\".*-service\"}",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          },
+          {
+            "id": 2,
+            "title": "Request Rate by Service",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total[5m])) by (service)",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+          },
+          {
+            "id": 3,
+            "title": "Error Rate by Service",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{status_code=~\"5..\"}[5m])) by (service)",
+                "legendFormat": "{{service}} errors"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+          },
+          {
+            "id": 4,
+            "title": "Response Time (p95) by Service",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) by (service)",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+          },
+          {
+            "id": 5,
+            "title": "Memory Usage by Service",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "process_resident_memory_bytes{job=~\".*-service\"}",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+          }
+        ]
+      }
+    }
+  
+  # Dashboard 5: Service Monitoring
+  service-monitoring.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "service-monitoring",
+        "title": "Service Health & Requests",
+        "tags": ["services", "monitoring"],
+        "timezone": "Asia/Bangkok",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "30s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Uptime",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "avg_over_time(up{job=~\".*-service\"}[24h])",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "gridPos": {"h": 6, "w": 24, "x": 0, "y": 0},
+            "thresholds": {
+              "mode": "percentage",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 95, "color": "yellow"},
+                {"value": 99, "color": "green"}
+              ]
+            }
+          },
+          {
+            "id": 2,
+            "title": "Request Count (24h) by Service",
+            "type": "bargauge",
+            "targets": [
+              {
+                "expr": "sum(increase(http_requests_total[24h])) by (service)",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6}
+          },
+          {
+            "id": 3,
+            "title": "Service Restarts (24h)",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"pose-microservices\"}[24h])) by (pod)",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6}
+          },
+          {
+            "id": 4,
+            "title": "Top 10 Most Called Endpoints",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "topk(10, sum(increase(http_requests_total[1h])) by (method, path))",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "gridPos": {"h": 10, "w": 24, "x": 0, "y": 14}
+          }
+        ]
+      }
+    }
+
