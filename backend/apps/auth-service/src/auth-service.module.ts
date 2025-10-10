@@ -9,9 +9,11 @@ import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { AuthGuard } from './guards/auth.guard';
 import { TOTPService } from './services/totp.service';
 import { EmailOTPService } from './services/email-otp.service';
+import { MetricsModule } from '../../../libs/metrics/metrics.module';
 
 @Module({
   imports: [
+    MetricsModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: { expiresIn: '24h' },

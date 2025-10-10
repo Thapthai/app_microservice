@@ -5,12 +5,11 @@
 ## 📋 สิ่งที่จะได้
 
 1. ✅ **Node Exporter** - Full system metrics (CPU, Memory, Disk, Network)
-2. ✅ **Database Monitoring** - PostgreSQL query performance และ statistics
-3. ✅ **Load Balancer** - Traefik metrics (requests, response times, status codes)
-4. ✅ **Application Metrics** - NestJS services (requests, latency, errors)
-5. ✅ **Service Monitoring** - Health, uptime, request counts
-6. ✅ **Prometheus** - 90 days retention
-7. ✅ **Grafana** - Pre-configured dashboards
+2. ✅ **Load Balancer** - Traefik metrics (requests, response times, status codes)
+3. ✅ **Application Metrics** - NestJS services (requests, latency, errors)
+4. ✅ **Service Monitoring** - Health, uptime, request counts
+5. ✅ **Prometheus** - 90 days retention
+6. ✅ **Grafana** - Pre-configured dashboards
 
 ---
 
@@ -65,27 +64,7 @@ kube-prometheus-stack-prometheus-node-exporter-xxx          1/1     Running   0 
 prometheus-kube-prometheus-stack-prometheus-0               2/2     Running   0          2m
 ```
 
-### **4. ติดตั้ง MySQL Exporter**
-
-```bash
-cd /var/www/app_microservice/backend
-
-# อัพเดท database connection string ใน secret
-kubectl -n nline-monitoring edit secret mysql-exporter-secret
-
-# แก้ไข data-source-name:
-# Format: username:password@(hostname:port)/
-# Example: exporter:your-password@(mysql.example.com:3306)/
-
-# Deploy MySQL Exporter
-kubectl apply -f k8s/monitoring/mysql-exporter.yaml
-
-# ตรวจสอบ
-kubectl -n nline-monitoring get pods -l app=mysql-exporter
-kubectl -n nline-monitoring logs -l app=mysql-exporter
-```
-
-### **5. ติดตั้ง Application ServiceMonitors**
+### **4. ติดตั้ง Application ServiceMonitors**
 
 ```bash
 cd /var/www/app_microservice/backend
@@ -101,7 +80,7 @@ kubectl -n pose-microservices get servicemonitors
 kubectl -n kube-system get servicemonitors
 ```
 
-### **6. ติดตั้ง Grafana Dashboards**
+### **5. ติดตั้ง Grafana Dashboards**
 
 ```bash
 cd /var/www/app_microservice/backend
@@ -116,25 +95,31 @@ kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-gra
 kubectl -n nline-monitoring rollout status deployment kube-prometheus-stack-grafana
 ```
 
-### **7. เปิดใช้งาน Metrics ใน NestJS Apps**
+### **6. เปิดใช้งาน Metrics ใน NestJS Apps**
 
 ดู instructions ใน `nestjs-metrics-setup.md` เพื่อ:
-1. ติดตั้ง `@willsoto/nestjs-prometheus`
-2. เพิ่ม PrometheusModule ในแต่ละ service
-3. เพิ่ม HTTP server สำหรับ metrics endpoint
-4. Rebuild และ redeploy services
+1. ติดตั้ง `prom-client`
+2. เพิ่ม MetricsModule ในแต่ละ service
+3. Rebuild และ redeploy services
 
 ```bash
 cd /var/www/app_microservice/backend
 
-# ติดตั้ง dependencies
-npm install --save @willsoto/nestjs-prometheus prom-client
+# ติดตั้ง dependencies (ติดตั้งไว้แล้ว)
+npm install
 
-# Rebuild services (ดู nestjs-metrics-setup.md สำหรับโค้ดที่ต้องแก้)
-# ...
+# Build services
+npm run build:all
+
+# Build Docker images
+docker build -f Dockerfile.auth -t auth-service:latest .
+docker build -f Dockerfile.gateway -t gateway-api:latest .
+docker build -f Dockerfile.item -t item-service:latest .
+docker build -f Dockerfile.email -t email-service:latest .
+docker build -f Dockerfile.category -t category-service:latest .
 
 # Deploy services ใหม่
-./deploy-all-services.sh
+kubectl rollout restart deployment -n pose-microservices
 ```
 
 ---
@@ -186,10 +171,10 @@ kubectl port-forward -n nline-monitoring svc/kube-prometheus-stack-prometheus 90
 **ควรเห็น targets:**
 - node-exporter (1/1)
 - kube-state-metrics (1/1)
-- mysql-exporter (1/1)
 - auth-service (1/1)
 - item-service (1/1)
 - category-service (1/1)
+- email-service (1/1)
 - gateway-api (1/1)
 - traefik (1/1)
 
@@ -210,9 +195,9 @@ kubectl -n nline-monitoring logs prometheus-kube-prometheus-stack-prometheus-0 -
 kubectl port-forward -n pose-microservices svc/auth-service 8080:8080
 curl http://localhost:8080/metrics
 
-# ทดสอบ MySQL exporter
-kubectl port-forward -n nline-monitoring svc/mysql-exporter 9104:9104
-curl http://localhost:9104/metrics
+# ทดสอบ gateway-api metrics
+kubectl port-forward -n pose-microservices svc/gateway-api 8080:8080
+curl http://localhost:8080/metrics
 ```
 
 ---
@@ -266,29 +251,6 @@ kubectl -n nline-monitoring delete pod -l app.kubernetes.io/name=prometheus
 # ทดสอบว่า metrics endpoint ทำงาน
 kubectl port-forward -n pose-microservices svc/auth-service 8080:8080
 curl http://localhost:8080/metrics
-```
-
-### **ปัญหา: MySQL Exporter Error**
-
-**สาเหตุ:** Connection string ผิดหรือ permissions ไม่พอ
-
-**วิธีแก้:**
-```bash
-# ดู logs
-kubectl -n nline-monitoring logs -l app=mysql-exporter
-
-# อัพเดท connection string
-kubectl -n nline-monitoring edit secret mysql-exporter-secret
-
-# Restart exporter
-kubectl -n nline-monitoring rollout restart deployment mysql-exporter
-```
-
-**สร้าง user สำหรับ monitoring (ใน MySQL):**
-```sql
-CREATE USER 'exporter'@'%' IDENTIFIED BY 'secure_password' WITH MAX_USER_CONNECTIONS 3;
-GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'%';
-FLUSH PRIVILEGES;
 ```
 
 ### **ปัญหา: Grafana Dashboards ไม่แสดง**
@@ -353,17 +315,6 @@ sum(rate(http_requests_total{status_code=~"5.."}[5m])) by (service)
 histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) by (service)
 ```
 
-### **Database Metrics**
-```promql
-# Active connections
-pg_stat_activity_count
-
-# Slow queries
-sum(rate(pg_stat_statements_calls{mean_exec_time > 1000}[5m]))
-
-# Database size
-pg_database_size_size_bytes
-```
 
 ---
 
@@ -401,9 +352,6 @@ kubectl -n nline-monitoring delete pvc --all
 kubectl delete -f k8s/monitoring/application-servicemonitor.yaml
 kubectl delete -f k8s/monitoring/traefik-servicemonitor.yaml
 
-# ลบ MySQL Exporter
-kubectl delete -f k8s/monitoring/mysql-exporter.yaml
-
 # ลบ namespace
 kubectl delete namespace nline-monitoring
 ```
@@ -415,6 +363,5 @@ kubectl delete namespace nline-monitoring
 - [Prometheus Documentation](https://prometheus.io/docs/)
 - [Grafana Documentation](https://grafana.com/docs/)
 - [Kube Prometheus Stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
-- [MySQL Exporter](https://github.com/prometheus/mysqld_exporter)
-- [NestJS Prometheus](https://github.com/willsoto/nestjs-prometheus)
+- [prom-client](https://github.com/siimon/prom-client)
 

@@ -3,9 +3,11 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { GatewayApiController } from './gateway-api.controller';
 import { GatewayApiService } from './gateway-api.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { MetricsModule } from '../../../libs/metrics/metrics.module';
 
 @Module({
   imports: [
+    MetricsModule,
     ClientsModule.register([
       {
         name: 'AUTH_SERVICE',

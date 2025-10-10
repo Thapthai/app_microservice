@@ -1,166 +1,37 @@
-# ServiceMonitor for NestJS Microservices
-# Monitors all application metrics: requests, latency, errors, business metrics
-
 ---
-# Auth Service Monitor
+# ServiceMonitor for NestJS Applications
+# Tells Prometheus to scrape metrics from all microservices
+
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: auth-service-monitor
-  namespace: pose-microservices
+  name: nestjs-applications
+  namespace: nline-monitoring
   labels:
-    app: auth-service
-    monitoring: enabled
+    app: nestjs-applications
+    release: kube-prometheus-stack
 spec:
+  # Select services in pose-microservices namespace
+  namespaceSelector:
+    matchNames:
+      - pose-microservices
+  
+  # Select all services with label app
   selector:
-    matchLabels:
-      app: auth-service
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - gateway-api
+          - auth-service
+          - item-service
+          - email-service
+          - category-service
+  
+  # Scrape configuration
   endpoints:
-  - port: http
-    path: /metrics
-    interval: 30s
-    scrapeTimeout: 10s
-    scheme: http
-    relabelings:
-      - sourceLabels: [__meta_kubernetes_pod_name]
-        targetLabel: pod
-      - sourceLabels: [__meta_kubernetes_namespace]
-        targetLabel: namespace
-      - targetLabel: service
-        replacement: auth-service
-
----
-# Item Service Monitor
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: item-service-monitor
-  namespace: pose-microservices
-  labels:
-    app: item-service
-    monitoring: enabled
-spec:
-  selector:
-    matchLabels:
-      app: item-service
-  endpoints:
-  - port: http
-    path: /metrics
-    interval: 30s
-    scrapeTimeout: 10s
-    relabelings:
-      - sourceLabels: [__meta_kubernetes_pod_name]
-        targetLabel: pod
-      - sourceLabels: [__meta_kubernetes_namespace]
-        targetLabel: namespace
-      - targetLabel: service
-        replacement: item-service
-
----
-# Category Service Monitor
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: category-service-monitor
-  namespace: pose-microservices
-  labels:
-    app: category-service
-    monitoring: enabled
-spec:
-  selector:
-    matchLabels:
-      app: category-service
-  endpoints:
-  - port: http
-    path: /metrics
-    interval: 30s
-    scrapeTimeout: 10s
-    relabelings:
-      - sourceLabels: [__meta_kubernetes_pod_name]
-        targetLabel: pod
-      - sourceLabels: [__meta_kubernetes_namespace]
-        targetLabel: namespace
-      - targetLabel: service
-        replacement: category-service
-
----
-# Email Service Monitor
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: email-service-monitor
-  namespace: pose-microservices
-  labels:
-    app: email-service
-    monitoring: enabled
-spec:
-  selector:
-    matchLabels:
-      app: email-service
-  endpoints:
-  - port: http
-    path: /metrics
-    interval: 30s
-    scrapeTimeout: 10s
-    relabelings:
-      - sourceLabels: [__meta_kubernetes_pod_name]
-        targetLabel: pod
-      - sourceLabels: [__meta_kubernetes_namespace]
-        targetLabel: namespace
-      - targetLabel: service
-        replacement: email-service
-
----
-# Gateway API Monitor
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: gateway-api-monitor
-  namespace: pose-microservices
-  labels:
-    app: gateway-api
-    monitoring: enabled
-spec:
-  selector:
-    matchLabels:
-      app: gateway-api
-  endpoints:
-  - port: http
-    path: /metrics
-    interval: 30s
-    scrapeTimeout: 10s
-    relabelings:
-      - sourceLabels: [__meta_kubernetes_pod_name]
-        targetLabel: pod
-      - sourceLabels: [__meta_kubernetes_namespace]
-        targetLabel: namespace
-      - targetLabel: service
-        replacement: gateway-api
-
----
-# Redis Monitor (already exists, but updated)
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: redis-service-monitor
-  namespace: pose-microservices
-  labels:
-    app: redis
-    monitoring: enabled
-spec:
-  selector:
-    matchLabels:
-      app: redis-exporter
-  endpoints:
-  - port: metrics
-    path: /metrics
-    interval: 30s
-    scrapeTimeout: 10s
-    relabelings:
-      - sourceLabels: [__meta_kubernetes_pod_name]
-        targetLabel: pod
-      - sourceLabels: [__meta_kubernetes_namespace]
-        targetLabel: namespace
-      - targetLabel: service
-        replacement: redis
-
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
