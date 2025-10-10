@@ -14,15 +14,15 @@ Monitoring stack นี้ให้ข้อมูลครบถ้วนสำ
 - System load (1min, 5min, 15min averages)
 - Process stats (running, blocked, zombie)
 
-### 2. **Database Query Monitoring**
+### 2. **Database Query Monitoring (MySQL)**
 - Query execution times (min, max, avg, p95, p99)
 - Query call counts
-- Active connections (per database, per user, per state)
+- Active connections (per database, per user)
 - Slow queries (> 1 second)
 - Database sizes
 - Table statistics (scans, inserts, updates, deletes)
-- Lock statistics
-- Index usage
+- InnoDB metrics
+- Replication status
 
 ### 3. **Load Balancer (Traefik)**
 - Requests per second (total, per service, per route)
@@ -63,8 +63,8 @@ helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
   --values k8s/monitoring/prometheus-values.yaml \
   --create-namespace
 
-# 3. Deploy PostgreSQL Exporter (อัพเดท connection string ก่อน)
-kubectl apply -f k8s/monitoring/postgres-exporter.yaml
+# 3. Deploy MySQL Exporter (อัพเดท connection string ก่อน)
+kubectl apply -f k8s/monitoring/mysql-exporter.yaml
 
 # 4. Deploy ServiceMonitors
 kubectl apply -f k8s/monitoring/application-servicemonitor.yaml
@@ -85,7 +85,7 @@ kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-gra
 ```
 k8s/monitoring/
 ├── prometheus-values.yaml              # Prometheus Helm values (90d retention)
-├── postgres-exporter.yaml              # PostgreSQL database monitoring
+├── mysql-exporter.yaml                 # MySQL database monitoring
 ├── application-servicemonitor.yaml     # NestJS services monitoring
 ├── traefik-servicemonitor.yaml         # Load balancer monitoring
 ├── grafana-dashboards.yaml             # Pre-configured dashboards
@@ -114,7 +114,7 @@ k8s/monitoring/
 ### **Exporters**
 - ✅ Node Exporter - System metrics
 - ✅ Kube State Metrics - Kubernetes metrics
-- ✅ PostgreSQL Exporter - Database metrics
+- ✅ MySQL Exporter - Database metrics
 - ✅ Redis Exporter - Cache metrics
 - ✅ NestJS Prometheus - Application metrics
 
@@ -137,19 +137,22 @@ irate(node_network_receive_bytes_total[5m])
 irate(node_network_transmit_bytes_total[5m])
 ```
 
-### Database Metrics
+### Database Metrics (MySQL)
 ```promql
 # Slow Queries
-sum(rate(pg_stat_statements_calls{mean_exec_time > 1000}[5m]))
+mysql_global_status_slow_queries
 
 # Active Connections
-pg_stat_activity_count{state="active"}
+mysql_global_status_threads_connected
 
-# Database Size
-pg_database_size_size_bytes / 1024 / 1024 / 1024  # in GB
+# Database Size (from custom queries if configured)
+mysql_info_schema_table_size{schema!~"information_schema|mysql|performance_schema|sys"}
 
-# Top 10 Slowest Queries
-topk(10, rate(pg_stat_statements_mean_exec_time[5m]))
+# Queries per second
+rate(mysql_global_status_queries[5m])
+
+# InnoDB Buffer Pool usage
+mysql_global_status_innodb_buffer_pool_pages_total - mysql_global_status_innodb_buffer_pool_pages_free
 ```
 
 ### Application Metrics
@@ -261,7 +264,8 @@ prometheus:
 ### Popular Dashboard IDs
 - Node Exporter Full: **1860**
 - Kubernetes Cluster: **7249**
-- PostgreSQL: **9628**
+- MySQL Overview: **7362**
+- MySQL InnoDB: **7365**
 - Traefik: **4475**
 - NestJS: Create custom or use provided
 
@@ -376,7 +380,7 @@ kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-gra
 Monitoring stack นี้ให้ความสามารถในการ:
 
 ✅ **Monitor System** - CPU, Memory, Disk, Network (Node Exporter)  
-✅ **Monitor Database** - Query performance, connections, locks  
+✅ **Monitor Database** - MySQL query performance, connections, InnoDB  
 ✅ **Monitor Load Balancer** - Traefik requests, response times  
 ✅ **Monitor Applications** - NestJS services metrics  
 ✅ **Monitor Services** - Health, uptime, request counts  

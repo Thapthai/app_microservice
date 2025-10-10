@@ -58,14 +58,14 @@ prometheus:
     
     # Additional scrape configs for custom targets
     additionalScrapeConfigs:
-      # PostgreSQL Exporter (if using external database)
-      - job_name: 'postgresql'
+      # MySQL Exporter (external database)
+      - job_name: 'mysql'
         static_configs:
-          - targets: ['postgres-exporter:9187']
+          - targets: ['mysql-exporter:9104']
         relabel_configs:
           - source_labels: [__address__]
             target_label: instance
-            replacement: 'postgresql-db'
+            replacement: 'mysql-db'
       
       # Redis metrics (already have redis-exporter)
       - job_name: 'redis'

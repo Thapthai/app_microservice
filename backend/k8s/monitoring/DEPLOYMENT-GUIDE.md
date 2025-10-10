@@ -65,23 +65,24 @@ kube-prometheus-stack-prometheus-node-exporter-xxx          1/1     Running   0 
 prometheus-kube-prometheus-stack-prometheus-0               2/2     Running   0          2m
 ```
 
-### **4. ติดตั้ง PostgreSQL Exporter**
+### **4. ติดตั้ง MySQL Exporter**
 
 ```bash
 cd /var/www/app_microservice/backend
 
 # อัพเดท database connection string ใน secret
-kubectl -n nline-monitoring edit secret postgres-exporter-secret
+kubectl -n nline-monitoring edit secret mysql-exporter-secret
 
 # แก้ไข data-source-name:
-# postgresql://username:password@your-database-host:5432/database_name?sslmode=disable
+# Format: username:password@(hostname:port)/
+# Example: exporter:your-password@(mysql.example.com:3306)/
 
-# Deploy PostgreSQL Exporter
-kubectl apply -f k8s/monitoring/postgres-exporter.yaml
+# Deploy MySQL Exporter
+kubectl apply -f k8s/monitoring/mysql-exporter.yaml
 
 # ตรวจสอบ
-kubectl -n nline-monitoring get pods -l app=postgres-exporter
-kubectl -n nline-monitoring logs -l app=postgres-exporter
+kubectl -n nline-monitoring get pods -l app=mysql-exporter
+kubectl -n nline-monitoring logs -l app=mysql-exporter
 ```
 
 ### **5. ติดตั้ง Application ServiceMonitors**
@@ -185,7 +186,7 @@ kubectl port-forward -n nline-monitoring svc/kube-prometheus-stack-prometheus 90
 **ควรเห็น targets:**
 - node-exporter (1/1)
 - kube-state-metrics (1/1)
-- postgres-exporter (1/1)
+- mysql-exporter (1/1)
 - auth-service (1/1)
 - item-service (1/1)
 - category-service (1/1)
@@ -209,9 +210,9 @@ kubectl -n nline-monitoring logs prometheus-kube-prometheus-stack-prometheus-0 -
 kubectl port-forward -n pose-microservices svc/auth-service 8080:8080
 curl http://localhost:8080/metrics
 
-# ทดสอบ PostgreSQL exporter
-kubectl port-forward -n nline-monitoring svc/postgres-exporter 9187:9187
-curl http://localhost:9187/metrics
+# ทดสอบ MySQL exporter
+kubectl port-forward -n nline-monitoring svc/mysql-exporter 9104:9104
+curl http://localhost:9104/metrics
 ```
 
 ---
@@ -267,27 +268,27 @@ kubectl port-forward -n pose-microservices svc/auth-service 8080:8080
 curl http://localhost:8080/metrics
 ```
 
-### **ปัญหา: PostgreSQL Exporter Error**
+### **ปัญหา: MySQL Exporter Error**
 
 **สาเหตุ:** Connection string ผิดหรือ permissions ไม่พอ
 
 **วิธีแก้:**
 ```bash
 # ดู logs
-kubectl -n nline-monitoring logs -l app=postgres-exporter
+kubectl -n nline-monitoring logs -l app=mysql-exporter
 
 # อัพเดท connection string
-kubectl -n nline-monitoring edit secret postgres-exporter-secret
+kubectl -n nline-monitoring edit secret mysql-exporter-secret
 
 # Restart exporter
-kubectl -n nline-monitoring rollout restart deployment postgres-exporter
+kubectl -n nline-monitoring rollout restart deployment mysql-exporter
 ```
 
-**สร้าง user สำหรับ monitoring (ใน PostgreSQL):**
+**สร้าง user สำหรับ monitoring (ใน MySQL):**
 ```sql
-CREATE USER postgres_exporter WITH PASSWORD 'secure_password';
-GRANT pg_monitor TO postgres_exporter;
-GRANT SELECT ON pg_stat_database TO postgres_exporter;
+CREATE USER 'exporter'@'%' IDENTIFIED BY 'secure_password' WITH MAX_USER_CONNECTIONS 3;
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'%';
+FLUSH PRIVILEGES;
 ```
 
 ### **ปัญหา: Grafana Dashboards ไม่แสดง**
@@ -400,8 +401,8 @@ kubectl -n nline-monitoring delete pvc --all
 kubectl delete -f k8s/monitoring/application-servicemonitor.yaml
 kubectl delete -f k8s/monitoring/traefik-servicemonitor.yaml
 
-# ลบ PostgreSQL Exporter
-kubectl delete -f k8s/monitoring/postgres-exporter.yaml
+# ลบ MySQL Exporter
+kubectl delete -f k8s/monitoring/mysql-exporter.yaml
 
 # ลบ namespace
 kubectl delete namespace nline-monitoring
@@ -414,6 +415,6 @@ kubectl delete namespace nline-monitoring
 - [Prometheus Documentation](https://prometheus.io/docs/)
 - [Grafana Documentation](https://grafana.com/docs/)
 - [Kube Prometheus Stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
-- [PostgreSQL Exporter](https://github.com/prometheus-community/postgres_exporter)
+- [MySQL Exporter](https://github.com/prometheus/mysqld_exporter)
 - [NestJS Prometheus](https://github.com/willsoto/nestjs-prometheus)
 
