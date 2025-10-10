@@ -156,6 +156,23 @@ alertmanager:
 prometheus-node-exporter:
   enabled: true
   
+  # Disable hostNetwork to avoid port conflict with Traefik
+  hostNetwork: false
+  hostPID: true
+  hostRootFsMount:
+    enabled: true
+  
+  service:
+    port: 9100
+    targetPort: 9100
+  
+  # Alternative: To use a different port (e.g. 9104), uncomment below
+  # service:
+  #   port: 9104
+  #   targetPort: 9104
+  # extraArgs:
+  #   - --web.listen-address=:9104
+  
   resources:
     requests:
       cpu: 50m
