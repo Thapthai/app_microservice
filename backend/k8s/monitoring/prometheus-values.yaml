@@ -115,6 +115,10 @@ grafana:
     storageClassName: local-path
     size: 5Gi
   
+  # Disable init-chown-data to avoid permission issues
+  initChownData:
+    enabled: false
+  
   # Use sidecar to load dashboards and datasources automatically
   sidecar:
     dashboards:
