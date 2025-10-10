@@ -6,7 +6,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: nestjs-applications
-  namespace: nline-monitoring
+  namespace: pose-monitoring
   labels:
     app: nestjs-applications
     release: kube-prometheus-stack

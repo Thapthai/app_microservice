@@ -94,10 +94,10 @@ sudo k3s ctr images import email-service.tar
 kubectl apply -f k8s/monitoring/application-servicemonitor.yaml
 
 # Verify ServiceMonitor
-kubectl -n nline-monitoring get servicemonitor nestjs-applications
+kubectl -n pose-monitoring get servicemonitor nestjs-applications
 
 # Check Prometheus targets
-kubectl -n nline-monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+kubectl -n pose-monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
 # Open: http://localhost:9090/targets
 # Look for: pose-microservices/* endpoints
 ```
@@ -153,7 +153,7 @@ http_requests_total{method="GET",route="/items",status_code="200",service="item-
 
 ```bash
 # Port-forward Prometheus
-kubectl -n nline-monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+kubectl -n pose-monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
 ```
 
 Open browser: `http://localhost:9090/targets`
@@ -217,10 +217,10 @@ kubectl -n pose-microservices logs -l app=item-service --tail=50
 
 ```bash
 # Check ServiceMonitor
-kubectl -n nline-monitoring get servicemonitor nestjs-applications -o yaml
+kubectl -n pose-monitoring get servicemonitor nestjs-applications -o yaml
 
 # Check Prometheus config
-kubectl -n nline-monitoring get prometheus kube-prometheus-stack-prometheus -o yaml | grep serviceMonitorSelector
+kubectl -n pose-monitoring get prometheus kube-prometheus-stack-prometheus -o yaml | grep serviceMonitorSelector
 
 # Check service labels
 kubectl -n pose-microservices get svc --show-labels

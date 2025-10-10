@@ -275,11 +275,11 @@ POSE Microservices มีระบบ Monitoring ครบชุดสำหร�
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 
-kubectl create namespace nline-monitoring
+kubectl create namespace pose-monitoring
 
 helm upgrade --install kube-prometheus-stack \
   prometheus-community/kube-prometheus-stack \
-  -n nline-monitoring \
+  -n pose-monitoring \
   --set prometheus.prometheusSpec.retention=7d \
   --set prometheus.prometheusSpec.resources.requests.memory=512Mi \
   --set grafana.adminPassword=admin123 \
@@ -287,18 +287,18 @@ helm upgrade --install kube-prometheus-stack \
   --wait
 
 # 2. Configure NodePort (Fixed ports - ต้องอยู่ในช่วง 30000-32767)
-kubectl -n nline-monitoring patch svc kube-prometheus-stack-grafana \
+kubectl -n pose-monitoring patch svc kube-prometheus-stack-grafana \
   -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":3000,"nodePort":30001,"name":"http-web"}]}}'
 
-kubectl -n nline-monitoring patch svc kube-prometheus-stack-prometheus \
+kubectl -n pose-monitoring patch svc kube-prometheus-stack-prometheus \
   -p '{"spec":{"type":"NodePort","ports":[{"port":9090,"targetPort":9090,"nodePort":30090,"name":"http-web"}]}}'
  
 # 3. Apply custom monitoring configs (Traefik, Redis, Application)
 kubectl apply -k k8s/monitoring/
 
 # 4. Check status
-kubectl -n nline-monitoring get pods
-kubectl -n nline-monitoring get servicemonitor
+kubectl -n pose-monitoring get pods
+kubectl -n pose-monitoring get servicemonitor
 ```
 
 ### 🎯 Access URLs:
@@ -580,15 +580,15 @@ kubectl -n kube-system get pods
 
 ```bash
 # ตรวจสอบ pods
-kubectl -n nline-monitoring get pods
+kubectl -n pose-monitoring get pods
 
 # ดู logs
-kubectl -n nline-monitoring logs -l app.kubernetes.io/name=prometheus --tail=50
-kubectl -n nline-monitoring logs -l app.kubernetes.io/name=grafana --tail=50
+kubectl -n pose-monitoring logs -l app.kubernetes.io/name=prometheus --tail=50
+kubectl -n pose-monitoring logs -l app.kubernetes.io/name=grafana --tail=50
 
 # Restart
-kubectl -n nline-monitoring rollout restart deployment kube-prometheus-stack-grafana
-kubectl -n nline-monitoring rollout restart statefulset prometheus-kube-prometheus-stack-prometheus
+kubectl -n pose-monitoring rollout restart deployment kube-prometheus-stack-grafana
+kubectl -n pose-monitoring rollout restart statefulset prometheus-kube-prometheus-stack-prometheus
 ```
 
 ---

@@ -5,7 +5,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboards
-  namespace: nline-monitoring
+  namespace: pose-monitoring
   labels:
     grafana_dashboard: "1"
 data:
