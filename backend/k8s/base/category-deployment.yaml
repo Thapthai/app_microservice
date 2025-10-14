@@ -20,6 +20,8 @@ spec:
         image: backend-category-service:latest
         ports:
         - containerPort: 3004
+        - containerPort: 9105
+          name: metrics
         env:
         - name: NODE_ENV
           valueFrom:

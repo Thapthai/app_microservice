@@ -20,6 +20,8 @@ spec:
         image: backend-auth-service:latest
         ports:
         - containerPort: 3001
+        - containerPort: 9101
+          name: metrics
         env:
         - name: NODE_ENV
           valueFrom:

@@ -19,23 +19,30 @@ data:
       scrape_timeout: 30s  # เพิ่ม timeout
     
     scrape_configs:
-      # Scrape NestJS services
-      - job_name: 'nestjs-services'
+      # Scrape Gateway API (HTTP on port 3000)
+      - job_name: 'gateway-api'
         scrape_interval: 60s
         scrape_timeout: 30s
-        kubernetes_sd_configs:
-          - role: endpoints
-            namespaces:
-              names:
-                - pose-microservices
+        static_configs:
+          - targets: ['gateway-service.pose-microservices.svc.cluster.local:3000']
+            labels:
+              service: 'gateway-api'
+      
+      # Scrape Microservices (Metrics on 910x ports)
+      - job_name: 'nestjs-microservices'
+        scrape_interval: 60s
+        scrape_timeout: 30s
+        static_configs:
+          - targets: 
+            - 'auth-service.pose-microservices.svc.cluster.local:9101'
+            - 'item-service.pose-microservices.svc.cluster.local:9102'
+            - 'email-service.pose-microservices.svc.cluster.local:9103'
+            - 'category-service.pose-microservices.svc.cluster.local:9105'
         relabel_configs:
-          - source_labels: [__meta_kubernetes_service_label_app]
-            regex: (gateway-api|auth-service|item-service|email-service|category-service)
-            action: keep
-          - source_labels: [__meta_kubernetes_service_name]
+          - source_labels: [__address__]
+            regex: '([^:]+):.*'
+            replacement: '${1}'
             target_label: service
-          - source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
 
 ---
 apiVersion: apps/v1

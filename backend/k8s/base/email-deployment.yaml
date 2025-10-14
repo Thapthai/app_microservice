@@ -20,6 +20,8 @@ spec:
         image: backend-email-service:latest
         ports:
         - containerPort: 3003
+        - containerPort: 9103
+          name: metrics
         env:
         - name: NODE_ENV
           valueFrom:

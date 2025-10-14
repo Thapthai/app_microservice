@@ -25,8 +25,13 @@ spec:
   selector:
     app: auth-service
   ports:
-  - port: 3001
+  - name: tcp
+    port: 3001
     targetPort: 3001
+    protocol: TCP
+  - name: metrics
+    port: 9101
+    targetPort: 9101
     protocol: TCP
   type: ClusterIP
 ---
@@ -41,8 +46,13 @@ spec:
   selector:
     app: item-service
   ports:
-  - port: 3002
+  - name: tcp
+    port: 3002
     targetPort: 3002
+    protocol: TCP
+  - name: metrics
+    port: 9102
+    targetPort: 9102
     protocol: TCP
   type: ClusterIP
 ---
@@ -57,8 +67,13 @@ spec:
   selector:
     app: email-service
   ports:
-  - port: 3003
+  - name: tcp
+    port: 3003
     targetPort: 3003
+    protocol: TCP
+  - name: metrics
+    port: 9103
+    targetPort: 9103
     protocol: TCP
   type: ClusterIP
 ---
@@ -73,8 +88,13 @@ spec:
   selector:
     app: category-service
   ports:
-  - port: 3004
+  - name: tcp
+    port: 3004
     targetPort: 3004
+    protocol: TCP
+  - name: metrics
+    port: 9105
+    targetPort: 9105
     protocol: TCP
   type: ClusterIP
 ---
@@ -89,7 +109,8 @@ spec:
   selector:
     app: gateway-api
   ports:
-  - port: 3000
+  - name: http
+    port: 3000
     targetPort: 3000
     protocol: TCP
   type: LoadBalancer
