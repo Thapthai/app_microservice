@@ -3,16 +3,11 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { GatewayApiController } from './gateway-api.controller';
 import { GatewayApiService } from './gateway-api.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { PrometheusModule } from "@willsoto/nestjs-prometheus";
+import { MetricsModule } from '../../../libs/metrics/metrics.module';
 
 @Module({
   imports: [
-    PrometheusModule.register(
-      {
-        defaultMetrics: {
-          enabled: true,
-        },
-      }),
+    MetricsModule,
     ClientsModule.register([
       {
         name: 'AUTH_SERVICE',
