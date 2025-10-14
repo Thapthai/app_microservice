@@ -3,11 +3,16 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { GatewayApiController } from './gateway-api.controller';
 import { GatewayApiService } from './gateway-api.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { MetricsModule } from '../../../libs/metrics/metrics.module';
+import { PrometheusModule } from "@willsoto/nestjs-prometheus";
 
 @Module({
   imports: [
-    MetricsModule,
+    PrometheusModule.register(
+      {
+        defaultMetrics: {
+          enabled: true,
+        },
+      }),
     ClientsModule.register([
       {
         name: 'AUTH_SERVICE',
@@ -23,7 +28,7 @@ import { MetricsModule } from '../../../libs/metrics/metrics.module';
         options: {
           host: process.env.ITEM_SERVICE_HOST || 'localhost',
           port: parseInt(process.env.ITEM_SERVICE_PORT || '3002', 10),
-        }, 
+        },
       },
       {
         name: 'EMAIL_SERVICE',
@@ -46,4 +51,4 @@ import { MetricsModule } from '../../../libs/metrics/metrics.module';
   controllers: [GatewayApiController],
   providers: [GatewayApiService, JwtAuthGuard],
 })
-export class GatewayApiModule {}
+export class GatewayApiModule { }

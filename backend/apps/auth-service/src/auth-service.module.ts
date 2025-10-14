@@ -9,11 +9,15 @@ import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { AuthGuard } from './guards/auth.guard';
 import { TOTPService } from './services/totp.service';
 import { EmailOTPService } from './services/email-otp.service';
-import { MetricsModule } from '../../../libs/metrics/metrics.module';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
   imports: [
-    MetricsModule,
+    PrometheusModule.register({
+      defaultMetrics: {
+        enabled: true,
+      },
+    }),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: { expiresIn: '24h' },
@@ -31,14 +35,14 @@ import { MetricsModule } from '../../../libs/metrics/metrics.module';
   ],
   controllers: [AuthServiceController],
   providers: [
-    AuthServiceService, 
-    PrismaService, 
-    OAuth2Strategy, 
-    ApiKeyStrategy, 
+    AuthServiceService,
+    PrismaService,
+    OAuth2Strategy,
+    ApiKeyStrategy,
     AuthGuard,
     TOTPService,
     EmailOTPService
   ],
   exports: [AuthGuard, OAuth2Strategy, ApiKeyStrategy],
 })
-export class AuthServiceModule {}
+export class AuthServiceModule { }

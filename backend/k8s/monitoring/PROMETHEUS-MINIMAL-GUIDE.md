@@ -322,10 +322,10 @@ args:
 
 # 2. ตรวจสอบว่า /metrics route มี
 curl http://localhost:3000/metrics  # gateway
-curl http://localhost:3001/metrics  # auth
-curl http://localhost:3002/metrics  # item
-curl http://localhost:3003/metrics  # email
-curl http://localhost:3004/metrics  # category
+curl http://localhost:9101/metrics  # auth
+curl http://localhost:9102/metrics  # item
+curl http://localhost:9103/metrics  # email
+curl http://localhost:9104/metrics  # category
 
 # 3. Restart services
 kubectl -n pose-microservices rollout restart deployment gateway-api

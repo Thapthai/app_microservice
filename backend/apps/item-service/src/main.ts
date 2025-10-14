@@ -13,8 +13,11 @@ async function bootstrap() {
       },
     },
   );
-  
+
   await app.listen();
   console.log('Item Service is listening on port 3002');
+  const metricsApp = await NestFactory.create(ItemServiceModule);
+  await metricsApp.listen(9102);
+  console.log('Item service metrics available at http://localhost:9102/metrics');
 }
 bootstrap();

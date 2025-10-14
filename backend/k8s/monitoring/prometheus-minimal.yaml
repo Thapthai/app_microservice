@@ -16,10 +16,13 @@ data:
     global:
       scrape_interval: 60s  # ลด frequency
       evaluation_interval: 60s
+      scrape_timeout: 30s  # เพิ่ม timeout
     
     scrape_configs:
       # Scrape NestJS services
       - job_name: 'nestjs-services'
+        scrape_interval: 60s
+        scrape_timeout: 30s
         kubernetes_sd_configs:
           - role: endpoints
             namespaces:
