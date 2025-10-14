@@ -17,7 +17,7 @@ async function bootstrap() {
   await app.listen();
   console.log('Category Service is listening on port 3004');
   const metricsApp = await NestFactory.create(CategoryServiceModule);
-  await metricsApp.listen(9104);
-  console.log('Category service metrics available at http://localhost:9104/metrics');
+  await metricsApp.listen(9105);
+  console.log('Category service metrics available at http://localhost:9105/metrics');
 }
 bootstrap();

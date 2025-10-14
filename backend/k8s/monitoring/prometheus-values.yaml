@@ -1,39 +1,300 @@
-# Prometheus Stack Configuration
-# Optimized for 7.8GB RAM server with 90 days retention
-# Features:
-# - Node Exporter (full system metrics)
-# - Database query monitoring
-# - Load Balancer (Traefik) metrics
-# - Application metrics (NestJS services)
-# - Service health and request tracking
+# # Prometheus Stack Configuration
+# # Optimized for 7.8GB RAM server with 90 days retention
+# # Features:
+# # - Node Exporter (full system metrics)
+# # - Database query monitoring
+# # - Load Balancer (Traefik) metrics
+# # - Application metrics (NestJS services)
+# # - Service health and request tracking
+
+# nameOverride: "kube-prometheus-stack"
+# fullnameOverride: "kube-prometheus-stack"
+
+# ## Prometheus Configuration
+# prometheus:
+#   enabled: true
+  
+#   # Expose Prometheus via NodePort
+#   service:
+#     type: NodePort
+#     nodePort: 30090
+  
+#   prometheusSpec:
+#     # 90 days retention
+#     retention: 2d
+#     retentionSize: "10GB"
+    
+#     # Resource limits (optimized for 7.8GB RAM server)
+#     resources:
+#       requests:
+#         cpu: 200m
+#         memory: 512Mi
+#       limits:
+#         cpu: 1000m
+#         memory: 1024Mi
+    
+#     # Storage configuration
+#     storageSpec:
+#       volumeClaimTemplate:
+#         spec:
+#           storageClassName: local-path
+#           accessModes: ["ReadWriteOnce"]
+#           resources:
+#             requests:
+#               storage: 10Gi
+    
+#     # Enable service monitor discovery
+#     serviceMonitorSelectorNilUsesHelmValues: false
+#     serviceMonitorSelector: {}
+#     serviceMonitorNamespaceSelector: {}
+    
+#     podMonitorSelectorNilUsesHelmValues: false
+#     podMonitorSelector: {}
+#     podMonitorNamespaceSelector: {}
+    
+#     # Scrape interval
+#     scrapeInterval: 15s
+#     evaluationInterval: 30s
+    
+#     # External labels
+#     externalLabels:
+#       cluster: "production"
+#       environment: "prod"
+    
+#     # Additional scrape configs for custom targets
+#     additionalScrapeConfigs:
+#       # MySQL Exporter (external database)
+#       - job_name: 'mysql'
+#         static_configs:
+#           - targets: ['mysql-exporter:9100']
+#         relabel_configs:
+#           - source_labels: [__address__]
+#             target_label: instance
+#             replacement: 'mysql-db'
+      
+#       # Redis metrics (already have redis-exporter)
+#       - job_name: 'redis'
+#         static_configs:
+#           - targets: ['redis-exporter.pose-microservices:9121']
+#         relabel_configs:
+#           - source_labels: [__address__]
+#             target_label: instance
+#             replacement: 'redis-cache'
+
+# ## Grafana Configuration
+# grafana:
+#   enabled: true
+  
+#   # Admin credentials
+#   adminPassword: "admin123"
+  
+#   # Default timezone (Thailand)
+#   defaultDashboardsTimezone: "Asia/Bangkok"
+  
+#   # Grafana INI configuration
+#   grafana.ini:
+#     server:
+#       root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
+    
+#     # Set default timezone
+#     date_formats:
+#       default_timezone: "Asia/Bangkok"
+    
+#     # Analytics and reporting
+#     analytics:
+#       reporting_enabled: false
+#       check_for_updates: false
+  
+#   # Resource limits
+#   resources:
+#     requests:
+#       cpu: 100m
+#       memory: 128Mi
+#     limits:
+#       cpu: 500m
+#       memory: 512Mi
+  
+#   # Enable persistent storage
+#   persistence:
+#     enabled: true
+#     storageClassName: local-path
+#     size: 5Gi
+  
+#   # Disable init-chown-data to avoid permission issues
+#   initChownData:
+#     enabled: false
+  
+#   # Use sidecar to load dashboards and datasources automatically
+#   sidecar:
+#     dashboards:
+#       enabled: true
+#       defaultDashboardsEnabled: true
+#     datasources:
+#       enabled: true
+#       defaultDatasourceEnabled: true
+  
+#   # NodePort for external access
+#   service:
+#     type: NodePort
+#     nodePort: 30001
+#     port: 80
+
+# ## Alertmanager Configuration
+# alertmanager:
+#   enabled: true
+  
+#   alertmanagerSpec:
+#     resources:
+#       requests:
+#         cpu: 50m
+#         memory: 128Mi
+#       limits:
+#         cpu: 200m
+#         memory: 256Mi
+    
+#     storage:
+#       volumeClaimTemplate:
+#         spec:
+#           storageClassName: local-path
+#           accessModes: ["ReadWriteOnce"]
+#           resources:
+#             requests:
+#               storage: 2Gi
+
+# ## Node Exporter - Full System Metrics
+# prometheus-node-exporter:
+#   enabled: true
+  
+#   # Disable hostNetwork to avoid port conflict with Traefik
+#   hostNetwork: false
+#   hostPID: true
+#   hostRootFsMount:
+#     enabled: true
+  
+#   service:
+#     port: 9100
+#     targetPort: 9100
+  
+#   # Alternative: To use a different port (e.g. 9104), uncomment below
+#   # service:
+#   #   port: 9104
+#   #   targetPort: 9104
+#   # extraArgs:
+#   #   - --web.listen-address=:9104
+  
+#   resources:
+#     requests:
+#       cpu: 50m
+#       memory: 64Mi
+#     limits:
+#       cpu: 200m
+#       memory: 128Mi
+  
+#   # Enable all collectors for full metrics
+#   extraArgs:
+#     - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+#     - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+#     - --collector.netclass.ignored-devices=^(veth.*|docker.*|br-.*|lo)$
+#     - --collector.netdev.device-exclude=^(veth.*|docker.*|br-.*)$
+#     - --collector.processes
+#     - --collector.systemd
+#     - --collector.tcpstat
+  
+#   # Service monitor
+#   prometheus:
+#     monitor:
+#       enabled: true
+#       interval: 30s
+
+# ## Kube State Metrics
+# kube-state-metrics:
+#   enabled: true
+  
+#   resources:
+#     requests:
+#       cpu: 50m
+#       memory: 128Mi
+#     limits:
+#       cpu: 200m
+#       memory: 256Mi
+
+# ## Prometheus Operator
+# prometheusOperator:
+#   enabled: true
+  
+#   resources:
+#     requests:
+#       cpu: 100m
+#       memory: 128Mi
+#     limits:
+#       cpu: 500m
+#       memory: 256Mi
+
+# ## Default Rules (Alerts)
+# defaultRules:
+#   create: true
+#   rules:
+#     alertmanager: true
+#     etcd: false
+#     configReloaders: true
+#     general: true
+#     k8s: true
+#     kubeApiserver: true
+#     kubeApiserverAvailability: true
+#     kubeApiserverSlos: true
+#     kubelet: true
+#     kubeProxy: false
+#     kubePrometheusGeneral: true
+#     kubePrometheusNodeRecording: true
+#     kubernetesApps: true
+#     kubernetesResources: true
+#     kubernetesStorage: true
+#     kubernetesSystem: true
+#     kubeScheduler: false
+#     kubeStateMetrics: true
+#     network: true
+#     node: true
+#     nodeExporterAlerting: true
+#     nodeExporterRecording: true
+#     prometheus: true
+#     prometheusOperator: true
+
+# ## Additional Components
+# kubeControllerManager:
+#   enabled: false
+
+# kubeEtcd:
+#   enabled: false
+
+# kubeScheduler:
+#   enabled: false
+
+# kubeProxy:
+#   enabled: false
+
+# Prometheus Stack Configuration (Optimized for 7.8GB RAM, 2-day retention)
 
 nameOverride: "kube-prometheus-stack"
 fullnameOverride: "kube-prometheus-stack"
 
-## Prometheus Configuration
 prometheus:
   enabled: true
-  
-  # Expose Prometheus via NodePort
   service:
     type: NodePort
     nodePort: 30090
   
   prometheusSpec:
-    # 90 days retention
-    retention: 90d
-    retentionSize: "50GB"
+    retention: 2d
+    retentionSize: "10GB"
     
-    # Resource limits (optimized for 7.8GB RAM server)
     resources:
       requests:
-        cpu: 200m
-        memory: 1Gi
+        cpu: 150m
+        memory: 512Mi
       limits:
-        cpu: 1000m
-        memory: 2Gi
-    
-    # Storage configuration
+        cpu: 600m
+        memory: 1024Mi
+
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -41,29 +302,19 @@ prometheus:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 50Gi
-    
-    # Enable service monitor discovery
+              storage: 10Gi
+
     serviceMonitorSelectorNilUsesHelmValues: false
-    serviceMonitorSelector: {}
-    serviceMonitorNamespaceSelector: {}
-    
     podMonitorSelectorNilUsesHelmValues: false
-    podMonitorSelector: {}
-    podMonitorNamespaceSelector: {}
-    
-    # Scrape interval
-    scrapeInterval: 30s
+    scrapeInterval: 15s
     evaluationInterval: 30s
-    
-    # External labels
+
     externalLabels:
-      cluster: "production"
+      cluster: "pose-cluster"
       environment: "prod"
-    
-    # Additional scrape configs for custom targets
+
+    # Scrape external exporters + custom NestJS microservices
     additionalScrapeConfigs:
-      # MySQL Exporter (external database)
       - job_name: 'mysql'
         static_configs:
           - targets: ['mysql-exporter:9104']
@@ -71,8 +322,7 @@ prometheus:
           - source_labels: [__address__]
             target_label: instance
             replacement: 'mysql-db'
-      
-      # Redis metrics (already have redis-exporter)
+
       - job_name: 'redis'
         static_configs:
           - targets: ['redis-exporter.pose-microservices:9121']
@@ -81,50 +331,52 @@ prometheus:
             target_label: instance
             replacement: 'redis-cache'
 
-## Grafana Configuration
+      # 🟢 Add NestJS Microservice Metrics
+      - job_name: 'nestjs-item-service'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['item-service.pose-microservices:9100']
+
+      - job_name: 'nestjs-auth-service'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['auth-service.pose-microservices:9100']
+
+      - job_name: 'nestjs-gateway-service'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['gateway-service.pose-microservices:9100']
+
 grafana:
   enabled: true
-  
-  # Admin credentials
   adminPassword: "admin123"
-  
-  # Default timezone (Thailand)
   defaultDashboardsTimezone: "Asia/Bangkok"
-  
-  # Grafana INI configuration
+
   grafana.ini:
     server:
       root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
-    
-    # Set default timezone
     date_formats:
       default_timezone: "Asia/Bangkok"
-    
-    # Analytics and reporting
     analytics:
       reporting_enabled: false
       check_for_updates: false
   
-  # Resource limits
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 50m
+      memory: 128Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
-  
-  # Enable persistent storage
+      cpu: 300m
+      memory: 384Mi
+
   persistence:
     enabled: true
     storageClassName: local-path
-    size: 5Gi
-  
-  # Disable init-chown-data to avoid permission issues
+    size: 3Gi
+
   initChownData:
     enabled: false
-  
-  # Use sidecar to load dashboards and datasources automatically
+
   sidecar:
     dashboards:
       enabled: true
@@ -132,26 +384,22 @@ grafana:
     datasources:
       enabled: true
       defaultDatasourceEnabled: true
-  
-  # NodePort for external access
+
   service:
     type: NodePort
     nodePort: 30001
     port: 80
 
-## Alertmanager Configuration
 alertmanager:
   enabled: true
-  
   alertmanagerSpec:
     resources:
       requests:
-        cpu: 50m
-        memory: 128Mi
+        cpu: 25m
+        memory: 64Mi
       limits:
-        cpu: 200m
-        memory: 256Mi
-    
+        cpu: 150m
+        memory: 128Mi
     storage:
       volumeClaimTemplate:
         spec:
@@ -159,38 +407,27 @@ alertmanager:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 2Gi
+              storage: 1Gi
 
-## Node Exporter - Full System Metrics
 prometheus-node-exporter:
   enabled: true
-  
-  # Disable hostNetwork to avoid port conflict with Traefik
   hostNetwork: false
   hostPID: true
   hostRootFsMount:
     enabled: true
-  
+
   service:
     port: 9100
     targetPort: 9100
-  
-  # Alternative: To use a different port (e.g. 9104), uncomment below
-  # service:
-  #   port: 9104
-  #   targetPort: 9104
-  # extraArgs:
-  #   - --web.listen-address=:9104
   
   resources:
     requests:
       cpu: 50m
       memory: 64Mi
     limits:
-      cpu: 200m
+      cpu: 150m
       memory: 128Mi
-  
-  # Enable all collectors for full metrics
+
   extraArgs:
     - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
     - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
@@ -199,76 +436,49 @@ prometheus-node-exporter:
     - --collector.processes
     - --collector.systemd
     - --collector.tcpstat
-  
-  # Service monitor
+
   prometheus:
     monitor:
       enabled: true
       interval: 30s
 
-## Kube State Metrics
 kube-state-metrics:
   enabled: true
-  
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 64Mi
     limits:
       cpu: 200m
-      memory: 256Mi
+      memory: 128Mi
 
-## Prometheus Operator
 prometheusOperator:
   enabled: true
-  
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 50m
+      memory: 64Mi
     limits:
-      cpu: 500m
-      memory: 256Mi
+      cpu: 200m
+      memory: 128Mi
 
-## Default Rules (Alerts)
 defaultRules:
   create: true
   rules:
     alertmanager: true
-    etcd: false
-    configReloaders: true
     general: true
-    k8s: true
-    kubeApiserver: true
-    kubeApiserverAvailability: true
-    kubeApiserverSlos: true
-    kubelet: true
-    kubeProxy: false
-    kubePrometheusGeneral: true
-    kubePrometheusNodeRecording: true
+    node: true
+    prometheus: true
     kubernetesApps: true
     kubernetesResources: true
     kubernetesStorage: true
-    kubernetesSystem: true
-    kubeScheduler: false
-    kubeStateMetrics: true
     network: true
-    node: true
-    nodeExporterAlerting: true
-    nodeExporterRecording: true
-    prometheus: true
-    prometheusOperator: true
 
-## Additional Components
 kubeControllerManager:
   enabled: false
-
 kubeEtcd:
   enabled: false
-
 kubeScheduler:
   enabled: false
-
 kubeProxy:
   enabled: false
-
