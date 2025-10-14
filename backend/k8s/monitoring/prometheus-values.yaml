@@ -47,44 +47,57 @@ prometheus:
       cluster: "pose-cluster"
       environment: "prod"
 
-    # Scrape external exporters + custom NestJS microservices
+    # Scrape NestJS Microservices
     additionalScrapeConfigs:
-      - job_name: 'mysql'
-        static_configs:
-          - targets: ['mysql-exporter:9104']
-        relabel_configs:
-          - source_labels: [__address__]
-            target_label: instance
-            replacement: 'mysql-db'
-
-      - job_name: 'redis'
-        static_configs:
-          - targets: ['redis-exporter.pose-microservices:9121']
-        relabel_configs:
-          - source_labels: [__address__]
-            target_label: instance
-            replacement: 'redis-cache'
-
-      # 🟢 Add NestJS Microservice Metrics
-      - job_name: 'nestjs-item-service'
+      # Gateway API (HTTP on port 3000)
+      - job_name: 'nestjs-gateway'
+        scrape_interval: 15s
+        scrape_timeout: 30s
         metrics_path: '/metrics'
         static_configs:
-          - targets: ['item-service.pose-microservices:9102']
+          - targets: ['gateway-service.pose-microservices.svc.cluster.local:3000']
+            labels:
+              service: 'gateway-api'
 
-      - job_name: 'nestjs-auth-service'
+      # Auth Service (Metrics on port 9101)
+      - job_name: 'nestjs-auth'
+        scrape_interval: 15s
+        scrape_timeout: 30s
         metrics_path: '/metrics'
         static_configs:
-          - targets: ['auth-service.pose-microservices:9101']
+          - targets: ['auth-service.pose-microservices.svc.cluster.local:9101']
+            labels:
+              service: 'auth-service'
 
-      - job_name: 'nestjs-gateway-service'
+      # Item Service (Metrics on port 9102)
+      - job_name: 'nestjs-item'
+        scrape_interval: 15s
+        scrape_timeout: 30s
         metrics_path: '/metrics'
         static_configs:
-          - targets: ['gateway-service.pose-microservices:3000']
+          - targets: ['item-service.pose-microservices.svc.cluster.local:9102']
+            labels:
+              service: 'item-service'
 
-      - job_name: 'nestjs-category-service'
+      # Email Service (Metrics on port 9103)
+      - job_name: 'nestjs-email'
+        scrape_interval: 15s
+        scrape_timeout: 30s
         metrics_path: '/metrics'
         static_configs:
-          - targets: ['category-service.pose-microservices:9105']
+          - targets: ['email-service.pose-microservices.svc.cluster.local:9103']
+            labels:
+              service: 'email-service'
+
+      # Category Service (Metrics on port 9105)
+      - job_name: 'nestjs-category'
+        scrape_interval: 15s
+        scrape_timeout: 30s
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['category-service.pose-microservices.svc.cluster.local:9105']
+            labels:
+              service: 'category-service'
 
 grafana:
   enabled: true
