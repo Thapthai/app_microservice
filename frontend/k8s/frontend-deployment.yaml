@@ -72,6 +72,6 @@ spec:
       protocol: TCP
       port: 80
       targetPort: 3100
-      nodePort: 30100  # External access port
+      nodePort: 3000  # External access port
   sessionAffinity: ClientIP
 
