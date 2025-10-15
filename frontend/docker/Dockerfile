@@ -16,12 +16,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-# Use npm install if package-lock.json doesn't exist, otherwise use npm ci
+# Install ALL dependencies (including dev) for build stage
 RUN if [ -f package-lock.json ]; then \
-        npm ci --omit=dev; \
+        npm ci; \
     else \
-        npm install --omit=dev; \
+        npm install; \
     fi && \
     npm cache clean --force
 
