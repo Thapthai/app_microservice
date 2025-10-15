@@ -41,8 +41,8 @@ services:
   # Auth Service
   auth-service:
     build:
-      context: .
-      dockerfile: Dockerfile.auth
+      context: ..
+      dockerfile: docker/Dockerfile.auth
       target: development
     container_name: pose-auth-service-dev
     restart: unless-stopped
@@ -72,8 +72,8 @@ services:
   # Item Service
   item-service:
     build:
-      context: .
-      dockerfile: Dockerfile.item
+      context: ..
+      dockerfile: docker/Dockerfile.item
       target: development
     container_name: pose-item-service-dev
     restart: unless-stopped
@@ -98,8 +98,8 @@ services:
   # Email Service
   email-service:
     build:
-      context: .
-      dockerfile: Dockerfile.email
+      context: ..
+      dockerfile: docker/Dockerfile.email
       target: development
     container_name: pose-email-service-dev
     restart: unless-stopped
@@ -124,8 +124,8 @@ services:
   # Gateway API
   gateway-api:
     build:
-      context: .
-      dockerfile: Dockerfile.gateway
+      context: ..
+      dockerfile: docker/Dockerfile.gateway
       target: development
     container_name: pose-gateway-api-dev
     restart: unless-stopped

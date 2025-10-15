@@ -106,11 +106,11 @@ cd /var/www/app_microservice/backend
 git pull origin main
 
 # 2. Build Docker images (Docker จะ build TypeScript ให้เอง)
-docker build --target production -f Dockerfile.auth -t backend-auth-service:latest .
-docker build --target production -f Dockerfile.gateway -t backend-gateway-api:latest .
-docker build --target production -f Dockerfile.item -t backend-item-service:latest .
-docker build --target production -f Dockerfile.email -t backend-email-service:latest .
-docker build --target production -f Dockerfile.category -t backend-category-service:latest .
+docker build --target production -f docker/Dockerfile.auth -t backend-auth-service:latest .
+docker build --target production -f docker/Dockerfile.gateway -t backend-gateway-api:latest .
+docker build --target production -f docker/Dockerfile.item -t backend-item-service:latest .
+docker build --target production -f docker/Dockerfile.email -t backend-email-service:latest .
+docker build --target production -f docker/Dockerfile.category -t backend-category-service:latest .
 
 # 3. Import images เข้า K3s
 docker save \
@@ -386,7 +386,7 @@ kubectl -n monitoring get pods
 ```bash
 # 1. Rebuild image (จาก backend directory)
 cd backend
-docker build -f Dockerfile.auth -t backend-auth-service:latest .
+docker build -f docker/Dockerfile.auth -t backend-auth-service:latest .
 
 # 2. Import ใหม่
 docker save backend-auth-service:latest | sudo k3s ctr images import -
@@ -605,7 +605,7 @@ kubectl -n pose-monitoring rollout restart statefulset prometheus-kube-prometheu
 cd /var/www/app_microservice/backend
 git pull origin main
 
-docker build --target production -f Dockerfile.item -t backend-item-service:latest .
+docker build --target production -f docker/Dockerfile.item -t backend-item-service:latest .
 # ... build services อื่นๆ
 
 # 2. Import เข้า k3s
