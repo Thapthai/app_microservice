@@ -33,7 +33,7 @@ npm run dev
 make prod
 
 # Or manually
-docker-compose -f docker/docker-compose.yml up -d --build
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
 ### **Production Mode (K3s)**
