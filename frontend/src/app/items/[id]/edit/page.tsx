@@ -22,12 +22,18 @@ import { toast } from 'sonner';
 import type { Item } from '@/types/api';
 
 interface EditItemPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function EditItemPage({ params }: EditItemPageProps) {
+  const [itemId, setItemId] = useState<string>('');
+  
+  // Unwrap params Promise (Next.js 15+)
+  useEffect(() => {
+    params.then((p) => setItemId(p.id));
+  }, [params]);
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -36,7 +42,7 @@ export default function EditItemPage({ params }: EditItemPageProps) {
 
   const form = useForm<ItemFormData & { isActive: boolean }>({
     resolver: zodResolver(itemSchema.extend({
-      isActive: z.boolean().optional(),
+      isActive: z.boolean(),
     })),
     defaultValues: {
       name: '',
@@ -49,12 +55,15 @@ export default function EditItemPage({ params }: EditItemPageProps) {
   });
 
   useEffect(() => {
-    fetchItem();
-  }, [params.id]);
+    if (itemId) {
+      fetchItem();
+    }
+  }, [itemId]);
 
   const fetchItem = async () => {
+    if (!itemId) return;
     try {
-      const response = await itemsApi.getById(parseInt(params.id));
+      const response = await itemsApi.getById(parseInt(itemId));
       if (response.success && response.data) {
         const itemData = response.data;
         setItem(itemData);
@@ -91,7 +100,7 @@ export default function EditItemPage({ params }: EditItemPageProps) {
       setLoading(true);
       const { isActive, ...updateData } = data;
       
-      const response = await itemsApi.update(parseInt(params.id), {
+      const response = await itemsApi.update(parseInt(itemId), {
         ...updateData,
         isActive,
       });
