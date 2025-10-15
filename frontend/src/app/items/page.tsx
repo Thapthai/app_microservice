@@ -98,7 +98,7 @@ export default function ItemsPage() {
     }
   };
 
-  const categories = Array.from(new Set(items.map(item => item.category).filter(Boolean)));
+  const categories = Array.from(new Set(items.map(item => item.category).filter(Boolean))) as string[];
 
   return (
     <ProtectedRoute>
