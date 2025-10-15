@@ -5,6 +5,7 @@ This guide covers deploying the POSE Frontend to K3s/K8s.
 ---
 
 ## 📋 Table of Contents
+
 1. [Prerequisites](#prerequisites)
 2. [Build & Import](#build--import)
 3. [Deploy to K3s](#deploy-to-k3s)
@@ -17,12 +18,14 @@ This guide covers deploying the POSE Frontend to K3s/K8s.
 ## Prerequisites
 
 ### **Required**
+
 - ✅ K3s installed and running
 - ✅ `kubectl` configured (`KUBECONFIG` set)
 - ✅ `pose-microservices` namespace exists
 - ✅ Backend services running
 
 ### **Verify Prerequisites**
+
 ```bash
 # Check K3s status
 sudo systemctl status k3s
@@ -49,11 +52,10 @@ cd /path/to/frontend
 # Build image
 docker build -f docker/Dockerfile -t frontend-pose:latest .
 
-# Or use Makefile
-make k8s-build
 ```
 
 **Expected Output:**
+
 ```
 [+] Building 45.3s (18/18) FINISHED
  => [internal] load build definition from Dockerfile
@@ -79,11 +81,10 @@ docker images | grep frontend-pose
 # Import image
 docker save frontend-pose:latest | sudo k3s ctr images import -
 
-# Or use Makefile
-make k8s-import
 ```
 
 **Expected Output:**
+
 ```
 unpacking docker.io/library/frontend-pose:latest (sha256:...)...done
 ```
@@ -109,7 +110,7 @@ Edit `k8s/frontend-deployment.yaml` if needed:
 ```yaml
 env:
   - name: NEXT_PUBLIC_API_URL
-    value: "http://10.11.9.84:3000/api"  # ⚠️ Update this to your Gateway IP
+    value: "http://10.11.9.84:3000/api" # ⚠️ Update this to your Gateway IP
 ```
 
 ### **2. Deploy**
@@ -117,12 +118,10 @@ env:
 ```bash
 # Deploy frontend
 kubectl apply -f k8s/frontend-deployment.yaml
-
-# Or use Makefile
-make k8s-deploy
 ```
 
 **Expected Output:**
+
 ```
 deployment.apps/frontend created
 service/frontend-service created
@@ -215,10 +214,6 @@ kubectl delete pod -n pose-microservices -l app=frontend
 # 5. Wait for new pod
 kubectl get pods -n pose-microservices -l app=frontend -w
 
-# Or use Makefile for steps 2-4
-make k8s-build
-make k8s-import
-make k8s-restart
 ```
 
 ### **Restart Deployment**
@@ -229,9 +224,6 @@ kubectl rollout restart deployment/frontend -n pose-microservices
 
 # Check rollout status
 kubectl rollout status deployment/frontend -n pose-microservices
-
-# Or use Makefile
-make k8s-restart
 ```
 
 ### **Scale Deployment**
@@ -256,9 +248,6 @@ kubectl logs -n pose-microservices -l app=frontend -f
 
 # View logs from specific pod
 kubectl logs -n pose-microservices <pod-name> -f
-
-# Or use Makefile
-make k8s-logs
 ```
 
 ### **Check Pod Status**
@@ -295,6 +284,7 @@ kubectl describe pod -n pose-microservices -l app=frontend
 ```
 
 **Solution:**
+
 ```bash
 # Check resources
 kubectl top nodes
@@ -319,6 +309,7 @@ kubectl logs -n pose-microservices -l app=frontend --tail=100
 ```
 
 **Solution:**
+
 ```bash
 # Check environment variables
 kubectl exec -n pose-microservices <pod-name> -- env | grep NEXT_PUBLIC
@@ -342,6 +333,7 @@ kubectl run -it --rm debug --image=alpine --restart=Never -n pose-microservices 
 ```
 
 **Solution:**
+
 ```bash
 # Check if pod is running
 kubectl get pods -n pose-microservices -l app=frontend
@@ -361,6 +353,7 @@ kubectl exec -n pose-microservices -l app=frontend -- env | grep NEXT_PUBLIC_API
 ```
 
 **Solution:**
+
 ```bash
 # Update API URL in deployment
 # Edit k8s/frontend-deployment.yaml
@@ -409,10 +402,10 @@ Edit `k8s/frontend-deployment.yaml`:
 env:
   - name: NODE_ENV
     value: "production"
-  
+
   - name: NEXT_PUBLIC_API_URL
-    value: "http://10.11.9.84:3000/api"  # Backend Gateway URL
-  
+    value: "http://10.11.9.84:3000/api" # Backend Gateway URL
+
   - name: PORT
     value: "3100"
 ```
@@ -424,22 +417,22 @@ Adjust based on your server capacity:
 ```yaml
 resources:
   requests:
-    memory: "128Mi"  # Minimum memory
-    cpu: "100m"      # Minimum CPU (0.1 core)
+    memory: "128Mi" # Minimum memory
+    cpu: "100m" # Minimum CPU (0.1 core)
   limits:
-    memory: "512Mi"  # Maximum memory
-    cpu: "500m"      # Maximum CPU (0.5 core)
+    memory: "512Mi" # Maximum memory
+    cpu: "500m" # Maximum CPU (0.5 core)
 ```
 
 ### **Service Configuration**
 
 ```yaml
 spec:
-  type: LoadBalancer      # Use NodePort for specific port
+  type: LoadBalancer # Use NodePort for specific port
   ports:
-    - port: 80           # Service port
-      targetPort: 3100   # Container port
-      nodePort: 30100    # External access port (30000-32767)
+    - port: 80 # Service port
+      targetPort: 3100 # Container port
+      nodePort: 30100 # External access port (30000-32767)
 ```
 
 ---
@@ -465,6 +458,7 @@ readinessProbe:
 ```
 
 **Monitor Health:**
+
 ```bash
 # Check readiness
 kubectl get pods -n pose-microservices -l app=frontend
@@ -519,4 +513,3 @@ kubectl exec -n pose-microservices -l app=frontend -- sh
 ---
 
 **Happy Deploying! 🚀**
-
