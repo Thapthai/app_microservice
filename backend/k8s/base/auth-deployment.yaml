@@ -73,6 +73,21 @@ spec:
             secretKeyRef:
               name: pose-secrets
               key: GOOGLE_CLIENT_SECRET
+        - name: FIREBASE_PROJECT_ID
+          valueFrom:
+            secretKeyRef:
+              name: pose-secrets
+              key: FIREBASE_PROJECT_ID
+        - name: FIREBASE_CLIENT_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: pose-secrets
+              key: FIREBASE_CLIENT_EMAIL
+        - name: FIREBASE_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pose-secrets
+              key: FIREBASE_PRIVATE_KEY
         resources:
           requests:
             memory: "64Mi"
@@ -90,5 +105,5 @@ spec:
             port: 3001
           initialDelaySeconds: 10
           periodSeconds: 5
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never  # Use local image, don't pull from registry
 
