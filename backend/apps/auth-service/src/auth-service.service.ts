@@ -894,7 +894,7 @@ export class AuthServiceService {
     }
   }
 
-  async updateUserProfile(user_id: number, updateData: { name?: string; email?: string; preferred_auth_method?: string }, currentPassword: string) {
+  async updateUserProfile(user_id: number, updateData: { name?: string; email?: string; preferred_auth_method?: string }, currentPassword?: string) {
     try {
       // Find user
       const user = await this.prisma.user.findUnique({
