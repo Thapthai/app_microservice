@@ -158,7 +158,7 @@ export default function ChangePassword({
               <Button
                 type="submit"
                 disabled={passwordLoading}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
               >
                 {passwordLoading ? (
                   <div className="flex items-center space-x-2">
