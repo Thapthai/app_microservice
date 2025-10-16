@@ -72,6 +72,6 @@ spec:
       protocol: TCP
       port: 80
       targetPort: 3100
-      nodePort: 3000  # External access port
+      nodePort: 30100  # Changed from 3000 to avoid conflict
   sessionAffinity: ClientIP
 
