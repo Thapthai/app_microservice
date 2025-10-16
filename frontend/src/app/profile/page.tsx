@@ -8,17 +8,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSession } from 'next-auth/react';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import Navbar from '@/components/Navbar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { User, Mail, Lock, Shield, Save, Eye, EyeOff, Smartphone, QrCode, Copy, Download } from 'lucide-react';
+import AppLayout from '@/components/AppLayout';
 import { toast } from 'sonner';
+import ProfileHeader from './components/ProfileHeader';
+import ProfileInformation from './components/ProfileInformation';
+import ChangePassword from './components/ChangePassword';
+import OAuthNotice from './components/OAuthNotice';
+import TwoFactorAuth from './components/TwoFactorAuth';
+import AccountInformation from './components/AccountInformation';
+import TwoFactorSetupDialog from './components/TwoFactorSetupDialog';
+import PasswordConfirmDialog from './components/PasswordConfirmDialog';
+import TotpVerificationDialog from './components/TotpVerificationDialog';
+import BackupCodesDialog from './components/BackupCodesDialog';
+import OAuthUpdateConfirmDialog from './components/OAuthUpdateConfirmDialog';
+import JwtUpdateConfirmDialog from './components/JwtUpdateConfirmDialog';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'ชื่อต้องมีอย่างน้อย 2 ตัวอักษร'),
@@ -364,7 +367,7 @@ export default function ProfilePage() {
     URL.revokeObjectURL(url);
     toast.success('ดาวน์โหลดรหัสสำรองแล้ว');
   };
- 
+
 
   const handlePasswordConfirm = async () => {
     if (!confirmPasswordValue) {
@@ -444,924 +447,125 @@ export default function ProfilePage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
+      <AppLayout>
+        <div className="max-w-5xl mx-auto">
+          <ProfileHeader userName={user?.name} />
 
-        <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">ตั้งค่าโปรไฟล์</h1>
-              <p className="mt-2 text-gray-600">จัดการข้อมูลส่วนตัวและการตั้งค่าบัญชีของคุณ</p>
-            </div>
+          <div className="space-y-4 sm:space-y-6">
+            {/* Profile Information */}
+            <ProfileInformation
+              user={user}
+              profileForm={profileForm}
+              loading={loading}
+              onSubmit={onProfileSubmit}
+            />
 
-            <div className="space-y-6">
-              {/* Profile Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <User className="h-5 w-5" />
-                    <span>ข้อมูลโปรไฟล์</span>
-                  </CardTitle>
-                  <CardDescription>
-                    {user?.preferred_auth_method === 'oauth2'
-                      ? 'อัพเดตชื่อของคุณ (อีเมลมาจาก OAuth Provider)'
-                      : 'อัพเดตข้อมูลส่วนตัวของคุณ'
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...profileForm}>
-                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
-                      <div className={`grid grid-cols-1 gap-6 ${(user?.preferred_auth_method === 'jwt' && user?.hasPassword) ? 'sm:grid-cols-2' : 'sm:grid-cols-1'}`}>
-                        <FormField
-                          control={profileForm.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>ชื่อ</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                  <Input
-                                    placeholder="ชื่อของคุณ"
-                                    className="pl-10"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+            {/* Password Change - Only show for JWT users */}
+            {(user?.preferred_auth_method === 'jwt' && user?.hasPassword) ? (
+              <ChangePassword
+                passwordForm={passwordForm}
+                passwordLoading={passwordLoading}
+                showCurrentPassword={showCurrentPassword}
+                showNewPassword={showNewPassword}
+                showConfirmPassword={showConfirmPassword}
+                setShowCurrentPassword={setShowCurrentPassword}
+                setShowNewPassword={setShowNewPassword}
+                setShowConfirmPassword={setShowConfirmPassword}
+                onSubmit={onPasswordSubmit}
+              />
+            ) : (
+              <OAuthNotice user={user} />
+            )}
 
-                        {/* Email field - Only show for JWT users */}
-                        {user?.preferred_auth_method === 'jwt' && user?.hasPassword && (
-                          <FormField
-                            control={profileForm.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>อีเมล</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <Input
-                                      type="email"
-                                      placeholder="your@email.com"
-                                      className="pl-10"
-                                      {...field}
-                                    />
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
+            {/* Two-Factor Authentication - Only show for JWT users */}
+            {user?.preferred_auth_method === 'jwt' && user?.hasPassword && (
+              <TwoFactorAuth
+                user={user}
+                twoFactorLoading={twoFactorLoading}
+                onToggle={handle2FAToggle}
+              />
+            )}
 
-                        {/* OAuth Email Display - Read-only */}
-                        {user?.preferred_auth_method === 'oauth2' && (
-                          <div className="col-span-full">
-                            <Label className="text-sm font-medium text-gray-700">อีเมล (จาก OAuth Provider)</Label>
-                            <div className="mt-1 relative">
-                              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                              <Input
-                                type="email"
-                                value={user?.email || ''}
-                                className="pl-10 bg-gray-50 cursor-not-allowed"
-                                disabled
-                                readOnly
-                              />
-                            </div>
-                            <p className="mt-1 text-xs text-gray-500">
-                              อีเมลนี้มาจาก OAuth Provider และไม่สามารถเปลี่ยนแปลงได้
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex justify-end">
-                        <Button
-                          type="submit"
-                          disabled={loading}
-                          className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                        >
-                          {loading ? (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              <span>กำลังบันทึก...</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center space-x-2">
-                              <Save className="w-4 h-4" />
-                              <span>บันทึกการเปลี่ยนแปลง</span>
-                            </div>
-                          )}
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-
-              {/* Password Change - Only show for JWT users */}
-              {(user?.preferred_auth_method === 'jwt' && user?.hasPassword) ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Lock className="h-5 w-5" />
-                      <span>เปลี่ยนรหัสผ่าน</span>
-                    </CardTitle>
-                    <CardDescription>
-                      อัพเดตรหัสผ่านเพื่อความปลอดภัยของบัญชี
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Form {...passwordForm}>
-                      <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
-                        <FormField
-                          control={passwordForm.control}
-                          name="currentPassword"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>รหัสผ่านปัจจุบัน</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                  <Input
-                                    type={showCurrentPassword ? 'text' : 'password'}
-                                    placeholder="••••••••"
-                                    className="pl-10 pr-10"
-                                    {...field}
-                                  />
-                                  <button
-                                    type="button"
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                  >
-                                    {showCurrentPassword ? (
-                                      <EyeOff className="w-4 h-4" />
-                                    ) : (
-                                      <Eye className="w-4 h-4" />
-                                    )}
-                                  </button>
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                          <FormField
-                            control={passwordForm.control}
-                            name="newPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>รหัสผ่านใหม่</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <Input
-                                      type={showNewPassword ? 'text' : 'password'}
-                                      placeholder="••••••••"
-                                      className="pl-10 pr-10"
-                                      {...field}
-                                    />
-                                    <button
-                                      type="button"
-                                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                                      onClick={() => setShowNewPassword(!showNewPassword)}
-                                    >
-                                      {showNewPassword ? (
-                                        <EyeOff className="w-4 h-4" />
-                                      ) : (
-                                        <Eye className="w-4 h-4" />
-                                      )}
-                                    </button>
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={passwordForm.control}
-                            name="confirmPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>ยืนยันรหัสผ่านใหม่</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <Input
-                                      type={showConfirmPassword ? 'text' : 'password'}
-                                      placeholder="••••••••"
-                                      className="pl-10 pr-10"
-                                      {...field}
-                                    />
-                                    <button
-                                      type="button"
-                                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    >
-                                      {showConfirmPassword ? (
-                                        <EyeOff className="w-4 h-4" />
-                                      ) : (
-                                        <Eye className="w-4 h-4" />
-                                      )}
-                                    </button>
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="text-xs text-gray-500 space-y-1">
-                          <p>รหัสผ่านใหม่ต้องมี:</p>
-                          <ul className="list-disc list-inside space-y-0.5 ml-2">
-                            <li>อย่างน้อย 8 ตัวอักษร</li>
-                            <li>ตัวพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว</li>
-                            <li>ตัวพิมพ์เล็ก (a-z) อย่างน้อย 1 ตัว</li>
-                            <li>ตัวเลข (0-9) อย่างน้อย 1 ตัว</li>
-                            <li>อักษรพิเศษ (!@#$%^&*) อย่างน้อย 1 ตัว</li>
-                          </ul>
-                        </div>
-
-                        <div className="flex justify-end">
-                          <Button
-                            type="submit"
-                            disabled={passwordLoading}
-                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                          >
-                            {passwordLoading ? (
-                              <div className="flex items-center space-x-2">
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                <span>กำลังเปลี่ยน...</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center space-x-2">
-                                <Shield className="w-4 h-4" />
-                                <span>เปลี่ยนรหัสผ่าน</span>
-                              </div>
-                            )}
-                          </Button>
-                        </div>
-                      </form>
-                    </Form>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2 text-blue-900">
-                      <Lock className="h-5 w-5" />
-                      <span>เปลี่ยนรหัสผ่าน</span>
-                    </CardTitle>
-                    <CardDescription className="text-blue-700">
-                      คุณเข้าสู่ระบบด้วย {user?.preferred_auth_method === 'oauth2' ? 'OAuth2' : user?.preferred_auth_method === 'firebase' ? 'Google' : 'OAuth'} จึงไม่สามารถเปลี่ยนรหัสผ่านได้
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-blue-700">
-                      🔐 บัญชีของคุณได้รับการปกป้องโดย {user?.preferred_auth_method === 'firebase' ? 'Google' : 'OAuth2'} Provider อยู่แล้ว
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Two-Factor Authentication */}
-              {/* Two-Factor Authentication - Only show for JWT users */}
-              {user?.preferred_auth_method === 'jwt' && user?.hasPassword && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Smartphone className="h-5 w-5" />
-                      <span>การยืนยันตัวตนสองขั้นตอน (2FA)</span>
-                    </CardTitle>
-                    <CardDescription>
-                      เพิ่มความปลอดภัยให้กับบัญชีของคุณด้วยการยืนยันตัวตนสองขั้นตอน
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <Label className="text-sm font-medium text-gray-700">
-                          สถานะการยืนยันตัวตนสองขั้นตอน
-                        </Label>
-                        <p className="text-sm text-gray-500">
-                          {user?.twoFactorEnabled
-                            ? 'บัญชีของคุณได้รับการปกป้องด้วย 2FA แล้ว'
-                            : 'เปิดใช้งาน 2FA เพื่อเพิ่มความปลอดภัย'
-                          }
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        {user?.twoFactorEnabled ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                            <Shield className="w-4 h-4 mr-1" />
-                            เปิดใช้งาน
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                            <Shield className="w-4 h-4 mr-1" />
-                            ปิดใช้งาน
-                          </span>
-                        )}
-                        <Switch
-                          checked={user?.twoFactorEnabled || false}
-                          onCheckedChange={handle2FAToggle}
-                          disabled={twoFactorLoading}
-                        />
-                      </div>
-                    </div>
-
-                    {user?.twoFactorEnabled && (
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <Shield className="w-5 h-5 text-green-600" />
-                          <p className="text-sm font-medium text-green-800">
-                            บัญชีของคุณได้รับการปกป้องแล้ว
-                          </p>
-                        </div>
-                        <p className="mt-1 text-sm text-green-700">
-                          คุณจะต้องใส่รหัสจากแอป Authenticator ทุกครั้งที่เข้าสู่ระบบ
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Account Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Shield className="h-5 w-5" />
-                    <span>ข้อมูลบัญชี</span>
-                  </CardTitle>
-                  <CardDescription>
-                    ข้อมูลเพิ่มเติมเกี่ยวกับบัญชีของคุณ
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">ID ผู้ใช้</Label>
-                      <p className="mt-1 text-sm text-gray-900">{user?.id}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">วิธีการเข้าสู่ระบบ</Label>
-                      <p className="mt-1 text-sm text-gray-900">
-                        {user?.preferred_auth_method === 'oauth2' ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            🔗 OAuth (Google)
-                          </span>
-                        ) : user?.preferred_auth_method === 'jwt' ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            🔑 รหัสผ่าน
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            ❓ ไม่ระบุ
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">วันที่สร้างบัญชี</Label>
-                      <p className="mt-1 text-sm text-gray-900">
-                        {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('th-TH') : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">สถานะรหัสผ่าน</Label>
-                      <p className="mt-1 text-sm text-gray-900">
-                        {user?.hasPassword ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            ✅ มีรหัสผ่าน
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            ⚠️ ไม่มีรหัสผ่าน (OAuth เท่านั้น)
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Account Information */}
+            <AccountInformation user={user} />
           </div>
-        </main>
 
-        {/* 2FA Setup Dialog */}
-        <Dialog open={show2FADialog} onOpenChange={setShow2FADialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center space-x-2">
-                <QrCode className="h-5 w-5" />
-                <span>ตั้งค่าการยืนยันตัวตนสองขั้นตอน</span>
-              </DialogTitle>
-              <DialogDescription>
-                สแกน QR Code ด้วยแอป Google Authenticator หรือแอปที่รองรับ TOTP
-              </DialogDescription>
-            </DialogHeader>
+          {/* Dialogs */}
+          <TwoFactorSetupDialog
+            open={show2FADialog}
+            onOpenChange={setShow2FADialog}
+            qrCodeUrl={qrCodeUrl}
+            totpSecret={totpSecret}
+            verificationCode={verificationCode}
+            setVerificationCode={setVerificationCode}
+            loading={twoFactorLoading}
+            onVerify={handleVerify2FA}
+          />
 
-            <div className="space-y-6">
-              {/* QR Code */}
-              <div className="flex flex-col items-center space-y-4">
-                <div className="p-4 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
-                  {qrCodeUrl ? (
-                    <img
-                      src={qrCodeUrl}
-                      alt="QR Code for 2FA setup"
-                      className="w-48 h-48 object-contain"
-                    />
-                  ) : (
-                    <div className="w-48 h-48 bg-gray-100 flex items-center justify-center rounded">
-                      <QrCode className="w-16 h-16 text-gray-400" />
-                    </div>
-                  )}
-                </div>
+          <PasswordConfirmDialog
+            open={showPasswordDialog}
+            onOpenChange={setShowPasswordDialog}
+            action={passwordAction}
+            password={confirmPasswordValue}
+            setPassword={setConfirmPasswordValue}
+            showPassword={show2FAPassword}
+            setShowPassword={setShow2FAPassword}
+            loading={passwordLoading2FA}
+            onConfirm={handlePasswordConfirm}
+            onCancel={() => {
+              setShowPasswordDialog(false);
+              setConfirmPasswordValue('');
+            }}
+          />
 
-                {qrCodeUrl && (
-                  <p className="text-xs text-green-600 text-center">
-                    ✅ QR Code พร้อมใช้งาน
-                  </p>
-                )}</div>
+          <TotpVerificationDialog
+            open={showTotpDialog}
+            onOpenChange={setShowTotpDialog}
+            token={totpToken}
+            setToken={setTotpToken}
+            loading={passwordLoading2FA}
+            onConfirm={handleTotpConfirm}
+            onCancel={() => {
+              setShowTotpDialog(false);
+              setTotpToken('');
+              setConfirmPasswordValue('');
+            }}
+          />
 
-              {/* Manual Entry */}
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-2">
-                  หรือใส่รหัสนี้ในแอป Authenticator:
-                </p>
-                {totpSecret ? (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                    <code className="text-sm font-mono text-gray-800 select-all">
-                      {totpSecret}
-                    </code>
-                    <p className="text-xs text-gray-500 mt-1">
-                      คลิกเพื่อเลือกทั้งหมด
-                    </p>
-                  </div>
-                ) : (
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-sm text-gray-400">รอสร้างรหัส...</span>
-                  </div>
-                )}
-              </div>
-            </div>
+          <BackupCodesDialog
+            open={showBackupCodesDialog}
+            onOpenChange={setShowBackupCodesDialog}
+            backupCodes={backupCodes}
+            onCopy={handleCopyBackupCodes}
+            onDownload={handleDownloadBackupCodes}
+          />
 
-            {/* Verification */}
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="verification-code" className="text-sm font-medium">
-                  รหัสยืนยัน 6 หลัก
-                </Label>
-                <Input
-                  id="verification-code"
-                  type="text"
-                  placeholder="123456"
-                  maxLength={6}
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                  className="text-center text-lg font-mono tracking-widest"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  ใส่รหัส 6 หลักจากแอป Authenticator
-                </p>
-              </div>
+          <OAuthUpdateConfirmDialog
+            open={showOAuthConfirmDialog}
+            onOpenChange={setShowOAuthConfirmDialog}
+            pendingData={pendingProfileData}
+            user={user}
+            loading={loading}
+            onConfirm={handleOAuthConfirmUpdate}
+            onCancel={handleCancelOAuthUpdate}
+          />
 
-              <div className="flex space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShow2FADialog(false)}
-                  className="flex-1"
-                  disabled={twoFactorLoading}
-                >
-                  ยกเลิก
-                </Button>
-                <Button
-                  onClick={handleVerify2FA}
-                  disabled={!verificationCode || verificationCode.length !== 6 || twoFactorLoading}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                >
-                  {twoFactorLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>กำลังยืนยัน...</span>
-                    </div>
-                  ) : (
-                    'ยืนยันและเปิดใช้งาน'
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* Instructions */}
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="text-sm font-medium text-blue-800 mb-2">📱 วิธีการตั้งค่า:</h4>
-              <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-                <li>ดาวน์โหลด <strong>Google Authenticator</strong> หรือแอปที่รองรับ TOTP</li>
-                <li>สแกน QR Code ด้านบน หรือใส่รหัส secret ในแอป</li>
-                <li>ใส่รหัส 6 หลักที่แสดงในแอปเพื่อยืนยันการตั้งค่า</li>
-                <li>เก็บรหัสสำรองที่จะได้รับไว้ในที่ปลอดภัย</li>
-              </ol>
-              <div className="mt-3 p-2 bg-blue-100 rounded text-xs text-blue-600">
-                💡 <strong>เคล็ดลับ:</strong> รหัส TOTP จะเปลี่ยนทุก 30 วินาที
-              </div>
-            </div>
-
-          </DialogContent>
-        </Dialog>
-
-        {/* Password Confirmation Modal */}
-        <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center space-x-2">
-                <Lock className="w-5 h-5 text-blue-600" />
-                <span>ยืนยันตัวตน</span>
-              </DialogTitle>
-              <DialogDescription>
-                {passwordAction === 'enable'
-                  ? 'กรุณาใส่รหัสผ่านเพื่อเปิดใช้งาน 2FA'
-                  : 'กรุณาใส่รหัสผ่านเพื่อปิดใช้งาน 2FA'
-                }
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              {/* Password Input */}
-              <div>
-                <Label htmlFor="confirm-password" className="text-sm font-medium">
-                  รหัสผ่านปัจจุบัน
-                </Label>
-                <div className="relative mt-1">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    id="confirm-password"
-                    type={show2FAPassword ? 'text' : 'password'}
-                    placeholder="ใส่รหัสผ่านของคุณ"
-                    value={confirmPasswordValue}
-                    onChange={(e) => setConfirmPasswordValue(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handlePasswordConfirm()}
-                    className="pl-10 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShow2FAPassword(!show2FAPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    {show2FAPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowPasswordDialog(false);
-                    setConfirmPasswordValue('');
-                  }}
-                  className="flex-1"
-                  disabled={passwordLoading2FA}
-                >
-                  ยกเลิก
-                </Button>
-                <Button
-                  onClick={handlePasswordConfirm}
-                  disabled={!confirmPasswordValue || passwordLoading2FA}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  {passwordLoading2FA ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>กำลังยืนยัน...</span>
-                    </div>
-                  ) : (
-                    'ยืนยัน'
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* TOTP Confirmation Modal */}
-        <Dialog open={showTotpDialog} onOpenChange={setShowTotpDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center space-x-2">
-                <Smartphone className="w-5 h-5 text-orange-600" />
-                <span>ยืนยันรหัส 2FA</span>
-              </DialogTitle>
-              <DialogDescription>
-                กรุณาใส่รหัส 6 หลักจากแอป Authenticator เพื่อปิดใช้งาน 2FA
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              {/* TOTP Input */}
-              <div>
-                <Label htmlFor="totp-token" className="text-sm font-medium">
-                  รหัส 2FA
-                </Label>
-                <Input
-                  id="totp-token"
-                  type="text"
-                  placeholder="123456"
-                  maxLength={6}
-                  value={totpToken}
-                  onChange={(e) => setTotpToken(e.target.value.replace(/\D/g, ''))}
-                  onKeyPress={(e) => e.key === 'Enter' && handleTotpConfirm()}
-                  className="mt-1 text-center text-lg font-mono tracking-widest"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  ใส่รหัส 6 หลักจากแอป Authenticator
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowTotpDialog(false);
-                    setTotpToken('');
-                    setConfirmPasswordValue('');
-                  }}
-                  className="flex-1"
-                  disabled={passwordLoading2FA}
-                >
-                  ยกเลิก
-                </Button>
-                <Button
-                  onClick={handleTotpConfirm}
-                  disabled={!totpToken || totpToken.length !== 6 || passwordLoading2FA}
-                  className="flex-1 bg-red-600 hover:bg-red-700"
-                >
-                  {passwordLoading2FA ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>กำลังปิด...</span>
-                    </div>
-                  ) : (
-                    'ปิดใช้งาน 2FA'
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Backup Codes Modal */}
-        <Dialog open={showBackupCodesDialog} onOpenChange={setShowBackupCodesDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-green-600" />
-                <span>รหัสสำรองของคุณ</span>
-              </DialogTitle>
-              <DialogDescription>
-                เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย แต่ละรหัสใช้ได้เพียงครั้งเดียว
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              {/* Warning */}
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="flex items-start space-x-2">
-                  <div className="text-amber-600 mt-0.5">⚠️</div>
-                  <div className="text-sm text-amber-800">
-                    <p className="font-medium mb-1">สำคัญมาก!</p>
-                    <ul className="text-xs space-y-1">
-                      <li>• เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย</li>
-                      <li>• ใช้เมื่อไม่สามารถเข้าถึงแอป Authenticator ได้</li>
-                      <li>• แต่ละรหัสใช้ได้เพียงครั้งเดียว</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Backup Codes */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="grid grid-cols-2 gap-2 font-mono text-sm">
-                  {backupCodes.map((code, index) => (
-                    <div key={index} className="bg-white border rounded px-3 py-2 text-center">
-                      {code}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={handleCopyBackupCodes}
-                  className="flex-1 flex items-center justify-center space-x-2"
-                >
-                  <Copy className="w-4 h-4" />
-                  <span>คัดลอก</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadBackupCodes}
-                  className="flex-1 flex items-center justify-center space-x-2"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>ดาวน์โหลด</span>
-                </Button>
-              </div>
-
-              {/* Close Button */}
-              <Button
-                onClick={() => setShowBackupCodesDialog(false)}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                เก็บรหัสเรียบร้อยแล้ว
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* OAuth Confirmation Modal for Profile Update (Firebase/OAuth Users) */}
-        <Dialog open={showOAuthConfirmDialog} onOpenChange={setShowOAuthConfirmDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-blue-600" />
-                ยืนยันการเปลี่ยนแปลงข้อมูล
-              </DialogTitle>
-              <DialogDescription>
-                คุณกำลังจะเปลี่ยนแปลงข้อมูลโปรไฟล์ กรุณาตรวจสอบความถูกต้อง
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              {/* Show what will be changed */}
-              {pendingProfileData && (
-                <div className="bg-blue-50 p-4 rounded-lg space-y-2 border border-blue-200">
-                  <p className="text-sm font-medium text-blue-900">การเปลี่ยนแปลงที่จะทำ:</p>
-                  <div className="text-sm text-blue-700 space-y-1">
-                    <p><strong>ชื่อ:</strong> {pendingProfileData.name}</p>
-                    {pendingProfileData.email !== user?.email && (
-                      <p><strong>อีเมล:</strong> {pendingProfileData.email}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-cyan-50 p-3 rounded-lg border border-cyan-200">
-                <p className="text-sm text-cyan-800 flex items-start gap-2">
-                  <span>ℹ️</span>
-                  <span>คุณเข้าสู่ระบบด้วย {user?.preferred_auth_method === 'firebase' ? 'Google' : 'OAuth2'} จึงไม่ต้องยืนยันด้วยรหัสผ่าน</span>
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancelOAuthUpdate}
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  ยกเลิก
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleOAuthConfirmUpdate}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      กำลังอัพเดต...
-                    </>
-                  ) : (
-                    <>
-                      <Shield className="w-4 h-4 mr-2" />
-                      ยืนยันการเปลี่ยนแปลง
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Confirm Password Modal for Profile Update (JWT Users) */}
-        <Dialog open={showConfirmPasswordDialog} onOpenChange={setShowConfirmPasswordDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-emerald-600" />
-                ยืนยันการเปลี่ยนแปลงข้อมูล
-              </DialogTitle>
-              <DialogDescription>
-                คุณกำลังจะเปลี่ยนแปลงข้อมูลโปรไฟล์ กรุณาตรวจสอบความถูกต้อง
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              {/* Show what will be changed */}
-              {pendingProfileData && (
-                <div className="bg-emerald-50 p-4 rounded-lg space-y-2 border border-emerald-200">
-                  <p className="text-sm font-medium text-emerald-900">การเปลี่ยนแปลงที่จะทำ:</p>
-                  <div className="text-sm text-emerald-700 space-y-1">
-                    <p><strong>ชื่อ:</strong> {pendingProfileData.name}</p>
-                    {pendingProfileData.email !== user?.email && (
-                      <p><strong>อีเมล:</strong> {pendingProfileData.email}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Password Input */}
-              <div className="space-y-2">
-                <Label htmlFor="confirmPasswordValue" className="text-sm font-medium text-gray-700">
-                  รหัสผ่านปัจจุบัน
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    id="confirmPasswordValue"
-                    type={showConfirmPasswordInModal ? 'text' : 'password'}
-                    placeholder="ใส่รหัสผ่านปัจจุบัน"
-                    value={confirmPasswordValue}
-                    onChange={(e) => setConfirmPasswordValue(e.target.value)}
-                    className="pl-10 pr-10 h-11"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPasswordInModal(!showConfirmPasswordInModal)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    {showConfirmPasswordInModal ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
-                <p className="text-sm text-amber-800 flex items-start gap-2">
-                  <span>🔒</span>
-                  <span>กรุณาใส่รหัสผ่านเพื่อยืนยันตัวตนก่อนเปลี่ยนแปลงข้อมูล</span>
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancelProfileUpdate}
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  ยกเลิก
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleConfirmProfileUpdate}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                  disabled={loading || !confirmPasswordValue}
-                >
-                  {loading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      กำลังอัพเดต...
-                    </>
-                  ) : (
-                    <>
-                      <Shield className="w-4 h-4 mr-2" />
-                      ยืนยันการเปลี่ยนแปลง
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </ProtectedRoute >
+          <JwtUpdateConfirmDialog
+            open={showConfirmPasswordDialog}
+            onOpenChange={setShowConfirmPasswordDialog}
+            pendingData={pendingProfileData}
+            user={user}
+            password={confirmPasswordValue}
+            setPassword={setConfirmPasswordValue}
+            showPassword={showConfirmPasswordInModal}
+            setShowPassword={setShowConfirmPasswordInModal}
+            loading={loading}
+            onConfirm={handleConfirmProfileUpdate}
+            onCancel={handleCancelProfileUpdate}
+          />
+        </div>
+      </AppLayout>
+    </ProtectedRoute>
   );
 }
+

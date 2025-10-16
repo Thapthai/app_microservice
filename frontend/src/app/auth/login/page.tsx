@@ -98,7 +98,7 @@ export default function LoginPage() {
             เข้าสู่ระบบ
           </CardTitle>
           <CardDescription className="text-gray-600">
-            เข้าสู่ระบบจัดการผ้าปูที่นอน POSE
+            เข้าสู่ระบบจัดการผ้า POSE
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

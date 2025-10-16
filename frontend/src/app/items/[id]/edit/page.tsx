@@ -172,7 +172,7 @@ export default function EditItemPage({ params }: EditItemPageProps) {
                           <FormLabel>ชื่อสินค้า *</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="เช่น ผ้าปูที่นอนคอตตอน 100%"
+                              placeholder="เช่น ผ้าคอตตอน 100%"
                               {...field}
                             />
                           </FormControl>
@@ -250,7 +250,7 @@ export default function EditItemPage({ params }: EditItemPageProps) {
                           <FormLabel>หมวดหมู่</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="เช่น ผ้าปูที่นอน, หมอน, ผ้าห่ม"
+                              placeholder="เช่น ผ้า, หมอน, ผ้าห่ม"
                               {...field}
                             />
                           </FormControl>

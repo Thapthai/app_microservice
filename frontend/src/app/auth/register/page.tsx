@@ -84,7 +84,7 @@ export default function RegisterPage() {
             สมัครสมาชิก
           </CardTitle>
           <CardDescription className="text-gray-600">
-            สร้างบัญชีใหม่สำหรับระบบจัดการผ้าปูที่นอน POSE
+            สร้างบัญชีใหม่สำหรับระบบจัดการผ้า POSE
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

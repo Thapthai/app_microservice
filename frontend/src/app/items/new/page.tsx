@@ -77,7 +77,7 @@ export default function NewItemPage() {
               </Link>
               <h1 className="text-3xl font-bold text-gray-900">เพิ่มสินค้าใหม่</h1>
               <p className="mt-2 text-gray-600">
-                เพิ่มสินค้าผ้าปูที่นอนหรือผลิตภัณฑ์ใหม่เข้าสู่ระบบ
+                เพิ่มสินค้าผ้าหรือผลิตภัณฑ์ใหม่เข้าสู่ระบบ
               </p>
             </div>
 
@@ -97,7 +97,7 @@ export default function NewItemPage() {
                           <FormLabel>ชื่อสินค้า *</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="เช่น ผ้าปูที่นอนคอตตอน 100%"
+                              placeholder="เช่น ผ้าคอตตอน 100%"
                               {...field}
                             />
                           </FormControl>
@@ -175,7 +175,7 @@ export default function NewItemPage() {
                           <FormLabel>หมวดหมู่</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="เช่น ผ้าปูที่นอน, หมอน, ผ้าห่ม"
+                              placeholder="เช่น ผ้า, หมอน, ผ้าห่ม"
                               {...field}
                             />
                           </FormControl>
