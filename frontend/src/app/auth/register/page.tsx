@@ -5,19 +5,20 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuth } from '@/contexts/AuthContext';
+import { signIn } from 'next-auth/react';
 import { registerSchema, type RegisterFormData } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Mail, Lock, User, Chrome, UserPlus } from 'lucide-react';
+import { Mail, Lock, User, Chrome, UserPlus, Eye, EyeOff } from 'lucide-react';
+import api from '@/lib/api';
 
 export default function RegisterPage() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string>('');
-  const { register: registerUser, loginWithOAuth } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const form = useForm<RegisterFormData>({
@@ -33,10 +34,25 @@ export default function RegisterPage() {
     try {
       setError('');
       setLoading(true);
-      await registerUser(data);
-      router.push('/dashboard');
+      
+      // Register user via backend API
+      await api.post('/auth/register', data);
+      
+      // Auto-login after registration using NextAuth
+      const result = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError('สมัครสมาชิกสำเร็จแล้ว แต่เข้าสู่ระบบไม่สำเร็จ กรุณาลองเข้าสู่ระบบอีกครั้ง');
+        router.push('/auth/login');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก');
     } finally {
       setLoading(false);
     }
@@ -46,11 +62,13 @@ export default function RegisterPage() {
     try {
       setError('');
       setOauthLoading(provider);
-      await loginWithOAuth(provider);
-      router.push('/dashboard');
+      
+      // Use NextAuth signIn for OAuth
+      await signIn(provider, {
+        callbackUrl: '/dashboard',
+      });
     } catch (err: any) {
-      setError(err.message);
-    } finally {
+      setError(err.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิกด้วย OAuth');
       setOauthLoading('');
     }
   };
@@ -184,11 +202,22 @@ export default function RegisterPage() {
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
-                          type="password"
+                          type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
-                          className="pl-10 h-12 border-2 focus:border-emerald-500 transition-colors"
+                          className="pl-10 pr-10 h-12 border-2 focus:border-emerald-500 transition-colors"
                           {...field}
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
                       </div>
                     </FormControl>
                     <div className="text-xs text-gray-500 mt-1 space-y-1">

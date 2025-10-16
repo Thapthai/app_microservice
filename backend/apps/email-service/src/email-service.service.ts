@@ -20,7 +20,6 @@ export class EmailServiceService {
   constructor() {
     // Load environment variables first
     dotenv.config();
-    console.log('dotenv loaded, checking .env file...');
     
     this.initializeEmailConfig();
     this.createTransporter();

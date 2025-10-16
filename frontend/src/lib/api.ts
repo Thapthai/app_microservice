@@ -1,15 +1,8 @@
 import axios from 'axios';
-import type {
-  ApiResponse,
-  AuthResponse,
-  User,
-  RegisterDto,
-  LoginDto,
-  Item,
-  CreateItemDto,
-  UpdateItemDto,
-  GetItemsQuery
-} from '@/types/api';
+import { getSession } from 'next-auth/react';
+import type { ApiResponse, PaginatedResponse } from '@/types/common';
+import type { AuthResponse, User, RegisterDto, LoginDto } from '@/types/auth';
+import type { Item, CreateItemDto, UpdateItemDto, GetItemsQuery } from '@/types/item';
 
 // Create axios instance
 const api = axios.create({
@@ -19,11 +12,18 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Request interceptor to add auth token from NextAuth session
+api.interceptors.request.use(async (config) => {
+  if (typeof window !== 'undefined') {
+    const session = await getSession();
+
+
+    if (session && (session as any).accessToken) {
+      const token = (session as any).accessToken;
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('⚠️ No access token found in session');
+    }
   }
   return config;
 });
@@ -32,9 +32,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      // Redirect to login page on unauthorized
       window.location.href = '/auth/login';
     }
     return Promise.reject(error);
@@ -58,13 +57,9 @@ export const authApi = {
     return response.data;
   },
 
-  getOAuthUrl: async (provider: 'google' | 'microsoft'): Promise<ApiResponse<{ authUrl: string; provider: string; state?: string }>> => {
-    const response = await api.post('/auth/oauth2/url', { provider });
-    return response.data;
-  },
-
-  oauthLogin: async (provider: 'google' | 'microsoft', code: string, state?: string): Promise<ApiResponse<AuthResponse>> => {
-    const response = await api.post('/auth/oauth2/login', { provider, code, state });
+  // Firebase Authentication API
+  firebaseLogin: async (idToken: string): Promise<ApiResponse<AuthResponse>> => {
+    const response = await api.post('/auth/firebase/login', { idToken });
     return response.data;
   },
 
@@ -127,7 +122,7 @@ export const itemsApi = {
     return response.data;
   },
 
-  getAll: async (query?: GetItemsQuery): Promise<ApiResponse<Item[]>> => {
+  getAll: async (query?: GetItemsQuery): Promise<PaginatedResponse<Item>> => {
     const response = await api.get('/items', { params: query });
     return response.data;
   },
@@ -144,11 +139,6 @@ export const itemsApi = {
 
   delete: async (id: number): Promise<ApiResponse> => {
     const response = await api.delete(`/items/${id}`);
-    return response.data;
-  },
-
-  getByUser: async (userId: number): Promise<ApiResponse<Item[]>> => {
-    const response = await api.get(`/users/${userId}/items`);
     return response.data;
   },
 };

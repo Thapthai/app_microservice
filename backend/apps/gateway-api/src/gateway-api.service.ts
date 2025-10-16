@@ -27,12 +27,8 @@ export class GatewayApiService {
     return this.authClient.send('auth.validate', token).toPromise();
   }
 
-  async getOAuthUrl(provider: string, state?: string) {
-    return this.authClient.send('auth.oauth2.getAuthUrl', { provider, state }).toPromise();
-  }
-
-  async oauthLogin(data: { provider: string; code: string; state?: string; redirectUri?: string }) {
-    return this.authClient.send('auth.oauth2.login', data).toPromise();
+  async firebaseLogin(idToken: string) {
+    return this.authClient.send('auth.firebase.login', { idToken }).toPromise();
   }
 
   // ==================================== Item Service Methods ====================================

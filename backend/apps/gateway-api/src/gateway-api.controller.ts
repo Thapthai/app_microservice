@@ -72,30 +72,17 @@ export class GatewayApiController {
     }
   }
 
-  @Post('auth/oauth2/url')
-  async getOAuthUrl(@Body() data: { provider: string; state?: string }) {
+  @Post('auth/firebase/login')
+  async firebaseLogin(@Body() data: { idToken: string }) {
     try {
-      const result = await this.gatewayApiService.getOAuthUrl(data.provider, data.state);
-      return result;
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to get OAuth URL',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @Post('auth/oauth2/login')
-  async oauthLogin(@Body() data: { provider: string; code: string; state?: string; redirectUri?: string }) {
-    try {
-      const result = await this.gatewayApiService.oauthLogin(data);
+      const result = await this.gatewayApiService.firebaseLogin(data.idToken);
       if (!result.success) {
         throw new HttpException(result.message, HttpStatus.UNAUTHORIZED);
       }
       return result;
     } catch (error) {
       throw new HttpException(
-        error.message || 'OAuth login failed',
+        error.message || 'Firebase login failed',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -253,8 +240,7 @@ export class GatewayApiController {
   async createItem(@Body() createItemDto: CreateItemDto, @Request() req: any) {
     try {
       // User data is available from JWT token via req.user
-      // console.log('Authenticated user:', req.user);
-
+ 
       const result = await this.gatewayApiService.createItem(createItemDto);
       return result;
     } catch (error) {

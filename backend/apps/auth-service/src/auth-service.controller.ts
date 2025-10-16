@@ -4,10 +4,9 @@ import { AuthServiceService } from './auth-service.service';
 import {
   LoginDto,
   RegisterDto,
-  OAuth2LoginDto,
+  FirebaseLoginDto,
   ApiKeyCreateDto,
   RefreshTokenDto,
-  OAuth2Provider,
   Enable2FADto,
   Verify2FASetupDto,
   Disable2FADto,
@@ -41,16 +40,11 @@ export class AuthServiceController {
     return this.authServiceService.validateToken(token);
   }
 
-  // ================================ OAuth 2.0 Endpoints ================================
+  // ================================ Firebase Authentication ================================
 
-  @MessagePattern('auth.oauth2.getAuthUrl')
-  async getOAuth2AuthUrl(@Payload() data: { provider: OAuth2Provider; state?: string }) {
-    return this.authServiceService.getOAuth2AuthUrl(data.provider, data.state);
-  }
-
-  @MessagePattern('auth.oauth2.login')
-  async oauth2Login(@Payload() oauth2LoginDto: OAuth2LoginDto) {
-    return this.authServiceService.oauth2Login(oauth2LoginDto);
+  @MessagePattern('auth.firebase.login')
+  async firebaseLogin(@Payload() firebaseLoginDto: FirebaseLoginDto) {
+    return this.authServiceService.firebaseLogin(firebaseLoginDto);
   }
 
   // ================================ 2FA Endpoints ================================

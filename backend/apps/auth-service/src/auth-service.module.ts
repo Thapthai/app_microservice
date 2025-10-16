@@ -4,11 +4,11 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AuthServiceController } from './auth-service.controller';
 import { AuthServiceService } from './auth-service.service';
 import { PrismaService } from './prisma.service';
-import { OAuth2Strategy } from './strategies/oauth2.strategy';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { AuthGuard } from './guards/auth.guard';
 import { TOTPService } from './services/totp.service';
 import { EmailOTPService } from './services/email-otp.service';
+import { FirebaseService } from './services/firebase.service';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
@@ -37,12 +37,12 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
   providers: [
     AuthServiceService,
     PrismaService,
-    OAuth2Strategy,
     ApiKeyStrategy,
     AuthGuard,
     TOTPService,
-    EmailOTPService
+    EmailOTPService,
+    FirebaseService
   ],
-  exports: [AuthGuard, OAuth2Strategy, ApiKeyStrategy],
+  exports: [AuthGuard, ApiKeyStrategy],
 })
 export class AuthServiceModule { }

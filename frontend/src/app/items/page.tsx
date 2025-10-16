@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { itemsApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
@@ -20,6 +20,7 @@ import { Plus, Search, Edit, Trash2, Package } from 'lucide-react';
 import Link from 'next/link';
 import type { Item } from '@/types/api';
 import { toast } from 'sonner';
+import Pagination from '@/components/Pagination';
 
 export default function ItemsPage() {
   const { user } = useAuth();
@@ -29,21 +30,34 @@ export default function ItemsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchItems();
-  }, [user?.id]);
+  }, [user?.id, currentPage, searchTerm]);
 
   useEffect(() => {
     filterItems();
-  }, [items, searchTerm, categoryFilter, statusFilter]);
+  }, [items, categoryFilter, statusFilter]);
 
   const fetchItems = async () => {
     try {
       if (user?.id) {
-        const response = await itemsApi.getByUser(user.id);
-        if (response.success && response.data) {
+        setLoading(true);
+        const response = await itemsApi.getAll({ 
+          page: currentPage, 
+          limit: itemsPerPage,
+          keyword: searchTerm || undefined
+        });
+        if (response.data) {
           setItems(response.data);
+          setTotalItems(response.total);
+          setTotalPages(response.lastPage);
         }
       }
     } catch (error) {
@@ -57,20 +71,12 @@ export default function ItemsPage() {
   const filterItems = () => {
     let filtered = items;
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    // Filter by category
+    // Filter by category (client-side)
     if (categoryFilter !== 'all') {
       filtered = filtered.filter(item => item.category === categoryFilter);
     }
 
-    // Filter by status
+    // Filter by status (client-side)
     if (statusFilter !== 'all') {
       filtered = filtered.filter(item => 
         statusFilter === 'active' ? item.isActive : !item.isActive
@@ -78,6 +84,16 @@ export default function ItemsPage() {
     }
 
     setFilteredItems(filtered);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on search
   };
 
   const handleDelete = async (id: number) => {
@@ -99,6 +115,7 @@ export default function ItemsPage() {
   };
 
   const categories = Array.from(new Set(items.map(item => item.category).filter(Boolean))) as string[];
+  
 
   return (
     <ProtectedRoute>
@@ -137,7 +154,7 @@ export default function ItemsPage() {
                     <Input
                       placeholder="ค้นหาสินค้า..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => handleSearch(e.target.value)}
                       className="pl-10"
                     />
                   </div>
@@ -171,6 +188,16 @@ export default function ItemsPage() {
 
           {/* Items List */}
           <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>รายการสินค้า</CardTitle>
+                {!loading && totalItems > 0 && (
+                  <p className="text-sm text-gray-600">
+                    ทั้งหมด {totalItems} รายการ
+                  </p>
+                )}
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
               {loading ? (
                 <div className="flex justify-center py-12">
@@ -264,6 +291,16 @@ export default function ItemsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Pagination */}
+          {!loading && filteredItems.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              loading={loading}
+            />
+          )}
         </main>
       </div>
     </ProtectedRoute>

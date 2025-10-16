@@ -2,14 +2,9 @@ import { IsEmail, IsNotEmpty, IsString, IsOptional, IsEnum, IsUrl, Matches, MinL
 
 export enum AuthMethod {
   JWT = 'jwt',
-  OAUTH2 = 'oauth2',
   API_KEY = 'api_key',
-  BASIC = 'basic'
-}
-
-export enum OAuth2Provider {
-  GOOGLE = 'google',
-  MICROSOFT = 'microsoft'
+  BASIC = 'basic',
+  FIREBASE = 'firebase'
 }
 
 export class RegisterDto {
@@ -46,22 +41,10 @@ export class LoginDto {
   auth_method?: AuthMethod;
 }
 
-export class OAuth2LoginDto {
-  @IsNotEmpty()
-  @IsEnum(OAuth2Provider)
-  provider: OAuth2Provider;
-
+export class FirebaseLoginDto {
   @IsNotEmpty()
   @IsString()
-  code: string;
-
-  @IsOptional()
-  @IsString()
-  state?: string;
-
-  @IsOptional()
-  @IsUrl()
-  redirectUri?: string;
+  idToken: string; // Firebase ID token from frontend
 }
 
 export class ApiKeyCreateDto {
@@ -203,9 +186,9 @@ export class UpdateUserProfileDto {
   @IsEnum(AuthMethod)
   preferred_auth_method?: AuthMethod;
 
-  @IsNotEmpty()
+  @IsOptional()  // Allow empty for OAuth/Firebase users
   @IsString()
-  currentPassword: string; // Required for verification when updating sensitive data
+  currentPassword?: string; // Required only for JWT users with password
 }
 
 export class ResetPasswordDto {

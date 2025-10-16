@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { itemsApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Package, Plus, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import type { Item } from '@/types/api';
+import Pagination from '@/components/Pagination';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -21,21 +22,54 @@ export default function DashboardPage() {
     totalValue: 0,
   });
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 10;
+
+  // Fetch stats (all items)
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchStats = async () => {
       try {
         if (user?.id) {
-          const response = await itemsApi.getByUser(user.id);
-          if (response.success && response.data) {
-            setItems(response.data);
+          const response = await itemsApi.getAll({
+            page: 1,
+            limit: 1000 // Get all for stats calculation
+          });
+
+          if (response.data) {
             const activeItems = response.data.filter(item => item.isActive);
             const totalValue = response.data.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
+
             setStats({
-              totalItems: response.data.length,
+              totalItems: response.total || response.data.length,
               activeItems: activeItems.length,
               totalValue,
             });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, [user?.id]);
+
+  // Fetch recent items with pagination
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        if (user?.id) {
+          setLoading(true);
+          const response = await itemsApi.getAll({
+            page: currentPage,
+            limit: itemsPerPage
+          });
+
+          if (response.data) {
+            setItems(response.data);
+            setTotalPages(response.lastPage);
           }
         }
       } catch (error) {
@@ -45,14 +79,19 @@ export default function DashboardPage() {
       }
     };
 
-    fetchData();
-  }, [user?.id]);
+    fetchItems();
+  }, [user?.id, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        
+
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="px-4 py-6 sm:px-0">
@@ -123,8 +162,10 @@ export default function DashboardPage() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle>สินค้าล่าสุด</CardTitle>
-                  <CardDescription>สินค้าที่เพิ่มเข้ามาล่าสุด</CardDescription>
+                  <CardTitle>รายการสินค้า</CardTitle>
+                  <CardDescription>
+                    สินค้าล่าสุด {!loading && items.length > 0 && `(${items.length} รายการในหน้านี้)`}
+                  </CardDescription>
                 </div>
                 <Link href="/items">
                   <Button variant="outline">ดูทั้งหมด</Button>
@@ -173,7 +214,7 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {items.slice(0, 5).map((item) => (
+                      {items.map((item) => (
                         <tr key={item.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
@@ -197,11 +238,10 @@ export default function DashboardPage() {
                             {item.quantity}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              item.isActive
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}>
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.isActive
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                              }`}>
                               {item.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
                             </span>
                           </td>
@@ -211,8 +251,20 @@ export default function DashboardPage() {
                   </table>
                 </div>
               )}
+
             </CardContent>
+            {/* Pagination */}
+            {!loading && items.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                loading={loading}
+              />
+            )}
           </Card>
+
+
         </main>
       </div>
     </ProtectedRoute>

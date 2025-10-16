@@ -150,7 +150,6 @@ return this.authClient.send('auth.validate', token).pipe(
 async createItem(@Body() createItemDto: CreateItemDto, @Request() req: any) {
   // เข้าถึงข้อมูล user จาก JWT token
   const currentUser = req.user;
-  console.log('Current user:', currentUser);
   
   // ใช้ user ID สำหรับ business logic
   const userId = currentUser.id;
@@ -282,7 +281,6 @@ const login = async (email, password) => {
 const loadItems = async () => {
   try {
     const items = await api.getItems();
-    console.log('Items:', items);
   } catch (error) {
     console.error('Failed to load items:', error);
   }

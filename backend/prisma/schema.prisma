@@ -17,8 +17,12 @@ model User {
   name                  String
   is_active             Boolean   @default(true)
   email_verified        Boolean   @default(false)
-  preferred_auth_method String    @default("jwt") // jwt, oauth2, api_key
+  preferred_auth_method String    @default("jwt") // jwt, oauth2, api_key, firebase
   last_login_at         DateTime?
+  
+  // Firebase Authentication
+  firebase_uid           String?   @unique @map("firebase_uid")
+  profile_picture        String?   @map("profile_picture")
 
   // 2FA Fields
   two_factor_enabled     Boolean   @default(false) @map("two_factor_enabled")

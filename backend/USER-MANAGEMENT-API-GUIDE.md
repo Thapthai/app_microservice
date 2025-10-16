@@ -229,7 +229,7 @@ const userAPI = new UserManagementAPI();
 const loadProfile = async () => {
   try {
     const profile = await userAPI.getUserProfile();
-    console.log('User profile:', profile.data);
+ 
   } catch (error) {
     console.error('Failed to load profile:', error);
   }

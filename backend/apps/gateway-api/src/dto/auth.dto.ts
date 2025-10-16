@@ -88,9 +88,9 @@ export class UpdateUserProfileDto {
   @IsEnum(AuthMethod)
   preferred_auth_method?: AuthMethod;
 
-  @IsNotEmpty()
+  @IsOptional()  // Allow empty for OAuth/Firebase users
   @IsString()
-  currentPassword: string;
+  currentPassword?: string;
 }
 
 export class ResetPasswordDto {

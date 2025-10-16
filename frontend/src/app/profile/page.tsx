@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { authApi } from '@/lib/api';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useSession } from 'next-auth/react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,50 +43,38 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function ProfilePage() {
-  // ดึงข้อมูลจาก localStorage โดยตรง ไม่พึ่ง useAuth()
+  // Use NextAuth session instead of localStorage
+  const { user: sessionUser } = useAuth();
+  const { data: session, update: updateSession } = useSession();
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // ดึงข้อมูลจาก localStorage ทันที
-    const getStoredUser = () => {
-      if (typeof window !== 'undefined') {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          try {
-            const userData = JSON.parse(storedUser);
-            return userData.user || userData;
-          } catch (error) {
-            console.error('Failed to parse stored user:', error);
-            return null;
-          }
-        }
-      }
-      return null;
-    };
-
-    const storedUser = getStoredUser();
-    if (storedUser) {
-      setUser(storedUser);
+    // Update user from NextAuth session
+    if (sessionUser) {
+      setUser(sessionUser);
     }
-  }, []);
+  }, [sessionUser]);
 
-  // Function to update user state and localStorage
-  const updateUser = (updates: Partial<any>) => {
+  // Function to update user state and NextAuth session
+  const updateUser = async (updates: Partial<any>) => {
     setUser((prev: any) => {
       if (prev) {
         const updatedUser = { ...prev, ...updates };
-        // Update localStorage
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-
-        // Dispatch custom event to notify other components (like Navbar)
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('userUpdated'));
-        }
-
         return updatedUser;
       }
       return prev;
     });
+
+    // Update NextAuth session to reflect changes immediately
+    if (session) {
+      await updateSession({
+        ...session,
+        user: {
+          ...(session as any).user,
+          ...updates,
+        },
+      });
+    }
   };
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -93,12 +82,15 @@ export default function ProfilePage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirmPasswordInModal, setShowConfirmPasswordInModal] = useState(false); // For profile update modal
+  const [show2FAPassword, setShow2FAPassword] = useState(false); // For 2FA password dialog
   const [show2FADialog, setShow2FADialog] = useState(false);
   const [showBackupCodesDialog, setShowBackupCodesDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showTotpDialog, setShowTotpDialog] = useState(false);
   const [passwordAction, setPasswordAction] = useState<'enable' | 'disable'>('enable');
   const [showConfirmPasswordDialog, setShowConfirmPasswordDialog] = useState(false);
+  const [showOAuthConfirmDialog, setShowOAuthConfirmDialog] = useState(false);
   const [pendingProfileData, setPendingProfileData] = useState<ProfileFormData | null>(null);
   const [confirmPasswordValue, setConfirmPasswordValue] = useState('');
   const [totpToken, setTotpToken] = useState('');
@@ -136,9 +128,75 @@ export default function ProfilePage() {
   }, [user, profileForm]);
 
   const onProfileSubmit = async (data: ProfileFormData) => {
-    // Store the form data and show confirmation modal
-    setPendingProfileData(data);
-    setShowConfirmPasswordDialog(true);
+    // Check if user is OAuth/Firebase user (no password)
+    const isOAuthUser = user?.preferred_auth_method === 'oauth2' ||
+      user?.preferred_auth_method === 'firebase' ||
+      !user?.hasPassword;
+
+    if (isOAuthUser) {
+      // For OAuth/Firebase users, show confirmation dialog without password
+      setPendingProfileData(data);
+      setShowOAuthConfirmDialog(true);
+    } else {
+      // For password-based users, show confirmation modal with password
+      setPendingProfileData(data);
+      setShowConfirmPasswordDialog(true);
+    }
+  };
+
+  // New handler for OAuth users confirmation
+  const handleOAuthConfirmUpdate = async () => {
+    if (!pendingProfileData) {
+      toast.error('ไม่พบข้อมูลที่จะอัพเดต');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+
+
+      // Call the update profile API without password
+      const response = await authApi.updateUserProfile({
+        name: pendingProfileData.name,
+        email: pendingProfileData.email,
+        currentPassword: '', // Empty password for OAuth users
+      });
+
+      if (response.success && response.data) {
+        // Update user data in state and NextAuth session
+        await updateUser(response.data);
+        toast.success('อัพเดตข้อมูลโปรไฟล์สำเร็จ');
+
+        // Close dialog and reset
+        setShowOAuthConfirmDialog(false);
+        setPendingProfileData(null);
+      } else {
+        toast.error(response.message || 'เกิดข้อผิดพลาดในการอัพเดตข้อมูล');
+      }
+    } catch (error: any) {
+      console.error('❌ Profile update error:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+
+      const errorMessage = error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการอัพเดตข้อมูล';
+      toast.error(errorMessage);
+
+      // If token is invalid, suggest re-login
+      if (error.response?.status === 401) {
+        toast.error('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelOAuthUpdate = () => {
+    setShowOAuthConfirmDialog(false);
+    setPendingProfileData(null);
   };
 
   const handleConfirmProfileUpdate = async () => {
@@ -158,10 +216,10 @@ export default function ProfilePage() {
       });
 
       if (response.success && response.data) {
-        // Update user data in state and localStorage
-        updateUser(response.data);
+        // Update user data in state and NextAuth session
+        await updateUser(response.data);
         toast.success('อัพเดตข้อมูลโปรไฟล์สำเร็จ');
-        
+
         // Close modal and reset
         setShowConfirmPasswordDialog(false);
         setPendingProfileData(null);
@@ -187,7 +245,7 @@ export default function ProfilePage() {
   const onPasswordSubmit = async (data: PasswordFormData) => {
     try {
       setPasswordLoading(true);
-      
+
       // Call the change password API
       const response = await authApi.changePassword({
         currentPassword: data.currentPassword,
@@ -212,7 +270,7 @@ export default function ProfilePage() {
 
   const handleEnable2FA = async () => {
     // For OAuth users, skip password confirmation
-    if (user?.preferredAuthMethod === 'oauth2' || !user?.hasPassword) {
+    if (user?.preferred_auth_method === 'oauth2' || !user?.hasPassword) {
       try {
         setTwoFactorLoading(true);
 
@@ -241,7 +299,7 @@ export default function ProfilePage() {
 
   const handleDisable2FA = async () => {
     // For OAuth users, skip password confirmation and go directly to TOTP
-    if (user?.preferredAuthMethod === 'oauth2' || !user?.hasPassword) {
+    if (user?.preferred_auth_method === 'oauth2' || !user?.hasPassword) {
       setShowTotpDialog(true);
     } else {
       // For JWT users, show password confirmation first
@@ -274,8 +332,8 @@ export default function ProfilePage() {
         setShow2FADialog(false);
         setVerificationCode('');
 
-        // Update user state to reflect 2FA enabled
-        updateUser({ twoFactorEnabled: true });
+        // Update user state and session to reflect 2FA enabled
+        await updateUser({ twoFactorEnabled: true });
       } else {
         throw new Error(response.message || 'รหัสยืนยันไม่ถูกต้อง');
       }
@@ -292,6 +350,7 @@ export default function ProfilePage() {
     toast.success('คัดลอกรหัสสำรองแล้ว');
   };
 
+
   const handleDownloadBackupCodes = () => {
     const codesText = backupCodes.join('\n');
     const blob = new Blob([`รหัสสำรองสำหรับการยืนยันตัวตนสองขั้นตอน\n\n${codesText}\n\nหมายเหตุ: เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย แต่ละรหัสใช้ได้เพียงครั้งเดียว`], { type: 'text/plain' });
@@ -305,6 +364,7 @@ export default function ProfilePage() {
     URL.revokeObjectURL(url);
     toast.success('ดาวน์โหลดรหัสสำรองแล้ว');
   };
+ 
 
   const handlePasswordConfirm = async () => {
     if (!confirmPasswordValue) {
@@ -352,7 +412,7 @@ export default function ProfilePage() {
       setPasswordLoading2FA(true);
 
       // For OAuth users, use empty password
-      const password = (user?.preferredAuthMethod === 'oauth2' || !user?.hasPassword) ? '' : confirmPasswordValue;
+      const password = (user?.preferred_auth_method === 'oauth2' || !user?.hasPassword) ? '' : confirmPasswordValue;
       const response = await authApi.disable2FA(password, totpToken);
 
       if (response.success) {
@@ -361,8 +421,8 @@ export default function ProfilePage() {
         setConfirmPasswordValue('');
         setTotpToken('');
 
-        // Update user state to reflect 2FA disabled
-        updateUser({ twoFactorEnabled: false });
+        // Update user state and session to reflect 2FA disabled
+        await updateUser({ twoFactorEnabled: false });
       } else {
         throw new Error(response.message || 'ไม่สามารถปิดใช้งาน 2FA ได้');
       }
@@ -380,6 +440,7 @@ export default function ProfilePage() {
       handleDisable2FA();
     }
   };
+
 
   return (
     <ProtectedRoute>
@@ -402,7 +463,7 @@ export default function ProfilePage() {
                     <span>ข้อมูลโปรไฟล์</span>
                   </CardTitle>
                   <CardDescription>
-                    {user?.preferredAuthMethod === 'oauth2'
+                    {user?.preferred_auth_method === 'oauth2'
                       ? 'อัพเดตชื่อของคุณ (อีเมลมาจาก OAuth Provider)'
                       : 'อัพเดตข้อมูลส่วนตัวของคุณ'
                     }
@@ -411,7 +472,7 @@ export default function ProfilePage() {
                 <CardContent>
                   <Form {...profileForm}>
                     <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
-                      <div className={`grid grid-cols-1 gap-6 ${(user?.preferredAuthMethod === 'jwt' && user?.hasPassword) ? 'sm:grid-cols-2' : 'sm:grid-cols-1'}`}>
+                      <div className={`grid grid-cols-1 gap-6 ${(user?.preferred_auth_method === 'jwt' && user?.hasPassword) ? 'sm:grid-cols-2' : 'sm:grid-cols-1'}`}>
                         <FormField
                           control={profileForm.control}
                           name="name"
@@ -434,7 +495,7 @@ export default function ProfilePage() {
                         />
 
                         {/* Email field - Only show for JWT users */}
-                        {user?.preferredAuthMethod === 'jwt' && user?.hasPassword && (
+                        {user?.preferred_auth_method === 'jwt' && user?.hasPassword && (
                           <FormField
                             control={profileForm.control}
                             name="email"
@@ -459,7 +520,7 @@ export default function ProfilePage() {
                         )}
 
                         {/* OAuth Email Display - Read-only */}
-                        {user?.preferredAuthMethod === 'oauth2' && (
+                        {user?.preferred_auth_method === 'oauth2' && (
                           <div className="col-span-full">
                             <Label className="text-sm font-medium text-gray-700">อีเมล (จาก OAuth Provider)</Label>
                             <div className="mt-1 relative">
@@ -504,7 +565,7 @@ export default function ProfilePage() {
               </Card>
 
               {/* Password Change - Only show for JWT users */}
-              {user?.preferredAuthMethod === 'jwt' && user?.hasPassword && (
+              {(user?.preferred_auth_method === 'jwt' && user?.hasPassword) ? (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
@@ -535,13 +596,13 @@ export default function ProfilePage() {
                                   />
                                   <button
                                     type="button"
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                                   >
                                     {showCurrentPassword ? (
-                                      <EyeOff className="w-4 h-4 text-gray-400" />
+                                      <EyeOff className="w-4 h-4" />
                                     ) : (
-                                      <Eye className="w-4 h-4 text-gray-400" />
+                                      <Eye className="w-4 h-4" />
                                     )}
                                   </button>
                                 </div>
@@ -569,13 +630,13 @@ export default function ProfilePage() {
                                     />
                                     <button
                                       type="button"
-                                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                                       onClick={() => setShowNewPassword(!showNewPassword)}
                                     >
                                       {showNewPassword ? (
-                                        <EyeOff className="w-4 h-4 text-gray-400" />
+                                        <EyeOff className="w-4 h-4" />
                                       ) : (
-                                        <Eye className="w-4 h-4 text-gray-400" />
+                                        <Eye className="w-4 h-4" />
                                       )}
                                     </button>
                                   </div>
@@ -602,13 +663,13 @@ export default function ProfilePage() {
                                     />
                                     <button
                                       type="button"
-                                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                     >
                                       {showConfirmPassword ? (
-                                        <EyeOff className="w-4 h-4 text-gray-400" />
+                                        <EyeOff className="w-4 h-4" />
                                       ) : (
-                                        <Eye className="w-4 h-4 text-gray-400" />
+                                        <Eye className="w-4 h-4" />
                                       )}
                                     </button>
                                   </div>
@@ -653,11 +714,28 @@ export default function ProfilePage() {
                     </Form>
                   </CardContent>
                 </Card>
+              ) : (
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2 text-blue-900">
+                      <Lock className="h-5 w-5" />
+                      <span>เปลี่ยนรหัสผ่าน</span>
+                    </CardTitle>
+                    <CardDescription className="text-blue-700">
+                      คุณเข้าสู่ระบบด้วย {user?.preferred_auth_method === 'oauth2' ? 'OAuth2' : user?.preferred_auth_method === 'firebase' ? 'Google' : 'OAuth'} จึงไม่สามารถเปลี่ยนรหัสผ่านได้
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-blue-700">
+                      🔐 บัญชีของคุณได้รับการปกป้องโดย {user?.preferred_auth_method === 'firebase' ? 'Google' : 'OAuth2'} Provider อยู่แล้ว
+                    </p>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Two-Factor Authentication */}
               {/* Two-Factor Authentication - Only show for JWT users */}
-              {user?.preferredAuthMethod === 'jwt' && user?.hasPassword && (
+              {user?.preferred_auth_method === 'jwt' && user?.hasPassword && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
@@ -738,11 +816,11 @@ export default function ProfilePage() {
                     <div>
                       <Label className="text-sm font-medium text-gray-700">วิธีการเข้าสู่ระบบ</Label>
                       <p className="mt-1 text-sm text-gray-900">
-                        {user?.preferredAuthMethod === 'oauth2' ? (
+                        {user?.preferred_auth_method === 'oauth2' ? (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             🔗 OAuth (Google)
                           </span>
-                        ) : user?.preferredAuthMethod === 'jwt' ? (
+                        ) : user?.preferred_auth_method === 'jwt' ? (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             🔑 รหัสผ่าน
                           </span>
@@ -923,15 +1001,29 @@ export default function ProfilePage() {
                 <Label htmlFor="confirm-password" className="text-sm font-medium">
                   รหัสผ่านปัจจุบัน
                 </Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  placeholder="ใส่รหัสผ่านของคุณ"
-                  value={confirmPasswordValue}
-                  onChange={(e) => setConfirmPasswordValue(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handlePasswordConfirm()}
-                  className="mt-1"
-                />
+                <div className="relative mt-1">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="confirm-password"
+                    type={show2FAPassword ? 'text' : 'password'}
+                    placeholder="ใส่รหัสผ่านของคุณ"
+                    value={confirmPasswordValue}
+                    onChange={(e) => setConfirmPasswordValue(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handlePasswordConfirm()}
+                    className="pl-10 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShow2FAPassword(!show2FAPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {show2FAPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -1104,48 +1196,140 @@ export default function ProfilePage() {
           </DialogContent>
         </Dialog>
 
-        {/* Confirm Password Modal for Profile Update */}
-        <Dialog open={showConfirmPasswordDialog} onOpenChange={setShowConfirmPasswordDialog}>
+        {/* OAuth Confirmation Modal for Profile Update (Firebase/OAuth Users) */}
+        <Dialog open={showOAuthConfirmDialog} onOpenChange={setShowOAuthConfirmDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Lock className="w-5 h-5" />
+                <Shield className="w-5 h-5 text-blue-600" />
                 ยืนยันการเปลี่ยนแปลงข้อมูล
               </DialogTitle>
               <DialogDescription>
-                กรุณาใส่รหัสผ่านปัจจุบันเพื่อยืนยันการเปลี่ยนแปลงข้อมูลโปรไฟล์
+                คุณกำลังจะเปลี่ยนแปลงข้อมูลโปรไฟล์ กรุณาตรวจสอบความถูกต้อง
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
               {/* Show what will be changed */}
               {pendingProfileData && (
-                <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-                  <p className="text-sm font-medium text-gray-700">การเปลี่ยนแปลงที่จะทำ:</p>
-                  <div className="text-sm text-gray-600">
+                <div className="bg-blue-50 p-4 rounded-lg space-y-2 border border-blue-200">
+                  <p className="text-sm font-medium text-blue-900">การเปลี่ยนแปลงที่จะทำ:</p>
+                  <div className="text-sm text-blue-700 space-y-1">
                     <p><strong>ชื่อ:</strong> {pendingProfileData.name}</p>
-                    <p><strong>อีเมล:</strong> {pendingProfileData.email}</p>
+                    {pendingProfileData.email !== user?.email && (
+                      <p><strong>อีเมล:</strong> {pendingProfileData.email}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-cyan-50 p-3 rounded-lg border border-cyan-200">
+                <p className="text-sm text-cyan-800 flex items-start gap-2">
+                  <span>ℹ️</span>
+                  <span>คุณเข้าสู่ระบบด้วย {user?.preferred_auth_method === 'firebase' ? 'Google' : 'OAuth2'} จึงไม่ต้องยืนยันด้วยรหัสผ่าน</span>
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancelOAuthUpdate}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleOAuthConfirmUpdate}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      กำลังอัพเดต...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-4 h-4 mr-2" />
+                      ยืนยันการเปลี่ยนแปลง
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirm Password Modal for Profile Update (JWT Users) */}
+        <Dialog open={showConfirmPasswordDialog} onOpenChange={setShowConfirmPasswordDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-emerald-600" />
+                ยืนยันการเปลี่ยนแปลงข้อมูล
+              </DialogTitle>
+              <DialogDescription>
+                คุณกำลังจะเปลี่ยนแปลงข้อมูลโปรไฟล์ กรุณาตรวจสอบความถูกต้อง
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Show what will be changed */}
+              {pendingProfileData && (
+                <div className="bg-emerald-50 p-4 rounded-lg space-y-2 border border-emerald-200">
+                  <p className="text-sm font-medium text-emerald-900">การเปลี่ยนแปลงที่จะทำ:</p>
+                  <div className="text-sm text-emerald-700 space-y-1">
+                    <p><strong>ชื่อ:</strong> {pendingProfileData.name}</p>
+                    {pendingProfileData.email !== user?.email && (
+                      <p><strong>อีเมล:</strong> {pendingProfileData.email}</p>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Password Input */}
               <div className="space-y-2">
-                <Label htmlFor="confirmPasswordValue">รหัสผ่านปัจจุบัน</Label>
+                <Label htmlFor="confirmPasswordValue" className="text-sm font-medium text-gray-700">
+                  รหัสผ่านปัจจุบัน
+                </Label>
                 <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
                     id="confirmPasswordValue"
-                    type="password"
+                    type={showConfirmPasswordInModal ? 'text' : 'password'}
                     placeholder="ใส่รหัสผ่านปัจจุบัน"
                     value={confirmPasswordValue}
                     onChange={(e) => setConfirmPasswordValue(e.target.value)}
-                    className="pr-10"
+                    className="pl-10 pr-10 h-11"
+                    autoFocus
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPasswordInModal(!showConfirmPasswordInModal)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showConfirmPasswordInModal ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
 
+              <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                <p className="text-sm text-amber-800 flex items-start gap-2">
+                  <span>🔒</span>
+                  <span>กรุณาใส่รหัสผ่านเพื่อยืนยันตัวตนก่อนเปลี่ยนแปลงข้อมูล</span>
+                </p>
+              </div>
+
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -1158,7 +1342,7 @@ export default function ProfilePage() {
                 <Button
                   type="button"
                   onClick={handleConfirmProfileUpdate}
-                  className="flex-1"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                   disabled={loading || !confirmPasswordValue}
                 >
                   {loading ? (
@@ -1168,7 +1352,7 @@ export default function ProfilePage() {
                     </>
                   ) : (
                     <>
-                      <Save className="w-4 h-4 mr-2" />
+                      <Shield className="w-4 h-4 mr-2" />
                       ยืนยันการเปลี่ยนแปลง
                     </>
                   )}

@@ -6,16 +6,15 @@ import { PrismaService } from './prisma.service';
 import {
   LoginDto,
   RegisterDto,
-  OAuth2LoginDto,
   ApiKeyCreateDto,
   RefreshTokenDto,
-  AuthMethod,
-  OAuth2Provider
+  FirebaseLoginDto,
+  AuthMethod
 } from './dto/auth.dto';
-import { OAuth2Strategy, OAuth2UserInfo } from './strategies/oauth2.strategy';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { TOTPService } from './services/totp.service';
 import { EmailOTPService } from './services/email-otp.service';
+import { FirebaseService } from './services/firebase.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -23,10 +22,10 @@ export class AuthServiceService {
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
-    private oauth2Strategy: OAuth2Strategy,
     private apiKeyStrategy: ApiKeyStrategy,
     private totpService: TOTPService,
     private emailOTPService: EmailOTPService,
+    private firebaseService: FirebaseService,
     @Inject('EMAIL_SERVICE') private readonly emailClient: ClientProxy,
   ) { }
 
@@ -148,11 +147,13 @@ export class AuthServiceService {
             id: user.id,
             email: user.email,
             name: user.name,
+            profile_picture: user.profile_picture,
+            email_verified: user.email_verified,
             two_factor_enabled: user.two_factor_enabled,
             preferred_auth_method: user.preferred_auth_method,
             hasPassword: !!user.password
           },
-          token,
+          token: token
         },
       };
     } catch (error) {
@@ -186,111 +187,6 @@ export class AuthServiceService {
       };
     } catch (error) {
       return { success: false, message: 'Invalid token', error: error.message };
-    }
-  }
-
-  // ================================ OAuth 2.0 Methods ================================
-
-  async getOAuth2AuthUrl(provider: OAuth2Provider, state?: string) {
-    try {
-      const authUrl = this.oauth2Strategy.getAuthUrl(provider, state);
-      return {
-        success: true,
-        data: { authUrl, provider, state }
-      };
-    } catch (error) {
-      return { success: false, message: 'Failed to generate OAuth URL', error: error.message };
-    }
-  }
-
-  async oauth2Login(oauth2LoginDto: OAuth2LoginDto) {
-    try {
-      // Exchange code for access token
-      const tokenData = await this.oauth2Strategy.exchangeCodeForToken(
-        oauth2LoginDto.provider,
-        oauth2LoginDto.code
-      );
-
-      if (!tokenData.access_token) {
-        return { success: false, message: 'Failed to get access token' };
-      }
-
-      // Get user info from provider
-      const userInfo = await this.oauth2Strategy.getUserInfo(
-        oauth2LoginDto.provider,
-        tokenData.access_token
-      );
-
-      // Find or create user
-      let user = await this.prisma.user.findUnique({
-        where: { email: userInfo.email }
-      });
-
-      if (!user) {
-        // Create new user
-        user = await this.prisma.user.create({
-          data: {
-            email: userInfo.email,
-            name: userInfo.name,
-            preferred_auth_method: AuthMethod.OAUTH2,
-            email_verified: true
-          }
-        });
-      }
-
-      // Update last login
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { last_login_at: new Date() }
-      });
-
-      // Create or update OAuth account
-      await this.prisma.oAuthAccount.upsert({
-        where: {
-          provider_provider_id: {
-            provider: oauth2LoginDto.provider,
-            provider_id: userInfo.id
-          }
-        },
-        update: {
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
-          expires_at: tokenData.expires_in ?
-            new Date(Date.now() + tokenData.expires_in * 1000) : null,
-          token_type: tokenData.token_type
-        },
-        create: {
-          user_id: user.id,
-          provider: oauth2LoginDto.provider,
-          provider_id: userInfo.id,
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
-          expires_at: tokenData.expires_in ?
-            new Date(Date.now() + tokenData.expires_in * 1000) : null,
-          token_type: tokenData.token_type
-        }
-      });
-
-      // Generate JWT tokens
-      const { access_token, refresh_token } = await this.generateTokens(user);
-
-      return {
-        success: true,
-        message: 'Login successful',
-        data: {
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            two_factor_enabled: user.two_factor_enabled || false,
-            preferred_auth_method: user.preferred_auth_method,
-            hasPassword: !!user.password
-          },
-          token: access_token
-        }
-      };
-    } catch (error) {
-      return { success: false, message: 'OAuth login failed', error: error.message };
     }
   }
 
@@ -613,10 +509,15 @@ export class AuthServiceService {
         return { success: false, message: '2FA is already enabled' };
       }
 
-      // Verify current password
-      if (user.password && !(await bcrypt.compare(password, user.password))) {
-        return { success: false, message: 'Invalid password' };
+      // Verify current password (only for JWT users with password)
+      if (user.password && password) {
+        if (!(await bcrypt.compare(password, user.password))) {
+          return { success: false, message: 'Invalid password' };
+        }
+      } else if (user.password && !password) {
+        return { success: false, message: 'Password required for JWT users' };
       }
+      // OAuth/Firebase users (user.password is null) can enable 2FA without password
 
       // Generate TOTP setup
       const totpSetup = await this.totpService.generateTOTPSetup(user.email);
@@ -692,10 +593,15 @@ export class AuthServiceService {
         return { success: false, message: '2FA is not enabled' };
       }
 
-      // Verify current password
-      if (user.password && !(await bcrypt.compare(password, user.password))) {
-        return { success: false, message: 'Invalid password' };
+      // Verify current password (only for JWT users with password)
+      if (user.password && password) {
+        if (!(await bcrypt.compare(password, user.password))) {
+          return { success: false, message: 'Invalid password' };
+        }
+      } else if (user.password && !password) {
+        return { success: false, message: 'Password required for JWT users' };
       }
+      // OAuth/Firebase users (user.password is null) can disable 2FA without password
 
       // If token provided, verify it
       if (token) {
@@ -935,13 +841,6 @@ export class AuthServiceService {
   // ================================ User Management Methods ================================
 
   async changePassword(user_id: number, currentPassword: string, newPassword: string, confirmPassword: string) {
-
-    console.log("user_id", user_id);
-    console.log("currentPassword", currentPassword);
-    console.log("newPassword", newPassword);
-    console.log("confirmPassword", confirmPassword);
-
-
     try {
       // Validate that new password and confirm password match
       if (newPassword !== confirmPassword) {
@@ -1006,13 +905,17 @@ export class AuthServiceService {
         return { success: false, message: 'ไม่พบผู้ใช้งาน' };
       }
 
-      // Verify current password for security
-      if (user.password) {
+      // Verify current password for security (only for JWT users with password)
+      if (user.password && currentPassword) {
         const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
         if (!isPasswordValid) {
           return { success: false, message: 'รหัสผ่านไม่ถูกต้อง' };
         }
+      } else if (user.password && !currentPassword) {
+        // JWT user must provide password
+        return { success: false, message: 'กรุณาใส่รหัสผ่านเพื่อยืนยันการเปลี่ยนแปลง' };
       }
+      // OAuth/Firebase users (user.password is null) can update without password
 
       // Check if email is being changed and if it's already taken
       if (updateData.email && updateData.email !== user.email) {
@@ -1140,6 +1043,110 @@ export class AuthServiceService {
       return { success: true, message: 'หากอีเมลนี้มีอยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่านไปให้' };
     } catch (error) {
       return { success: false, message: 'เกิดข้อผิดพลาดในการขอรีเซ็ตรหัสผ่าน', error: error.message };
+    }
+  }
+
+  // =========================================================================================
+  // ================================ Firebase Authentication ================================
+  // =========================================================================================
+
+  async firebaseLogin(firebaseLoginDto: FirebaseLoginDto) {
+    try {
+      // Verify Firebase ID token
+      const decodedToken = await this.firebaseService.verifyIdToken(firebaseLoginDto.idToken);
+
+      const { uid, email, name, picture } = decodedToken;
+
+      // Create refresh token helper
+      const createRefreshToken = async (userId: number) => {
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+
+        await this.prisma.refreshToken.create({
+          data: {
+            user_id: userId,
+            token,
+            expires_at: expiresAt
+          }
+        });
+
+        return token;
+      };
+
+      if (!email) {
+        return { success: false, message: 'Email not found in Firebase token' };
+      }
+
+      // Check if user exists
+      let user = await this.prisma.user.findUnique({
+        where: { email }
+      });
+
+      // Create user if not exists
+      if (!user) {
+        user = await this.prisma.user.create({
+          data: {
+            email,
+            name: name || email.split('@')[0],
+            password: null, // No password for Firebase users
+            email_verified: true, // Firebase already verified
+            preferred_auth_method: AuthMethod.FIREBASE,
+            firebase_uid: uid,
+            profile_picture: picture
+          }
+        });
+      } else {
+        // Update Firebase UID if not set
+        if (!user.firebase_uid) {
+          user = await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              firebase_uid: uid,
+              email_verified: true
+            }
+          });
+        }
+
+        // Update last login
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { last_login_at: new Date() }
+        });
+      }
+
+      // Generate JWT token
+      const payload = {
+        sub: user.id,  // Standard JWT claim for user ID
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        authMethod: AuthMethod.FIREBASE
+      };
+
+      const accessToken = this.jwtService.sign(payload);
+
+      // Create refresh token
+      const refreshToken = await createRefreshToken(user.id);
+      return {
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            profile_picture: user.profile_picture,
+            email_verified: user.email_verified,
+            preferred_auth_method: user.preferred_auth_method,
+            two_factor_enabled: user.two_factor_enabled || false,
+            hasPassword: !!user.password
+          },
+          token: accessToken, // For backward compatibility
+        }
+      };
+    } catch (error) {
+      console.error('Firebase login error:', error);
+      return { success: false, message: 'Firebase authentication failed', error: error.message };
     }
   }
 }

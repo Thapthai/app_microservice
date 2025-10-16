@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,73 +9,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { User, LogOut, Package, Settings } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { signOut } from 'next-auth/react';
 
 export default function Navbar() {
-  // ดึงข้อมูลจาก localStorage โดยตรง ไม่พึ่ง useAuth()
-  const [user, setUser] = useState<any>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    // ดึงข้อมูลจาก localStorage ทันที
-    const getStoredUser = () => {
-      if (typeof window !== 'undefined') {
-        const storedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('token');
-        
-        if (storedUser && token) {
-          try {
-            const userData = JSON.parse(storedUser);
-            const actualUser = userData.user || userData;
-            setUser(actualUser);
-            setIsAuthenticated(true);
-            return actualUser;
-          } catch (error) {
-            console.error('Failed to parse stored user:', error);
-            setUser(null);
-            setIsAuthenticated(false);
-            return null;
-          }
-        } else {
-          setUser(null);
-          setIsAuthenticated(false);
-          return null;
-        }
-      }
-      return null;
-    };
-
-    getStoredUser();
-
-    // Listen for localStorage changes (for cross-tab updates)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'user' || e.key === 'token') {
-        getStoredUser();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also listen for custom events (for same-tab updates)
-    const handleUserUpdate = () => {
-      getStoredUser();
-    };
-    
-    window.addEventListener('userUpdated', handleUserUpdate);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('userUpdated', handleUserUpdate);
-    };
-  }, []);
-
-  const logout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setUser(null);
-      setIsAuthenticated(false);
-      window.location.href = '/auth/login';
-    }
+  const logout = async () => {
+    await signOut({ callbackUrl: '/auth/login' });
   };
 
 

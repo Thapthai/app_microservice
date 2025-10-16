@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { itemsApi } from '@/lib/api';
 import { itemSchema, type ItemFormData } from '@/lib/validations';
 import ProtectedRoute from '@/components/ProtectedRoute';

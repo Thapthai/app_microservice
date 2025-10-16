@@ -1,31 +1,25 @@
 'use client';
 
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuth } from '@/contexts/AuthContext';
 import { loginSchema, type LoginFormData } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Mail, Lock, Chrome, User, Smartphone } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { authApi } from '@/lib/api';
+import { signInWithGoogle } from '@/lib/firebase';
 
 export default function LoginPage() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<string>('');
-  const [show2FAModal, setShow2FAModal] = useState(false);
-  const [tempToken, setTempToken] = useState('');
-  const [twoFactorCode, setTwoFactorCode] = useState('');
-  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
-  const { login, loginWithOAuth } = useAuth();
+  const [firebaseLoading, setFirebaseLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const {
@@ -36,99 +30,60 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
+  // Email/Password Login
   const onSubmit = async (data: LoginFormData) => {
     try {
       setError('');
       setLoading(true);
-      
-      // Call login API directly to handle 2FA response
-      const response = await authApi.login(data);
-      
-      if (response.success && response.data) {
-        // Check if 2FA is required
-        if (response.requiresTwoFactor && response.data.tempToken) {
-          // Show 2FA modal
-          setTempToken(response.data.tempToken);
-          setShow2FAModal(true);
-          setLoading(false);
-          return;
-        }
-        
-        // Normal login - set auth data and redirect
-        const { user, token } = response.data;
-        if (user && token) {
-          // Update localStorage directly (same as AuthContext)
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(user));
-          
-          // Dispatch custom event to notify other components
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('userUpdated'));
-          }
-          
-          // Force page reload to ensure AuthContext re-initializes
-          window.location.href = '/dashboard';
-        }
+
+      const result = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+        toast.error(result.error);
       } else {
-        throw new Error(response.message || 'Login failed');
+        toast.success('เข้าสู่ระบบสำเร็จ');
+        router.push('/dashboard');
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'เกิดข้อผิดพลาด');
+      toast.error(err.message || 'เกิดข้อผิดพลาด');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOAuthLogin = async (provider: 'google' | 'microsoft') => {
+  // Firebase Login
+  const handleFirebaseLogin = async () => {
     try {
       setError('');
-      setOauthLoading(provider);
-      await loginWithOAuth(provider);
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setOauthLoading('');
-    }
-  };
+      setFirebaseLoading(true);
 
-  const handle2FAVerification = async () => {
-    if (!twoFactorCode || twoFactorCode.length !== 6) {
-      toast.error('กรุณาใส่รหัส 2FA 6 หลัก');
-      return;
-    }
+      // Sign in with Firebase to get ID token
+      const { idToken } = await signInWithGoogle();
 
-    try {
-      setTwoFactorLoading(true);
-      
-      // Call 2FA verification API
-      const response = await authApi.loginWith2FA(tempToken, twoFactorCode);
-      
-      if (response.success && response.data) {
-        const { user, token } = response.data;
-        if (user && token) {
-          // Update localStorage and redirect
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(user));
-          
-          // Dispatch custom event to notify other components
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('userUpdated'));
-          }
-          
-          setShow2FAModal(false);
-          toast.success('เข้าสู่ระบบสำเร็จ');
-          
-          // Force page reload to ensure AuthContext re-initializes
-          window.location.href = '/dashboard';
-        }
+      // Use NextAuth with Firebase provider
+      const result = await signIn('firebase', {
+        idToken,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+        toast.error(result.error);
       } else {
-        throw new Error(response.message || 'รหัส 2FA ไม่ถูกต้อง');
+        toast.success('เข้าสู่ระบบสำเร็จ');
+        router.push('/dashboard');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'รหัส 2FA ไม่ถูกต้อง');
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in with Firebase');
+      toast.error(err.message || 'Failed to sign in with Firebase');
     } finally {
-      setTwoFactorLoading(false);
+      setFirebaseLoading(false);
     }
   };
 
@@ -147,52 +102,32 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* OAuth Login Buttons */}
+          {/* Firebase Login Button */}
           <div className="space-y-3">
             <Button
               type="button"
               variant="outline"
-              className="w-full h-12 border-2 hover:bg-red-50 hover:border-red-200 transition-all duration-200"
-              onClick={() => handleOAuthLogin('google')}
-              disabled={!!oauthLoading}
+              className="w-full h-12 border-2 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 bg-gradient-to-r from-blue-50 to-cyan-50"
+              onClick={handleFirebaseLogin}
+              disabled={firebaseLoading || loading}
             >
-              {oauthLoading === 'google' ? (
+              {firebaseLoading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                   <span>กำลังเข้าสู่ระบบ...</span>
                 </div>
               ) : (
                 <div className="flex items-center space-x-3">
-                  <Chrome className="w-5 h-5 text-red-500" />
+                  <svg className="w-5 h-5" viewBox="0 0 48 48">
+                    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+                  </svg>
                   <span className="font-medium">เข้าสู่ระบบด้วย Google</span>
                 </div>
               )}
             </Button>
-
-{/* Microsoft login temporarily hidden */}
-            {false && (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-12 border-2 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200"
-                onClick={() => handleOAuthLogin('microsoft')}
-                disabled={!!oauthLoading}
-              >
-                {oauthLoading === 'microsoft' ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <span>กำลังเข้าสู่ระบบ...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-3">
-                    <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-sm flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">M</span>
-                    </div>
-                    <span className="font-medium">เข้าสู่ระบบด้วย Microsoft</span>
-                  </div>
-                )}
-              </Button>
-            )}
           </div>
 
           <div className="relative">
@@ -236,11 +171,22 @@ export default function LoginPage() {
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="pl-10 h-12 border-2 focus:border-blue-500 transition-colors"
+                  className="pl-10 pr-10 h-12 border-2 focus:border-blue-500 transition-colors"
                   {...register('password')}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
               {errors.password && (
                 <p className="text-sm text-red-600 flex items-center space-x-1">
@@ -260,7 +206,7 @@ export default function LoginPage() {
             <Button 
               type="submit" 
               className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl" 
-              disabled={loading || !!oauthLoading}
+              disabled={loading || firebaseLoading}
             >
               {loading ? (
                 <div className="flex items-center space-x-2">
@@ -284,61 +230,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
-
-      {/* 2FA Verification Modal */}
-      <Dialog open={show2FAModal} onOpenChange={setShow2FAModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Smartphone className="h-5 w-5 text-blue-600" />
-              ยืนยันตัวตนสองขั้นตอน
-            </DialogTitle>
-            <DialogDescription>
-              กรุณาใส่รหัส 6 หลักจากแอป Authenticator ของคุณ
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="twoFactorCode" className="text-sm font-medium">
-                รหัส 2FA (6 หลัก)
-              </Label>
-              <Input
-                id="twoFactorCode"
-                type="text"
-                placeholder="123456"
-                maxLength={6}
-                value={twoFactorCode}
-                onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
-                className="text-center text-lg tracking-widest font-mono"
-                autoComplete="off"
-              />
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShow2FAModal(false);
-                  setTwoFactorCode('');
-                  setTempToken('');
-                }}
-                className="flex-1"
-                disabled={twoFactorLoading}
-              >
-                ยกเลิก
-              </Button>
-              <Button
-                onClick={handle2FAVerification}
-                disabled={twoFactorLoading || twoFactorCode.length !== 6}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-              >
-                {twoFactorLoading ? 'กำลังตรวจสอบ...' : 'ยืนยัน'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
+
