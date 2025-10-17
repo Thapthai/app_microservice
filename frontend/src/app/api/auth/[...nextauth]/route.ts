@@ -1,23 +1,9 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 import { authApi } from "@/lib/api";
 
 const authOptions: NextAuthOptions = {
   providers: [
-    // Google Provider (Firebase)
-    GoogleProvider({
-      clientId: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
-      clientSecret: process.env.FIREBASE_CLIENT_SECRET || "GOCSPX-dummy", // Dummy for Firebase
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
-        }
-      }
-    }),
-
     // Credentials Provider (Email/Password)
     CredentialsProvider({
       name: "Credentials",
