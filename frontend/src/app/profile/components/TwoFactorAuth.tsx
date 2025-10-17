@@ -14,6 +14,9 @@ export default function TwoFactorAuth({
   twoFactorLoading,
   onToggle,
 }: TwoFactorAuthProps) {
+  // Support both camelCase and snake_case field names
+  const is2FAEnabled = user?.twoFactorEnabled || (user as any)?.two_factor_enabled || false;
+  
   return (
     <Card>
       <CardHeader>
@@ -32,14 +35,14 @@ export default function TwoFactorAuth({
               สถานะการยืนยันตัวตนสองขั้นตอน
             </Label>
             <p className="text-sm text-gray-500">
-              {user?.twoFactorEnabled
+              {is2FAEnabled
                 ? 'บัญชีของคุณได้รับการปกป้องด้วย 2FA แล้ว'
                 : 'เปิดใช้งาน 2FA เพื่อเพิ่มความปลอดภัย'
               }
             </p>
           </div>
           <div className="flex items-center space-x-3">
-            {user?.twoFactorEnabled ? (
+            {is2FAEnabled ? (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                 <Shield className="w-4 h-4 mr-1" />
                 เปิดใช้งาน
@@ -51,14 +54,14 @@ export default function TwoFactorAuth({
               </span>
             )}
             <Switch
-              checked={user?.twoFactorEnabled || false}
+              checked={is2FAEnabled}
               onCheckedChange={onToggle}
               disabled={twoFactorLoading}
             />
           </div>
         </div>
 
-        {user?.twoFactorEnabled && (
+        {is2FAEnabled && (
           <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center space-x-2">
               <Shield className="w-5 h-5 text-green-600" />

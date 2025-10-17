@@ -336,7 +336,11 @@ export default function ProfilePage() {
         setVerificationCode('');
 
         // Update user state and session to reflect 2FA enabled
-        await updateUser({ twoFactorEnabled: true });
+        // Support both camelCase and snake_case
+        await updateUser({ 
+          twoFactorEnabled: true,
+          two_factor_enabled: true 
+        });
       } else {
         throw new Error(response.message || 'รหัสยืนยันไม่ถูกต้อง');
       }
@@ -425,7 +429,11 @@ export default function ProfilePage() {
         setTotpToken('');
 
         // Update user state and session to reflect 2FA disabled
-        await updateUser({ twoFactorEnabled: false });
+        // Support both camelCase and snake_case
+        await updateUser({ 
+          twoFactorEnabled: false,
+          two_factor_enabled: false 
+        });
       } else {
         throw new Error(response.message || 'ไม่สามารถปิดใช้งาน 2FA ได้');
       }

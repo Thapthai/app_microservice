@@ -8,9 +8,10 @@ import type { User, LoginDto, RegisterDto } from '@/types/api';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (data: LoginDto) => Promise<void>;
+  login: (data: LoginDto) => Promise<{ requiresTwoFactor?: boolean; tempToken?: string }>;
   register: (data: RegisterDto) => Promise<void>;
   loginWithFirebase: () => Promise<void>;
+  loginWith2FA: (tempToken: string, code: string) => Promise<void>;
   setAuthData: (user: User, token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -101,12 +102,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Handle new response format with nested data structure
       if (response.success && response.data) {
+        // Check if 2FA is required
+        if ((response as any).requiresTwoFactor && response.data.tempToken) {
+          return {
+            requiresTwoFactor: true,
+            tempToken: response.data.tempToken,
+          };
+        }
+
         const { user, token } = response.data;
 
         if (user && token) {
           setUser(user);
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(user));
+          return {};
         } else {
           throw new Error(response.message || 'Login failed - missing user or token');
         }
@@ -153,6 +163,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.removeItem('user');
   };
 
+  const loginWith2FA = async (tempToken: string, code: string) => {
+    try {
+      const response = await authApi.loginWith2FA(tempToken, code);
+
+      if (response.success && response.data) {
+        const { user, token } = response.data;
+
+        if (user && token) {
+          setUser(user);
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(user));
+        } else {
+          throw new Error(response.message || '2FA verification failed - missing user or token');
+        }
+      } else {
+        throw new Error(response.message || '2FA verification failed');
+      }
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || error.message || '2FA verification failed');
+    }
+  };
+
   const loginWithFirebase = async () => {
     try {
       // Sign in with Firebase
@@ -194,6 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     login,
     register,
     loginWithFirebase,
+    loginWith2FA,
     setAuthData,
     logout,
     isAuthenticated: !!user,

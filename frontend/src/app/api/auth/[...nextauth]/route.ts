@@ -12,17 +12,66 @@ const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing credentials");
+        if (!credentials?.email) {
+          throw new Error("Missing email");
         }
 
         try {
+          // Check if this is a 2FA verified token (bypass normal login)
+          if ((credentials as any)['2fa_token']) {
+            const token = (credentials as any)['2fa_token'];
+            
+            console.log('🔐 Validating 2FA token...');
+            
+            // Validate the token by calling the profile endpoint
+            const validateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/auth/profile`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+
+            if (!validateResponse.ok) {
+              console.error('❌ Token validation failed:', validateResponse.status);
+              throw new Error('Invalid 2FA token');
+            }
+
+            const profileData = await validateResponse.json();
+            console.log('✅ Token validation response:', profileData);
+            
+            if (profileData.success && profileData.data && profileData.data.user) {
+              const userData = profileData.data.user;
+              console.log('✅ 2FA token validated successfully, user:', userData);
+              
+              return {
+                id: userData.id.toString(),
+                email: userData.email,
+                name: userData.name,
+                image: userData.profile_image || userData.profile_picture,
+                accessToken: token,
+                user: userData
+              };
+            } else {
+              console.error('❌ Profile data invalid:', profileData);
+              throw new Error('Failed to get user profile with 2FA token');
+            }
+          }
+
+          // Normal login flow
+          if (!credentials?.password) {
+            throw new Error("Missing password");
+          }
+
           // Call your backend API
           const response = await authApi.login({
             email: credentials.email,
             password: credentials.password
           });
 
+          // Check if 2FA is required
+          if ((response as any).requiresTwoFactor && response.data?.tempToken) {
+            throw new Error("2FA verification required");
+          }
 
           if (response.success && response.data) {
             const token = response.data.token;

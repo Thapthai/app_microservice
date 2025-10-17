@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { QrCode } from 'lucide-react';
+import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 
 interface TwoFactorSetupDialogProps {
   open: boolean;
@@ -25,6 +26,64 @@ export default function TwoFactorSetupDialog({
   loading,
   onVerify,
 }: TwoFactorSetupDialogProps) {
+  const [code, setCode] = useState<string[]>(['', '', '', '', '', '']);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Sync with parent state
+  useEffect(() => {
+    if (verificationCode && verificationCode.length === 6) {
+      setCode(verificationCode.split(''));
+    } else if (!verificationCode) {
+      setCode(['', '', '', '', '', '']);
+    }
+  }, [verificationCode]);
+
+  // Focus first input when dialog opens
+  useEffect(() => {
+    if (open && inputRefs.current[0]) {
+      setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [open]);
+
+  const handleChange = (index: number, value: string) => {
+    if (value && !/^\d$/.test(value)) return;
+
+    const newCode = [...code];
+    newCode[index] = value;
+    setCode(newCode);
+    setVerificationCode(newCode.join(''));
+
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text');
+    const digits = pastedData.replace(/\D/g, '').slice(0, 6).split('');
+    
+    if (digits.length === 6) {
+      setCode(digits);
+      setVerificationCode(digits.join(''));
+      inputRefs.current[5]?.focus();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -87,19 +146,28 @@ export default function TwoFactorSetupDialog({
         {/* Verification */}
         <div className="space-y-4">
           <div>
-            <Label htmlFor="verification-code" className="text-sm font-medium">
+            <Label className="text-sm font-medium block mb-3">
               รหัสยืนยัน 6 หลัก
             </Label>
-            <Input
-              id="verification-code"
-              type="text"
-              placeholder="123456"
-              maxLength={6}
-              value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-              className="text-center text-lg font-mono tracking-widest"
-            />
-            <p className="mt-1 text-xs text-gray-500">
+            <div className="flex justify-center gap-2 mb-3" onPaste={handlePaste}>
+              {code.map((digit, index) => (
+                <Input
+                  key={index}
+                  ref={(el) => {
+                    inputRefs.current[index] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  className="w-12 h-14 text-center text-2xl font-bold border-2 focus:border-blue-500"
+                  disabled={loading}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 text-center">
               ใส่รหัส 6 หลักจากแอป Authenticator
             </p>
           </div>

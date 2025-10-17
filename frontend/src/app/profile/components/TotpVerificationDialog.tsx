@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Smartphone } from 'lucide-react';
+import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 
 interface TotpVerificationDialogProps {
   open: boolean;
@@ -23,6 +24,73 @@ export default function TotpVerificationDialog({
   onConfirm,
   onCancel,
 }: TotpVerificationDialogProps) {
+  const [code, setCode] = useState<string[]>(['', '', '', '', '', '']);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Sync with parent state
+  useEffect(() => {
+    if (token && token.length === 6) {
+      setCode(token.split(''));
+    } else if (!token) {
+      setCode(['', '', '', '', '', '']);
+    }
+  }, [token]);
+
+  // Focus first input when dialog opens
+  useEffect(() => {
+    if (open && inputRefs.current[0]) {
+      setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [open]);
+
+  const handleChange = (index: number, value: string) => {
+    if (value && !/^\d$/.test(value)) return;
+
+    const newCode = [...code];
+    newCode[index] = value;
+    setCode(newCode);
+    setToken(newCode.join(''));
+
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-submit when all 6 digits entered
+    if (index === 5 && value && newCode.every(d => d !== '')) {
+      setTimeout(() => onConfirm(), 100);
+    }
+  };
+
+  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+    if (e.key === 'Enter' && code.every(d => d !== '')) {
+      onConfirm();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text');
+    const digits = pastedData.replace(/\D/g, '').slice(0, 6).split('');
+    
+    if (digits.length === 6) {
+      setCode(digits);
+      setToken(digits.join(''));
+      inputRefs.current[5]?.focus();
+      setTimeout(() => onConfirm(), 100);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -38,20 +106,28 @@ export default function TotpVerificationDialog({
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="totp-token" className="text-sm font-medium">
+            <Label className="text-sm font-medium block mb-3">
               รหัส 2FA
             </Label>
-            <Input
-              id="totp-token"
-              type="text"
-              placeholder="123456"
-              maxLength={6}
-              value={token}
-              onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
-              onKeyPress={(e) => e.key === 'Enter' && onConfirm()}
-              className="mt-1 text-center text-lg font-mono tracking-widest"
-            />
-            <p className="mt-1 text-xs text-gray-500">
+            <div className="flex justify-center gap-2 mb-3" onPaste={handlePaste}>
+              {code.map((digit, index) => (
+                <Input
+                  key={index}
+                  ref={(el) => {
+                    inputRefs.current[index] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  className="w-12 h-14 text-center text-2xl font-bold border-2 focus:border-red-500"
+                  disabled={loading}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 text-center">
               ใส่รหัส 6 หลักจากแอป Authenticator
             </p>
           </div>
