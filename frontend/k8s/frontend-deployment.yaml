@@ -31,6 +31,11 @@ spec:
               value: "http://10.11.9.84:3000/api"  # Gateway API URL
             - name: PORT
               value: "3100"
+            # NextAuth Configuration
+            - name: NEXTAUTH_SECRET
+              value: "fKwpUMTYNf8bJZ8hJqDwy6KeXfJgkBce9H9gm48VzvU="
+            - name: NEXTAUTH_URL
+              value: "http://10.11.9.84"  # Frontend public URL
           resources:
             requests:
               memory: "128Mi"
