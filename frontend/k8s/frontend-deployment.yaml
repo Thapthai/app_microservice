@@ -35,7 +35,7 @@ spec:
             - name: NEXTAUTH_SECRET
               value: "fKwpUMTYNf8bJZ8hJqDwy6KeXfJgkBce9H9gm48VzvU="
             - name: NEXTAUTH_URL
-              value: "http://10.11.9.84"  # Frontend public URL
+              value: "http://10.11.9.84:30100"  # Frontend public URL with NodePort
           resources:
             requests:
               memory: "128Mi"
