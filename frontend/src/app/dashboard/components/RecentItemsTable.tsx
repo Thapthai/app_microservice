@@ -122,22 +122,22 @@ function ItemsTable({ items }: { items: Item[] }) {
                 </td>
                 <td className="hidden sm:table-cell px-2 py-2 text-sm text-gray-900">
                   <div className="truncate max-w-[100px]">
-                    {item.category || '-'}
+                    {typeof item.category === 'string' ? item.category : item.category?.name || '-'}
                   </div>
                 </td>
                 <td className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                   ฿{item.price.toLocaleString()}
                 </td>
                 <td className="hidden md:table-cell px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
-                  {item.quantity}
+                  {item.quantity.toLocaleString()}
                 </td>
                 <td className="px-2 py-2 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-                    item.isActive
+                    item.is_active
                       ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
                   }`}>
-                    {item.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+                    {item.is_active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
                   </span>
                 </td>
               </tr>

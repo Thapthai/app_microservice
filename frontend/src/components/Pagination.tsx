@@ -66,7 +66,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange, load
           ก่อนหน้า
         </Button>
         <span className="flex items-center text-sm text-gray-700">
-          หน้า {currentPage} จาก {totalPages}
+          หน้า {currentPage.toLocaleString()} จาก {totalPages.toLocaleString()}
         </span>
         <Button
           onClick={() => onPageChange(currentPage + 1)}
@@ -82,8 +82,8 @@ export default function Pagination({ currentPage, totalPages, onPageChange, load
         {/* Desktop view */}
         <div>
           <p className="text-sm text-gray-700">
-            แสดงหน้า <span className="font-medium">{currentPage}</span> จาก{' '}
-            <span className="font-medium">{totalPages}</span> หน้า
+            แสดงหน้า <span className="font-medium">{currentPage.toLocaleString()}</span> จาก{' '}
+            <span className="font-medium">{totalPages.toLocaleString()}</span> หน้า
           </p>
         </div>
 
@@ -136,13 +136,13 @@ export default function Pagination({ currentPage, totalPages, onPageChange, load
                   disabled={loading}
                   variant={isActive ? 'default' : 'outline'}
                   size="icon"
-                  className={`h-9 w-9 ${
+                  className={`h-9 min-w-[2.25rem] ${
                     isActive
                       ? 'bg-blue-600 hover:bg-blue-700 text-white'
                       : 'hover:bg-gray-100'
                   }`}
                 >
-                  {pageNum}
+                  {pageNum.toLocaleString()}
                 </Button>
               );
             })}

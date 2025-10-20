@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -8,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 interface ItemsFilterProps {
   searchTerm: string;
@@ -27,6 +28,23 @@ export default function ItemsFilter({
   onCategoryChange,
   onStatusChange,
 }: ItemsFilterProps) {
+  const [inputValue, setInputValue] = useState(searchTerm);
+
+  const handleSearch = () => {
+    onSearchChange(inputValue);
+  };
+
+  const handleClear = () => {
+    setInputValue('');
+    onSearchChange('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -34,18 +52,31 @@ export default function ItemsFilter({
       </CardHeader>
       <CardContent>
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
+          <div className="flex-1 flex gap-2">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="ค้นหาสินค้า..."
-                value={searchTerm}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-10"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="pl-10 pr-10"
               />
+              {inputValue && (
+                <button
+                  onClick={handleClear}
+                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
+            <Button onClick={handleSearch} className="whitespace-nowrap">
+              <Search className="h-4 w-4 mr-2" />
+              ค้นหา
+            </Button>
           </div>
-          <Select value={categoryFilter} onValueChange={onCategoryChange}>
+          {/* <Select value={categoryFilter} onValueChange={onCategoryChange}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="หมวดหมู่" />
             </SelectTrigger>
@@ -66,7 +97,7 @@ export default function ItemsFilter({
               <SelectItem value="active">ใช้งาน</SelectItem>
               <SelectItem value="inactive">ไม่ใช้งาน</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
         </div>
       </CardContent>
     </Card>

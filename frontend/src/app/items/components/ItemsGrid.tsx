@@ -1,9 +1,8 @@
 import React from 'react';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Package, Plus, Edit, Trash2 } from 'lucide-react';
+import { Package, Edit, Trash2, Plus } from 'lucide-react';
 import type { Item } from '@/types/item';
 import { ItemsGridSkeleton } from './ItemsSkeleton';
 import Pagination from '@/components/Pagination';
@@ -15,7 +14,8 @@ interface ItemsGridProps {
   totalPages: number;
   totalItems: number;
   onPageChange: (page: number) => void;
-  onDelete: (id: number) => void;
+  onEdit: (item: Item) => void;
+  onDelete: (item: Item) => void;
 }
 
 export default function ItemsGrid({
@@ -25,6 +25,7 @@ export default function ItemsGrid({
   totalPages,
   totalItems,
   onPageChange,
+  onEdit,
   onDelete,
 }: ItemsGridProps) {
   return (
@@ -47,7 +48,7 @@ export default function ItemsGrid({
         ) : items.length === 0 ? (
           <EmptyState />
         ) : (
-          <ItemsList items={items} onDelete={onDelete} />
+          <ItemsList items={items} onEdit={onEdit} onDelete={onDelete} />
         )}
       </CardContent>
       
@@ -72,19 +73,19 @@ function EmptyState() {
       <p className="mt-1 text-sm text-gray-500">
         ลองเปลี่ยนคำค้นหาหรือตัวกรอง
       </p>
-      <div className="mt-6">
-        <Link href="/items/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            เพิ่มสินค้าใหม่
-          </Button>
-        </Link>
-      </div>
     </div>
   );
 }
 
-function ItemsList({ items, onDelete }: { items: Item[]; onDelete: (id: number) => void }) {
+function ItemsList({ 
+  items, 
+  onEdit, 
+  onDelete 
+}: { 
+  items: Item[]; 
+  onEdit: (item: Item) => void;
+  onDelete: (item: Item) => void;
+}) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
       {items.map((item) => (
@@ -97,21 +98,19 @@ function ItemsList({ items, onDelete }: { items: Item[]; onDelete: (id: number) 
                 </h3>
                 {item.category && (
                   <Badge variant="secondary" className="mt-1">
-                    {item.category}
+                    {item.category.name}
                   </Badge>
                 )}
               </div>
-              <Badge variant={item.isActive ? "default" : "destructive"}>
-                {item.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+              <Badge variant={item.is_active ? "default" : "destructive"}>
+                {item.is_active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
-            {item.description && (
-              <p className="text-sm text-gray-600 mb-4">
-                {item.description}
-              </p>
-            )}
+            <p className="text-sm text-gray-600 mb-4">
+              {item.description || '-'}
+            </p>
             <div className="space-y-2 mb-4">
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">ราคา:</span>
@@ -129,16 +128,19 @@ function ItemsList({ items, onDelete }: { items: Item[]; onDelete: (id: number) 
               </div>
             </div>
             <div className="flex gap-2">
-              <Link href={`/items/${item.id}/edit`} className="flex-1">
-                <Button variant="outline" size="sm" className="w-full">
-                  <Edit className="mr-2 h-4 w-4" />
-                  แก้ไข
-                </Button>
-              </Link>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                onClick={() => onEdit(item)}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                แก้ไข
+              </Button>
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={() => onDelete(item.id)}
+                onClick={() => onDelete(item)}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

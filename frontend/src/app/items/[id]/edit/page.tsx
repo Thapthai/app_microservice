@@ -14,12 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import type { Item } from '@/types/api';
+import type { Item } from '@/types/item';
+import CategorySelect from '@/components/CategorySelect';
 
 interface EditItemPageProps {
   params: Promise<{
@@ -29,7 +30,7 @@ interface EditItemPageProps {
 
 export default function EditItemPage({ params }: EditItemPageProps) {
   const [itemId, setItemId] = useState<string>('');
-  
+
   // Unwrap params Promise (Next.js 15+)
   useEffect(() => {
     params.then((p) => setItemId(p.id));
@@ -40,17 +41,21 @@ export default function EditItemPage({ params }: EditItemPageProps) {
   const [initialLoading, setInitialLoading] = useState(true);
   const [item, setItem] = useState<Item | null>(null);
 
-  const form = useForm<ItemFormData & { isActive: boolean }>({
-    resolver: zodResolver(itemSchema.extend({
-      isActive: z.boolean(),
-    })),
+  const editItemSchema = itemSchema.extend({
+    is_active: z.boolean(),
+  });
+
+  type EditItemFormData = z.infer<typeof editItemSchema>;
+
+  const form = useForm<EditItemFormData>({
+    resolver: zodResolver(editItemSchema),
     defaultValues: {
       name: '',
       description: '',
       price: 0,
       quantity: 0,
-      category: '',
-      isActive: true,
+      category_id: undefined,
+      is_active: true,
     },
   });
 
@@ -67,21 +72,15 @@ export default function EditItemPage({ params }: EditItemPageProps) {
       if (response.success && response.data) {
         const itemData = response.data;
         setItem(itemData);
-        
-        // Check if user owns this item
-        if (itemData.userId !== user?.id) {
-          toast.error('คุณไม่มีสิทธิ์แก้ไขสินค้านี้');
-          router.push('/items');
-          return;
-        }
+
 
         form.reset({
           name: itemData.name,
           description: itemData.description || '',
           price: itemData.price,
           quantity: itemData.quantity,
-          category: itemData.category || '',
-          isActive: itemData.isActive,
+          category_id: itemData.category_id || undefined,
+          is_active: itemData.is_active,
         });
       } else {
         toast.error('ไม่พบสินค้าที่ต้องการแก้ไข');
@@ -95,15 +94,11 @@ export default function EditItemPage({ params }: EditItemPageProps) {
     }
   };
 
-  const onSubmit = async (data: ItemFormData & { isActive: boolean }) => {
+  const onSubmit = async (data: EditItemFormData) => {
     try {
       setLoading(true);
-      const { isActive, ...updateData } = data;
-      
-      const response = await itemsApi.update(parseInt(itemId), {
-        ...updateData,
-        isActive,
-      });
+
+      const response = await itemsApi.update(parseInt(itemId), data);
 
       if (response.success) {
         toast.success('อัปเดตสินค้าเรียบร้อยแล้ว');
@@ -139,7 +134,7 @@ export default function EditItemPage({ params }: EditItemPageProps) {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        
+
         <main className="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
             {/* Header */}
@@ -209,11 +204,15 @@ export default function EditItemPage({ params }: EditItemPageProps) {
                             <FormControl>
                               <Input
                                 type="number"
-                                placeholder="0"
+                                placeholder="0.00"
                                 min="0"
                                 step="0.01"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value || ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? '' : parseFloat(value) || 0);
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -233,7 +232,11 @@ export default function EditItemPage({ params }: EditItemPageProps) {
                                 placeholder="0"
                                 min="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                value={field.value || ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? '' : parseInt(value) || 0);
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -244,14 +247,16 @@ export default function EditItemPage({ params }: EditItemPageProps) {
 
                     <FormField
                       control={form.control}
-                      name="category"
+                      name="category_id"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>หมวดหมู่</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="เช่น ผ้า, หมอน, ผ้าห่ม"
-                              {...field}
+                            <CategorySelect
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              disabled={loading}
+                              placeholder="เลือกหมวดหมู่..."
                             />
                           </FormControl>
                           <FormMessage />
@@ -261,14 +266,14 @@ export default function EditItemPage({ params }: EditItemPageProps) {
 
                     <FormField
                       control={form.control}
-                      name="isActive"
+                      name="is_active"
                       render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base">สถานะการใช้งาน</FormLabel>
-                            <div className="text-sm text-muted-foreground">
+                            <FormDescription>
                               เปิด/ปิดการใช้งานสินค้านี้
-                            </div>
+                            </FormDescription>
                           </div>
                           <FormControl>
                             <Switch

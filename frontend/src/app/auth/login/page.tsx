@@ -225,21 +225,32 @@ export default function LoginPage() {
             {/* Email/Password Login Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  อีเมล
+                <Label 
+                  htmlFor="email" 
+                  className={`text-sm font-medium transition-colors ${
+                    errors.email ? 'text-red-600' : 'text-gray-700'
+                  }`}
+                >
+                  อีเมล *
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors ${
+                    errors.email ? 'text-red-400' : 'text-gray-400'
+                  }`} />
                   <Input
                     id="email"
                     type="email"
                     placeholder="your@email.com"
-                    className="pl-10 h-12 border-2 focus:border-blue-500 transition-colors"
+                    className={`pl-10 h-12 border-2 transition-all duration-200 ${
+                      errors.email 
+                        ? 'border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-100 shadow-sm shadow-red-100 animate-shake' 
+                        : 'border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                    }`}
                     {...register('email')}
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-sm text-red-600 flex items-center space-x-1">
+                  <p className="text-xs mt-1.5 flex items-center gap-1 text-red-600 font-medium animate-shake">
                     <span>⚠️</span>
                     <span>{errors.email.message}</span>
                   </p>
@@ -247,16 +258,27 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  รหัสผ่าน
+                <Label 
+                  htmlFor="password" 
+                  className={`text-sm font-medium transition-colors ${
+                    errors.password ? 'text-red-600' : 'text-gray-700'
+                  }`}
+                >
+                  รหัสผ่าน *
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors ${
+                    errors.password ? 'text-red-400' : 'text-gray-400'
+                  }`} />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
-                    className="pl-10 pr-10 h-12 border-2 focus:border-blue-500 transition-colors"
+                    className={`pl-10 pr-10 h-12 border-2 transition-all duration-200 ${
+                      errors.password 
+                        ? 'border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-100 shadow-sm shadow-red-100 animate-shake' 
+                        : 'border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                    }`}
                     {...register('password')}
                   />
                   <button
@@ -272,7 +294,7 @@ export default function LoginPage() {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-red-600 flex items-center space-x-1">
+                  <p className="text-xs mt-1.5 flex items-center gap-1 text-red-600 font-medium animate-shake">
                     <span>⚠️</span>
                     <span>{errors.password.message}</span>
                   </p>
@@ -280,24 +302,27 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="text-sm text-red-600 text-center bg-red-50 border border-red-200 p-4 rounded-lg flex items-center justify-center space-x-2">
-                  <span>❌</span>
-                  <span>{error}</span>
+                <div className="text-sm text-red-600 text-center bg-red-50/80 border-2 border-red-200 p-4 rounded-xl flex items-center justify-center space-x-2 animate-shake shadow-lg shadow-red-100">
+                  <span className="text-lg">❌</span>
+                  <span className="font-medium">{error}</span>
                 </div>
               )}
 
               <Button
                 type="submit"
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="w-full h-13 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 hover:from-blue-600 hover:via-cyan-600 hover:to-blue-700 text-white font-semibold text-base transition-all duration-300 shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-[1.02] active:scale-[0.98] rounded-xl border border-blue-400/20"
                 disabled={loading || firebaseLoading}
               >
                 {loading ? (
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
                     <span>กำลังเข้าสู่ระบบ...</span>
                   </div>
                 ) : (
-                  'เข้าสู่ระบบ'
+                  <div className="flex items-center justify-center space-x-2">
+                    <User className="w-5 h-5" />
+                    <span>เข้าสู่ระบบ</span>
+                  </div>
                 )}
               </Button>
 

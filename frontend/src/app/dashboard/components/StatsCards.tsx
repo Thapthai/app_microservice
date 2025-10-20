@@ -25,9 +25,9 @@ export default function StatsCards({ loading, stats }: StatsCardsProps) {
           <Package className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.totalItems}</div>
+          <div className="text-2xl font-bold">{stats.totalItems.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground">
-            สินค้าที่ใช้งาน {stats.activeItems} รายการ
+            สินค้าที่ใช้งาน {stats.activeItems.toLocaleString()} รายการ
           </p>
         </CardContent>
       </Card>

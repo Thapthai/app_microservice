@@ -1,19 +1,35 @@
 import type { User } from './auth';
 
-// Item Types
+// Category Types
+export interface Category {
+  id: number;
+  name: string;
+  description?: string;
+  slug: string;
+  image?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
+export interface GetCategoriesQuery {
+  page?: number;
+  limit?: number;
+  parentId?: string;
+}
+
+// Item Types
 export interface Item {
   id: number;
   name: string;
   description?: string;
   price: number;
   quantity: number;
-  category?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  userId: number;
-  user?: User;
+  category_id?: number;
+  category?: Category;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateItemDto {
@@ -21,8 +37,8 @@ export interface CreateItemDto {
   description?: string;
   price: number;
   quantity?: number;
-  category?: string;
-  userId: number;
+  category_id?: number;
+  is_active?: boolean;
 }
 
 export interface UpdateItemDto {
@@ -30,16 +46,15 @@ export interface UpdateItemDto {
   description?: string;
   price?: number;
   quantity?: number;
-  category?: string;
-  isActive?: boolean;
+  category_id?: number;
+  is_active?: boolean;
 }
 
 export interface GetItemsQuery {
   page?: number;
   limit?: number;
   keyword?: string;
-  userId?: number;
-  category?: string;
-  isActive?: boolean;
+  category_id?: number;
+  is_active?: boolean;
 }
 

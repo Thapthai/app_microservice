@@ -1,60 +1,87 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { itemsApi } from '@/lib/api';
-import { itemSchema, type ItemFormData } from '@/lib/validations';
+import { itemSchema } from '@/lib/validations';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Switch } from '@/components/ui/switch';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { toast } from 'sonner';
+import type { Item } from '@/types/item';
+import { Loader2 } from 'lucide-react';
+import { z } from 'zod';
 import CategorySelect from '@/components/CategorySelect';
 
-interface CreateItemDialogProps {
+// Extend itemSchema to include is_active
+const editItemSchema = itemSchema.extend({
+  is_active: z.boolean(),
+});
+
+type EditItemFormData = z.infer<typeof editItemSchema>;
+
+interface EditItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  userId?: number;
+  item: Item | null;
   onSuccess: () => void;
 }
 
-export default function CreateItemDialog({
+export default function EditItemDialog({
   open,
   onOpenChange,
-  userId,
+  item,
   onSuccess,
-}: CreateItemDialogProps) {
+}: EditItemDialogProps) {
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<ItemFormData>({
-    resolver: zodResolver(itemSchema),
+  const form = useForm<EditItemFormData>({
+    resolver: zodResolver(editItemSchema),
     defaultValues: {
       name: '',
       description: '',
       price: 0,
       quantity: 0,
       category_id: undefined,
+      is_active: true,
     },
   });
 
-  const onSubmit = async (data: ItemFormData) => {
+  // Update form when item changes
+  useEffect(() => {
+    if (item) {
+      form.reset({
+        name: item.name,
+        description: item.description || '',
+        price: item.price,
+        quantity: item.quantity,
+        category_id: item.category_id || undefined,
+        is_active: item.is_active,
+      });
+    }
+  }, [item, form]);
+
+  const onSubmit = async (data: EditItemFormData) => {
+    if (!item) {
+      toast.error('ไม่พบข้อมูลสินค้า');
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await itemsApi.create({
-        ...data,
-        is_active: true,
-      });
+      const response = await itemsApi.update(item.id, data);
 
       if (response.success) {
-        toast.success('เพิ่มสินค้าเรียบร้อยแล้ว');
-        form.reset();
+        toast.success('แก้ไขสินค้าเรียบร้อยแล้ว');
         onOpenChange(false);
         onSuccess();
       } else {
-        toast.error(response.message || 'ไม่สามารถเพิ่มสินค้าได้');
+        toast.error(response.message || 'ไม่สามารถแก้ไขสินค้าได้');
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการเพิ่มสินค้า');
+      toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการแก้ไขสินค้า');
     } finally {
       setLoading(false);
     }
@@ -64,9 +91,9 @@ export default function CreateItemDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
+          <DialogTitle>แก้ไขสินค้า</DialogTitle>
           <DialogDescription>
-            เพิ่มสินค้าผ้าหรือผลิตภัณฑ์ใหม่เข้าสู่ระบบ
+            แก้ไขข้อมูลสินค้าในระบบ
           </DialogDescription>
         </DialogHeader>
 
@@ -82,6 +109,7 @@ export default function CreateItemDialog({
                     <Input
                       placeholder="เช่น ผ้าคอตตอน 100%"
                       {...field}
+                      disabled={loading}
                     />
                   </FormControl>
                   <FormMessage />
@@ -100,6 +128,7 @@ export default function CreateItemDialog({
                       placeholder="รายละเอียดของสินค้า..."
                       className="min-h-[100px]"
                       {...field}
+                      disabled={loading}
                     />
                   </FormControl>
                   <FormMessage />
@@ -126,6 +155,7 @@ export default function CreateItemDialog({
                           const value = e.target.value;
                           field.onChange(value === '' ? '' : parseFloat(value) || 0);
                         }}
+                        disabled={loading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -150,6 +180,7 @@ export default function CreateItemDialog({
                           const value = e.target.value;
                           field.onChange(value === '' ? '' : parseInt(value) || 0);
                         }}
+                        disabled={loading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -177,6 +208,28 @@ export default function CreateItemDialog({
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">สถานะสินค้า</FormLabel>
+                    <FormDescription>
+                      เปิดหรือปิดการใช้งานสินค้านี้
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={loading}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
             <div className="flex justify-end space-x-3 pt-4">
               <Button
                 variant="outline"
@@ -187,7 +240,14 @@ export default function CreateItemDialog({
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? 'กำลังบันทึก...' : 'บันทึกสินค้า'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    กำลังบันทึก...
+                  </>
+                ) : (
+                  'บันทึกการแก้ไข'
+                )}
               </Button>
             </div>
           </form>

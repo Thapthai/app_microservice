@@ -195,26 +195,53 @@ kubectl port-forward -n pose-microservices svc/frontend-service 8080:80
 
 ## 🔄 Update & Maintain
 
-### **Update Frontend**
+### **Update Image**
 
 ```bash
-# 1. Pull latest code
-cd /path/to/frontend
-git pull origin main
-
-# 2. Rebuild image
+# 1. Build image
 docker build -f docker/Dockerfile -t frontend-pose:latest .
 
-# 3. Reimport to K3s
+# 2. Verify image
+docker images | grep frontend-pose
+
+# 3. Import to K3s
 docker save frontend-pose:latest | sudo k3s ctr images import -
 
-# 4. Delete old pod (K8s will create new one with new image)
+# 4. Verify import
+sudo k3s ctr images ls | grep frontend-pose
+```
+
+### **Apply Updated Image**
+
+#### **วิธีที่ 1: Delete Pod (Quick)**
+
+```bash
+# ลบ pod เก่า K8s จะสร้างใหม่ทันที
 kubectl delete pod -n pose-microservices -l app=frontend
 
-# 5. Wait for new pod
+# รอ pod ใหม่
 kubectl get pods -n pose-microservices -l app=frontend -w
-
+# กด Ctrl+C เมื่อเห็น STATUS: Running และ READY: 1/1
 ```
+
+#### **วิธีที่ 2: Rollout Restart (แนะนำสำหรับ Production)** ⭐
+
+```bash
+# Restart deployment อย่างเป็นระบบ
+kubectl rollout restart deployment/frontend -n pose-microservices
+
+# ดู progress
+kubectl rollout status deployment/frontend -n pose-microservices
+
+# ตรวจสอบ pod ใหม่
+kubectl get pods -n pose-microservices -l app=frontend
+```
+
+**ข้อดีของ Rollout Restart:**
+- ✅ ทำ rolling update อย่างปลอดภัย
+- ✅ สามารถ rollback ได้ถ้ามีปัญหา
+- ✅ Zero-downtime (ถ้ามีหลาย replicas)
+- ✅ เก็บ revision history ไว้
 
 ### **Restart Deployment**
 

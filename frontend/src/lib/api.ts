@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getSession } from 'next-auth/react';
 import type { ApiResponse, PaginatedResponse } from '@/types/common';
 import type { AuthResponse, User, RegisterDto, LoginDto } from '@/types/auth';
-import type { Item, CreateItemDto, UpdateItemDto, GetItemsQuery } from '@/types/item';
+import type { Item, CreateItemDto, UpdateItemDto, GetItemsQuery, Category, GetCategoriesQuery } from '@/types/item';
 
 // Create axios instance
 const api = axios.create({
@@ -111,6 +111,24 @@ export const authApi = {
 
   requestPasswordReset: async (email: string): Promise<ApiResponse> => {
     const response = await api.post('/auth/password/reset-request', { email });
+    return response.data;
+  },
+};
+
+// Categories API
+export const categoriesApi = {
+  getAll: async (query?: GetCategoriesQuery): Promise<PaginatedResponse<Category>> => {
+    const response = await api.get('/categories', { params: query });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ApiResponse<Category>> => {
+    const response = await api.get(`/categories/${id}`);
+    return response.data;
+  },
+
+  getBySlug: async (slug: string): Promise<ApiResponse<Category>> => {
+    const response = await api.get(`/categories/slug/${slug}`);
     return response.data;
   },
 };

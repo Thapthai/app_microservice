@@ -11,6 +11,8 @@ import ItemsHeader from './components/ItemsHeader';
 import ItemsFilter from './components/ItemsFilter';
 import ItemsGrid from './components/ItemsGrid';
 import CreateItemDialog from './components/CreateItemDialog';
+import EditItemDialog from './components/EditItemDialog';
+import DeleteItemDialog from './components/DeleteItemDialog';
 
 export default function ItemsPage() {
   const { user } = useAuth();
@@ -21,6 +23,9 @@ export default function ItemsPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,13 +69,13 @@ export default function ItemsPage() {
 
     // Filter by category (client-side)
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(item => item.category === categoryFilter);
+      filtered = filtered.filter(item => item.category_id?.toString() === categoryFilter);
     }
 
     // Filter by status (client-side)
     if (statusFilter !== 'all') {
       filtered = filtered.filter(item => 
-        statusFilter === 'active' ? item.isActive : !item.isActive
+        statusFilter === 'active' ? item.is_active : !item.is_active
       );
     }
 
@@ -87,21 +92,14 @@ export default function ItemsPage() {
     setCurrentPage(1); // Reset to first page on search
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบสินค้านี้?')) {
-      return;
-    }
+  const handleEdit = (item: Item) => {
+    setSelectedItem(item);
+    setShowEditDialog(true);
+  };
 
-    try {
-      const response = await itemsApi.delete(id);
-      if (response.success) {
-        toast.success('ลบสินค้าสำเร็จ');
-        fetchItems(); // Refresh list
-      }
-    } catch (error) {
-      console.error('Failed to delete item:', error);
-      toast.error('ไม่สามารถลบสินค้าได้');
-    }
+  const handleDelete = (item: Item) => {
+    setSelectedItem(item);
+    setShowDeleteDialog(true);
   };
 
   return (
@@ -126,6 +124,7 @@ export default function ItemsPage() {
             totalPages={totalPages}
             totalItems={totalItems}
             onPageChange={handlePageChange}
+            onEdit={handleEdit}
             onDelete={handleDelete}
           />
         </div>
@@ -134,6 +133,20 @@ export default function ItemsPage() {
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
           userId={user?.id}
+          onSuccess={fetchItems}
+        />
+
+        <EditItemDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          item={selectedItem}
+          onSuccess={fetchItems}
+        />
+
+        <DeleteItemDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          item={selectedItem}
           onSuccess={fetchItems}
         />
       </AppLayout>

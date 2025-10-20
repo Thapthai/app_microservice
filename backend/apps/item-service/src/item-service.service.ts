@@ -34,14 +34,13 @@ export class ItemServiceService {
   async findAllItems(page: number, limit: number, keyword?: string) {
     try {
 
+      const where: any = {};
       const skip = (page - 1) * limit;
-      const where = keyword
-        ? {
-          name: {
-            contains: keyword,
-          }
-        }
-        : {};
+      if (keyword) {
+        where.OR = [
+          { name: { contains: keyword } },
+        ];
+      }
 
       const [data, total] = await Promise.all([
         this.prisma.item.findMany({
@@ -62,6 +61,8 @@ export class ItemServiceService {
     } catch (error) {
       return { success: false, message: 'Failed to fetch items', error: error.message };
     }
+
+
   }
 
   async findOneItem(id: number) {

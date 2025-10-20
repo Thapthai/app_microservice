@@ -16,11 +16,10 @@ export class ItemServiceController {
   }
 
   @MessagePattern('item.findAll')
-  findAll(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-    @Query('keyword') keyword?: string,
-  ) {
+  findAll(@Payload() query: { page: number; limit: number; keyword?: string }) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const keyword = query.keyword;
     return this.itemServiceService.findAllItems(page, limit, keyword);
   }
 

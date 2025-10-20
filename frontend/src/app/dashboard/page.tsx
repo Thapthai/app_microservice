@@ -38,7 +38,7 @@ export default function DashboardPage() {
           });
 
           if (response.data) {
-            const activeItems = response.data.filter(item => item.isActive);
+            const activeItems = response.data.filter(item => item.is_active);
             const totalValue = response.data.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
             setStats({

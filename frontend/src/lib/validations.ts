@@ -21,7 +21,7 @@ export const itemSchema = z.object({
   description: z.string().optional(),
   price: z.number().min(0, 'ราคาต้องมากกว่าหรือเท่ากับ 0'),
   quantity: z.number().min(0, 'จำนวนต้องมากกว่าหรือเท่ากับ 0').optional(),
-  category: z.string().optional(),
+  category_id: z.number().optional(),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
