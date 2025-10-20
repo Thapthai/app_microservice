@@ -72,7 +72,7 @@ export default function DeleteItemDialog({
         <div className="py-4">
           <p className="text-sm text-gray-600">
             คุณกำลังจะลบสินค้า{' '}
-            <span className="font-semibold text-gray-900">"{item?.name}"</span>
+            <span className="font-semibold text-gray-900">&quot;{item?.name}&quot;</span>
           </p>
           {item && (
             <div className="mt-4 rounded-lg bg-gray-50 p-4 space-y-2">

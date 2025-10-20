@@ -30,7 +30,7 @@ export default function NewItemPage() {
       description: '',
       price: 0,
       quantity: 0,
-      category: '',
+      category_id: undefined,
     },
   });
 
@@ -44,7 +44,7 @@ export default function NewItemPage() {
       setLoading(true);
       const response = await itemsApi.create({
         ...data,
-        userId: user.id,
+        is_active: true,
       });
 
       if (response.success) {
@@ -169,14 +169,16 @@ export default function NewItemPage() {
 
                     <FormField
                       control={form.control}
-                      name="category"
+                      name="category_id"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>หมวดหมู่</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="เช่น ผ้า, หมอน, ผ้าห่ม"
+                              type="number"
+                              placeholder="ID หมวดหมู่"
                               {...field}
+                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                             />
                           </FormControl>
                           <FormMessage />
