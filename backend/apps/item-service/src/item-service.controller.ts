@@ -16,11 +16,13 @@ export class ItemServiceController {
   }
 
   @MessagePattern('item.findAll')
-  findAll(@Payload() query: { page: number; limit: number; keyword?: string }) {
+  findAll(@Payload() query: { page: number; limit: number; keyword?: string; sort_by?: string; sort_order?: string }) {
     const page = query.page || 1;
     const limit = query.limit || 10;
     const keyword = query.keyword;
-    return this.itemServiceService.findAllItems(page, limit, keyword);
+    const sortBy = query.sort_by || 'created_at';
+    const sortOrder = query.sort_order || 'desc';
+    return this.itemServiceService.findAllItems(page, limit, keyword, sortBy, sortOrder);
   }
 
 

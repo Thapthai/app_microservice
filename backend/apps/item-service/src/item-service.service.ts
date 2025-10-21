@@ -34,7 +34,7 @@ export class ItemServiceService {
     }
   }
 
-  async findAllItems(page: number, limit: number, keyword?: string) {
+  async findAllItems(page: number, limit: number, keyword?: string, sort_by: string = 'created_at', sort_order: string = 'desc') {
     try {
 
       const where: any = {};
@@ -44,6 +44,19 @@ export class ItemServiceService {
           { name: { contains: keyword } },
         ];
       }
+
+      // Build orderBy object - Prisma needs proper type
+      const validSortFields = ['name', 'price', 'quantity', 'created_at'];
+      const validSortOrders = ['asc', 'desc'];
+      
+      const field = validSortFields.includes(sort_by) ? sort_by : 'created_at';
+      const order = validSortOrders.includes(sort_order) ? sort_order as 'asc' | 'desc' : 'desc' as 'asc' | 'desc';
+      
+      // Debug log
+      console.log('🔍 Sort params:', { sort_by, sort_order, field, order });
+      
+      const orderBy: any = {};
+      orderBy[field] = order;
 
       // Calculate total value of active items
       const activeItems = await this.prisma.item.findMany({
@@ -63,7 +76,7 @@ export class ItemServiceService {
           where,
           skip,
           take: limit,
-          orderBy: { created_at: 'desc' },
+          orderBy,
           include: {
             category: true,
           },

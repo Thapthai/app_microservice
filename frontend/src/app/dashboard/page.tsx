@@ -30,6 +30,10 @@ export default function DashboardPage() {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
+  // Sorting states
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<string>('desc');
+
   // Fetch categories on mount
   useEffect(() => {
     fetchCategories();
@@ -75,7 +79,7 @@ export default function DashboardPage() {
     fetchStats();
   }, [user?.id]);
 
-  // Fetch recent items with pagination
+  // Fetch recent items with pagination and sorting
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -83,7 +87,9 @@ export default function DashboardPage() {
           setLoadingItems(true);
           const response = await itemsApi.getAll({
             page: currentPage,
-            limit: itemsPerPage
+            limit: itemsPerPage,
+            sort_by: sortBy as any,
+            sort_order: sortOrder as any,
           });
 
           if (response.data) {
@@ -99,11 +105,17 @@ export default function DashboardPage() {
     };
 
     fetchItems();
-  }, [user?.id, currentPage]);
+  }, [user?.id, currentPage, sortBy, sortOrder]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSortChange = (newSortBy: string, newSortOrder: string) => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+    setCurrentPage(1); // Reset to first page when sorting changes
   };
 
   const handleCreateSuccess = async () => {
@@ -142,6 +154,9 @@ export default function DashboardPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={handlePageChange}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSortChange={handleSortChange}
         />
 
         <CreateItemDialog

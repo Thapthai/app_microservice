@@ -258,10 +258,12 @@ export class GatewayApiController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('keyword') keyword?: string,
+    @Query('sort_by') sort_by?: string,
+    @Query('sort_order') sort_order?: string,
   ) {
     try {
 
-      const result = await this.gatewayApiService.findAllItems(page, limit, keyword);
+      const result = await this.gatewayApiService.findAllItems(page, limit, keyword, sort_by, sort_order);
       return result;
 
     } catch (error) {

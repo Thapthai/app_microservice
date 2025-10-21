@@ -36,8 +36,8 @@ export class GatewayApiService {
     return this.itemClient.send('item.create', createItemDto).toPromise();
   }
 
-  async findAllItems(page: number, limit: number, keyword?: string) {
-    const query = { page, limit, keyword };
+  async findAllItems(page: number, limit: number, keyword?: string, sortBy?: string, sortOrder?: string) {
+    const query = { page, limit, keyword, sort_by: sortBy, sort_order: sortOrder };
     return this.itemClient.send('item.findAll', query).toPromise();
   }
 

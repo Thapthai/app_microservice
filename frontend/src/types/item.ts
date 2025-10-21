@@ -56,5 +56,7 @@ export interface GetItemsQuery {
   keyword?: string;
   category_id?: number;
   is_active?: boolean;
+  sort_by?: 'name' | 'price' | 'quantity' | 'created_at';
+  sort_order?: 'asc' | 'desc';
 }
 

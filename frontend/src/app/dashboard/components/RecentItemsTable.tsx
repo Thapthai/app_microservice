@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Plus, ArrowRight } from 'lucide-react';
+import { Package, Plus, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { SkeletonTable } from '@/components/Skeleton';
 import Pagination from '@/components/Pagination';
 import type { Item } from '@/types/item';
@@ -13,6 +13,9 @@ interface RecentItemsTableProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  sortBy?: string;
+  sortOrder?: string;
+  onSortChange?: (sortBy: string, sortOrder: string) => void;
 }
 
 export default function RecentItemsTable({
@@ -21,6 +24,9 @@ export default function RecentItemsTable({
   currentPage,
   totalPages,
   onPageChange,
+  sortBy = 'created_at',
+  sortOrder = 'desc',
+  onSortChange,
 }: RecentItemsTableProps) {
   return (
     <Card>
@@ -33,8 +39,8 @@ export default function RecentItemsTable({
             </CardDescription>
           </div>
           <Link href="/items">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="border-blue-300 text-blue-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
             >
               ดูทั้งหมด
@@ -53,7 +59,12 @@ export default function RecentItemsTable({
             <EmptyState />
           </div>
         ) : (
-          <ItemsTable items={items} />
+          <ItemsTable
+            items={items}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={onSortChange}
+          />
         )}
       </CardContent>
       {/* Pagination */}
@@ -87,7 +98,39 @@ function EmptyState() {
   );
 }
 
-function ItemsTable({ items }: { items: Item[] }) {
+function ItemsTable({
+  items,
+  sortBy,
+  sortOrder,
+  onSortChange
+}: {
+  items: Item[];
+  sortBy?: string;
+  sortOrder?: string;
+  onSortChange?: (sortBy: string, sortOrder: string) => void;
+}) {
+  const handleSort = (field: string) => {
+    if (!onSortChange) return;
+    
+    // If clicking the same field, toggle the order
+    if (sortBy === field) {
+      const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      onSortChange(field, newOrder);
+    } else {
+      // If clicking a different field, start with descending (newest/highest first)
+      onSortChange(field, 'desc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortBy !== field) {
+      return <ArrowUpDown className="h-3.5 w-3.5 ml-1 text-gray-400" />;
+    }
+    return sortOrder === 'asc'
+      ? <ArrowUp className="h-3.5 w-3.5 ml-1 text-blue-600" />
+      : <ArrowDown className="h-3.5 w-3.5 ml-1 text-blue-600" />;
+  };
+
   return (
     <div className="w-full overflow-x-auto">
       <div className="inline-block min-w-full align-middle">
@@ -95,16 +138,37 @@ function ItemsTable({ items }: { items: Item[] }) {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-                สินค้า
+                <button
+                  onClick={() => handleSort('name')}
+                  className="flex items-center hover:text-blue-600 transition-colors cursor-pointer"
+                  disabled={!onSortChange}
+                >
+                  สินค้า
+                  <SortIcon field="name" />
+                </button>
               </th>
               <th className="hidden sm:table-cell px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                 หมวดหมู่
               </th>
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[90px]">
-                ราคา
+                <button
+                  onClick={() => handleSort('price')}
+                  className="flex items-center hover:text-blue-600 transition-colors cursor-pointer"
+                  disabled={!onSortChange}
+                >
+                  ราคา
+                  <SortIcon field="price" />
+                </button>
               </th>
               <th className="hidden md:table-cell px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[70px]">
-                จำนวน
+                <button
+                  onClick={() => handleSort('quantity')}
+                  className="flex items-center hover:text-blue-600 transition-colors cursor-pointer"
+                  disabled={!onSortChange}
+                >
+                  จำนวน
+                  <SortIcon field="quantity" />
+                </button>
               </th>
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[90px]">
                 สถานะ
@@ -138,14 +202,12 @@ function ItemsTable({ items }: { items: Item[] }) {
                   {item.quantity.toLocaleString()}
                 </td>
                 <td className="px-2 py-2 whitespace-nowrap">
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full shadow-sm ${
-                    item.is_active
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full shadow-sm ${item.is_active
                       ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
                       : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${
-                      item.is_active ? 'bg-white' : 'bg-white'
-                    }`}></span>
+                    }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-white' : 'bg-white'
+                      }`}></span>
                     {item.is_active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
                   </span>
                 </td>
