@@ -37,7 +37,6 @@ export default function CreateItemDialog({
       description: '',
       price: 0,
       quantity: 0,
-      category_id: undefined,
     },
   });
 
@@ -179,16 +178,16 @@ export default function CreateItemDialog({
                     <FormItem className="w-full">
                       <FormLabel className="flex items-center gap-2">
                         <FolderOpen className="h-4 w-4 text-blue-600" />
-                        <span>หมวดหมู่</span>
+                        <span>หมวดหมู่ <span className="text-red-500">*</span></span>
                       </FormLabel>
                       <FormControl>
                       <Select
-                        value={field.value?.toString() || 'none'}
-                        onValueChange={(val) => field.onChange(val === 'none' ? undefined : parseInt(val))}
+                        value={field.value?.toString()}
+                        onValueChange={(val) => field.onChange(parseInt(val))}
                         disabled={loading}
                       >
                         <SelectTrigger className="w-full h-auto min-h-[2.75rem] bg-gradient-to-r from-gray-50 to-white border-gray-300 hover:border-blue-400 transition-colors py-2">
-                          <SelectValue>
+                          <SelectValue placeholder="เลือกหมวดหมู่...">
                             {selectedCategory ? (
                               <div className="flex flex-col items-start gap-1 w-full">
                                 <div className="flex items-center gap-2">
@@ -207,17 +206,6 @@ export default function CreateItemDialog({
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
-                          <SelectItem 
-                            value="none" 
-                            className="text-gray-500 italic hover:bg-gray-50 cursor-pointer py-3"
-                          >
-                            <div className="flex items-center gap-2">
-                              <Tag className="h-4 w-4 text-gray-400" />
-                              <span>ไม่ระบุหมวดหมู่</span>
-                            </div>
-                          </SelectItem>
-                          
-                          <div className="my-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
                           
                           {categories.map((category) => (
                             <SelectItem 

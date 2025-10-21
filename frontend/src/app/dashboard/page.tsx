@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { itemsApi } from '@/lib/api';
+import { itemsApi, categoriesApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
-import type { Item } from '@/types/item';
+import type { Item, Category } from '@/types/item';
 import type { PaginatedResponse } from '@/types/common';
 import DashboardHeader from './components/DashboardHeader';
 import StatsCards from './components/StatsCards';
 import RecentItemsTable from './components/RecentItemsTable';
+import CreateItemDialog from '../items/components/CreateItemDialog';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -21,11 +22,29 @@ export default function DashboardPage() {
     activeItems: 0,
     totalValue: 0,
   });
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoriesApi.getAll({ page: 1, limit: 100 });
+      if (response.data) {
+        setCategories(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
 
   // Fetch stats from backend
   useEffect(() => {
@@ -87,10 +106,33 @@ export default function DashboardPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleCreateSuccess = async () => {
+    setIsCreateDialogOpen(false);
+    // Refresh items and stats
+    const response = await itemsApi.getAll({
+      page: currentPage,
+      limit: itemsPerPage
+    });
+    if (response.data) {
+      setItems(response.data);
+      setTotalPages(response.lastPage);
+    }
+    if (response.stats) {
+      setStats({
+        totalItems: response.stats.total_items,
+        activeItems: response.stats.active_items,
+        totalValue: response.stats.total_value,
+      });
+    }
+  };
+
   return (
     <ProtectedRoute>
       <AppLayout>
-        <DashboardHeader userName={user?.name} />
+        <DashboardHeader 
+          userName={user?.name}
+          onCreateClick={() => setIsCreateDialogOpen(true)}
+        />
         
         <StatsCards loading={loadingStats} stats={stats} />
         
@@ -100,6 +142,14 @@ export default function DashboardPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={handlePageChange}
+        />
+
+        <CreateItemDialog
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+          userId={user?.id}
+          categories={categories}
+          onSuccess={handleCreateSuccess}
         />
       </AppLayout>
     </ProtectedRoute>

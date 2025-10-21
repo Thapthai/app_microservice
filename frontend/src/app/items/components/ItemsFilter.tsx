@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, X } from 'lucide-react';
+import { Search, X, Filter } from 'lucide-react';
 
 interface ItemsFilterProps {
   searchTerm: string;
@@ -48,7 +48,10 @@ export default function ItemsFilter({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ค้นหาและกรองสินค้า</CardTitle>
+        <div className="flex items-center gap-2">
+          <Filter className="h-5 w-5 text-blue-600" />
+          <CardTitle>ค้นหาและกรองสินค้า</CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col sm:flex-row gap-4">
@@ -60,42 +63,48 @@ export default function ItemsFilter({
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="pl-10 pr-10"
+                className="pl-10 pr-10 focus:border-blue-500 focus:ring-blue-100 transition-all"
               />
               {inputValue && (
                 <button
                   onClick={handleClear}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-3 text-gray-400 hover:text-red-500 transition-colors duration-200"
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
-            <Button onClick={handleSearch} className="whitespace-nowrap">
+            <Button 
+              onClick={handleSearch} 
+              className="whitespace-nowrap bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-md hover:shadow-lg transition-all duration-200"
+            >
               <Search className="h-4 w-4 mr-2" />
               ค้นหา
             </Button>
           </div>
-          {/* <Select value={categoryFilter} onValueChange={onCategoryChange}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="หมวดหมู่" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">ทั้งหมด</SelectItem>
-              <SelectItem value="ผ้า">ผ้า</SelectItem>
-              <SelectItem value="ผ้านวม">ผ้านวม</SelectItem>
-              <SelectItem value="หมอน">หมอน</SelectItem>
-              <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={onStatusChange}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+          {/* <Select value={statusFilter} onValueChange={onStatusChange}>
+            <SelectTrigger className="w-full sm:w-[180px] border-gray-300 hover:border-blue-400 transition-colors focus:ring-blue-100">
               <SelectValue placeholder="สถานะ" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">ทั้งหมด</SelectItem>
-              <SelectItem value="active">ใช้งาน</SelectItem>
-              <SelectItem value="inactive">ไม่ใช้งาน</SelectItem>
+              <SelectItem value="all" className="cursor-pointer hover:bg-blue-50">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+                  <span>ทั้งหมด</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="active" className="cursor-pointer hover:bg-green-50">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <span>ใช้งาน</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="inactive" className="cursor-pointer hover:bg-red-50">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <span>ไม่ใช้งาน</span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select> */}
         </div>

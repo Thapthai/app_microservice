@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Plus } from 'lucide-react';
+import { Package, Plus, ArrowRight } from 'lucide-react';
 import { SkeletonTable } from '@/components/Skeleton';
 import Pagination from '@/components/Pagination';
 import type { Item } from '@/types/item';
@@ -33,7 +33,13 @@ export default function RecentItemsTable({
             </CardDescription>
           </div>
           <Link href="/items">
-            <Button variant="outline">ดูทั้งหมด</Button>
+            <Button 
+              variant="outline" 
+              className="border-blue-300 text-blue-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+            >
+              ดูทั้งหมด
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </Link>
         </div>
       </CardHeader>
@@ -71,7 +77,7 @@ function EmptyState() {
       <p className="mt-1 text-sm text-gray-500">เริ่มต้นด้วยการเพิ่มสินค้าแรกของคุณ</p>
       <div className="mt-6">
         <Link href="/items/new">
-          <Button>
+          <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all duration-200">
             <Plus className="mr-2 h-4 w-4" />
             เพิ่มสินค้าใหม่
           </Button>
@@ -132,11 +138,14 @@ function ItemsTable({ items }: { items: Item[] }) {
                   {item.quantity.toLocaleString()}
                 </td>
                 <td className="px-2 py-2 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full shadow-sm ${
                     item.is_active
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                      : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
                   }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      item.is_active ? 'bg-white' : 'bg-white'
+                    }`}></span>
                     {item.is_active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
                   </span>
                 </td>

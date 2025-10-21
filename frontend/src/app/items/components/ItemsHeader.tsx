@@ -15,7 +15,10 @@ export default function ItemsHeader({ onAddClick }: ItemsHeaderProps) {
           จัดการและดูรายการสินค้าทั้งหมด
         </p>
       </div>
-      <Button onClick={onAddClick}>
+      <Button 
+        onClick={onAddClick}
+        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all duration-200"
+      >
         <Plus className="mr-2 h-4 w-4" />
         เพิ่มสินค้าใหม่
       </Button>

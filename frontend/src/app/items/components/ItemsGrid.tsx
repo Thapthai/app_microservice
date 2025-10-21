@@ -95,7 +95,12 @@ function ItemsList({
               <h3 className="text-lg font-semibold text-gray-900 flex-1">
                 {item.name}
               </h3>
-              <Badge variant={item.is_active ? "default" : "destructive"} className="ml-2">
+              <Badge 
+                variant={item.is_active ? "default" : "destructive"} 
+                className={`ml-2 ${item.is_active 
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-sm' 
+                  : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-sm'}`}
+              >
                 {item.is_active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
               </Badge>
             </div>
@@ -142,7 +147,7 @@ function ItemsList({
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex-1"
+                className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200"
                 onClick={() => onEdit(item)}
               >
                 <Edit className="mr-2 h-4 w-4" />
@@ -151,6 +156,7 @@ function ItemsList({
               <Button
                 variant="destructive"
                 size="sm"
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all duration-200"
                 onClick={() => onDelete(item)}
               >
                 <Trash2 className="h-4 w-4" />
