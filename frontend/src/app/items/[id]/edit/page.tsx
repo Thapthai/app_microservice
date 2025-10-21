@@ -6,21 +6,21 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
-import { itemsApi } from '@/lib/api';
+import { itemsApi, categoriesApi } from '@/lib/api';
 import { itemSchema, type ItemFormData } from '@/lib/validations';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FolderOpen, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import type { Item } from '@/types/item';
-import CategorySelect from '@/components/CategorySelect';
+import type { Item, Category } from '@/types/item';
 
 interface EditItemPageProps {
   params: Promise<{
@@ -40,6 +40,7 @@ export default function EditItemPage({ params }: EditItemPageProps) {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [item, setItem] = useState<Item | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const editItemSchema = itemSchema.extend({
     is_active: z.boolean(),
@@ -60,10 +61,25 @@ export default function EditItemPage({ params }: EditItemPageProps) {
   });
 
   useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
     if (itemId) {
       fetchItem();
     }
   }, [itemId]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoriesApi.getAll({ page: 1, limit: 100 });
+      if (response.data) {
+        setCategories(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
 
   const fetchItem = async () => {
     if (!itemId) return;
@@ -248,20 +264,73 @@ export default function EditItemPage({ params }: EditItemPageProps) {
                     <FormField
                       control={form.control}
                       name="category_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>หมวดหมู่</FormLabel>
-                          <FormControl>
-                            <CategorySelect
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              disabled={loading}
-                              placeholder="เลือกหมวดหมู่..."
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const selectedCategory = categories.find(cat => cat.id === field.value);
+                        return (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              <FolderOpen className="h-4 w-4 text-blue-600" />
+                              <span>หมวดหมู่</span>
+                            </FormLabel>
+                            <FormControl>
+                              <Select
+                                value={field.value?.toString() || 'none'}
+                                onValueChange={(val) => field.onChange(val === 'none' ? undefined : parseInt(val))}
+                                disabled={loading}
+                              >
+                                <SelectTrigger className="w-full h-auto min-h-[2.75rem] bg-gradient-to-r from-gray-50 to-white border-gray-300 hover:border-blue-400 transition-colors py-2">
+                                  <SelectValue>
+                                    {selectedCategory ? (
+                                      <div className="flex flex-col items-start gap-1 w-full">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                          <span className="font-medium text-gray-900">{selectedCategory.name}</span>
+                                        </div>
+                                        {selectedCategory.description && (
+                                          <span className="text-xs text-gray-500 pl-4 w-full text-left">
+                                            {selectedCategory.description}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-500">เลือกหมวดหมู่...</span>
+                                    )}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent className="max-h-[300px]">
+                                  <SelectItem value="none" className="text-gray-500 italic hover:bg-gray-50 cursor-pointer py-3">
+                                    <div className="flex items-center gap-2">
+                                      <Tag className="h-4 w-4 text-gray-400" />
+                                      <span>ไม่ระบุหมวดหมู่</span>
+                                    </div>
+                                  </SelectItem>
+                                  <div className="my-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+                                  {categories.map((category) => (
+                                    <SelectItem key={category.id} value={category.id.toString()} className="cursor-pointer py-3 hover:bg-blue-50 transition-colors">
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
+                                        <div className="flex flex-col gap-0.5 flex-1">
+                                          <span className="font-medium text-gray-900">{category.name}</span>
+                                          {category.description && (
+                                            <span className="text-xs text-gray-500 line-clamp-2">{category.description}</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                  {categories.length === 0 && (
+                                    <div className="text-center py-8 px-4">
+                                      <FolderOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                                      <p className="text-sm text-gray-500">ไม่พบหมวดหมู่</p>
+                                    </div>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
 
                     <FormField
