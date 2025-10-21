@@ -495,7 +495,7 @@ export default function ProfilePage() {
             )}
 
             {/* Account Information */}
-            <AccountInformation user={user} />
+            {/* <AccountInformation user={user} /> */}
           </div>
 
           {/* Dialogs */}

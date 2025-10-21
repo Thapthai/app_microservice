@@ -6,6 +6,7 @@ import { itemsApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import type { Item } from '@/types/item';
+import type { PaginatedResponse } from '@/types/common';
 import DashboardHeader from './components/DashboardHeader';
 import StatsCards from './components/StatsCards';
 import RecentItemsTable from './components/RecentItemsTable';
@@ -26,7 +27,7 @@ export default function DashboardPage() {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
-  // Fetch stats (all items)
+  // Fetch stats from backend
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -34,17 +35,14 @@ export default function DashboardPage() {
           setLoadingStats(true);
           const response = await itemsApi.getAll({
             page: 1,
-            limit: 1000 // Get all for stats calculation
+            limit: 10 // Just get first page, stats come from backend
           });
 
-          if (response.data) {
-            const activeItems = response.data.filter(item => item.is_active);
-            const totalValue = response.data.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
+          if (response.stats) {
             setStats({
-              totalItems: response.total || response.data.length,
-              activeItems: activeItems.length,
-              totalValue,
+              totalItems: response.stats.total_items,
+              activeItems: response.stats.active_items,
+              totalValue: response.stats.total_value,
             });
           }
         }

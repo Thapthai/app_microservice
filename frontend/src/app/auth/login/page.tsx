@@ -19,6 +19,8 @@ import { authApi } from '@/lib/api';
 
 export default function LoginPage() {
   const [error, setError] = useState<string>('');
+  const [emailError, setEmailError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [firebaseLoading, setFirebaseLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -39,6 +41,8 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setError('');
+      setEmailError('');
+      setPasswordError('');
       setLoading(true);
 
       const result = await signIn('credentials', {
@@ -62,8 +66,28 @@ export default function LoginPage() {
             // Continue with regular error handling
           }
         }
-        setError(result.error);
-        toast.error(result.error);
+        
+        // Check for specific error types
+        const errorMessage = result.error;
+
+        console.log(errorMessage);
+        
+        if (errorMessage.includes('Invalid credentials')) {
+          // Show error in alert box and red borders on both fields
+          setEmailError('error'); // Just mark as error for styling
+          setPasswordError('error'); // Just mark as error for styling
+          setError(errorMessage);
+          toast.error('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+        } else if (errorMessage.includes('disabled') || errorMessage.includes('deactivated')) {
+          setError(errorMessage);
+          toast.error(errorMessage);
+        } else if (errorMessage.includes('Google Login') || errorMessage.includes('OAuth')) {
+          setError(errorMessage);
+          toast.error(errorMessage);
+        } else {
+          setError(errorMessage);
+          toast.error(errorMessage);
+        }
       } else {
         toast.success('เข้าสู่ระบบสำเร็จ');
         router.push('/dashboard');
@@ -228,21 +252,21 @@ export default function LoginPage() {
                 <Label 
                   htmlFor="email" 
                   className={`text-sm font-medium transition-colors ${
-                    errors.email ? 'text-red-600' : 'text-gray-700'
+                    errors.email || emailError ? 'text-red-600' : 'text-gray-700'
                   }`}
                 >
                   อีเมล *
                 </Label>
                 <div className="relative">
                   <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors ${
-                    errors.email ? 'text-red-400' : 'text-gray-400'
+                    errors.email || emailError ? 'text-red-400' : 'text-gray-400'
                   }`} />
                   <Input
                     id="email"
                     type="email"
                     placeholder="your@email.com"
                     className={`pl-10 h-12 border-2 transition-all duration-200 ${
-                      errors.email 
+                      errors.email || emailError
                         ? 'border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-100 shadow-sm shadow-red-100 animate-shake' 
                         : 'border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
                     }`}
@@ -255,27 +279,33 @@ export default function LoginPage() {
                     <span>{errors.email.message}</span>
                   </p>
                 )}
+                {emailError && !errors.email && emailError !== 'error' && (
+                  <p className="text-xs mt-1.5 flex items-center gap-1 text-red-600 font-medium animate-shake">
+                    <span>❌</span>
+                    <span>{emailError}</span>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label 
                   htmlFor="password" 
                   className={`text-sm font-medium transition-colors ${
-                    errors.password ? 'text-red-600' : 'text-gray-700'
+                    errors.password || passwordError ? 'text-red-600' : 'text-gray-700'
                   }`}
                 >
                   รหัสผ่าน *
                 </Label>
                 <div className="relative">
                   <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors ${
-                    errors.password ? 'text-red-400' : 'text-gray-400'
+                    errors.password || passwordError ? 'text-red-400' : 'text-gray-400'
                   }`} />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     className={`pl-10 pr-10 h-12 border-2 transition-all duration-200 ${
-                      errors.password 
+                      errors.password || passwordError
                         ? 'border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-100 shadow-sm shadow-red-100 animate-shake' 
                         : 'border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
                     }`}
@@ -297,6 +327,12 @@ export default function LoginPage() {
                   <p className="text-xs mt-1.5 flex items-center gap-1 text-red-600 font-medium animate-shake">
                     <span>⚠️</span>
                     <span>{errors.password.message}</span>
+                  </p>
+                )}
+                {passwordError && !errors.password && passwordError !== 'error' && (
+                  <p className="text-xs mt-1.5 flex items-center gap-1 text-red-600 font-medium animate-shake">
+                    <span>❌</span>
+                    <span>{passwordError}</span>
                   </p>
                 )}
               </div>

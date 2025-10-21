@@ -93,7 +93,15 @@ const authOptions: NextAuthOptions = {
           }
         } catch (error: any) {
           console.error('❌ Credentials auth error:', error);
-          throw new Error(error.message || "Authentication failed");
+          
+          // Extract error message from axios error response
+          if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+          } else if (error.response?.data) {
+            throw new Error(error.response.data);
+          } else {
+            throw new Error(error.message || "Authentication failed");
+          }
         }
       }
     }),

@@ -19,6 +19,9 @@ export class ItemServiceService {
           category_id: createItemDto.category_id ?? null,
           is_active: createItemDto.is_active ?? true,
         },
+        include: {
+          category: true,
+        },
       });
 
       return {
@@ -42,14 +45,31 @@ export class ItemServiceService {
         ];
       }
 
-      const [data, total] = await Promise.all([
+      // Calculate total value of active items
+      const activeItems = await this.prisma.item.findMany({
+        where: { is_active: true },
+        select: {
+          price: true,
+          quantity: true,
+        },
+      });
+
+      const totalValue = activeItems.reduce((sum, item) => {
+        return sum + (item.price * item.quantity);
+      }, 0);
+
+      const [data, total, activeItemsCount] = await Promise.all([
         this.prisma.item.findMany({
           where,
           skip,
           take: limit,
           orderBy: { created_at: 'desc' },
+          include: {
+            category: true,
+          },
         }),
         this.prisma.item.count({ where }),
+        this.prisma.item.count({ where: { is_active: true } }),
       ]);
 
       return {
@@ -57,19 +77,25 @@ export class ItemServiceService {
         total,
         page,
         lastPage: Math.ceil(total / limit),
+        stats: {
+          total_value: totalValue,
+          total_items: total,
+          active_items: activeItemsCount,
+          inactive_items: total - activeItemsCount,
+        },
       };
     } catch (error) {
       return { success: false, message: 'Failed to fetch items', error: error.message };
     }
-
-
   }
 
   async findOneItem(id: number) {
     try {
       const item = await this.prisma.item.findUnique({
         where: { id },
-
+        include: {
+          category: true,
+        },
       });
 
       if (!item) {
@@ -98,7 +124,9 @@ export class ItemServiceService {
       const item = await this.prisma.item.update({
         where: { id },
         data: updateItemDto,
-
+        include: {
+          category: true,
+        },
       });
 
       return {

@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Package, Edit, Trash2, Plus } from 'lucide-react';
+import { Package, Edit, Trash2, Plus, FolderOpen, Tag } from 'lucide-react';
 import type { Item } from '@/types/item';
 import { ItemsGridSkeleton } from './ItemsSkeleton';
 import Pagination from '@/components/Pagination';
@@ -89,23 +89,34 @@ function ItemsList({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
       {items.map((item) => (
-        <Card key={item.id} className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {item.name}
-                </h3>
-                {item.category && (
-                  <Badge variant="secondary" className="mt-1">
-                    {item.category.name}
-                  </Badge>
-                )}
-              </div>
-              <Badge variant={item.is_active ? "default" : "destructive"}>
+        <Card key={item.id} className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 flex-1">
+                {item.name}
+              </h3>
+              <Badge variant={item.is_active ? "default" : "destructive"} className="ml-2">
                 {item.is_active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
               </Badge>
             </div>
+            {item.category ? (
+              <div className="w-full bg-gradient-to-r from-blue-50 to-blue-50/50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <FolderOpen className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                  <span className="font-semibold text-blue-900">{item.category.name}</span>
+                </div>
+                {item.category.description && (
+                  <p className="text-xs text-gray-600 pl-6">
+                    {item.category.description}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center gap-2">
+                <Tag className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span className="text-sm text-gray-500 italic">ไม่มีหมวดหมู่</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
@@ -118,7 +129,7 @@ function ItemsList({
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">จำนวน:</span>
-                <span className="font-semibold">{item.quantity}</span>
+                <span className="font-semibold">{item.quantity.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">มูลค่ารวม:</span>

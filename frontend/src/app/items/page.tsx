@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { itemsApi } from '@/lib/api';
+import { itemsApi, categoriesApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
-import type { Item } from '@/types/item';
+import type { Item, Category } from '@/types/item';
 import { toast } from 'sonner';
 import ItemsHeader from './components/ItemsHeader';
 import ItemsFilter from './components/ItemsFilter';
@@ -18,6 +18,7 @@ export default function ItemsPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -33,6 +34,11 @@ export default function ItemsPage() {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 9; // 3x3 grid
 
+  // Fetch categories once on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
   useEffect(() => {
     fetchItems();
   }, [user?.id, currentPage, searchTerm]);
@@ -40,6 +46,17 @@ export default function ItemsPage() {
   useEffect(() => {
     filterItems();
   }, [items, categoryFilter, statusFilter]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoriesApi.getAll({ page: 1, limit: 100 });
+      if (response.data) {
+        setCategories(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
 
   const fetchItems = async () => {
     try {
@@ -133,6 +150,7 @@ export default function ItemsPage() {
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
           userId={user?.id}
+          categories={categories}
           onSuccess={fetchItems}
         />
 
@@ -140,6 +158,7 @@ export default function ItemsPage() {
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
           item={selectedItem}
+          categories={categories}
           onSuccess={fetchItems}
         />
 
