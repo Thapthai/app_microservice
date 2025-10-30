@@ -9,6 +9,7 @@ export class GatewayApiService {
     @Inject('ITEM_SERVICE') private readonly itemClient: ClientProxy,
     @Inject('EMAIL_SERVICE') private readonly emailClient: ClientProxy,
     @Inject('CATEGORY_SERVICE') private readonly categoryClient: ClientProxy,
+    @Inject('HOUSEKEEPING_SERVICE') private readonly housekeepingClient: ClientProxy,
   ) { }
 
   getHello(): string {
@@ -196,5 +197,22 @@ export class GatewayApiService {
 
   async getCategoryChildren(parentId: string) {
     return this.categoryClient.send('category.getChildren', parentId).toPromise();
+  }
+
+  // ==================================== Housekeeping Service Methods ====================================
+  async getHousekeepingStatus() {
+    return this.housekeepingClient.send('housekeeping.status', {}).toPromise();
+  }
+
+  async triggerArchive(days: number) {
+    return this.housekeepingClient.send('housekeeping.archive', { days }).toPromise();
+  }
+
+  async triggerArchiveTable(tableName: string, days: number) {
+    return this.housekeepingClient.send('housekeeping.archive.table', { tableName, days }).toPromise();
+  }
+
+  async getHousekeepingStats() {
+    return this.housekeepingClient.send('housekeeping.stats', {}).toPromise();
   }
 }

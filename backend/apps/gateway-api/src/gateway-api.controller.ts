@@ -490,4 +490,67 @@ export class GatewayApiController {
     }
   }
 
+  // ============================================================
+  // HOUSEKEEPING ENDPOINTS (Admin only)
+  // ============================================================
+
+  @Get('housekeeping')
+  @UseGuards(JwtAuthGuard)
+  async getHousekeepingStatus() {
+    try {
+      const result = await this.gatewayApiService.getHousekeepingStatus();
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get housekeeping status',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('housekeeping/archive')
+  @UseGuards(JwtAuthGuard)
+  async triggerArchive(@Query('days', new DefaultValuePipe(90), ParseIntPipe) days: number) {
+    try {
+      const result = await this.gatewayApiService.triggerArchive(days);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to trigger archive',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('housekeeping/archive/:tableName')
+  @UseGuards(JwtAuthGuard)
+  async triggerArchiveTable(
+    @Param('tableName') tableName: string,
+    @Query('days', new DefaultValuePipe(90), ParseIntPipe) days: number,
+  ) {
+    try {
+      const result = await this.gatewayApiService.triggerArchiveTable(tableName, days);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to trigger table archive',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('housekeeping/stats')
+  @UseGuards(JwtAuthGuard)
+  async getHousekeepingStats() {
+    try {
+      const result = await this.gatewayApiService.getHousekeepingStats();
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get housekeeping statistics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 }

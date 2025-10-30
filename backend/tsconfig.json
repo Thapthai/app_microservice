@@ -18,7 +18,9 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@libs/metrics": ["libs/metrics"]
+      "@libs/metrics": [
+        "libs/metrics"
+      ]
     }
   }
 }

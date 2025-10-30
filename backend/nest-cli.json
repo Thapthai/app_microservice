@@ -28,6 +28,15 @@
         "tsConfigPath": "apps/auth-service/tsconfig.app.json"
       }
     },
+    "category-service": {
+      "type": "application",
+      "root": "apps/category-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/category-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/category-service/tsconfig.app.json"
+      }
+    },
     "email-service": {
       "type": "application",
       "root": "apps/email-service",
@@ -46,6 +55,15 @@
         "tsConfigPath": "apps/gateway-api/tsconfig.app.json"
       }
     },
+    "housekeeping-service": {
+      "type": "application",
+      "root": "apps/housekeeping-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/housekeeping-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/housekeeping-service/tsconfig.app.json"
+      }
+    },
     "item-service": {
       "type": "application",
       "root": "apps/item-service",
@@ -53,15 +71,6 @@
       "sourceRoot": "apps/item-service/src",
       "compilerOptions": {
         "tsConfigPath": "apps/item-service/tsconfig.app.json"
-      }
-    },
-    "category-service": {
-      "type": "application",
-      "root": "apps/category-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/category-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/category-service/tsconfig.app.json"
       }
     }
   }

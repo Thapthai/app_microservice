@@ -41,6 +41,14 @@ import { MetricsModule } from '../../../libs/metrics/metrics.module';
           port: parseInt(process.env.CATEGORY_SERVICE_PORT || '3004', 10),
         },
       },
+      {
+        name: 'HOUSEKEEPING_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: process.env.HOUSEKEEPING_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.HOUSEKEEPING_SERVICE_PORT || '3007', 10),
+        },
+      },
     ]),
   ],
   controllers: [GatewayApiController],
