@@ -2,3 +2,4 @@
 export * from './auth.dto';
 export * from './item.dto';
 export * from './category.dto';
+export * from './medical-supply.dto';

@@ -1,6 +1,7 @@
 # 📋 POSE Microservice - API Endpoints List
 
-**Base URL:** `http://your-server:3000/api`
+**Base URL:** `http://your-server:3000/api/v1`
+**API Version:** v1
 
 ---
 
@@ -21,7 +22,7 @@
 
 ### **1.1 Register**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/register`
+- **Endpoint:** `/api/v1/auth/register`
 - **Auth:** ❌ No
 - **Body:**
   ```json
@@ -34,7 +35,7 @@
 
 ### **1.2 Login**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/login`
+- **Endpoint:** `/api/v1/auth/login`
 - **Auth:** ❌ No
 - **Body:**
   ```json
@@ -46,13 +47,13 @@
 
 ### **1.3 Get Profile (Token Validation)**
 - **Method:** `GET`
-- **Endpoint:** `/api/auth/profile`
+- **Endpoint:** `/api/v1/auth/profile`
 - **Auth:** ✅ Bearer Token
 - **Headers:** `Authorization: Bearer {token}`
 
 ### **1.4 Firebase Login**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/firebase/login`
+- **Endpoint:** `/api/v1/auth/firebase/login`
 - **Auth:** ❌ No
 - **Body:**
   ```json
@@ -63,7 +64,7 @@
 
 ### **1.5 Enable 2FA**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/2fa/enable`
+- **Endpoint:** `/api/v1/auth/2fa/enable`
 - **Auth:** ✅ Bearer Token
 - **Body:**
   ```json
@@ -74,7 +75,7 @@
 
 ### **1.6 Verify 2FA Setup**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/2fa/verify-setup`
+- **Endpoint:** `/api/v1/auth/2fa/verify-setup`
 - **Auth:** ✅ Bearer Token
 - **Body:**
   ```json
@@ -86,7 +87,7 @@
 
 ### **1.7 Disable 2FA**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/2fa/disable`
+- **Endpoint:** `/api/v1/auth/2fa/disable`
 - **Auth:** ✅ Bearer Token
 - **Body:**
   ```json
@@ -98,7 +99,7 @@
 
 ### **1.8 Login with 2FA**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/login/2fa`
+- **Endpoint:** `/api/v1/auth/login/2fa`
 - **Auth:** ❌ No
 - **Body:**
   ```json
@@ -111,7 +112,7 @@
 
 ### **1.9 Request Password Reset**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/password/reset-request`
+- **Endpoint:** `/api/v1/auth/password/reset-request`
 - **Auth:** ❌ No
 - **Body:**
   ```json
@@ -122,7 +123,7 @@
 
 ### **1.10 Change Password**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/user/change-password`
+- **Endpoint:** `/api/v1/auth/user/change-password`
 - **Auth:** ✅ JWT Guard
 - **Body:**
   ```json
@@ -138,13 +139,13 @@
 
 ### **2.1 Get User Profile**
 - **Method:** `GET`
-- **Endpoint:** `/api/auth/user/profile`
+- **Endpoint:** `/api/v1/auth/user/profile`
 - **Auth:** ✅ JWT Guard
 - **Response:** User profile data
 
 ### **2.2 Update User Profile**
 - **Method:** `PUT`
-- **Endpoint:** `/api/auth/user/profile`
+- **Endpoint:** `/api/v1/auth/user/profile`
 - **Auth:** ✅ JWT Guard
 - **Body:**
   ```json
@@ -156,7 +157,7 @@
 
 ### **2.3 Change Password**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/user/change-password`
+- **Endpoint:** `/api/v1/auth/user/change-password`
 - **Auth:** ✅ JWT Guard
 - **Body:**
   ```json
@@ -168,7 +169,7 @@
 
 ### **2.4 Request Password Reset**
 - **Method:** `POST`
-- **Endpoint:** `/api/auth/password/reset-request`
+- **Endpoint:** `/api/v1/auth/password/reset-request`
 - **Auth:** ❌ No
 - **Body:**
   ```json
@@ -183,7 +184,7 @@
 
 ### **3.1 Create Item**
 - **Method:** `POST`
-- **Endpoint:** `/api/items`
+- **Endpoint:** `/api/v1/items`
 - **Auth:** ✅ JWT Guard
 - **Body:**
   ```json
@@ -199,7 +200,7 @@
 
 ### **3.2 Get All Items (with Pagination, Search, Sort)**
 - **Method:** `GET`
-- **Endpoint:** `/api/items`
+- **Endpoint:** `/api/v1/items`
 - **Auth:** ✅ JWT Guard
 - **Query Params:**
   - `page` (default: 1)
@@ -207,17 +208,17 @@
   - `keyword` (optional)
   - `sort_by` (optional: name, price, quantity, created_at)
   - `sort_order` (optional: asc, desc)
-- **Example:** `/api/items?page=1&limit=10&keyword=item&sort_by=name&sort_order=desc`
+- **Example:** `/api/v1/items?page=1&limit=10&keyword=item&sort_by=name&sort_order=desc`
 
 ### **3.3 Get Item by ID**
 - **Method:** `GET`
-- **Endpoint:** `/api/items/:id`
+- **Endpoint:** `/api/v1/items/:id`
 - **Auth:** ✅ JWT Guard
-- **Example:** `/api/items/1`
+- **Example:** `/api/v1/items/1`
 
 ### **3.4 Update Item**
 - **Method:** `PUT`
-- **Endpoint:** `/api/items/:id`
+- **Endpoint:** `/api/v1/items/:id`
 - **Auth:** ✅ JWT Guard
 - **Body:**
   ```json
@@ -233,9 +234,9 @@
 
 ### **3.5 Delete Item**
 - **Method:** `DELETE`
-- **Endpoint:** `/api/items/:id`
+- **Endpoint:** `/api/v1/items/:id`
 - **Auth:** ✅ JWT Guard
-- **Example:** `/api/items/1`
+- **Example:** `/api/v1/items/1`
 
 ---
 
@@ -243,7 +244,7 @@
 
 ### **4.1 Create Category**
 - **Method:** `POST`
-- **Endpoint:** `/api/categories`
+- **Endpoint:** `/api/v1/categories`
 - **Auth:** ✅ JWT Guard
 - **Body:**
   ```json
@@ -260,35 +261,35 @@
 
 ### **4.2 Get All Categories (with Pagination)**
 - **Method:** `GET`
-- **Endpoint:** `/api/categories`
+- **Endpoint:** `/api/v1/categories`
 - **Auth:** ✅ JWT Guard
 - **Query Params:**
   - `page` (default: 1)
   - `limit` (default: 10)
   - `parentId` (optional)
-- **Example:** `/api/categories?page=1&limit=10`
+- **Example:** `/api/v1/categories?page=1&limit=10`
 
 ### **4.3 Get Category Tree**
 - **Method:** `GET`
-- **Endpoint:** `/api/categories/tree`
+- **Endpoint:** `/api/v1/categories/tree`
 - **Auth:** ✅ JWT Guard
 - **Response:** Hierarchical category tree
 
 ### **4.4 Get Category by ID**
 - **Method:** `GET`
-- **Endpoint:** `/api/categories/:id`
+- **Endpoint:** `/api/v1/categories/:id`
 - **Auth:** ✅ JWT Guard
-- **Example:** `/api/categories/1`
+- **Example:** `/api/v1/categories/1`
 
 ### **4.5 Get Category by Slug**
 - **Method:** `GET`
-- **Endpoint:** `/api/categories/slug/:slug`
+- **Endpoint:** `/api/v1/categories/slug/:slug`
 - **Auth:** ✅ JWT Guard
-- **Example:** `/api/categories/slug/electronics`
+- **Example:** `/api/v1/categories/slug/electronics`
 
 ### **4.6 Update Category**
 - **Method:** `PUT`
-- **Endpoint:** `/api/categories/:id`
+- **Endpoint:** `/api/v1/categories/:id`
 - **Auth:** ✅ JWT Guard
 - **Body:**
   ```json
@@ -305,15 +306,15 @@
 
 ### **4.7 Delete Category**
 - **Method:** `DELETE`
-- **Endpoint:** `/api/categories/:id`
+- **Endpoint:** `/api/v1/categories/:id`
 - **Auth:** ✅ JWT Guard
-- **Example:** `/api/categories/1`
+- **Example:** `/api/v1/categories/1`
 
 ### **4.8 Get Category Children**
 - **Method:** `GET`
-- **Endpoint:** `/api/categories/:parentId/children`
+- **Endpoint:** `/api/v1/categories/:parentId/children`
 - **Auth:** ✅ JWT Guard
-- **Example:** `/api/categories/1/children`
+- **Example:** `/api/v1/categories/1/children`
 
 ---
 
@@ -321,7 +322,7 @@
 
 ### **5.1 Test Email Send**
 - **Method:** `POST`
-- **Endpoint:** `/api/email/test`
+- **Endpoint:** `/api/v1/email/test`
 - **Auth:** ❌ No
 - **Body:**
   ```json
@@ -333,23 +334,17 @@
 
 ### **5.2 Test Email Connection**
 - **Method:** `GET`
-- **Endpoint:** `/api/email/connection`
+- **Endpoint:** `/api/v1/email/connection`
 - **Auth:** ❌ No
 - **Response:** Email service connection status
 
 ---
 
-## 🎯 6. System/Health (2 Endpoints)
+## 🎯 6. System/Health (1 Endpoint)
 
 ### **6.1 API Hello**
 - **Method:** `GET`
-- **Endpoint:** `/api`
-- **Auth:** ❌ No
-- **Response:** "Hello from Gateway API!"
-
-### **6.2 Root Hello**
-- **Method:** `GET`
-- **Endpoint:** `/`
+- **Endpoint:** `/api/v1`
 - **Auth:** ❌ No
 - **Response:** "Hello from Gateway API!"
 
@@ -381,8 +376,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ### **Get Token:**
-1. Register: `POST /api/auth/register`
-2. Login: `POST /api/auth/login`
+1. Register: `POST /api/v1/auth/register`
+2. Login: `POST /api/v1/auth/login`
 3. Response includes: `{ "token": "..." }`
 
 ---
@@ -419,6 +414,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ---
 
 **Created:** 2025-01-21  
+**Updated:** 2025-11-07 (Added API v1 versioning)  
 **Version:** 1.0.0  
 **Total Endpoints:** 29
 

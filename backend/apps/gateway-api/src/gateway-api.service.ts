@@ -10,6 +10,7 @@ export class GatewayApiService {
     @Inject('EMAIL_SERVICE') private readonly emailClient: ClientProxy,
     @Inject('CATEGORY_SERVICE') private readonly categoryClient: ClientProxy,
     @Inject('HOUSEKEEPING_SERVICE') private readonly housekeepingClient: ClientProxy,
+    @Inject('MEDICAL_SUPPLIES_SERVICE') private readonly medicalSuppliesClient: ClientProxy,
   ) { }
 
   getHello(): string {
@@ -214,5 +215,42 @@ export class GatewayApiService {
 
   async getHousekeepingStats() {
     return this.housekeepingClient.send('housekeeping.stats', {}).toPromise();
+  }
+
+  // ==================================== Medical Supplies Service Methods ====================================
+  async createMedicalSupplyUsage(data: any) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.create' }, data).toPromise();
+  }
+
+  async getMedicalSupplyUsages(query: any) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.findAll' }, query).toPromise();
+  }
+
+  async getMedicalSupplyUsageById(id: number) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.findOne' }, { id }).toPromise();
+  }
+
+  async getMedicalSupplyUsageByHN(hn: string) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.findByPatientHN' }, { patient_hn: hn }).toPromise();
+  }
+
+  async updateMedicalSupplyUsage(id: number, updateData: any) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.update' }, { id, updateData }).toPromise();
+  }
+
+  async deleteMedicalSupplyUsage(id: number) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.remove' }, { id }).toPromise();
+  }
+
+  async updateBillingStatus(id: number, status: string) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.updateBillingStatus' }, { id, status }).toPromise();
+  }
+
+  async getMedicalSupplyUsageByDepartment(department_code: string) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.findByDepartment' }, { department_code }).toPromise();
+  }
+
+  async getMedicalSupplyStatistics() {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.statistics' }, {}).toPromise();
   }
 }

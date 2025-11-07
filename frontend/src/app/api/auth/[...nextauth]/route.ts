@@ -24,7 +24,7 @@ const authOptions: NextAuthOptions = {
             console.log('🔐 Validating 2FA token...');
             
             // Validate the token by calling the profile endpoint
-            const validateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/auth/profile`, {
+            const validateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/auth/profile`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'

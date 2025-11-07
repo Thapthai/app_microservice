@@ -72,6 +72,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/item-service/tsconfig.app.json"
       }
+    },
+    "medical-supplies-service": {
+      "type": "application",
+      "root": "apps/medical-supplies-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/medical-supplies-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/medical-supplies-service/tsconfig.app.json"
+      }
     }
   }
 }

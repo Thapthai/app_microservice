@@ -1,19 +1,14 @@
 import { Controller, Post, Body, Get, Headers, HttpException, HttpStatus, Put, Delete, Param, Query, ParseIntPipe, DefaultValuePipe, UseGuards, Request } from '@nestjs/common';
 import { GatewayApiService } from './gateway-api.service';
-import { RegisterDto, LoginDto, CreateItemDto, UpdateItemDto, ChangePasswordDto, UpdateUserProfileDto, ResetPasswordDto, CreateCategoryDto, UpdateCategoryDto } from './dto';
+import { RegisterDto, LoginDto, CreateItemDto, UpdateItemDto, ChangePasswordDto, UpdateUserProfileDto, ResetPasswordDto, CreateCategoryDto, UpdateCategoryDto, CreateMedicalSupplyUsageDto, UpdateMedicalSupplyUsageDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
-@Controller('api')
+@Controller()
 export class GatewayApiController {
   constructor(private readonly gatewayApiService: GatewayApiService) { }
 
   @Get()
   getHello(): string {
-    return this.gatewayApiService.getHello();
-  }
-
-  @Get('api')
-  getApiHello(): string {
     return this.gatewayApiService.getHello();
   }
 
@@ -240,7 +235,7 @@ export class GatewayApiController {
   async createItem(@Body() createItemDto: CreateItemDto, @Request() req: any) {
     try {
       // User data is available from JWT token via req.user
- 
+
       const result = await this.gatewayApiService.createItem(createItemDto);
       return result;
     } catch (error) {
@@ -548,6 +543,212 @@ export class GatewayApiController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to get housekeeping statistics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ============================================================
+  // MEDICAL SUPPLIES ENDPOINTS (Public for testing)
+  // ============================================================
+
+  @Post('medical-supplies')
+  //  @UseGuards(JwtAuthGuard)
+  async createMedicalSupplyUsage(@Body() data: CreateMedicalSupplyUsageDto) {
+    try {
+      const result = await this.gatewayApiService.createMedicalSupplyUsage(data);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to create medical supply usage',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supplies')
+  // @UseGuards(JwtAuthGuard)
+  async getMedicalSupplyUsages(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('patient_hn') patient_hn?: string,
+    @Query('visit_date') visit_date?: string,
+    @Query('department_code') department_code?: string,
+    @Query('billing_status') billing_status?: string,
+    @Query('usage_type') usage_type?: string,
+  ) {
+    try {
+      const query = { page, limit, patient_hn, department_code, billing_status, usage_type };
+      const result = await this.gatewayApiService.getMedicalSupplyUsages(query);
+      
+      // Transform response to match required format
+      if (result.success && result.data) {
+        // Filter by visit_date if provided
+        let filteredData = result.data;
+        if (visit_date && result.data.length > 0) {
+          filteredData = result.data.filter((item: any) => {
+            if (!item.usage_datetime) return false;
+            // Extract date part from usage_datetime (YYYY-MM-DD)
+            const usageDate = item.usage_datetime.split('T')[0];
+            return usageDate === visit_date;
+          });
+        }
+
+        // If single record (filtered by patient_hn and optionally visit_date), return single object
+        if (patient_hn && filteredData.length === 1) {
+          const item = filteredData[0];
+          return {
+            status: 'success',
+            data: {
+              patient_hn: item.patient_hn,
+              name_th: item.patient_name_th,
+              name_en: item.patient_name_en,
+            },
+            supplies_count: item.supply_items?.length || 0,
+            supplies_summary: item.supply_items?.map((supply: any) => ({
+              supply_code: supply.supply_code,
+              supply_name: supply.supply_name,
+              quantity: supply.quantity,
+              unit: supply.unit,
+              total_price: supply.total_price || 0,
+            })) || [],
+            usage_details: {
+              usage_datetime: item.usage_datetime,
+              usage_type: item.usage_type,
+            },
+            personnel: {
+              recorded_by: item.recorded_by_user_id,
+            },
+            billing: {
+              status: item.billing_status,
+              subtotal: item.billing_subtotal || 0,
+              tax: item.billing_tax || 0,
+              total: item.billing_total || 0,
+              currency: item.billing_currency || 'THB',
+            },
+            created_at: item.created_at,
+            timestamp: item.created_at,
+          };
+        }
+
+        // Multiple records - return array
+        const transformedData = filteredData.map((item: any) => ({
+          status: 'success',
+          data: {
+            patient_hn: item.patient_hn,
+            name_th: item.patient_name_th,
+            name_en: item.patient_name_en,
+          },
+          supplies_count: item.supply_items?.length || 0,
+          supplies_summary: item.supply_items?.map((supply: any) => ({
+            supply_code: supply.supply_code,
+            supply_name: supply.supply_name,
+            quantity: supply.quantity,
+            unit: supply.unit,
+            total_price: supply.total_price || 0,
+          })) || [],
+          usage_details: {
+            usage_datetime: item.usage_datetime,
+            usage_type: item.usage_type,
+          },
+          personnel: {
+            recorded_by: item.recorded_by_user_id,
+          },
+          billing: {
+            status: item.billing_status,
+            subtotal: item.billing_subtotal || 0,
+            tax: item.billing_tax || 0,
+            total: item.billing_total || 0,
+            currency: item.billing_currency || 'THB',
+          },
+          created_at: item.created_at,
+          timestamp: item.created_at,
+        }));
+
+        return {
+          status: 'success',
+          data: transformedData,
+          total: filteredData.length,
+          page: result.page,
+          limit: result.limit,
+          timestamp: new Date().toISOString(),
+        };
+      }
+      
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get medical supply usages',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supplies/:id')
+  // @UseGuards(JwtAuthGuard)
+  async getMedicalSupplyUsageById(@Param('id') id: string) {
+    try {
+      const result = await this.gatewayApiService.getMedicalSupplyUsageById(parseInt(id));
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get medical supply usage',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supplies/hn/:hn')
+  // @UseGuards(JwtAuthGuard)
+  async getMedicalSupplyUsageByHN(@Param('hn') hn: string) {
+    try {
+      const result = await this.gatewayApiService.getMedicalSupplyUsageByHN(hn);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get medical supply usage by HN',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Put('medical-supplies/:id')
+  // @UseGuards(JwtAuthGuard)
+  async updateMedicalSupplyUsage(@Param('id') id: string, @Body() updateData: UpdateMedicalSupplyUsageDto) {
+    try {
+      const result = await this.gatewayApiService.updateMedicalSupplyUsage(parseInt(id), updateData);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update medical supply usage',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete('medical-supplies/:id')
+  // @UseGuards(JwtAuthGuard)
+  async deleteMedicalSupplyUsage(@Param('id') id: string) {
+    try {
+      const result = await this.gatewayApiService.deleteMedicalSupplyUsage(parseInt(id));
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to delete medical supply usage',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supplies/statistics/all')
+  // @UseGuards(JwtAuthGuard)
+  async getMedicalSupplyStatistics() {
+    try {
+      const result = await this.gatewayApiService.getMedicalSupplyStatistics();
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get medical supply statistics',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

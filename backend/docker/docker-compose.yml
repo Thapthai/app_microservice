@@ -132,6 +132,30 @@ services:
     volumes:
       - ./logs:/app/logs
 
+  # Medical Supplies Service
+  medical-supplies-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.medical-supplies
+      target: production
+    container_name: pose-medical-supplies-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "3008:3008"
+      - "9108:9108"
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(3008, '0.0.0.0').on('connect', () => process.exit(0)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
   # Gateway API
   gateway-api:
     build:
@@ -152,6 +176,8 @@ services:
       - EMAIL_SERVICE_PORT=3003
       - CATEGORY_SERVICE_HOST=category-service
       - CATEGORY_SERVICE_PORT=3004
+      - MEDICAL_SUPPLIES_SERVICE_HOST=medical-supplies-service
+      - MEDICAL_SUPPLIES_SERVICE_PORT=3008
       - FRONTEND_URL=${FRONTEND_URL}
     # ports:
       # - "${GATEWAY_PORT}:3000"  # ใช้ nginx proxy แทน
@@ -160,6 +186,7 @@ services:
       - item-service
       - email-service
       - category-service
+      - medical-supplies-service
       - redis
     networks:
       - pose-network

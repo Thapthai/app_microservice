@@ -19,10 +19,10 @@ model User {
   email_verified        Boolean   @default(false)
   preferred_auth_method String    @default("jwt") // jwt, oauth2, api_key, firebase
   last_login_at         DateTime?
-  
+
   // Firebase Authentication
-  firebase_uid           String?   @unique @map("firebase_uid")
-  profile_picture        String?   @map("profile_picture")
+  firebase_uid    String? @unique @map("firebase_uid")
+  profile_picture String? @map("profile_picture")
 
   // 2FA Fields
   two_factor_enabled     Boolean   @default(false) @map("two_factor_enabled")
@@ -138,4 +138,93 @@ model Item {
   category Category? @relation(fields: [category_id], references: [id], onDelete: Cascade)
 
   @@map("items")
+}
+
+// Medical Supplies Usage
+model MedicalSupplyUsage {
+  id Int @id @default(autoincrement())
+
+  // Patient Information
+  patient_hn      String @map("patient_hn")
+  patient_name_th String @map("patient_name_th")
+  patient_name_en String @map("patient_name_en")
+
+  // Usage Details
+  usage_datetime String? @map("usage_datetime")
+  usage_type     String? @map("usage_type")
+  purpose        String? @map("purpose")
+
+  // Location
+  department_code String? @map("department_code")
+
+  // Personnel
+  recorded_by_user_id String? @map("recorded_by_user_id")
+
+  // Billing
+  billing_status   String? @map("billing_status")
+  billing_subtotal Float?  @map("billing_subtotal")
+  billing_tax      Float?  @map("billing_tax")
+  billing_total    Float?  @map("billing_total")
+  billing_currency String? @default("THB") @map("billing_currency")
+
+  // Timestamps
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  supply_items SupplyUsageItem[]
+  logs         MedicalSupplyUsageLog[]
+
+  @@index([patient_hn])
+  @@index([usage_datetime])
+  @@index([department_code])
+  @@index([billing_status])
+  @@map("medical_supply_usages")
+}
+
+// Supply Usage Items
+model SupplyUsageItem {
+  id                      Int      @id @default(autoincrement())
+  medical_supply_usage_id Int      @map("medical_supply_usage_id")
+  
+  // Supply Details (stored directly)
+  supply_code     String @map("supply_code")
+  supply_name     String @map("supply_name")
+  supply_category String @map("supply_category")
+  unit            String @map("unit")
+  quantity        Int    @map("quantity")
+  unit_price      Float  @map("unit_price")
+  total_price     Float  @map("total_price")
+  expiry_date     String? @map("expiry_date")
+  
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  usage MedicalSupplyUsage @relation(fields: [medical_supply_usage_id], references: [id], onDelete: Cascade)
+
+  @@index([medical_supply_usage_id])
+  @@index([supply_code])
+  @@map("supply_usage_items")
+}
+
+// Medical Supplies Usage Logs
+model MedicalSupplyUsageLog {
+  id Int @id @default(autoincrement())
+
+  // Reference to the usage record
+  usage_id Int @map("usage_id")
+
+  // Action data (JSON) - เก็บทุกอย่างใน JSON
+  action Json @map("action") @db.Json
+
+  // Timestamp
+  created_at DateTime @default(now()) @map("created_at")
+
+  // Relations
+  usage MedicalSupplyUsage @relation(fields: [usage_id], references: [id], onDelete: Cascade)
+
+  @@index([usage_id])
+  @@index([created_at])
+  @@map("medical_supply_usages_logs")
 }

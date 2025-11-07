@@ -1,0 +1,62 @@
+# Medical Supplies Service Dockerfile
+FROM node:18-alpine AS base
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
+
+# Development stage
+FROM base AS development
+RUN npm ci
+COPY . .
+RUN npx prisma generate
+CMD ["npm", "run", "start:medical-supplies:dev"]
+
+# Build stage
+FROM base AS build
+RUN npm ci --include=dev
+COPY . .
+RUN npx prisma generate
+RUN npm run build:medical-supplies
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy package files and install production dependencies
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build /app/prisma ./prisma
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nestjs -u 1001
+USER nestjs
+
+# Expose port
+EXPOSE 3008
+
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=3008
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3008/health || exit 1
+
+# Start the application
+CMD ["node", "dist/apps/medical-supplies-service/main"]

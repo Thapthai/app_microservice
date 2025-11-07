@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-BASE_URL="http://10.11.9.84:3000/api"
+BASE_URL="http://10.11.9.84:3000/api/v1"
 TEST_EMAIL="tester_$(date +%s)@example.com"
 TEST_PASSWORD="Test1234!"
 ACCESS_TOKEN=""
