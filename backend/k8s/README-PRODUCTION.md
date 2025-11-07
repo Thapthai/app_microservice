@@ -111,6 +111,7 @@ docker build --target production -f docker/Dockerfile.gateway -t backend-gateway
 docker build --target production -f docker/Dockerfile.item -t backend-item-service:latest .
 docker build --target production -f docker/Dockerfile.email -t backend-email-service:latest .
 docker build --target production -f docker/Dockerfile.category -t backend-category-service:latest .
+docker build --target production -f docker/Dockerfile.medical-supplies -t backend-medical-supplies-service:latest .
 
 # 3. Import images เข้า K3s
 docker save \
@@ -119,6 +120,7 @@ docker save \
   backend-item-service:latest \
   backend-email-service:latest \
   backend-category-service:latest \
+  backend-medical-supplies-service:latest \
   | sudo k3s ctr images import -
 
 # 4. Pull Redis image
@@ -135,6 +137,7 @@ sudo k3s ctr images ls | grep -E "(backend|redis)"
 - docker.io/library/backend-item-service:latest
 - docker.io/library/backend-email-service:latest
 - docker.io/library/backend-category-service:latest
+- docker.io/library/backend-medical-supplies-service:latest 
 - docker.io/library/redis:7-alpine
 
 **💡 Tips:**
