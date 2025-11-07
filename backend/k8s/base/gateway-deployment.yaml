@@ -66,6 +66,16 @@ spec:
             configMapKeyRef:
               name: pose-config
               key: CATEGORY_SERVICE_PORT
+        - name: MEDICAL_SUPPLIES_SERVICE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pose-config
+              key: MEDICAL_SUPPLIES_SERVICE_HOST
+        - name: MEDICAL_SUPPLIES_SERVICE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pose-config
+              key: MEDICAL_SUPPLIES_SERVICE_PORT
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:

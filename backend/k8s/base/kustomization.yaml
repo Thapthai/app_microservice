@@ -16,7 +16,3 @@ resources:
   - services.yaml
   - ingress.yaml
 
-commonLabels:
-  app.kubernetes.io/name: pose-microservices
-  app.kubernetes.io/version: "1.0.0"
-

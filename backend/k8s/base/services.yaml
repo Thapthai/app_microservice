@@ -126,6 +126,8 @@ metadata:
   namespace: pose-microservices
   labels:
     app: gateway-api
+  annotations:
+    metallb.universe.tf/allow-shared-ip: "pose-services"
 spec:
   selector:
     app: gateway-api
