@@ -101,6 +101,27 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: medical-supplies-service
+  namespace: pose-microservices
+  labels:
+    app: medical-supplies-service
+spec:
+  selector:
+    app: medical-supplies-service
+  ports:
+  - name: tcp
+    port: 3008
+    targetPort: 3008
+    protocol: TCP
+  - name: metrics
+    port: 9108
+    targetPort: 9108
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: gateway-service
   namespace: pose-microservices
   labels:

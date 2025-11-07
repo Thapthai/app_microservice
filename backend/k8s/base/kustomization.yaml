@@ -12,6 +12,7 @@ resources:
   - category-deployment.yaml
   - email-deployment.yaml
   - gateway-deployment.yaml
+  - medical-supplies-deployment.yaml
   - services.yaml
   - ingress.yaml
 

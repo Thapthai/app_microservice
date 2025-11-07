@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medical-supplies-service
+  namespace: pose-microservices
+  labels:
+    app: medical-supplies-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: medical-supplies-service
+  template:
+    metadata:
+      labels:
+        app: medical-supplies-service
+    spec:
+      containers:
+      - name: medical-supplies-service
+        image: backend-medical-supplies-service:latest
+        ports:
+        - containerPort: 3008
+        - containerPort: 9108
+          name: metrics
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: pose-config
+              key: NODE_ENV
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: pose-secrets
+              key: DATABASE_URL
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        livenessProbe:
+          tcpSocket:
+            port: 3008
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 3008
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        imagePullPolicy: Never  # Use local image
+
