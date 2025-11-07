@@ -554,10 +554,51 @@ export class GatewayApiController {
 
   @Post('medical-supplies')
   //  @UseGuards(JwtAuthGuard)
-  async createMedicalSupplyUsage(@Body() data: CreateMedicalSupplyUsageDto) {
+  async createMedicalSupplyUsage(@Body() data: any) {
     try {
+      // Auto-detect format: if has "Order" field, it's legacy format
+      if (data.Order && Array.isArray(data.Order)) {
+        // Legacy format (Order) - transform to new format
+        const supplies = data.Order.map((item: any) => ({
+          supply_code: item.ItemCode,
+          supply_name: item.ItemDescription,
+          supply_category: 'Medical Supplies',
+          unit: item.UOM,
+          quantity: parseInt(item.QTY) || 0,
+          unit_price: 0,
+          total_price: 0,
+          expiry_date: undefined,
+        }));
+
+        const transformedData: CreateMedicalSupplyUsageDto = {
+          patient_hn: data.HN,
+          patient_name_th: `${data.FirstName} ${data.Lastname}`,
+          patient_name_en: `${data.FirstName} ${data.Lastname}`,
+          supplies: supplies,
+          usage_datetime: new Date().toISOString(),
+          usage_type: 'treatment',
+          purpose: `Order: ${data.EN}`,
+          department_code: undefined,
+          recorded_by_user_id: 'SYSTEM',
+          billing_status: 'pending',
+          billing_subtotal: 0,
+          billing_tax: 0,
+          billing_total: 0,
+          billing_currency: 'THB',
+        };
+
+        const result = await this.gatewayApiService.createMedicalSupplyUsage(transformedData);
+        return result;
+      } else if (data.supplies && Array.isArray(data.supplies)) {
+        // New format (supplies)
       const result = await this.gatewayApiService.createMedicalSupplyUsage(data);
       return result;
+      } else {
+        throw new HttpException(
+          'Invalid data format. Expected either "Order" or "supplies" array.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to create medical supply usage',
