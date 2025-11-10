@@ -212,8 +212,8 @@ model SupplyUsageItem {
 model MedicalSupplyUsageLog {
   id Int @id @default(autoincrement())
 
-  // Reference to the usage record
-  usage_id Int @map("usage_id")
+  // Reference to the usage record (nullable for error logs)
+  usage_id Int? @map("usage_id")
 
   // Action data (JSON) - เก็บทุกอย่างใน JSON
   action Json @map("action") @db.Json
@@ -221,8 +221,8 @@ model MedicalSupplyUsageLog {
   // Timestamp
   created_at DateTime @default(now()) @map("created_at")
 
-  // Relations
-  usage MedicalSupplyUsage @relation(fields: [usage_id], references: [id], onDelete: Cascade)
+  // Relations (optional - for error logs without usage_id)
+  usage MedicalSupplyUsage? @relation(fields: [usage_id], references: [id], onDelete: Cascade)
 
   @@index([usage_id])
   @@index([created_at])
