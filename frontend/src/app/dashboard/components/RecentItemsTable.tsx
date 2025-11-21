@@ -147,6 +147,9 @@ function ItemsTable({
                   <SortIcon field="name" />
                 </button>
               </th>
+              <th className="hidden lg:table-cell px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                รหัสสินค้า
+              </th>
               <th className="hidden sm:table-cell px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                 หมวดหมู่
               </th>
@@ -188,6 +191,16 @@ function ItemsTable({
                         {item.description}
                       </div>
                     )}
+                    {item.department && (
+                      <div className="text-xs text-blue-600 truncate mt-0.5">
+                        {item.department}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="hidden lg:table-cell px-2 py-2 text-sm text-gray-700">
+                  <div className="truncate max-w-[100px] font-mono text-xs">
+                    {item.item_code || '-'}
                   </div>
                 </td>
                 <td className="hidden sm:table-cell px-2 py-2 text-sm text-gray-900">

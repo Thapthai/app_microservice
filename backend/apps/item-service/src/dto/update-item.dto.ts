@@ -30,4 +30,30 @@ export class UpdateItemDto {
     @IsOptional()
     @IsBoolean()
     is_active?: boolean;
+
+    // Medical Supply Item Fields
+    @IsOptional()
+    @IsInt()
+    @Type(() => Number)
+    number?: number;
+
+    @IsOptional()
+    @IsString()
+    item_code?: string;
+
+    @IsOptional()
+    @IsString()
+    uom?: string;
+
+    @IsOptional()
+    @IsString()
+    picture_path?: string;
+
+    @IsOptional()
+    @IsString()
+    size?: string;
+
+    @IsOptional()
+    @IsString()
+    department?: string;
 }

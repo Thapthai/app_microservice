@@ -28,6 +28,12 @@ export interface Item {
   category_id?: number;
   category?: Category;
   is_active: boolean;
+  number?: number;
+  item_code?: string;
+  uom?: string;
+  picture_path?: string;
+  size?: string;
+  department?: string;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +45,12 @@ export interface CreateItemDto {
   quantity?: number;
   category_id?: number;
   is_active?: boolean;
+  number?: number;
+  item_code?: string;
+  uom?: string;
+  picture?: File;
+  size?: string;
+  department?: string;
 }
 
 export interface UpdateItemDto {
@@ -48,6 +60,12 @@ export interface UpdateItemDto {
   quantity?: number;
   category_id?: number;
   is_active?: boolean;
+  number?: number;
+  item_code?: string;
+  uom?: string;
+  picture?: File;
+  size?: string;
+  department?: string;
 }
 
 export interface GetItemsQuery {

@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Syringe,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -32,6 +33,12 @@ const menuItems = [
     href: '/items',
     icon: Package,
     description: 'รายการสินค้าทั้งหมด',
+  },
+  {
+    name: 'เวชภัณฑ์',
+    href: '/medical-supplies',
+    icon: Syringe,
+    description: 'จัดการเวชภัณฑ์',
   },
   {
     name: 'โปรไฟล์',

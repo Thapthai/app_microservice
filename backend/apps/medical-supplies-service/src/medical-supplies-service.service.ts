@@ -33,14 +33,30 @@ export class MedicalSuppliesServiceService {
     }
   }
 
-  // Create - รับ JSON format: patient_hn, patient_name_th, patient_name_en, supplies
+  // Create - รับ JSON format ใหม่: Hospital, EN, HN, FirstName, Lastname, Order
   async create(data: CreateMedicalSupplyUsageDto): Promise<MedicalSupplyUsageResponse> {
     try {
+      // Support both new format (EN, HN, FirstName, Lastname, Order) and legacy format
+      const patientHn = data.HN || data.patient_hn || '';
+      const episodeNumber = data.EN || '';
+      const firstName = data.FirstName || '';
+      const lastname = data.Lastname || '';
+      const hospital = data.Hospital || null;
+
+      // Determine if using new format (Order) or legacy format (supplies)
+      const orderItems = data.Order || [];
+      const legacySupplies = data.supplies || [];
+
       const usage = await this.prisma.medicalSupplyUsage.create({
         data: {
-          patient_hn: data.patient_hn,
-          patient_name_th: data.patient_name_th,
-          patient_name_en: data.patient_name_en,
+          hospital: hospital,
+          en: episodeNumber,
+          patient_hn: patientHn,
+          first_name: firstName,
+          lastname: lastname,
+          // Legacy fields for backward compatibility
+          patient_name_th: data.patient_name_th || `${firstName} ${lastname}`,
+          patient_name_en: data.patient_name_en || `${firstName} ${lastname}`,
           usage_datetime: data.usage_datetime,
           usage_type: data.usage_type,
           purpose: data.purpose,
@@ -53,16 +69,44 @@ export class MedicalSuppliesServiceService {
           billing_currency: data.billing_currency || 'THB',
           // Create supply items
           supply_items: {
-            create: data.supplies.map(item => ({
-              supply_code: item.supply_code,
-              supply_name: item.supply_name,
-              supply_category: item.supply_category,
-              unit: item.unit,
-              quantity: item.quantity,
-              unit_price: item.unit_price,
-              total_price: item.total_price,
-              expiry_date: item.expiry_date,
-            })),
+            create: [
+              // New format: Order items
+              ...orderItems.map(item => ({
+                order_item_code: item.ItemCode,
+                order_item_description: item.ItemDescription,
+                assession_no: item.AssessionNo,
+                order_item_status: item.ItemStatus || '',
+                qty: typeof item.QTY === 'string' ? parseInt(item.QTY) || 0 : item.QTY,
+                uom: item.UOM,
+                // Keep legacy fields as null for new format
+                supply_code: item.ItemCode,
+                supply_name: item.ItemDescription,
+                supply_category: null,
+                unit: item.UOM,
+                quantity: typeof item.QTY === 'string' ? parseInt(item.QTY) || 0 : item.QTY,
+                unit_price: null,
+                total_price: null,
+                expiry_date: null,
+              })),
+              // Legacy format: supplies
+              ...legacySupplies.map(item => ({
+                order_item_code: item.supply_code,
+                order_item_description: item.supply_name,
+                assession_no: '',
+                order_item_status: '',
+                qty: item.quantity,
+                uom: item.unit,
+                // Legacy fields
+                supply_code: item.supply_code,
+                supply_name: item.supply_name,
+                supply_category: item.supply_category,
+                unit: item.unit,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                total_price: item.total_price,
+                expiry_date: item.expiry_date,
+              })),
+            ],
           },
         },
         include: {
@@ -74,9 +118,14 @@ export class MedicalSuppliesServiceService {
       await this.createLog(usage.id, {
         type: 'CREATE',
         status: 'SUCCESS',
-        patient_hn: data.patient_hn,
+        hospital: hospital,
+        en: episodeNumber,
+        patient_hn: patientHn,
+        first_name: firstName,
+        lastname: lastname,
         user_id: data.recorded_by_user_id,
-        supplies_count: data.supplies.length,
+        order_items_count: orderItems.length,
+        supplies_count: legacySupplies.length,
         total_amount: data.billing_total,
       });
 
@@ -86,7 +135,11 @@ export class MedicalSuppliesServiceService {
       await this.createLog(null, {
         type: 'CREATE',
         status: 'ERROR',
-        patient_hn: data.patient_hn,
+        hospital: data.Hospital,
+        en: data.EN,
+        patient_hn: data.HN || data.patient_hn,
+        first_name: data.FirstName,
+        lastname: data.Lastname,
         user_id: data.recorded_by_user_id,
         error_message: error.message,
         error_code: error.code,
@@ -108,59 +161,64 @@ export class MedicalSuppliesServiceService {
       const limit = query.limit || 10;
       const skip = (page - 1) * limit;
 
+      // Build where clause - support both HN and patient_hn
       const where: any = {};
-
-      if (query.patient_hn) {
-        where.patient_hn = { contains: query.patient_hn };
+      if (query.patient_hn || query.HN) {
+        where.patient_hn = query.patient_hn || query.HN;
       }
-
+      if (query.EN) {
+        where.en = query.EN;
+      }
       if (query.department_code) {
         where.department_code = query.department_code;
       }
-
       if (query.billing_status) {
         where.billing_status = query.billing_status;
       }
-
       if (query.usage_type) {
         where.usage_type = query.usage_type;
       }
 
-      const [usages, total] = await Promise.all([
+      const [data, total] = await Promise.all([
         this.prisma.medicalSupplyUsage.findMany({
           where,
-          skip,
-          take: limit,
-          orderBy: { created_at: 'desc' },
           include: {
             supply_items: true,
+          },
+          skip,
+          take: limit,
+          orderBy: {
+            created_at: 'desc',
           },
         }),
         this.prisma.medicalSupplyUsage.count({ where }),
       ]);
 
-      // Log successful query
+      // Create query log
       await this.createLog(null, {
         type: 'QUERY',
         status: 'SUCCESS',
         action: 'findAll',
-        query_params: query,
-        results_count: usages.length,
+        filters: where,
+        results_count: data.length,
+        total: total,
+        page: page,
+        limit: limit,
       });
 
       return {
-        data: usages as unknown as MedicalSupplyUsageResponse[],
+        data: data as unknown as MedicalSupplyUsageResponse[],
         total,
         page,
         limit,
       };
     } catch (error) {
-      // Log error
+      // Create error log
       await this.createLog(null, {
         type: 'QUERY',
         status: 'ERROR',
         action: 'findAll',
-        query_params: query,
+        filters: query,
         error_message: error.message,
         error_code: error.code,
       });
@@ -179,36 +237,28 @@ export class MedicalSuppliesServiceService {
       });
 
       if (!usage) {
-        // Log not found
-        await this.createLog(null, {
-          type: 'QUERY',
-          status: 'NOT_FOUND',
-          action: 'findOne',
-          usage_id: id,
-        });
-        throw new NotFoundException(`Medical Supply Usage with ID ${id} not found`);
+        throw new NotFoundException(`Medical supply usage with ID ${id} not found`);
       }
 
-      // Log success
-      await this.createLog(id, {
+      // Create query log
+      await this.createLog(usage.id, {
         type: 'QUERY',
         status: 'SUCCESS',
         action: 'findOne',
+        usage_id: id,
       });
 
       return usage as unknown as MedicalSupplyUsageResponse;
     } catch (error) {
-      // Log error (if not NotFoundException)
-      if (!(error instanceof NotFoundException)) {
-        await this.createLog(null, {
-          type: 'QUERY',
-          status: 'ERROR',
-          action: 'findOne',
-          usage_id: id,
-          error_message: error.message,
-          error_code: error.code,
-        });
-      }
+      // Create error log
+      await this.createLog(null, {
+        type: 'QUERY',
+        status: 'ERROR',
+        action: 'findOne',
+        usage_id: id,
+        error_message: error.message,
+        error_code: error.code,
+      });
       throw error;
     }
   }
@@ -217,14 +267,18 @@ export class MedicalSuppliesServiceService {
   async findByHN(hn: string): Promise<MedicalSupplyUsageResponse[]> {
     try {
       const usages = await this.prisma.medicalSupplyUsage.findMany({
-        where: { patient_hn: { contains: hn } },
-        orderBy: { created_at: 'desc' },
+        where: {
+          patient_hn: hn,
+        },
         include: {
           supply_items: true,
         },
+        orderBy: {
+          created_at: 'desc',
+        },
       });
 
-      // Log success
+      // Create query log
       await this.createLog(null, {
         type: 'QUERY',
         status: 'SUCCESS',
@@ -235,7 +289,7 @@ export class MedicalSuppliesServiceService {
 
       return usages as unknown as MedicalSupplyUsageResponse[];
     } catch (error) {
-      // Log error
+      // Create error log
       await this.createLog(null, {
         type: 'QUERY',
         status: 'ERROR',
@@ -254,36 +308,75 @@ export class MedicalSuppliesServiceService {
     data: UpdateMedicalSupplyUsageDto,
   ): Promise<MedicalSupplyUsageResponse> {
     try {
-      // Get old values for logging
-      const oldUsage = await this.prisma.medicalSupplyUsage.findUnique({
+      // Check if exists
+      const existing = await this.prisma.medicalSupplyUsage.findUnique({
         where: { id },
       });
 
-      if (!oldUsage) {
-        throw new NotFoundException(`Medical Supply Usage with ID ${id} not found`);
+      if (!existing) {
+        throw new NotFoundException(`Medical supply usage with ID ${id} not found`);
       }
 
-      const updateData: any = {};
+      // Prepare update data
+      const updateData: any = {
+        hospital: data.Hospital,
+        en: data.EN,
+        first_name: data.FirstName,
+        lastname: data.Lastname,
+        patient_name_th: data.patient_name_th,
+        patient_name_en: data.patient_name_en,
+        usage_datetime: data.usage_datetime,
+        usage_type: data.usage_type,
+        purpose: data.purpose,
+        department_code: data.department_code,
+        recorded_by_user_id: data.recorded_by_user_id,
+        billing_status: data.billing_status,
+        billing_subtotal: data.billing_subtotal,
+        billing_tax: data.billing_tax,
+        billing_total: data.billing_total,
+        billing_currency: data.billing_currency,
+      };
 
-      if (data.patient_name_th) updateData.patient_name_th = data.patient_name_th;
-      if (data.patient_name_en) updateData.patient_name_en = data.patient_name_en;
-      if (data.usage_datetime) updateData.usage_datetime = data.usage_datetime;
-      if (data.usage_type) updateData.usage_type = data.usage_type;
-      if (data.purpose) updateData.purpose = data.purpose;
-      if (data.department_code) updateData.department_code = data.department_code;
-      if (data.recorded_by_user_id) updateData.recorded_by_user_id = data.recorded_by_user_id;
-      if (data.billing_status) updateData.billing_status = data.billing_status;
-      if (data.billing_subtotal !== undefined) updateData.billing_subtotal = data.billing_subtotal;
-      if (data.billing_tax !== undefined) updateData.billing_tax = data.billing_tax;
-      if (data.billing_total !== undefined) updateData.billing_total = data.billing_total;
-      if (data.billing_currency) updateData.billing_currency = data.billing_currency;
+      // Handle supply items update if provided
+      if (data.Order && data.Order.length > 0) {
+        // Delete existing items
+        await this.prisma.supplyUsageItem.deleteMany({
+          where: { medical_supply_usage_id: id },
+        });
 
-      // Handle supply items update
-      if (data.supplies) {
-        // Delete old supply items and create new ones
+        // Create new items
         updateData.supply_items = {
-          deleteMany: {},
+          create: data.Order.map(item => ({
+            order_item_code: item.ItemCode,
+            order_item_description: item.ItemDescription,
+            assession_no: item.AssessionNo,
+            order_item_status: item.ItemStatus || '',
+            qty: typeof item.QTY === 'string' ? parseInt(item.QTY) || 0 : item.QTY,
+            uom: item.UOM,
+            supply_code: item.ItemCode,
+            supply_name: item.ItemDescription,
+            supply_category: null,
+            unit: item.UOM,
+            quantity: typeof item.QTY === 'string' ? parseInt(item.QTY) || 0 : item.QTY,
+            unit_price: null,
+            total_price: null,
+            expiry_date: null,
+          })),
+        };
+      } else if (data.supplies && data.supplies.length > 0) {
+        // Legacy format
+        await this.prisma.supplyUsageItem.deleteMany({
+          where: { medical_supply_usage_id: id },
+        });
+
+        updateData.supply_items = {
           create: data.supplies.map(item => ({
+            order_item_code: item.supply_code,
+            order_item_description: item.supply_name,
+            assession_no: '',
+            order_item_status: '',
+            qty: item.quantity,
+            uom: item.unit,
             supply_code: item.supply_code,
             supply_name: item.supply_name,
             supply_category: item.supply_category,
@@ -296,7 +389,7 @@ export class MedicalSuppliesServiceService {
         };
       }
 
-      const usage = await this.prisma.medicalSupplyUsage.update({
+      const updated = await this.prisma.medicalSupplyUsage.update({
         where: { id },
         data: updateData,
         include: {
@@ -304,74 +397,56 @@ export class MedicalSuppliesServiceService {
         },
       });
 
-      // Create success log
-      await this.createLog(usage.id, {
+      // Create update log
+      await this.createLog(updated.id, {
         type: 'UPDATE',
         status: 'SUCCESS',
-        patient_hn: usage.patient_hn,
-        user_id: data.recorded_by_user_id,
-        updated_fields: Object.keys(updateData),
-        old_values: oldUsage,
-        new_values: usage,
+        usage_id: id,
+        updated_fields: Object.keys(data),
+        order_items_count: data.Order?.length || 0,
+        supplies_count: data.supplies?.length || 0,
       });
 
-      return usage as unknown as MedicalSupplyUsageResponse;
+      return updated as unknown as MedicalSupplyUsageResponse;
     } catch (error) {
       // Create error log
       await this.createLog(null, {
         type: 'UPDATE',
         status: 'ERROR',
         usage_id: id,
-        user_id: data.recorded_by_user_id,
         error_message: error.message,
         error_code: error.code,
         input_data: data,
       });
-
-      if (error.code === 'P2025') {
-        throw new NotFoundException(`Medical Supply Usage with ID ${id} not found`);
-      }
       throw error;
     }
   }
 
   // Delete
-  async remove(id: number): Promise<{ success: boolean; message: string }> {
+  async remove(id: number): Promise<{ message: string }> {
     try {
-      // Get usage before deleting for logging
-      const usage = await this.prisma.medicalSupplyUsage.findUnique({
+      const existing = await this.prisma.medicalSupplyUsage.findUnique({
         where: { id },
       });
 
-      if (!usage) {
-        // Log not found
-        await this.createLog(null, {
-          type: 'DELETE',
-          status: 'NOT_FOUND',
-          usage_id: id,
-        });
-        throw new NotFoundException(`Medical Supply Usage with ID ${id} not found`);
+      if (!existing) {
+        throw new NotFoundException(`Medical supply usage with ID ${id} not found`);
       }
 
-      // Delete record
+      // Create delete log before deleting
+      await this.createLog(id, {
+        type: 'DELETE',
+        status: 'SUCCESS',
+        usage_id: id,
+        patient_hn: existing.patient_hn,
+        en: existing.en,
+      });
+
       await this.prisma.medicalSupplyUsage.delete({
         where: { id },
       });
 
-      // Create success log after deletion
-      await this.createLog(null, {
-        type: 'DELETE',
-        status: 'SUCCESS',
-        usage_id: id,
-        patient_hn: usage.patient_hn,
-        user_id: usage.recorded_by_user_id,
-        deleted_data: usage,
-      });
-
-      return {
-        success: true,
-        message: 'Medical Supply Usage deleted successfully',
-      };
+      return { message: `Medical supply usage with ID ${id} has been deleted` };
     } catch (error) {
       // Create error log
       await this.createLog(null, {
@@ -381,50 +456,121 @@ export class MedicalSuppliesServiceService {
         error_message: error.message,
         error_code: error.code,
       });
-
-      if (error.code === 'P2025') {
-        throw new NotFoundException(`Medical Supply Usage with ID ${id} not found`);
-      }
       throw error;
     }
   }
 
-  // Update Billing Status
-  async updateBillingStatus(
-    id: number,
-    status: string,
+  // Update Print Information (อัพเดตข้อมูล Print ใน medical_supply_usages)
+  async updatePrintInfo(
+    usageId: number,
+    printData: {
+      Twu?: string;
+      PrintLocation?: string;
+      PrintDate?: string;
+      TimePrintDate?: string;
+      update?: string;
+    },
   ): Promise<MedicalSupplyUsageResponse> {
-    return await this.update(id, { billing_status: status });
-  }
-
-  // Get by Department
-  async findByDepartment(department_code: string): Promise<MedicalSupplyUsageResponse[]> {
     try {
-      const usages = await this.prisma.medicalSupplyUsage.findMany({
-        where: { department_code },
-        orderBy: { created_at: 'desc' },
+      // Check if usage exists
+      const existing = await this.prisma.medicalSupplyUsage.findUnique({
+        where: { id: usageId },
         include: {
           supply_items: true,
         },
       });
 
-      // Log success
+      if (!existing) {
+        throw new NotFoundException(`Medical supply usage with ID ${usageId} not found`);
+      }
+
+      // Prepare update data for medical_supply_usages table
+      const updateData: any = {};
+      
+      // Update all print information in medical_supply_usages (ทุกฟิลด์อยู่ที่ usage level)
+      if (printData.Twu !== undefined) {
+        updateData.twu = printData.Twu;
+      }
+      if (printData.PrintLocation !== undefined) {
+        updateData.print_location = printData.PrintLocation;
+      }
+      if (printData.PrintDate !== undefined) {
+        updateData.print_date = printData.PrintDate;
+      }
+      if (printData.TimePrintDate !== undefined) {
+        updateData.time_print_date = printData.TimePrintDate;
+      }
+      if (printData.update !== undefined) {
+        updateData.update = printData.update;
+      }
+
+      // Update medical_supply_usages record
+      const updated = await this.prisma.medicalSupplyUsage.update({
+        where: { id: usageId },
+        data: updateData,
+        include: {
+          supply_items: true,
+        },
+      });
+
+      // Create update log
+      await this.createLog(usageId, {
+        type: 'UPDATE_PRINT_INFO',
+        status: 'SUCCESS',
+        usage_id: usageId,
+        patient_hn: existing.patient_hn,
+        en: existing.en,
+        updated_fields: printData,
+        supply_items_count: existing.supply_items.length,
+      });
+
+      return updated as unknown as MedicalSupplyUsageResponse;
+    } catch (error) {
+      // Create error log
+      await this.createLog(null, {
+        type: 'UPDATE_PRINT_INFO',
+        status: 'ERROR',
+        usage_id: usageId,
+        error_message: error.message,
+        error_code: error.code,
+        input_data: printData,
+      });
+      throw error;
+    }
+  }
+
+  // Get by Department
+  async findByDepartment(departmentCode: string): Promise<MedicalSupplyUsageResponse[]> {
+    try {
+      const usages = await this.prisma.medicalSupplyUsage.findMany({
+        where: {
+          department_code: departmentCode,
+        },
+        include: {
+          supply_items: true,
+        },
+        orderBy: {
+          created_at: 'desc',
+        },
+      });
+
+      // Create query log
       await this.createLog(null, {
         type: 'QUERY',
         status: 'SUCCESS',
         action: 'findByDepartment',
-        department_code: department_code,
+        department_code: departmentCode,
         results_count: usages.length,
       });
 
       return usages as unknown as MedicalSupplyUsageResponse[];
     } catch (error) {
-      // Log error
+      // Create error log
       await this.createLog(null, {
         type: 'QUERY',
         status: 'ERROR',
         action: 'findByDepartment',
-        department_code: department_code,
+        department_code: departmentCode,
         error_message: error.message,
         error_code: error.code,
       });
@@ -435,37 +581,87 @@ export class MedicalSuppliesServiceService {
   // Get Statistics
   async getStatistics(): Promise<any> {
     try {
-      const [total, byStatus, byDepartment] = await Promise.all([
+      const [totalUsages, totalByStatus, totalByType] = await Promise.all([
         this.prisma.medicalSupplyUsage.count(),
         this.prisma.medicalSupplyUsage.groupBy({
           by: ['billing_status'],
           _count: true,
         }),
         this.prisma.medicalSupplyUsage.groupBy({
-          by: ['department_code'],
+          by: ['usage_type'],
           _count: true,
         }),
       ]);
 
-      // Log success
+      const stats = {
+        total_usages: totalUsages,
+        by_billing_status: totalByStatus,
+        by_usage_type: totalByType,
+      };
+
+      // Create query log
       await this.createLog(null, {
         type: 'QUERY',
         status: 'SUCCESS',
         action: 'getStatistics',
-        total_records: total,
+        stats: stats,
       });
 
-      return {
-        total,
-        by_status: byStatus,
-        by_department: byDepartment,
-      };
+      return stats;
     } catch (error) {
-      // Log error
+      // Create error log
       await this.createLog(null, {
         type: 'QUERY',
         status: 'ERROR',
         action: 'getStatistics',
+        error_message: error.message,
+        error_code: error.code,
+      });
+      throw error;
+    }
+  }
+
+  // Update Billing Status
+  async updateBillingStatus(
+    id: number,
+    status: string,
+  ): Promise<MedicalSupplyUsageResponse> {
+    try {
+      const existing = await this.prisma.medicalSupplyUsage.findUnique({
+        where: { id },
+      });
+
+      if (!existing) {
+        throw new NotFoundException(`Medical supply usage with ID ${id} not found`);
+      }
+
+      const updated = await this.prisma.medicalSupplyUsage.update({
+        where: { id },
+        data: { billing_status: status },
+        include: {
+          supply_items: true,
+        },
+      });
+
+      // Create update log
+      await this.createLog(updated.id, {
+        type: 'UPDATE',
+        status: 'SUCCESS',
+        action: 'updateBillingStatus',
+        usage_id: id,
+        old_status: existing.billing_status,
+        new_status: status,
+      });
+
+      return updated as unknown as MedicalSupplyUsageResponse;
+    } catch (error) {
+      // Create error log
+      await this.createLog(null, {
+        type: 'UPDATE',
+        status: 'ERROR',
+        action: 'updateBillingStatus',
+        usage_id: id,
+        new_status: status,
         error_message: error.message,
         error_code: error.code,
       });

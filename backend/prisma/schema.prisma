@@ -124,19 +124,30 @@ model Category {
 }
 
 model Item {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   name        String
   description String?
   price       Float
-  quantity    Int      @default(0)
-  category_id Int?     @map("category_id")
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now()) @map("created_at")
-  updated_at  DateTime @updatedAt @map("updated_at")
+  quantity    Int     @default(0)
+  category_id Int?    @map("category_id")
+  is_active   Boolean @default(true)
+
+  // Medical Supply Item Fields (สำหรับเวชภัณฑ์)
+  number       Int?    @map("number") // ลำดับที่
+  item_code    String? @unique @map("item_code") // ItemCode (S4214NACISP10)
+  uom          String? @map("uom") // Unit of Measure (ชิ้น, Each, ชุด)
+  picture_path String? @map("picture_path") // Path รูปภาพ (เช่น /items/images/item-xxx.jpg)
+  size         String? @map("size") // ขนาด (4*23 cm)
+  department   String? @map("department") // แผนก (Emergency Department)
+
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   // Relations
   category Category? @relation(fields: [category_id], references: [id], onDelete: Cascade)
 
+  @@index([item_code])
+  @@index([department])
   @@map("items")
 }
 
@@ -144,10 +155,18 @@ model Item {
 model MedicalSupplyUsage {
   id Int @id @default(autoincrement())
 
+  // Hospital & Episode Info
+  hospital String? @map("hospital") // VTN01
+  en       String? @default("") @map("en") // Episode Number (EZ5-000584)
+
   // Patient Information
-  patient_hn      String @map("patient_hn")
-  patient_name_th String @map("patient_name_th")
-  patient_name_en String @map("patient_name_en")
+  patient_hn String  @map("patient_hn") // HN Hospital Number (20-010334)
+  first_name String? @default("") @map("first_name") // ชื่อจริง
+  lastname   String? @default("") @map("lastname") // นามสกุล
+
+  // Legacy fields (for backward compatibility)
+  patient_name_th String? @map("patient_name_th")
+  patient_name_en String? @map("patient_name_en")
 
   // Usage Details
   usage_datetime String? @map("usage_datetime")
@@ -167,6 +186,13 @@ model MedicalSupplyUsage {
   billing_total    Float?  @map("billing_total")
   billing_currency String? @default("THB") @map("billing_currency")
 
+  // Print Information (ข้อมูลการ Print - ระดับ Usage Record)
+  twu             String? @map("twu") // Patient Location when Ordered (แผนก/จุดที่ Print ตาม Location ที่ผู้ป่วยได้รับการ Key รายการ Order)
+  print_location  String? @map("print_location") // Print Location when Ordered (Emergency)
+  print_date      String? @map("print_date") // Print Date (14/11/2025)
+  time_print_date String? @map("time_print_date") // Time Print Date (14/11/2025 09:30:00)
+  update          String? @map("update") // Print Date - วันที่ของการ Print แยกจากวันที่ Receipt /Invoice
+
   // Timestamps
   created_at DateTime @default(now()) @map("created_at")
   updated_at DateTime @updatedAt @map("updated_at")
@@ -176,27 +202,36 @@ model MedicalSupplyUsage {
   logs         MedicalSupplyUsageLog[]
 
   @@index([patient_hn])
+  @@index([en])
   @@index([usage_datetime])
   @@index([department_code])
   @@index([billing_status])
   @@map("medical_supply_usages")
 }
 
-// Supply Usage Items
+// Supply Usage Items (Order Items)
 model SupplyUsageItem {
-  id                      Int      @id @default(autoincrement())
-  medical_supply_usage_id Int      @map("medical_supply_usage_id")
-  
-  // Supply Details (stored directly)
-  supply_code     String @map("supply_code")
-  supply_name     String @map("supply_name")
-  supply_category String @map("supply_category")
-  unit            String @map("unit")
-  quantity        Int    @map("quantity")
-  unit_price      Float  @map("unit_price")
-  total_price     Float  @map("total_price")
+  id                      Int @id @default(autoincrement())
+  medical_supply_usage_id Int @map("medical_supply_usage_id")
+
+  // Order Item Details (New Format from API Spec)
+  order_item_code        String? @default("") @map("order_item_code") // ItemCode (S4214JELCO018)
+  order_item_description String? @default("") @map("order_item_description") // ItemDescription (JELCO IV NO,18)
+  assession_no           String? @default("") @map("assession_no") // Assession No. (17938884/109)
+  order_item_status      String? @default("") @map("order_item_status") // Order Item Status (Verified, Update, etc.)
+  qty                    Int?    @default(0) @map("qty") // Quantity
+  uom                    String? @default("") @map("uom") // Unit of Measure (Each)
+
+  // Legacy fields (for backward compatibility)
+  supply_code     String? @map("supply_code")
+  supply_name     String? @map("supply_name")
+  supply_category String? @map("supply_category")
+  unit            String? @map("unit")
+  quantity        Int?    @map("quantity")
+  unit_price      Float?  @map("unit_price")
+  total_price     Float?  @map("total_price")
   expiry_date     String? @map("expiry_date")
-  
+
   created_at DateTime @default(now()) @map("created_at")
   updated_at DateTime @updatedAt @map("updated_at")
 
@@ -204,6 +239,8 @@ model SupplyUsageItem {
   usage MedicalSupplyUsage @relation(fields: [medical_supply_usage_id], references: [id], onDelete: Cascade)
 
   @@index([medical_supply_usage_id])
+  @@index([order_item_code])
+  @@index([assession_no])
   @@index([supply_code])
   @@map("supply_usage_items")
 }

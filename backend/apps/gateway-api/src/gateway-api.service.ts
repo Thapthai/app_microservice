@@ -238,6 +238,10 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.update' }, { id, updateData }).toPromise();
   }
 
+  async updateMedicalSupplyPrintInfo(id: number, printData: any) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.updatePrintInfo' }, { id, printData }).toPromise();
+  }
+
   async deleteMedicalSupplyUsage(id: number) {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.remove' }, { id }).toPromise();
   }

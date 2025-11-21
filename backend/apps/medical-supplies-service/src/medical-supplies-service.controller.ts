@@ -61,6 +61,16 @@ export class MedicalSuppliesServiceController {
     }
   }
 
+  @MessagePattern({ cmd: 'medical_supply_usage.updatePrintInfo' })
+  async updatePrintInfo(@Payload() data: { id: number; printData: any }) {
+    try {
+      const usage = await this.medicalSuppliesService.updatePrintInfo(data.id, data.printData);
+      return { success: true, data: usage };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
   @MessagePattern({ cmd: 'medical_supply_usage.remove' })
   async remove(@Payload() data: { id: number }) {
     try {

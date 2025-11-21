@@ -136,8 +136,33 @@ export const categoriesApi = {
 // Items API
 export const itemsApi = {
   create: async (data: CreateItemDto): Promise<ApiResponse<Item>> => {
-    const response = await api.post('/items', data);
-    return response.data;
+    // Check if there's a file to upload
+    if (data.picture) {
+      const formData = new FormData();
+      
+      // Append all fields to FormData
+      Object.keys(data).forEach((key) => {
+        const value = data[key as keyof CreateItemDto];
+        if (value !== undefined && value !== null) {
+          if (key === 'picture' && value instanceof File) {
+            formData.append(key, value);
+          } else {
+            formData.append(key, String(value));
+          }
+        }
+      });
+
+      const response = await api.post('/items', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } else {
+      // No file, send as JSON
+      const response = await api.post('/items', data);
+      return response.data;
+    }
   },
 
   getAll: async (query?: GetItemsQuery): Promise<PaginatedResponse<Item>> => {
@@ -151,12 +176,87 @@ export const itemsApi = {
   },
 
   update: async (id: number, data: UpdateItemDto): Promise<ApiResponse<Item>> => {
-    const response = await api.put(`/items/${id}`, data);
-    return response.data;
+    // Check if there's a file to upload
+    if (data.picture) {
+      const formData = new FormData();
+      
+      // Append all fields to FormData
+      Object.keys(data).forEach((key) => {
+        const value = data[key as keyof UpdateItemDto];
+        if (value !== undefined && value !== null) {
+          if (key === 'picture' && value instanceof File) {
+            formData.append(key, value);
+          } else {
+            formData.append(key, String(value));
+          }
+        }
+      });
+
+      const response = await api.put(`/items/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } else {
+      // No file, send as JSON
+      const response = await api.put(`/items/${id}`, data);
+      return response.data;
+    }
   },
 
   delete: async (id: number): Promise<ApiResponse> => {
     const response = await api.delete(`/items/${id}`);
+    return response.data;
+  },
+};
+
+// Medical Supplies API
+export const medicalSuppliesApi = {
+  create: async (data: any): Promise<ApiResponse<any>> => {
+    const response = await api.post('/medical-supplies', data);
+    return response.data;
+  },
+
+  getAll: async (query?: {
+    page?: number;
+    limit?: number;
+    keyword?: string;
+    hn?: string;
+    an?: string;
+    sort_by?: string;
+    sort_order?: string;
+  }): Promise<PaginatedResponse<any>> => {
+    const response = await api.get('/medical-supplies', { params: query });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/medical-supplies/${id}`);
+    return response.data;
+  },
+
+  update: async (id: number, data: any): Promise<ApiResponse<any>> => {
+    const response = await api.put(`/medical-supplies/${id}`, data);
+    return response.data;
+  },
+
+  updatePrintInfo: async (id: number, data: {
+    print_location?: string;
+    print_date?: Date;
+    time_print_date?: Date;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.patch(`/medical-supplies/${id}/print-info`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse> => {
+    const response = await api.delete(`/medical-supplies/${id}`);
+    return response.data;
+  },
+
+  getStatistics: async (): Promise<ApiResponse<any>> => {
+    const response = await api.get('/medical-supplies/statistics/all');
     return response.data;
   },
 };

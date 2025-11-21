@@ -9,7 +9,6 @@ export class ItemServiceService {
 
   async createItem(createItemDto: CreateItemDto) {
     try {
-
       const item = await this.prisma.item.create({
         data: {
           name: createItemDto.name,
@@ -18,6 +17,13 @@ export class ItemServiceService {
           quantity: createItemDto.quantity ?? 0,
           category_id: createItemDto.category_id ?? null,
           is_active: createItemDto.is_active ?? true,
+          // Medical Supply Fields
+          number: createItemDto.number ?? null,
+          item_code: createItemDto.item_code ?? null,
+          uom: createItemDto.uom ?? null,
+          picture_path: createItemDto.picture_path ?? null,
+          size: createItemDto.size ?? null,
+          department: createItemDto.department ?? null,
         },
         include: {
           category: true,
@@ -36,25 +42,24 @@ export class ItemServiceService {
 
   async findAllItems(page: number, limit: number, keyword?: string, sort_by: string = 'created_at', sort_order: string = 'desc') {
     try {
-
       const where: any = {};
       const skip = (page - 1) * limit;
       if (keyword) {
         where.OR = [
           { name: { contains: keyword } },
+          { item_code: { contains: keyword } },
+          { department: { contains: keyword } },
         ];
       }
 
       // Build orderBy object - Prisma needs proper type
       const validSortFields = ['name', 'price', 'quantity', 'created_at'];
       const validSortOrders = ['asc', 'desc'];
-      
+
       const field = validSortFields.includes(sort_by) ? sort_by : 'created_at';
       const order = validSortOrders.includes(sort_order) ? sort_order as 'asc' | 'desc' : 'desc' as 'asc' | 'desc';
-      
-      // Debug log
-      console.log('🔍 Sort params:', { sort_by, sort_order, field, order });
-      
+
+
       const orderBy: any = {};
       orderBy[field] = order;
 

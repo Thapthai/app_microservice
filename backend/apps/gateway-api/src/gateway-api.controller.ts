@@ -1,4 +1,6 @@
-import { Controller, Post, Body, Get, Headers, HttpException, HttpStatus, Put, Delete, Param, Query, ParseIntPipe, DefaultValuePipe, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, Headers, HttpException, HttpStatus, Put, Patch, Delete, Param, Query, ParseIntPipe, DefaultValuePipe, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { GatewayApiService } from './gateway-api.service';
 import { RegisterDto, LoginDto, CreateItemDto, UpdateItemDto, ChangePasswordDto, UpdateUserProfileDto, ResetPasswordDto, CreateCategoryDto, UpdateCategoryDto, CreateMedicalSupplyUsageDto, UpdateMedicalSupplyUsageDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -230,18 +232,54 @@ export class GatewayApiController {
   }
 
   // ==================================== Item Endpoints ====================================
-  @Post('items')
-  @UseGuards(JwtAuthGuard)
-  async createItem(@Body() createItemDto: CreateItemDto, @Request() req: any) {
-    try {
-      // User data is available from JWT token via req.user
 
-      const result = await this.gatewayApiService.createItem(createItemDto);
-      return result;
+  @Post('items')
+  @UseInterceptors(FileInterceptor('picture', {
+    storage: memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+    },
+  }))
+  @UseGuards(JwtAuthGuard)
+  async createItem(@UploadedFile() file: any, @Body() body: any) {
+    try {
+      const axios = require('axios');
+      const FormData = require('form-data');
+      const itemServiceUrl = process.env.ITEM_SERVICE_URL || 'http://localhost:3009';
+
+
+      // สร้าง FormData สำหรับส่งไปยัง item-service
+      const formData = new FormData();
+
+      // เพิ่มทุก field จาก body (รวม empty string)
+      Object.keys(body).forEach(key => {
+        if (body[key] !== undefined && body[key] !== null && body[key] !== '') {
+          formData.append(key, body[key]);
+        }
+      });
+
+      // เพิ่ม file ถ้ามี
+      if (file) {
+        formData.append('picture', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype,
+        });
+      }
+
+
+      // Forward ไปยัง item-service
+      const response = await axios.post(`${itemServiceUrl}/items`, formData, {
+        headers: formData.getHeaders(),
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      });
+
+      return response.data;
     } catch (error) {
+      console.error('❌ Gateway error:', error.response?.data || error.message);
       throw new HttpException(
-        error.message || 'Failed to create item',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        error.response?.data?.message || error.message || 'Failed to create item',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -257,14 +295,23 @@ export class GatewayApiController {
     @Query('sort_order') sort_order?: string,
   ) {
     try {
+      const axios = require('axios');
+      const itemServiceUrl = process.env.ITEM_SERVICE_URL || 'http://localhost:3009';
 
-      const result = await this.gatewayApiService.findAllItems(page, limit, keyword, sort_by, sort_order);
-      return result;
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', limit.toString());
+      if (keyword) params.append('keyword', keyword);
+      if (sort_by) params.append('sort_by', sort_by);
+      if (sort_order) params.append('sort_order', sort_order);
+
+      const response = await axios.get(`${itemServiceUrl}/items?${params.toString()}`);
+      return response.data;
 
     } catch (error) {
       throw new HttpException(
-        error.message || 'Failed to fetch items',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        error.response?.data?.message || error.message || 'Failed to fetch items',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -273,31 +320,68 @@ export class GatewayApiController {
   @UseGuards(JwtAuthGuard)
   async findOneItem(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     try {
-      const result = await this.gatewayApiService.findOneItem(id);
+      const axios = require('axios');
+      const itemServiceUrl = process.env.ITEM_SERVICE_URL || 'http://localhost:3009';
 
-      return result;
+      const response = await axios.get(`${itemServiceUrl}/items/${id}`);
+      return response.data;
     } catch (error) {
       throw new HttpException(
-        error.message || 'Failed to fetch item',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        error.response?.data?.message || error.message || 'Failed to fetch item',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   @Put('items/:id')
+  @UseInterceptors(FileInterceptor('picture', {
+    storage: memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+    },
+  }))
   @UseGuards(JwtAuthGuard)
   async updateItem(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateItemDto: UpdateItemDto,
+    @UploadedFile() file: any,
+    @Body() body: any,
     @Request() req: any,
   ) {
     try {
-      const result = await this.gatewayApiService.updateItem(id, updateItemDto);
-      return result;
+      const axios = require('axios');
+      const FormData = require('form-data');
+      const itemServiceUrl = process.env.ITEM_SERVICE_URL || 'http://localhost:3009';
+
+      // สร้าง FormData สำหรับส่งไปยัง item-service
+      const formData = new FormData();
+
+      // เพิ่มทุก field จาก body
+      Object.keys(body).forEach(key => {
+        if (body[key] !== undefined && body[key] !== null) {
+          formData.append(key, body[key]);
+        }
+      });
+
+      // เพิ่ม file ถ้ามี
+      if (file) {
+        formData.append('picture', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype,
+        });
+      }
+
+      // Forward ไปยัง item-service
+      const response = await axios.put(`${itemServiceUrl}/items/${id}`, formData, {
+        headers: formData.getHeaders(),
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      });
+
+      return response.data;
     } catch (error) {
       throw new HttpException(
-        error.message || 'Failed to update item',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        error.response?.data?.message || error.message || 'Failed to update item',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -306,12 +390,15 @@ export class GatewayApiController {
   @UseGuards(JwtAuthGuard)
   async removeItem(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     try {
-      const result = await this.gatewayApiService.removeItem(id);
-      return result;
+      const axios = require('axios');
+      const itemServiceUrl = process.env.ITEM_SERVICE_URL || 'http://localhost:3009';
+
+      const response = await axios.delete(`${itemServiceUrl}/items/${id}`);
+      return response.data;
     } catch (error) {
       throw new HttpException(
-        error.message || 'Failed to delete item',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        error.response?.data?.message || error.message || 'Failed to delete item',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -556,49 +643,33 @@ export class GatewayApiController {
   //  @UseGuards(JwtAuthGuard)
   async createMedicalSupplyUsage(@Body() data: any) {
     try {
-      // Auto-detect format: if has "Order" field, it's legacy format
+      // Validate required fields based on format
       if (data.Order && Array.isArray(data.Order)) {
-        // Legacy format (Order) - transform to new format
-        const supplies = data.Order.map((item: any) => ({
-          supply_code: item.ItemCode,
-          supply_name: item.ItemDescription,
-          supply_category: 'Medical Supplies',
-          unit: item.UOM,
-          quantity: parseInt(item.QTY) || 0,
-          unit_price: 0,
-          total_price: 0,
-          expiry_date: undefined,
-        }));
-
-        const transformedData: CreateMedicalSupplyUsageDto = {
-          patient_hn: data.HN,
-          patient_name_th: `${data.FirstName} ${data.Lastname}`,
-          patient_name_en: `${data.FirstName} ${data.Lastname}`,
-          supplies: supplies,
-          usage_datetime: new Date().toISOString(),
-          usage_type: 'treatment',
-          purpose: `Order: ${data.EN}`,
-          department_code: undefined,
-          recorded_by_user_id: 'SYSTEM',
-          billing_status: 'pending',
-          billing_subtotal: 0,
-          billing_tax: 0,
-          billing_total: 0,
-          billing_currency: 'THB',
-        };
-
-        const result = await this.gatewayApiService.createMedicalSupplyUsage(transformedData);
-        return result;
+        // New format: Hospital, EN, HN, FirstName, Lastname, Order
+        if (!data.EN || !data.HN || !data.FirstName || !data.Lastname) {
+          throw new HttpException(
+            'Missing required fields: EN, HN, FirstName, Lastname are required for Order format',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
       } else if (data.supplies && Array.isArray(data.supplies)) {
-        // New format (supplies)
-      const result = await this.gatewayApiService.createMedicalSupplyUsage(data);
-      return result;
+        // Legacy format: patient_hn, patient_name_th, patient_name_en, supplies
+        if (!data.patient_hn) {
+          throw new HttpException(
+            'Missing required field: patient_hn is required for supplies format',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
       } else {
         throw new HttpException(
           'Invalid data format. Expected either "Order" or "supplies" array.',
           HttpStatus.BAD_REQUEST,
         );
       }
+
+      // Pass data directly to service (no transformation needed)
+      const result = await this.gatewayApiService.createMedicalSupplyUsage(data);
+      return result;
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to create medical supply usage',
@@ -621,7 +692,7 @@ export class GatewayApiController {
     try {
       const query = { page, limit, patient_hn, department_code, billing_status, usage_type };
       const result = await this.gatewayApiService.getMedicalSupplyUsages(query);
-      
+
       // Transform response to match required format
       if (result.success && result.data) {
         // Filter by visit_date if provided
@@ -641,12 +712,23 @@ export class GatewayApiController {
           return {
             status: 'success',
             data: {
+              hospital: item.hospital,
+              en: item.en,
               patient_hn: item.patient_hn,
-              name_th: item.patient_name_th,
-              name_en: item.patient_name_en,
+              first_name: item.first_name,
+              lastname: item.lastname,
+              name_th: item.patient_name_th || `${item.first_name} ${item.lastname}`,
+              name_en: item.patient_name_en || `${item.first_name} ${item.lastname}`,
             },
             supplies_count: item.supply_items?.length || 0,
             supplies_summary: item.supply_items?.map((supply: any) => ({
+              order_item_code: supply.order_item_code,
+              order_item_description: supply.order_item_description,
+              assession_no: supply.assession_no,
+              order_item_status: supply.order_item_status,
+              qty: supply.qty,
+              uom: supply.uom,
+              // Legacy fields
               supply_code: supply.supply_code,
               supply_name: supply.supply_name,
               quantity: supply.quantity,
@@ -667,6 +749,13 @@ export class GatewayApiController {
               total: item.billing_total || 0,
               currency: item.billing_currency || 'THB',
             },
+            print_info: {
+              twu: item.twu,
+              print_location: item.print_location,
+              print_date: item.print_date,
+              time_print_date: item.time_print_date,
+              update: item.update,
+            },
             created_at: item.created_at,
             timestamp: item.created_at,
           };
@@ -674,14 +763,27 @@ export class GatewayApiController {
 
         // Multiple records - return array
         const transformedData = filteredData.map((item: any) => ({
+          id: item.id, // เพิ่ม id เพื่อให้ frontend ใช้งาน
           status: 'success',
           data: {
+            id: item.id, // เพิ่ม id ใน nested data ด้วย
+            hospital: item.hospital,
+            en: item.en,
             patient_hn: item.patient_hn,
-            name_th: item.patient_name_th,
-            name_en: item.patient_name_en,
+            first_name: item.first_name,
+            lastname: item.lastname,
+            name_th: item.patient_name_th || `${item.first_name} ${item.lastname}`,
+            name_en: item.patient_name_en || `${item.first_name} ${item.lastname}`,
           },
           supplies_count: item.supply_items?.length || 0,
           supplies_summary: item.supply_items?.map((supply: any) => ({
+            order_item_code: supply.order_item_code,
+            order_item_description: supply.order_item_description,
+            assession_no: supply.assession_no,
+            order_item_status: supply.order_item_status,
+            qty: supply.qty,
+            uom: supply.uom,
+            // Legacy fields
             supply_code: supply.supply_code,
             supply_name: supply.supply_name,
             quantity: supply.quantity,
@@ -715,7 +817,7 @@ export class GatewayApiController {
           timestamp: new Date().toISOString(),
         };
       }
-      
+
       return result;
     } catch (error) {
       throw new HttpException(
@@ -762,6 +864,24 @@ export class GatewayApiController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to update medical supply usage',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Patch('medical-supplies/:id/print-info')
+  // @UseGuards(JwtAuthGuard)
+  async updateMedicalSupplyPrintInfo(@Param('id') id: string, @Body() printData: any) {
+    try {
+      const result = await this.gatewayApiService.updateMedicalSupplyPrintInfo(parseInt(id), printData);
+      return {
+        status: 'success',
+        message: 'Print information updated successfully',
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update print information',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

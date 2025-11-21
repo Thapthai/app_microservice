@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({
     totalItems: 0,
     activeItems: 0,
+    inactiveItems: 0,
     totalValue: 0,
   });
   const [categories, setCategories] = useState<Category[]>([]);
@@ -63,9 +64,10 @@ export default function DashboardPage() {
 
           if (response.stats) {
             setStats({
-              totalItems: response.stats.total_items,
-              activeItems: response.stats.active_items,
-              totalValue: response.stats.total_value,
+              totalItems: response.stats.total_items || 0,
+              activeItems: response.stats.active_items || 0,
+              inactiveItems: response.stats.inactive_items || 0,
+              totalValue: response.stats.total_value || 0,
             });
           }
         }
@@ -131,9 +133,10 @@ export default function DashboardPage() {
     }
     if (response.stats) {
       setStats({
-        totalItems: response.stats.total_items,
-        activeItems: response.stats.active_items,
-        totalValue: response.stats.total_value,
+        totalItems: response.stats.total_items || 0,
+        activeItems: response.stats.active_items || 0,
+        inactiveItems: response.stats.inactive_items || 0,
+        totalValue: response.stats.total_value || 0,
       });
     }
   };
