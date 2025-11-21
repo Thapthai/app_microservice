@@ -28,7 +28,7 @@ spec:
             - name: NODE_ENV
               value: "production"
             - name: NEXT_PUBLIC_API_URL
-              value: "http://10.11.9.84:3000/api"  # Gateway API URL
+              value: "http://10.11.9.84:3000/api/v1"  # Gateway API URL
             - name: PORT
               value: "3100"
             # NextAuth Configuration
