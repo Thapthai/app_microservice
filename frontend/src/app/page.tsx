@@ -36,10 +36,10 @@ export default function HomePage() {
               <div className="text-center">
                 <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
                   <span className="block xl:inline">ระบบจัดการ</span>{' '}
-                  <span className="block text-blue-600 xl:inline">ผ้า</span>
+                  <span className="block text-blue-600 xl:inline">เวชภัณฑ์</span>
                 </h1>
                 <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-                  ระบบจัดการสินค้าผ้าและผลิตภัณฑ์ที่เกี่ยวข้อง พร้อมฟีเจอร์ครบครันสำหรับการบริหารจัดการธุรกิจของคุณ
+                  ระบบจัดการเวชภัณฑ์และอุปกรณ์ทางการแพทย์ พร้อมฟีเจอร์ครบครันสำหรับการบริหารจัดการโรงพยาบาลของคุณ
                 </p>
                 <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
                   <div className="rounded-md shadow">
@@ -84,7 +84,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    เพิ่ม แก้ไข และจัดการสินค้าผ้าได้อย่างง่ายดาย
+                    เพิ่ม แก้ไข และจัดการเวชภัณฑ์ได้อย่างง่ายดาย
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -136,7 +136,7 @@ export default function HomePage() {
             <span className="block">พร้อมเริ่มต้นแล้วหรือยัง?</span>
           </h2>
           <p className="mt-4 text-lg leading-6 text-blue-200">
-            สมัครสมาชิกวันนี้และเริ่มจัดการธุรกิจผ้าของคุณได้ทันที
+            สมัครสมาชิกวันนี้และเริ่มจัดการเวชภัณฑ์ของคุณได้ทันที
           </p>
           <Link href="/auth/register">
             <Button size="lg" variant="secondary" className="mt-8">

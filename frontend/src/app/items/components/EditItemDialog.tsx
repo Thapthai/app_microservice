@@ -117,7 +117,7 @@ export default function EditItemDialog({
                   <FormLabel>ชื่อสินค้า *</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="เช่น ผ้าคอตตอน 100%"
+                      placeholder="เช่น อุปกรณ์ทางการแพทย์"
                       {...field}
                       disabled={loading}
                     />

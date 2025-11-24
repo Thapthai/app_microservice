@@ -26,7 +26,7 @@ export default function Navbar() {
           {/* Left side - Title (Hidden on mobile with sidebar) */}
           <div className="hidden lg:flex items-center">
             <h2 className="text-lg font-semibold text-gray-900">
-              ระบบจัดการผ้า
+              ระบบจัดการเวชภัณฑ์
             </h2>
           </div>
 

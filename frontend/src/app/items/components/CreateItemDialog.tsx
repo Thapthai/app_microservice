@@ -76,7 +76,7 @@ export default function CreateItemDialog({
         <DialogHeader>
           <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
           <DialogDescription>
-            เพิ่มสินค้าผ้าหรือผลิตภัณฑ์ใหม่เข้าสู่ระบบ
+            เพิ่มเวชภัณฑ์หรืออุปกรณ์ใหม่เข้าสู่ระบบ
           </DialogDescription>
         </DialogHeader>
 
@@ -90,7 +90,7 @@ export default function CreateItemDialog({
                   <FormLabel>ชื่อสินค้า *</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="เช่น ผ้าคอตตอน 100%"
+                      placeholder="เช่น อุปกรณ์ทางการแพทย์"
                       {...field}
                     />
                   </FormControl>

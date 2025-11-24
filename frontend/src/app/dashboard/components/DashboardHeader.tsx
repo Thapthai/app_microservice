@@ -16,7 +16,7 @@ export default function DashboardHeader({ userName, onCreateClick }: DashboardHe
             สวัสดี, {userName}!
           </h1>
           <p className="mt-2 text-gray-600">
-            ภาพรวมธุรกิจผ้าของคุณ
+            ภาพรวมเวชภัณฑ์ของคุณ
           </p>
         </div>
         <Button onClick={onCreateClick} className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all duration-200">

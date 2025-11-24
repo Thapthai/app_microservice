@@ -22,7 +22,7 @@ export default function RegisterPage() {
             ลงทะเบียน
           </CardTitle>
           <CardDescription className="text-gray-600">
-            สร้างบัญชีใหม่สำหรับระบบจัดการผ้า POSE
+            สร้างบัญชีใหม่สำหรับระบบจัดการเวชภัณฑ์ POSE
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

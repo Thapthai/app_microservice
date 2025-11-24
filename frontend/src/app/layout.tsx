@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ระบบจัดการผ้า",
-  description: "ระบบจัดการผ้าและผลิตภัณฑ์ที่เกี่ยวข้อง",
+  title: "ระบบจัดการเวชภัณฑ์",
+  description: "ระบบจัดการเวชภัณฑ์และอุปกรณ์ทางการแพทย์",
 };
 
 export default function RootLayout({
