@@ -3,7 +3,7 @@
 # ============================================
 # 🔄 Frontend - Update Service Script
 # ============================================
-# ใช้สำหรับ: อัพเดทบริการที่มีอยู่แล้ว
+# ใช้สำหรับ: Update โค้ดใหม่ (มี deployment อยู่แล้ว)
 # ============================================
 
 # Colors
@@ -18,17 +18,23 @@ NC='\033[0m' # No Color
 IMAGE_NAME="frontend-pose:latest"
 NAMESPACE="pose-microservices"
 DEPLOYMENT_NAME="frontend"
+API_URL="http://10.11.9.84:3000/api/v1"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║  🔄 UPDATE SERVICE - Frontend                    ║${NC}"
+echo -e "${BLUE}║  🔄 UPDATE SERVICE - Frontend                     ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Step 1: Build Docker Image
-echo -e "${YELLOW}📦 Step 1/5: Building new Docker image...${NC}"
+# Step 1: Build Docker Image with API URL
+echo -e "${YELLOW}📦 Step 1/4: Building Docker image...${NC}"
 echo -e "${CYAN}   → Building ${IMAGE_NAME}${NC}"
+echo -e "${CYAN}   → API URL: ${API_URL}${NC}"
 cd ..
-docker build -f docker/Dockerfile -t ${IMAGE_NAME} .
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=${API_URL} \
+  -f docker/Dockerfile \
+  -t ${IMAGE_NAME} \
+  .
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Build completed successfully!${NC}"
@@ -38,15 +44,8 @@ else
 fi
 echo ""
 
-# Step 2: Verify Image
-echo -e "${YELLOW}🔍 Step 2/5: Verifying Docker image...${NC}"
-echo -e "${CYAN}   → Checking image exists${NC}"
-docker images | grep frontend-pose
-echo -e "${GREEN}✓ Image verified!${NC}"
-echo ""
-
-# Step 3: Import to K3s
-echo -e "${YELLOW}📥 Step 3/5: Importing image to K3s...${NC}"
+# Step 2: Import to K3s
+echo -e "${YELLOW}📥 Step 2/4: Importing image to K3s...${NC}"
 echo -e "${CYAN}   → Saving and importing ${IMAGE_NAME}${NC}"
 docker save ${IMAGE_NAME} | sudo k3s ctr images import -
 
@@ -58,16 +57,9 @@ else
 fi
 echo ""
 
-# Step 4: Verify Import in K3s
-echo -e "${YELLOW}🔍 Step 4/5: Verifying image in K3s...${NC}"
-echo -e "${CYAN}   → Checking K3s containerd registry${NC}"
-sudo k3s ctr images ls | grep frontend-pose
-echo -e "${GREEN}✓ Image verified in K3s!${NC}"
-echo ""
-
-# Step 5: Restart Deployment
-echo -e "${YELLOW}🔄 Step 5/5: Restarting deployment...${NC}"
-echo -e "${CYAN}   → Triggering rollout restart${NC}"
+# Step 3: Restart Deployment
+echo -e "${YELLOW}🔄 Step 3/4: Restarting deployment...${NC}"
+echo -e "${CYAN}   → Rolling restart ${DEPLOYMENT_NAME}${NC}"
 kubectl rollout restart deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
 
 if [ $? -eq 0 ]; then
@@ -78,36 +70,37 @@ else
 fi
 echo ""
 
-# Monitor Progress
-echo -e "${YELLOW}⏳ Monitoring rollout progress...${NC}"
-echo -e "${CYAN}   → Watching deployment status${NC}"
+# Step 4: Wait for Deployment
+echo -e "${YELLOW}⏳ Step 4/4: Waiting for deployment to be ready...${NC}"
+echo -e "${CYAN}   → Monitoring rollout status${NC}"
 kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE} --timeout=5m
 
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓ Rollout completed successfully!${NC}"
+    echo -e "${GREEN}✓ Deployment is ready!${NC}"
 else
-    echo -e "${RED}✗ Rollout failed or timed out!${NC}"
+    echo -e "${RED}✗ Deployment rollout failed or timed out!${NC}"
     exit 1
 fi
 echo ""
 
-# Show New Pods
-echo -e "${YELLOW}📊 Checking new pods...${NC}"
+# Show Status
+echo -e "${YELLOW}📊 Final status:${NC}"
+echo ""
+echo -e "${CYAN}Pods:${NC}"
 kubectl get pods -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME}
 echo ""
 
 # Success Message
 echo -e "${GREEN}╔════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  ✅ Service Update Completed Successfully!        ║${NC}"
+echo -e "${GREEN}║  ✅ Update Completed Successfully!                ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════╝${NC}"
 echo ""
 
 # Next Steps
-echo -e "${BLUE}📝 Useful commands:${NC}"
+echo -e "${BLUE}📝 Next steps:${NC}"
 echo -e "  • Check logs: ${YELLOW}kubectl logs -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME} -f${NC}"
-echo -e "  • Check status: ${YELLOW}kubectl get pods -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME}${NC}"
-echo -e "  • Rollback if needed: ${YELLOW}kubectl rollout undo deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}${NC}"
+echo -e "  • Access frontend: ${YELLOW}http://10.11.9.84:30100${NC}"
+echo -e "  • Clear browser cache: ${YELLOW}Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)${NC}"
 echo ""
 
 echo -e "${GREEN}🎉 Update completed at $(date '+%Y-%m-%d %H:%M:%S')${NC}"
-

@@ -18,6 +18,7 @@ NC='\033[0m' # No Color
 IMAGE_NAME="frontend-pose:latest"
 NAMESPACE="pose-microservices"
 DEPLOYMENT_NAME="frontend"
+API_URL="http://10.11.9.84:3000/api/v1"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║  🚀 FIRST TIME DEPLOYMENT - Frontend             ║${NC}"
@@ -27,8 +28,13 @@ echo ""
 # Step 1: Build Docker Image
 echo -e "${YELLOW}📦 Step 1/5: Building Docker image...${NC}"
 echo -e "${CYAN}   → Building ${IMAGE_NAME}${NC}"
+echo -e "${CYAN}   → API URL: ${API_URL}${NC}"
 cd ..
-docker build -f docker/Dockerfile -t ${IMAGE_NAME} .
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=${API_URL} \
+  -f docker/Dockerfile \
+  -t ${IMAGE_NAME} \
+  .
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Build completed successfully!${NC}"

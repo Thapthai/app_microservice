@@ -42,9 +42,16 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/prisma ./prisma
 
+# Create uploads directory and set permissions
+RUN mkdir -p /app/uploads/items && \
+    chmod -R 755 /app/uploads
+
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nestjs -u 1001
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001 && \
+    chown -R nestjs:nodejs /app/uploads && \
+    chown -R nestjs:nodejs /app
+
 USER nestjs
 
 # Expose port

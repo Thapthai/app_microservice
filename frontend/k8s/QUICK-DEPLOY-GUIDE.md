@@ -53,6 +53,26 @@ chmod +x update-service.sh
 ./update-service.sh
 ```
 
+---
+
+## ⚙️ Configuration
+
+Scripts จะใช้ค่าเหล่านี้โดยอัตโนมัติ:
+
+```bash
+IMAGE_NAME="frontend-pose:latest"
+NAMESPACE="pose-microservices"
+DEPLOYMENT_NAME="frontend"
+API_URL="http://10.11.9.84:3000/api/v1"
+```
+
+**ถ้าต้องการเปลี่ยน API URL:**
+แก้ไขในไฟล์ script:
+- `deploy-first-time.sh` (บรรทัดที่ 21)
+- `update-service.sh` (บรรทัดที่ 21)
+
+---
+
 **อัพเดทล่าสุด:** 2025-01-21  
-**Version:** 1.0.0
+**Version:** 2.0.0
 
