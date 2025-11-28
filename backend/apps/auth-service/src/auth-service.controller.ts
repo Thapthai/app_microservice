@@ -81,6 +81,28 @@ export class AuthServiceController {
     return this.authServiceService.revokeApiKey(data.user_id, data.apiKeyId);
   }
 
+  // ================================ Client Credential Endpoints ================================
+
+  @MessagePattern('auth.client-credential.create')
+  async createClientCredential(@Payload() data: { user_id: number; clientCredentialDto: ApiKeyCreateDto }) {
+    return this.authServiceService.createClientCredential(data.user_id, data.clientCredentialDto);
+  }
+
+  @MessagePattern('auth.client-credential.list')
+  async listClientCredentials(@Payload() user_id: number) {
+    return this.authServiceService.listClientCredentials(user_id);
+  }
+
+  @MessagePattern('auth.client-credential.revoke')
+  async revokeClientCredential(@Payload() data: { user_id: number; credentialId: number }) {
+    return this.authServiceService.revokeClientCredential(data.user_id, data.credentialId);
+  }
+
+  @MessagePattern('auth.client-credential.validate')
+  async validateClientCredential(@Payload() data: { client_id: string; client_secret: string }) {
+    return this.authServiceService.validateClientCredential(data.client_id, data.client_secret);
+  }
+
   // ================================ Token Management ================================
 
   @MessagePattern('auth.token.refresh')

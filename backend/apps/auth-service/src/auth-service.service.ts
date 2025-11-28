@@ -12,6 +12,7 @@ import {
   AuthMethod
 } from './dto/auth.dto';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
+import { ClientCredentialStrategy } from './strategies/client-credential.strategy';
 import { TOTPService } from './services/totp.service';
 import { EmailOTPService } from './services/email-otp.service';
 import { FirebaseService } from './services/firebase.service';
@@ -23,6 +24,7 @@ export class AuthServiceService {
     private jwtService: JwtService,
     private prisma: PrismaService,
     private apiKeyStrategy: ApiKeyStrategy,
+    private clientCredentialStrategy: ClientCredentialStrategy,
     private totpService: TOTPService,
     private emailOTPService: EmailOTPService,
     private firebaseService: FirebaseService,
@@ -286,6 +288,150 @@ export class AuthServiceService {
       };
     } catch (error) {
       return { success: false, message: 'Failed to revoke API key', error: error.message };
+    }
+  }
+
+  // ================================ Client Credential Methods ================================
+
+  async createClientCredential(user_id: number, clientCredentialDto: ApiKeyCreateDto) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: user_id }
+      });
+
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      const { client_id, client_secret, client_secret_hash } = this.clientCredentialStrategy.generateClientCredential();
+
+      const clientCredential = await this.prisma.clientCredential.create({
+        data: {
+          user_id,
+          name: clientCredentialDto.name,
+          description: clientCredentialDto.description,
+          client_id,
+          client_secret_hash,
+          expires_at: clientCredentialDto.expires_at ? new Date(clientCredentialDto.expires_at) : null
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Client credential created successfully',
+        data: {
+          id: clientCredential.id,
+          name: clientCredential.name,
+          client_id, // Only return the actual client_id once during creation
+          client_secret, // Only return the actual client_secret once during creation
+          expires_at: clientCredential.expires_at
+        }
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to create client credential', error: error.message };
+    }
+  }
+
+  async listClientCredentials(user_id: number) {
+    try {
+      const clientCredentials = await this.prisma.clientCredential.findMany({
+        where: { user_id, is_active: true },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          client_id: true,
+          last_used_at: true,
+          expires_at: true,
+          created_at: true
+        },
+        orderBy: { created_at: 'desc' }
+      });
+
+      return {
+        success: true,
+        data: clientCredentials
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to list client credentials', error: error.message };
+    }
+  }
+
+  async revokeClientCredential(user_id: number, credentialId: number) {
+    try {
+      const credential = await this.prisma.clientCredential.findFirst({
+        where: { id: credentialId, user_id }
+      });
+
+      if (!credential) {
+        return { success: false, message: 'Client credential not found' };
+      }
+
+      await this.prisma.clientCredential.update({
+        where: { id: credentialId },
+        data: { is_active: false }
+      });
+
+      return {
+        success: true,
+        message: 'Client credential revoked successfully'
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to revoke client credential', error: error.message };
+    }
+  }
+
+  async validateClientCredential(client_id: string, client_secret: string) {
+    try {
+      const credential = await this.prisma.clientCredential.findUnique({
+        where: { client_id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              is_active: true,
+              preferred_auth_method: true
+            }
+          }
+        }
+      });
+
+      if (!credential || !credential.is_active || !credential.user.is_active) {
+        return { success: false, message: 'Invalid client credential' };
+      }
+
+      // Check if expired
+      if (this.clientCredentialStrategy.isExpired(credential.expires_at)) {
+        return { success: false, message: 'Client credential expired' };
+      }
+
+      // Verify client_secret
+      const isValid = await this.clientCredentialStrategy.verifyClientSecret(client_secret, credential.client_secret_hash);
+      if (!isValid) {
+        return { success: false, message: 'Invalid client secret' };
+      }
+
+      // Update last used timestamp
+      await this.prisma.clientCredential.update({
+        where: { id: credential.id },
+        data: { last_used_at: new Date() }
+      });
+
+      return {
+        success: true,
+        data: {
+          user: credential.user,
+          credential: {
+            id: credential.id,
+            name: credential.name,
+            client_id: credential.client_id
+          }
+        }
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to validate client credential', error: error.message };
     }
   }
 

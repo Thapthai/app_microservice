@@ -257,4 +257,24 @@ export class GatewayApiService {
   async getMedicalSupplyStatistics() {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.statistics' }, {}).toPromise();
   }
+
+  // ================================ Client Credential Methods ================================
+
+  async createClientCredential(user_id: number, clientCredentialDto: any) {
+    return this.authClient.send('auth.client-credential.create', {
+      user_id,
+      clientCredentialDto
+    }).toPromise();
+  }
+
+  async listClientCredentials(user_id: number) {
+    return this.authClient.send('auth.client-credential.list', user_id).toPromise();
+  }
+
+  async revokeClientCredential(user_id: number, credentialId: number) {
+    return this.authClient.send('auth.client-credential.revoke', {
+      user_id,
+      credentialId
+    }).toPromise();
+  }
 }

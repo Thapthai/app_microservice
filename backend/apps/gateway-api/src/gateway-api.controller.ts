@@ -4,6 +4,8 @@ import { memoryStorage } from 'multer';
 import { GatewayApiService } from './gateway-api.service';
 import { RegisterDto, LoginDto, CreateItemDto, UpdateItemDto, ChangePasswordDto, UpdateUserProfileDto, ResetPasswordDto, CreateCategoryDto, UpdateCategoryDto, CreateMedicalSupplyUsageDto, UpdateMedicalSupplyUsageDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { ClientCredentialGuard } from './guards/client-credential.guard';
+import { FlexibleAuthGuard } from './guards/flexible-auth.guard';
 
 @Controller()
 export class GatewayApiController {
@@ -196,6 +198,68 @@ export class GatewayApiController {
     }
   }
 
+  // ================================ Client Credential Endpoints ================================
+
+  @Post('auth/client-credential/create')
+  @UseGuards(JwtAuthGuard)
+  async createClientCredential(@Body() clientCredentialDto: { name: string; description?: string; expires_at?: string }, @Request() req: any) {
+    try {
+      const user_id = req.user.user.id;
+      const result = await this.gatewayApiService.createClientCredential(user_id, clientCredentialDto);
+
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+      }
+
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to create client credential',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('auth/client-credential/list')
+  @UseGuards(JwtAuthGuard)
+  async listClientCredentials(@Request() req: any) {
+    try {
+      const user_id = req.user.user.id;
+      const result = await this.gatewayApiService.listClientCredentials(user_id);
+
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+      }
+
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to list client credentials',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('auth/client-credential/revoke')
+  @UseGuards(JwtAuthGuard)
+  async revokeClientCredential(@Body() data: { credentialId: number }, @Request() req: any) {
+    try {
+      const user_id = req.user.user.id;
+      const result = await this.gatewayApiService.revokeClientCredential(user_id, data.credentialId);
+
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+      }
+
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to revoke client credential',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post('auth/user/change-password')
   @UseGuards(JwtAuthGuard)
   async changePassword(@Body() changePasswordDto: ChangePasswordDto, @Request() req: any) {
@@ -240,7 +304,7 @@ export class GatewayApiController {
       fileSize: 10 * 1024 * 1024, // 10MB
     },
   }))
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async createItem(@UploadedFile() file: any, @Body() body: any) {
     try {
       const axios = require('axios');
@@ -285,7 +349,7 @@ export class GatewayApiController {
   }
 
   @Get('items')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async findAllItems(
     @Request() req: any,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -317,7 +381,7 @@ export class GatewayApiController {
   }
 
   @Get('items/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async findOneItem(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     try {
       const axios = require('axios');
@@ -340,7 +404,7 @@ export class GatewayApiController {
       fileSize: 10 * 1024 * 1024, // 10MB
     },
   }))
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async updateItem(
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file: any,
@@ -387,7 +451,7 @@ export class GatewayApiController {
   }
 
   @Delete('items/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async removeItem(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     try {
       const axios = require('axios');

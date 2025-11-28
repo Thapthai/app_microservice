@@ -36,6 +36,7 @@ model User {
   // Relations
   oauth_accounts    OAuthAccount[]
   api_keys          ApiKey[]
+  client_credentials ClientCredential[]
   refreshTokens     RefreshToken[]
   two_factor_tokens TwoFactorToken[]
 
@@ -77,6 +78,25 @@ model ApiKey {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("api_keys")
+}
+
+model ClientCredential {
+  id                Int       @id @default(autoincrement())
+  user_id           Int       @map("user_id")
+  name              String
+  description       String?
+  client_id         String    @unique @map("client_id")
+  client_secret_hash String   @map("client_secret_hash")
+  is_active         Boolean   @default(true) @map("is_active")
+  last_used_at      DateTime? @map("last_used_at")
+  expires_at        DateTime? @map("expires_at")
+  created_at        DateTime  @default(now()) @map("created_at")
+  updated_at        DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([client_id])
+  @@map("client_credentials")
 }
 
 model RefreshToken {

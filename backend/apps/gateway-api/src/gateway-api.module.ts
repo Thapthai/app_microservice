@@ -3,6 +3,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { GatewayApiController } from './gateway-api.controller';
 import { GatewayApiService } from './gateway-api.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { ClientCredentialGuard } from './guards/client-credential.guard';
+import { FlexibleAuthGuard } from './guards/flexible-auth.guard';
 import { MetricsModule } from '../../../libs/metrics/metrics.module';
 
 @Module({
@@ -60,6 +62,6 @@ import { MetricsModule } from '../../../libs/metrics/metrics.module';
     ]),
   ],
   controllers: [GatewayApiController],
-  providers: [GatewayApiService, JwtAuthGuard],
+  providers: [GatewayApiService, JwtAuthGuard, ClientCredentialGuard, FlexibleAuthGuard],
 })
 export class GatewayApiModule { }

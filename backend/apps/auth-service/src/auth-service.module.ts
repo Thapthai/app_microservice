@@ -5,6 +5,7 @@ import { AuthServiceController } from './auth-service.controller';
 import { AuthServiceService } from './auth-service.service';
 import { PrismaService } from './prisma.service';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
+import { ClientCredentialStrategy } from './strategies/client-credential.strategy';
 import { AuthGuard } from './guards/auth.guard';
 import { TOTPService } from './services/totp.service';
 import { EmailOTPService } from './services/email-otp.service';
@@ -38,11 +39,12 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
     AuthServiceService,
     PrismaService,
     ApiKeyStrategy,
+    ClientCredentialStrategy,
     AuthGuard,
     TOTPService,
     EmailOTPService,
     FirebaseService
   ],
-  exports: [AuthGuard, ApiKeyStrategy],
+  exports: [AuthGuard, ApiKeyStrategy, ClientCredentialStrategy],
 })
 export class AuthServiceModule { }
