@@ -704,7 +704,7 @@ export class GatewayApiController {
   // ============================================================
 
   @Post('medical-supplies')
-  //  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async createMedicalSupplyUsage(@Body() data: any) {
     try {
       // Validate required fields based on format
@@ -743,7 +743,7 @@ export class GatewayApiController {
   }
 
   @Get('medical-supplies')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async getMedicalSupplyUsages(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
@@ -892,7 +892,7 @@ export class GatewayApiController {
   }
 
   @Get('medical-supplies/:id')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async getMedicalSupplyUsageById(@Param('id') id: string) {
     try {
       const result = await this.gatewayApiService.getMedicalSupplyUsageById(parseInt(id));
@@ -906,7 +906,7 @@ export class GatewayApiController {
   }
 
   @Get('medical-supplies/hn/:hn')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async getMedicalSupplyUsageByHN(@Param('hn') hn: string) {
     try {
       const result = await this.gatewayApiService.getMedicalSupplyUsageByHN(hn);
@@ -920,7 +920,7 @@ export class GatewayApiController {
   }
 
   @Put('medical-supplies/:id')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async updateMedicalSupplyUsage(@Param('id') id: string, @Body() updateData: UpdateMedicalSupplyUsageDto) {
     try {
       const result = await this.gatewayApiService.updateMedicalSupplyUsage(parseInt(id), updateData);
@@ -934,7 +934,7 @@ export class GatewayApiController {
   }
 
   @Patch('medical-supplies/:id/print-info')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async updateMedicalSupplyPrintInfo(@Param('id') id: string, @Body() printData: any) {
     try {
       const result = await this.gatewayApiService.updateMedicalSupplyPrintInfo(parseInt(id), printData);
@@ -952,7 +952,7 @@ export class GatewayApiController {
   }
 
   @Delete('medical-supplies/:id')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async deleteMedicalSupplyUsage(@Param('id') id: string) {
     try {
       const result = await this.gatewayApiService.deleteMedicalSupplyUsage(parseInt(id));
@@ -966,7 +966,7 @@ export class GatewayApiController {
   }
 
   @Get('medical-supplies/statistics/all')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async getMedicalSupplyStatistics() {
     try {
       const result = await this.gatewayApiService.getMedicalSupplyStatistics();
