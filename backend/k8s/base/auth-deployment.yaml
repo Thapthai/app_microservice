@@ -90,10 +90,10 @@ spec:
               key: FIREBASE_PRIVATE_KEY
         resources:
           requests:
-            memory: "40Mi"   # ลดจาก 64Mi (ใช้จริง 44MB)
+            memory: "48Mi"   # เพิ่มจาก 40Mi (ใช้จริง 62MB)
             cpu: "50m"
           limits:
-            memory: "64Mi"   # ลดจาก 128Mi (ใช้จริง 44MB + buffer)
+            memory: "96Mi"   # เพิ่มจาก 64Mi (ใช้จริง 62MB + buffer เพิ่มขึ้น)
             cpu: "200m"
         livenessProbe:
           tcpSocket:
