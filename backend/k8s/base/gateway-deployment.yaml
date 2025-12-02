@@ -85,10 +85,10 @@ spec:
               key: JWT_SECRET
         resources:
           requests:
-            memory: "64Mi"
+            memory: "32Mi"   # ลดจาก 64Mi (ใช้จริง 34MB)
             cpu: "50m"
           limits:
-            memory: "128Mi"
+            memory: "56Mi"   # ลดจาก 128Mi (ใช้จริง 34MB + buffer)
             cpu: "200m"
         livenessProbe:
           httpGet:

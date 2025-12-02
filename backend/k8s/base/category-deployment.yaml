@@ -35,10 +35,10 @@ spec:
               key: DATABASE_URL
         resources:
           requests:
-            memory: "64Mi"
+            memory: "40Mi"   # ลดจาก 64Mi (ใช้จริง 40MB)
             cpu: "50m"
           limits:
-            memory: "128Mi"
+            memory: "64Mi"   # ลดจาก 128Mi (ใช้จริง 40MB + buffer)
             cpu: "200m"
         livenessProbe:
           tcpSocket:
