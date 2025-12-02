@@ -53,8 +53,6 @@ export default function EditItemPage({ params }: EditItemPageProps) {
     defaultValues: {
       name: '',
       description: '',
-      price: 0,
-      quantity: 0,
       is_active: true,
     },
   });
@@ -92,8 +90,6 @@ export default function EditItemPage({ params }: EditItemPageProps) {
         form.reset({
           name: itemData.name,
           description: itemData.description || '',
-          price: itemData.price,
-          quantity: itemData.quantity,
           category_id: itemData.category_id || undefined,
           is_active: itemData.is_active,
         });
@@ -113,7 +109,11 @@ export default function EditItemPage({ params }: EditItemPageProps) {
     try {
       setLoading(true);
 
-      const response = await itemsApi.update(parseInt(itemId), data);
+      const response = await itemsApi.update(parseInt(itemId), {
+        ...data,
+        price: item?.price, // Keep original price
+        quantity: item?.quantity, // Keep original quantity
+      });
 
       if (response.success) {
         toast.success('อัปเดตสินค้าเรียบร้อยแล้ว');
@@ -208,57 +208,6 @@ export default function EditItemPage({ params }: EditItemPageProps) {
                         </FormItem>
                       )}
                     />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="price"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>ราคา (บาท) *</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="0.00"
-                                min="0"
-                                step="0.01"
-                                {...field}
-                                value={field.value || ''}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  field.onChange(value === '' ? '' : parseFloat(value) || 0);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="quantity"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>จำนวน</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                min="0"
-                                {...field}
-                                value={field.value || ''}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  field.onChange(value === '' ? '' : parseInt(value) || 0);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
 
                     <FormField
                       control={form.control}

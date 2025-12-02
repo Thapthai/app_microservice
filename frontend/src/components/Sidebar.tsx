@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Sparkles,
   Syringe,
+  Settings,
+  Tag,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -21,7 +23,7 @@ interface SidebarProps {
   setIsCollapsed: (value: boolean) => void;
 }
 
-const menuItems = [
+const mainMenuItems = [
   {
     name: 'Dashboard',
     href: '/dashboard',
@@ -29,16 +31,25 @@ const menuItems = [
     description: 'ภาพรวมระบบ',
   },
   {
-    name: 'จัดการสินค้า',
-    href: '/items',
-    icon: Package,
-    description: 'รายการสินค้าทั้งหมด',
-  },
-  {
     name: 'เวชภัณฑ์',
     href: '/medical-supplies',
     icon: Syringe,
     description: 'จัดการเวชภัณฑ์',
+  },
+];
+
+const managementMenuItems = [
+  {
+    name: 'Category',
+    href: '/categories',
+    icon: Tag,
+    description: 'จัดการหมวดหมู่',
+  },
+  {
+    name: 'สินค้า',
+    href: '/items',
+    icon: Package,
+    description: 'รายการสินค้าทั้งหมด',
   },
   {
     name: 'โปรไฟล์',
@@ -141,68 +152,124 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
-            {/* Menu Label - Mobile: แสดงเสมอ, Desktop: ซ่อนเมื่อหุบ */}
-            <div className={cn(
-              "px-3 mb-4",
-              isCollapsed && "lg:hidden"
-            )}>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                เมนูหลัก
-              </p>
+          <nav className="flex-1 px-3 py-6 space-y-4 overflow-y-auto">
+            {/* Main Menu Items */}
+            <div className="space-y-2">
+              {mainMenuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileOpen(false)}
+                    className={cn(
+                      'group relative flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200',
+                      isActive
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
+                        : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
+                      'space-x-3',
+                      isCollapsed && 'lg:justify-center lg:space-x-0'
+                    )}
+                    title={isCollapsed ? item.name : undefined}
+                  >
+                    {isActive && (
+                      <div className={cn(
+                        "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full",
+                        isCollapsed && "lg:hidden"
+                      )}></div>
+                    )}
+                    
+                    <Icon className={cn(
+                      'h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110',
+                      isActive && 'drop-shadow-lg'
+                    )} />
+                    
+                    <div className={cn(
+                      "flex-1 min-w-0",
+                      isCollapsed && "lg:hidden"
+                    )}>
+                      <p className="font-medium truncate">{item.name}</p>
+                      {!isActive && (
+                        <p className="text-xs text-slate-400 truncate">{item.description}</p>
+                      )}
+                    </div>
+                    
+                    {!isActive && (
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-purple-600/0 group-hover:from-blue-500/5 group-hover:to-purple-600/5 transition-all"></div>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
 
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-              
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileOpen(false)}
-                  className={cn(
-                    'group relative flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200',
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
-                      : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
-                    // Mobile: space-x-3, Desktop: ตาม isCollapsed
-                    'space-x-3',
-                    isCollapsed && 'lg:justify-center lg:space-x-0'
-                  )}
-                  title={isCollapsed ? item.name : undefined}
-                >
-                  {/* Active Indicator - Mobile: แสดงเสมอ, Desktop: ซ่อนเมื่อหุบ */}
-                  {isActive && (
-                    <div className={cn(
-                      "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full",
-                      isCollapsed && "lg:hidden"
-                    )}></div>
-                  )}
-                  
-                  <Icon className={cn(
-                    'h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110',
-                    isActive && 'drop-shadow-lg'
-                  )} />
-                  
-                  {/* Text - Mobile: แสดงเสมอ, Desktop: ซ่อนเมื่อหุบ */}
-                  <div className={cn(
-                    "flex-1 min-w-0",
-                    isCollapsed && "lg:hidden"
-                  )}>
-                    <p className="font-medium truncate">{item.name}</p>
-                    {!isActive && (
-                      <p className="text-xs text-slate-400 truncate">{item.description}</p>
+            {/* Separator */}
+            <div className={cn(
+              "border-t border-slate-700/50 my-4",
+              isCollapsed && "lg:my-2"
+            )}></div>
+
+            {/* Management Section */}
+            <div className="space-y-2">
+              {/* Section Header */}
+              <div className={cn(
+                "px-3 mb-2",
+                isCollapsed && "lg:hidden"
+              )}>
+                <p className="text-xs font-medium text-slate-500 lowercase">
+                  จัดการ
+                </p>
+              </div>
+
+              {managementMenuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileOpen(false)}
+                    className={cn(
+                      'group relative flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200',
+                      isActive
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
+                        : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
+                      'space-x-3',
+                      isCollapsed && 'lg:justify-center lg:space-x-0'
                     )}
-                  </div>
-                  
-                  {/* Hover effect */}
-                  {!isActive && (
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-purple-600/0 group-hover:from-blue-500/5 group-hover:to-purple-600/5 transition-all"></div>
-                  )}
-                </Link>
-              );
-            })}
+                    title={isCollapsed ? item.name : undefined}
+                  >
+                    {isActive && (
+                      <div className={cn(
+                        "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full",
+                        isCollapsed && "lg:hidden"
+                      )}></div>
+                    )}
+                    
+                    <Icon className={cn(
+                      'h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110',
+                      isActive && 'drop-shadow-lg'
+                    )} />
+                    
+                    <div className={cn(
+                      "flex-1 min-w-0",
+                      isCollapsed && "lg:hidden"
+                    )}>
+                      <p className="font-medium truncate">{item.name}</p>
+                      {!isActive && (
+                        <p className="text-xs text-slate-400 truncate">{item.description}</p>
+                      )}
+                    </div>
+                    
+                    {!isActive && (
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-purple-600/0 group-hover:from-blue-500/5 group-hover:to-purple-600/5 transition-all"></div>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           </nav>
 
           {/* Footer */}

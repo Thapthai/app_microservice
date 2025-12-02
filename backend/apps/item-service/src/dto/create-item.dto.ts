@@ -11,13 +11,11 @@ export class CreateItemDto {
     description?: string;
 
     @IsNumber()
-    @Min(0)
     @Type(() => Number)
     price: number;
 
     @IsOptional()
     @IsNumber()
-    @Min(0)
     @Type(() => Number)
     quantity?: number;
 

@@ -19,11 +19,17 @@ export const registerSchema = z.object({
 export const itemSchema = z.object({
   name: z.string().min(2, 'ชื่อสินค้าต้องมีอย่างน้อย 2 ตัวอักษร'),
   description: z.string().optional(),
-  price: z.number().min(0, 'ราคาต้องมากกว่าหรือเท่ากับ 0'),
-  quantity: z.number().min(0, 'จำนวนต้องมากกว่าหรือเท่ากับ 0').optional(),
   category_id: z.number({ message: 'กรุณาเลือกหมวดหมู่' }).min(1, 'กรุณาเลือกหมวดหมู่'),
+});
+
+export const categorySchema = z.object({
+  name: z.string().min(2, 'ชื่อหมวดหมู่ต้องมีอย่างน้อย 2 ตัวอักษร').max(100, 'ชื่อหมวดหมู่ต้องไม่เกิน 100 ตัวอักษร'),
+  description: z.string().max(500, 'คำอธิบายต้องไม่เกิน 500 ตัวอักษร').optional(),
+  slug: z.string().optional(),
+  is_active: z.boolean(),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 export type ItemFormData = z.infer<typeof itemSchema>;
+export type CategoryFormData = z.infer<typeof categorySchema>;

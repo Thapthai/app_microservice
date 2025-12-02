@@ -131,38 +131,49 @@ export const categoriesApi = {
     const response = await api.get(`/categories/slug/${slug}`);
     return response.data;
   },
+
+  create: async (data: { name: string; description?: string; slug?: string; is_active?: boolean }): Promise<ApiResponse<Category>> => {
+    const response = await api.post('/categories', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: { name?: string; description?: string; slug?: string; is_active?: boolean }): Promise<ApiResponse<Category>> => {
+    const response = await api.put(`/categories/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse> => {
+    const response = await api.delete(`/categories/${id}`);
+    return response.data;
+  },
 };
 
 // Items API
 export const itemsApi = {
   create: async (data: CreateItemDto): Promise<ApiResponse<Item>> => {
-    // Check if there's a file to upload
-    if (data.picture) {
-      const formData = new FormData();
-      
-      // Append all fields to FormData
-      Object.keys(data).forEach((key) => {
-        const value = data[key as keyof CreateItemDto];
-        if (value !== undefined && value !== null) {
-          if (key === 'picture' && value instanceof File) {
-            formData.append(key, value);
-          } else {
-            formData.append(key, String(value));
-          }
+    // Always use FormData for consistency with backend expectations
+    const formData = new FormData();
+    
+    // Append all fields to FormData
+    Object.keys(data).forEach((key) => {
+      const value = data[key as keyof CreateItemDto];
+      if (value !== undefined && value !== null) {
+        if (key === 'picture' && value instanceof File) {
+          formData.append(key, value);
+        } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          // Convert to string for FormData (backend will parse it)
+          formData.append(key, String(value));
         }
-      });
+        // Skip other types (objects, arrays, etc.)
+      }
+    });
 
-      const response = await api.post('/items', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    } else {
-      // No file, send as JSON
-      const response = await api.post('/items', data);
-      return response.data;
-    }
+    const response = await api.post('/items', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
   },
 
   getAll: async (query?: GetItemsQuery): Promise<PaginatedResponse<Item>> => {
@@ -176,33 +187,36 @@ export const itemsApi = {
   },
 
   update: async (id: number, data: UpdateItemDto): Promise<ApiResponse<Item>> => {
-    // Check if there's a file to upload
-    if (data.picture) {
-      const formData = new FormData();
-      
-      // Append all fields to FormData
-      Object.keys(data).forEach((key) => {
-        const value = data[key as keyof UpdateItemDto];
-        if (value !== undefined && value !== null) {
-          if (key === 'picture' && value instanceof File) {
-            formData.append(key, value);
-          } else {
-            formData.append(key, String(value));
-          }
+    // Always use FormData for consistency with backend expectations
+    // Backend expects multipart/form-data even without file
+    const formData = new FormData();
+    
+    // Remove picture field if it's not a File (could be string URL or undefined)
+    const { picture, ...restData } = data;
+    
+    // Append all fields to FormData
+    Object.keys(restData).forEach((key) => {
+      const value = restData[key as keyof typeof restData];
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          // Convert to string for FormData (backend will parse it)
+          formData.append(key, String(value));
         }
-      });
+        // Skip other types (objects, arrays, etc.)
+      }
+    });
 
-      const response = await api.put(`/items/${id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    } else {
-      // No file, send as JSON
-      const response = await api.put(`/items/${id}`, data);
-      return response.data;
+    // Add picture file if it's a File object
+    if (picture && picture instanceof File) {
+      formData.append('picture', picture);
     }
+
+    const response = await api.put(`/items/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
   },
 
   delete: async (id: number): Promise<ApiResponse> => {

@@ -35,8 +35,6 @@ export default function CreateItemDialog({
     defaultValues: {
       name: '',
       description: '',
-      price: 0,
-      quantity: 0,
     },
   });
 
@@ -52,6 +50,8 @@ export default function CreateItemDialog({
       setLoading(true);
       const response = await itemsApi.create({
         ...data,
+        price: 0,
+        quantity: 0,
         is_active: true,
       });
 
@@ -116,57 +116,6 @@ export default function CreateItemDialog({
                 </FormItem>
               )}
             />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ราคา (บาท) *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                        {...field}
-                        value={field.value || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          field.onChange(value === '' ? '' : parseFloat(value) || 0);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>จำนวน</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        min="0"
-                        {...field}
-                        value={field.value || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          field.onChange(value === '' ? '' : parseInt(value) || 0);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
 
             <div className="pt-2 border-t border-gray-100">
               <FormField

@@ -503,7 +503,7 @@ export class GatewayApiController {
   // ==================================== Category Endpoints ====================================
 
   @Post('categories')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async createCategory(@Body() createCategoryDto: CreateCategoryDto) {
     try {
       const result = await this.gatewayApiService.createCategory(createCategoryDto);
@@ -520,7 +520,7 @@ export class GatewayApiController {
   }
 
   @Get('categories')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async getCategories(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
@@ -538,7 +538,7 @@ export class GatewayApiController {
   }
 
   @Get('categories/tree')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async getCategoryTree() {
     try {
       const result = await this.gatewayApiService.getCategoryTree();
@@ -552,7 +552,7 @@ export class GatewayApiController {
   }
 
   @Get('categories/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async getCategoryById(@Param('id') id: string) {
     try {
       const result = await this.gatewayApiService.getCategoryById(id);
@@ -569,7 +569,7 @@ export class GatewayApiController {
   }
 
   @Get('categories/slug/:slug')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async getCategoryBySlug(@Param('slug') slug: string) {
     try {
       const result = await this.gatewayApiService.getCategoryBySlug(slug);
@@ -586,7 +586,7 @@ export class GatewayApiController {
   }
 
   @Put('categories/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async updateCategory(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
@@ -606,7 +606,7 @@ export class GatewayApiController {
   }
 
   @Delete('categories/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async deleteCategory(@Param('id') id: string) {
     try {
       const result = await this.gatewayApiService.deleteCategory(id);
@@ -623,7 +623,7 @@ export class GatewayApiController {
   }
 
   @Get('categories/:parentId/children')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   async getCategoryChildren(@Param('parentId') parentId: string) {
     try {
       const result = await this.gatewayApiService.getCategoryChildren(parentId);

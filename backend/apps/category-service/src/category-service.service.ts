@@ -134,11 +134,11 @@ export class CategoryServiceService {
       }
 
       // Check if new slug already exists (excluding current category)
-      if (updateCategoryDto.slug) {
+      if (updateCategoryDto.slug && updateCategoryDto.slug !== existingCategory.slug) {
         const slugExists = await this.prisma.category.findFirst({
           where: {
             slug: updateCategoryDto.slug,
-
+            id: { not: parseInt(id) } // Exclude current category
           }
         });
 
@@ -171,24 +171,27 @@ export class CategoryServiceService {
 
   async remove(id: string) {
     try {
-      // Check if category exists and count children
+      // Check if category exists
       const existingCategory = await this.prisma.category.findUnique({
         where: { id: parseInt(id) }
-      });
-
-      const childrenCount = await this.prisma.category.count({
-        where: {}
       });
 
       if (!existingCategory) {
         throw new NotFoundException('Category not found');
       }
 
-      // Check if category has children
-      if (childrenCount > 0) {
-        throw new BadRequestException('Cannot delete category with subcategories');
+      // Check if category has items (products) using it
+      const itemsCount = await this.prisma.item.count({
+        where: { category_id: parseInt(id) }
+      });
+
+      if (itemsCount > 0) {
+        throw new BadRequestException(
+          `Cannot delete category. There are ${itemsCount} item(s) using this category. Please remove or reassign items first.`
+        );
       }
 
+      // Delete category
       await this.prisma.category.delete({
         where: { id: parseInt(id) }
       });

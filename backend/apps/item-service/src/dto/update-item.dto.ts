@@ -12,13 +12,11 @@ export class UpdateItemDto {
 
     @IsOptional()
     @IsNumber()
-    @Min(0)
     @Type(() => Number)
     price?: number;
 
     @IsOptional()
     @IsNumber()
-    @Min(0)
     @Type(() => Number)
     quantity?: number;
 

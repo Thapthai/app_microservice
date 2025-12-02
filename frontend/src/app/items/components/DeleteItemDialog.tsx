@@ -94,7 +94,7 @@ export default function DeleteItemDialog({
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="flex flex-row gap-3 sm:justify-end">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
