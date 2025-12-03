@@ -4,6 +4,7 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1',
   },
   // Enable standalone output for Docker
+  basePath : process.env.NEXT_PUBLIC_BASE_PATH || "",
   output: 'standalone',
   // Disable image optimization for standalone mode
   images: {
