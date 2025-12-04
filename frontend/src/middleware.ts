@@ -2,10 +2,10 @@ export { default } from "next-auth/middleware";
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/items/:path*',
-    '/profile/:path*',
-    '/categories/:path*',
+    `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/dashboard/:path*`,
+    `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/items/:path*`,
+    `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/profile/:path*`,
+    `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/categories/:path*`,
   ]
 };
 
