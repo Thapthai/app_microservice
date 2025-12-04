@@ -102,7 +102,8 @@ echo ""
 # Next Steps
 echo -e "${BLUE}📝 Next steps:${NC}"
 echo -e "  • Check logs: ${YELLOW}kubectl logs -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME} -f${NC}"
-echo -e "  • Access frontend: ${YELLOW}http://10.11.9.84:30100${NC}"
+echo -e "  • Access frontend via Apache: ${YELLOW}https://phc.dyndns.biz/medical-supplies/${NC}"
+echo -e "  • Access frontend via NodePort: ${YELLOW}http://10.11.9.84:30100/medical-supplies/${NC}"
 echo -e "  • Clear browser cache: ${YELLOW}Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)${NC}"
 echo ""
 
