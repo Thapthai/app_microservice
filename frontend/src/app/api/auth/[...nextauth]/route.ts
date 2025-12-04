@@ -193,25 +193,12 @@ const authOptions: NextAuthOptions = {
       }
 
       return session;
-    },
-    async redirect({ url, baseUrl }) {
-      // Ensure redirects use basePath
-      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-      // If url is relative, prepend basePath
-      if (url.startsWith('/')) {
-        return `${basePath}${url}`;
-      }
-      // If url is absolute but doesn't include basePath, add it
-      if (url.startsWith(baseUrl) && !url.includes(basePath)) {
-        return url.replace(baseUrl, `${baseUrl}${basePath}`);
-      }
-      return url;
     }
   },
 
   pages: {
-    signIn: '/auth/login',  // Next.js will automatically prepend basePath
-    error: '/auth/login',    // Next.js will automatically prepend basePath
+    signIn: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/auth/login`,
+    error: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/auth/login`,
   },
 
   session: {
