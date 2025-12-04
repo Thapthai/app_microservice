@@ -39,7 +39,7 @@ spec:
               value: "fKwpUMTYNf8bJZ8hJqDwy6KeXfJgkBce9H9gm48VzvU="
             - name: NEXTAUTH_URL
               # value: "http://10.11.9.84:30100"  # Frontend public URL with NodePort
-              value: "https://phc.dyndns.biz/medical-supplies"  # Frontend public URL with NodePort
+              value: "https://phc.dyndns.biz/medical-supplies/"  # Frontend public URL with NodePort
           resources:
             requests:
               memory: "48Mi"   # ลดจาก 128Mi (ใช้จริง 43-46MB)
