@@ -14,9 +14,12 @@ import { signOut } from 'next-auth/react';
 
 export default function Navbar() {
   const { user, isAuthenticated } = useAuth();
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
   const logout = async () => {
-    await signOut({ callbackUrl: '/auth/login' });
+    // ใช้ basePath ในการ redirect หลัง logout
+    const loginPath = basePath ? `${basePath}/auth/login` : '/auth/login';
+    await signOut({ callbackUrl: loginPath });
   };
 
   return (
