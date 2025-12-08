@@ -40,6 +40,24 @@ kubectl get namespace pose-microservices
 kubectl get pods -n pose-microservices
 ```
 
+### **Create Namespace (if not exists)**
+
+หาก namespace `pose-microservices` ยังไม่มี ให้สร้างก่อน:
+
+```bash
+# สร้าง namespace
+kubectl create namespace pose-microservices
+
+# ตรวจสอบว่าสร้างสำเร็จ
+kubectl get namespace pose-microservices
+
+# Expected output:
+# NAME                 STATUS   AGE
+# pose-microservices   Active   5s
+```
+
+**หมายเหตุ:** ถ้า namespace มีอยู่แล้ว คำสั่งจะแสดง error `AlreadyExists` ซึ่งไม่เป็นปัญหา
+
 ---
 
 ## 🏗️ Build & Import
