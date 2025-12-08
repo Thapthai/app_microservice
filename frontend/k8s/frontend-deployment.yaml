@@ -28,8 +28,8 @@ spec:
             - name: NODE_ENV
               value: "production"
             - name: NEXT_PUBLIC_API_URL
-              value: "http://10.11.9.84:3000/api/v1"  # Gateway API URL (internal IP - faster)
-              # value: "https://phc.dyndns.biz/medical-supplies-api/v1/"  # Gateway API URL (via Apache proxy)
+              # value: "http://10.11.9.84:3000/api/v1"  # Gateway API URL (internal IP - faster)
+              value: "https://phc.dyndns.biz/medical-supplies-api/v1/"  # Gateway API URL (via Apache proxy)
             # Build ธรรมดา (ไม่ใช้ basePath) - Apache จะ strip prefix ออก
             - name: NEXT_PUBLIC_BASE_PATH
               value: "/medical-supplies"

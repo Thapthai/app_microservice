@@ -47,12 +47,26 @@ kubectl get pods -n pose-microservices
 ### **1. Build Docker Image**
 
 ```bash
-cd /path/to/frontend
+cd /var/www/app_microservice/frontend
 
-# Build image
-docker build -f docker/Dockerfile -t frontend-pose:latest .
+# Build image with build args (สำคัญ: ต้องส่ง NEXT_PUBLIC_BASE_PATH)
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=https://phc.dyndns.biz/medical-supplies-api/v1/ \
+  --build-arg NEXT_PUBLIC_BASE_PATH=/medical-supplies \
+  -f docker/Dockerfile \
+  -t frontend-pose:latest \
+  .
 
+# Alternative: Internal IP (faster, but requires VPN/internal network)
+# docker build \
+#   --build-arg NEXT_PUBLIC_API_URL=http://10.11.9.84:3000/api/v1 \
+#   --build-arg NEXT_PUBLIC_BASE_PATH=/medical-supplies \
+#   -f docker/Dockerfile \
+#   -t frontend-pose:latest \
+#   .
 ```
+
+**⚠️ สำคัญ:** ต้องส่ง `--build-arg NEXT_PUBLIC_BASE_PATH=/medical-supplies` เพราะ `NEXT_PUBLIC_*` variables ต้องถูก embed ใน build time
 
 **Expected Output:**
 
@@ -73,7 +87,15 @@ docker images | grep frontend-pose
 
 # Expected output:
 # frontend-pose    latest    abc123def456    2 minutes ago    200MB
+
+# Verify NEXT_PUBLIC_BASE_PATH is set correctly
+docker inspect frontend-pose:latest --format='{{range .Config.Env}}{{println .}}{{end}}' | grep NEXT_PUBLIC_BASE_PATH
+
+# Expected output:
+# NEXT_PUBLIC_BASE_PATH=/medical-supplies
 ```
+
+**⚠️ สำคัญ:** ถ้าเห็น `NEXT_PUBLIC_BASE_PATH=` (empty) แสดงว่า build ไม่ถูกต้อง ต้อง rebuild ด้วย `--build-arg`
 
 ### **3. Import to K3s**
 
