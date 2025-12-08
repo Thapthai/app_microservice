@@ -22,7 +22,7 @@ spec:
           image: frontend-pose:latest
           imagePullPolicy: Never  # ใช้ local image
           ports:
-            - containerPort: 4100
+            - containerPort: 3100
               name: http
           env:
             - name: NODE_ENV
@@ -34,7 +34,7 @@ spec:
             - name: NEXT_PUBLIC_BASE_PATH
               value: "/medical-supplies"
             - name: PORT
-              value: "4100"
+              value: "3100"
             # NextAuth Configuration
             - name: NEXTAUTH_SECRET
               value: "fKwpUMTYNf8bJZ8hJqDwy6KeXfJgkBce9H9gm48VzvU="
@@ -51,7 +51,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /medical-supplies/
-              port: 4100
+              port: 3100
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -59,7 +59,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /medical-supplies/
-              port: 4100
+              port: 3100
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
@@ -81,7 +81,7 @@ spec:
     - name: http
       protocol: TCP
       port: 80
-      targetPort: 4100
-      nodePort: 30410  # NodePort must be in range 30000-32767 (container uses port 4100)
+      targetPort: 3100
+      nodePort: 30100  # NodePort must be in range 30000-32767 (container uses port 3100)
   sessionAffinity: ClientIP
 

@@ -66,7 +66,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=4100
+ENV PORT=3100
 
 # Accept build args for Next.js public environment variables (for runtime reference)
 ARG NEXT_PUBLIC_API_URL
@@ -90,11 +90,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 
 # Expose port
-EXPOSE 4100
+EXPOSE 3100
 
 # Health check - Check basePath root instead of /api/health
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:4100/medical-supplies/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+    CMD node -e "require('http').get('http://localhost:3100/medical-supplies/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start application
 CMD ["node", "server.js"]
