@@ -5,7 +5,9 @@ const nextConfig = {
   },
 
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || "",
-
+  
+  // Enable trailing slash to prevent 308 redirects
+  trailingSlash: true,
 
   output: 'standalone',
   // Disable image optimization for standalone mode
