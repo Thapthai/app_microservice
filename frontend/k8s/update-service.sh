@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 IMAGE_NAME="frontend-pose:latest"
 NAMESPACE="pose-microservices"
 DEPLOYMENT_NAME="frontend"
-API_URL="http://10.11.9.84:3000/api/v1"
+API_URL="https://phc.dyndns.biz/medical-supplies-api/v1/"
 BASE_PATH="/medical-supplies"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════╗${NC}"
