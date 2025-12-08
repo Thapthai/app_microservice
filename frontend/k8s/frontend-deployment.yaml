@@ -50,7 +50,7 @@ spec:
               cpu: "200m"      # ลดจาก 500m
           livenessProbe:
             httpGet:
-              path: /medical-supplies
+              path: /medical-supplies/
               port: 4100
             initialDelaySeconds: 30
             periodSeconds: 10
@@ -58,7 +58,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /medical-supplies
+              path: /medical-supplies/
               port: 4100
             initialDelaySeconds: 10
             periodSeconds: 5

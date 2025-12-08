@@ -92,9 +92,9 @@ USER nextjs
 # Expose port
 EXPOSE 4100
 
-# Health check
+# Health check - Check basePath root instead of /api/health
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:4100/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+    CMD node -e "require('http').get('http://localhost:4100/medical-supplies/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start application
 CMD ["node", "server.js"]
