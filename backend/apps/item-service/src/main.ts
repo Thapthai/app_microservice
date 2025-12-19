@@ -6,7 +6,11 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   // Create HTTP application
   const httpApp = await NestFactory.create(ItemServiceModule);
-  httpApp.useGlobalPipes(new ValidationPipe({ transform: true }));
+  httpApp.useGlobalPipes(new ValidationPipe({ 
+    transform: true,
+    whitelist: false, // Don't strip extra properties
+    forbidNonWhitelisted: false, // Allow extra properties
+  }));
   httpApp.enableCors();
   
   // Connect TCP microservice

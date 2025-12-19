@@ -297,7 +297,35 @@ export class GatewayApiController {
 
   // ==================================== Item Endpoints ====================================
 
+  // JSON endpoint (no file)
   @Post('items')
+  @UseGuards(FlexibleAuthGuard)
+  async createItem(@Body() body: any) {
+    try {
+      const axios = require('axios');
+      const itemServiceUrl = process.env.ITEM_SERVICE_URL || 'http://localhost:3009';
+
+      console.log('🌐 Gateway JSON received body:', JSON.stringify(body, null, 2));
+      console.log('🌐 Body keys:', Object.keys(body || {}));
+
+      const response = await axios.post(`${itemServiceUrl}/items`, body, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ Gateway error:', error.response?.data || error.message);
+      throw new HttpException(
+        error.response?.data?.message || error.message || 'Failed to create item',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // Upload endpoint (with file)
+  @Post('items/upload')
   @UseInterceptors(FileInterceptor('picture', {
     storage: memoryStorage(),
     limits: {
@@ -305,24 +333,25 @@ export class GatewayApiController {
     },
   }))
   @UseGuards(FlexibleAuthGuard)
-  async createItem(@UploadedFile() file: any, @Body() body: any) {
+  async createItemWithFile(@UploadedFile() file: any, @Body() body: any) {
     try {
       const axios = require('axios');
-      const FormData = require('form-data');
       const itemServiceUrl = process.env.ITEM_SERVICE_URL || 'http://localhost:3009';
+      const FormData = require('form-data');
 
+      console.log('🌐 Gateway Upload received body:', JSON.stringify(body, null, 2));
+      console.log('🌐 Has file?', !!file);
 
-      // สร้าง FormData สำหรับส่งไปยัง item-service
       const formData = new FormData();
 
-      // เพิ่มทุก field จาก body (รวม empty string)
+      // Add all fields from body
       Object.keys(body).forEach(key => {
         if (body[key] !== undefined && body[key] !== null && body[key] !== '') {
           formData.append(key, body[key]);
         }
       });
 
-      // เพิ่ม file ถ้ามี
+      // Add file
       if (file) {
         formData.append('picture', file.buffer, {
           filename: file.originalname,
@@ -330,9 +359,8 @@ export class GatewayApiController {
         });
       }
 
-
-      // Forward ไปยัง item-service
-      const response = await axios.post(`${itemServiceUrl}/items`, formData, {
+      // Forward to item-service upload endpoint
+      const response = await axios.post(`${itemServiceUrl}/items/upload`, formData, {
         headers: formData.getHeaders(),
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
@@ -340,9 +368,9 @@ export class GatewayApiController {
 
       return response.data;
     } catch (error) {
-      console.error('❌ Gateway error:', error.response?.data || error.message);
+      console.error('❌ Gateway upload error:', error.response?.data || error.message);
       throw new HttpException(
-        error.response?.data?.message || error.message || 'Failed to create item',
+        error.response?.data?.message || error.message || 'Failed to upload item',
         error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -631,69 +659,6 @@ export class GatewayApiController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to fetch category children',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  // ============================================================
-  // HOUSEKEEPING ENDPOINTS (Admin only)
-  // ============================================================
-
-  @Get('housekeeping')
-  @UseGuards(JwtAuthGuard)
-  async getHousekeepingStatus() {
-    try {
-      const result = await this.gatewayApiService.getHousekeepingStatus();
-      return result;
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to get housekeeping status',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @Post('housekeeping/archive')
-  @UseGuards(JwtAuthGuard)
-  async triggerArchive(@Query('days', new DefaultValuePipe(90), ParseIntPipe) days: number) {
-    try {
-      const result = await this.gatewayApiService.triggerArchive(days);
-      return result;
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to trigger archive',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @Post('housekeeping/archive/:tableName')
-  @UseGuards(JwtAuthGuard)
-  async triggerArchiveTable(
-    @Param('tableName') tableName: string,
-    @Query('days', new DefaultValuePipe(90), ParseIntPipe) days: number,
-  ) {
-    try {
-      const result = await this.gatewayApiService.triggerArchiveTable(tableName, days);
-      return result;
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to trigger table archive',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @Get('housekeeping/stats')
-  @UseGuards(JwtAuthGuard)
-  async getHousekeepingStats() {
-    try {
-      const result = await this.gatewayApiService.getHousekeepingStats();
-      return result;
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to get housekeeping statistics',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

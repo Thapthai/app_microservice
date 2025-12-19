@@ -44,14 +44,6 @@ import { MetricsModule } from '../../../libs/metrics/metrics.module';
         },
       },
       {
-        name: 'HOUSEKEEPING_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host: process.env.HOUSEKEEPING_SERVICE_HOST || 'localhost',
-          port: parseInt(process.env.HOUSEKEEPING_SERVICE_PORT || '3007', 10),
-        },
-      },
-      {
         name: 'MEDICAL_SUPPLIES_SERVICE',
         transport: Transport.TCP,
         options: {

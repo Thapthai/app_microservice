@@ -27,18 +27,18 @@ export class ItemServiceController {
 
 
   @MessagePattern('item.findOne')
-  async findOneItem(@Payload() id: number) {
-    return this.itemServiceService.findOneItem(id);
+  async findOneItem(@Payload() itemcode: string) {
+    return this.itemServiceService.findOneItem(itemcode);
   }
 
   @MessagePattern('item.update')
-  async updateItem(@Payload() data: { id: number; updateItemDto: UpdateItemDto }) {
-    return this.itemServiceService.updateItem(data.id, data.updateItemDto);
+  async updateItem(@Payload() data: { itemcode: string; updateItemDto: UpdateItemDto }) {
+    return this.itemServiceService.updateItem(data.itemcode, data.updateItemDto);
   }
 
   @MessagePattern('item.remove')
-  async removeItem(@Payload() id: number) {
-    return this.itemServiceService.removeItem(id);
+  async removeItem(@Payload() itemcode: string) {
+    return this.itemServiceService.removeItem(itemcode);
   }
 
   @MessagePattern('item.findByUser')

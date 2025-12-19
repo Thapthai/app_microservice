@@ -10,7 +10,16 @@ import { UpdateItemDto } from './dto/update-item.dto';
 export class ItemHttpController {
   constructor(private readonly itemServiceService: ItemServiceService) { }
 
+  // JSON endpoint (no file)
   @Post()
+  async create(@Body() body: any) {
+
+
+    return this.itemServiceService.createItem(body);
+  }
+
+  // Multipart endpoint (with file)
+  @Post('upload')
   @UseInterceptors(FileInterceptor('picture', {
     storage: diskStorage({
       destination: process.env.UPLOAD_PATH || './uploads/items',
@@ -30,38 +39,18 @@ export class ItemHttpController {
       cb(null, true);
     },
   }))
-  async create(
+  async createWithFile(
     @UploadedFile() file: any,
     @Body() body: any,
   ) {
 
 
-    // ทำความสะอาด keys ที่มี tab character
-    const cleanBody: any = {};
-    Object.keys(body).forEach(key => {
-      const cleanKey = key.replace(/\t/g, '').trim();
-      cleanBody[cleanKey] = body[key];
-    });
-
-    const createItemDto: CreateItemDto = {
-      name: cleanBody.name,
-      description: cleanBody.description,
-      price: parseFloat(cleanBody.price),
-      quantity: parseInt(cleanBody.quantity),
-      category_id: cleanBody.category_id ? parseInt(cleanBody.category_id) : undefined,
-      is_active: cleanBody.is_active === 'true' || cleanBody.is_active === true,
-      number: cleanBody.number ? parseInt(cleanBody.number) : undefined,
-      item_code: cleanBody.item_code,
-      uom: cleanBody.uom,
-      size: cleanBody.size,
-      department: cleanBody.department,
-    };
-
+    // Add file path if file uploaded
     if (file) {
-      createItemDto.picture_path = `uploads/items/${file.filename}`;
+      body.Picture = `uploads/items/${file.filename}`;
     }
 
-    return this.itemServiceService.createItem(createItemDto);
+    return this.itemServiceService.createItem(body);
   }
 
   @Get()
@@ -75,12 +64,12 @@ export class ItemHttpController {
     return this.itemServiceService.findAllItems(page, limit, keyword, sort_by, sort_order);
   }
 
-  @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.itemServiceService.findOneItem(id);
+  @Get(':itemcode')
+  async findOne(@Param('itemcode') itemcode: string) {
+    return this.itemServiceService.findOneItem(itemcode);
   }
 
-  @Put(':id')
+  @Put(':itemcode')
   @UseInterceptors(FileInterceptor('picture', {
     storage: diskStorage({
       destination: process.env.UPLOAD_PATH || './uploads/items',
@@ -101,7 +90,7 @@ export class ItemHttpController {
     },
   }))
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('itemcode') itemcode: string,
     @UploadedFile() file: any,
     @Body() body: any,
   ) {
@@ -113,29 +102,25 @@ export class ItemHttpController {
     });
 
     const updateItemDto: UpdateItemDto = {
-      name: cleanBody.name,
-      description: cleanBody.description,
-      price: cleanBody.price ? parseFloat(cleanBody.price) : undefined,
-      quantity: cleanBody.quantity ? parseInt(cleanBody.quantity) : undefined,
-      category_id: cleanBody.category_id ? parseInt(cleanBody.category_id) : undefined,
-      is_active: cleanBody.is_active !== undefined ? (cleanBody.is_active === 'true' || cleanBody.is_active === true) : undefined,
-      number: cleanBody.number ? parseInt(cleanBody.number) : undefined,
-      item_code: cleanBody.item_code,
-      uom: cleanBody.uom,
-      size: cleanBody.size,
-      department: cleanBody.department,
+      itemname: cleanBody.itemname,
+      Barcode: cleanBody.Barcode,
+      CostPrice: cleanBody.CostPrice ? parseFloat(cleanBody.CostPrice) : undefined,
+      SalePrice: cleanBody.SalePrice ? parseFloat(cleanBody.SalePrice) : undefined,
+      stock_balance: cleanBody.stock_balance ? parseInt(cleanBody.stock_balance) : undefined,
+      DepartmentID: cleanBody.DepartmentID ? parseInt(cleanBody.DepartmentID) : undefined,
+      item_status: cleanBody.item_status !== undefined ? parseInt(cleanBody.item_status) : undefined,
     };
 
     if (file) {
-      updateItemDto.picture_path = `uploads/items/${file.filename}`;
+      updateItemDto.Picture = `uploads/items/${file.filename}`;
     }
 
-    return this.itemServiceService.updateItem(id, updateItemDto);
+    return this.itemServiceService.updateItem(itemcode, updateItemDto);
   }
 
-  @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return this.itemServiceService.removeItem(id);
+  @Delete(':itemcode')
+  async remove(@Param('itemcode') itemcode: string) {
+    return this.itemServiceService.removeItem(itemcode);
   }
 }
 

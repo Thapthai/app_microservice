@@ -55,15 +55,6 @@
         "tsConfigPath": "apps/gateway-api/tsconfig.app.json"
       }
     },
-    "housekeeping-service": {
-      "type": "application",
-      "root": "apps/housekeeping-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/housekeeping-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/housekeeping-service/tsconfig.app.json"
-      }
-    },
     "item-service": {
       "type": "application",
       "root": "apps/item-service",

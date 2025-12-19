@@ -34,13 +34,13 @@ model User {
   updated_at DateTime @updatedAt @map("updated_at")
 
   // Relations
-  oauth_accounts    OAuthAccount[]
-  api_keys          ApiKey[]
+  oauth_accounts     OAuthAccount[]
+  api_keys           ApiKey[]
   client_credentials ClientCredential[]
-  refreshTokens     RefreshToken[]
-  two_factor_tokens TwoFactorToken[]
+  refreshTokens      RefreshToken[]
+  two_factor_tokens  TwoFactorToken[]
 
-  @@map("users")
+  @@map("app_microservice_users")
 }
 
 model OAuthAccount {
@@ -59,7 +59,7 @@ model OAuthAccount {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([provider, provider_id])
-  @@map("oauth_accounts")
+  @@map("app_microservice_oauth_accounts")
 }
 
 model ApiKey {
@@ -77,26 +77,26 @@ model ApiKey {
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@map("api_keys")
+  @@map("app_microservice_api_keys")
 }
 
 model ClientCredential {
-  id                Int       @id @default(autoincrement())
-  user_id           Int       @map("user_id")
-  name              String
-  description       String?
-  client_id         String    @unique @map("client_id")
-  client_secret_hash String   @map("client_secret_hash")
-  is_active         Boolean   @default(true) @map("is_active")
-  last_used_at      DateTime? @map("last_used_at")
-  expires_at        DateTime? @map("expires_at")
-  created_at        DateTime  @default(now()) @map("created_at")
-  updated_at        DateTime  @updatedAt @map("updated_at")
+  id                 Int       @id @default(autoincrement())
+  user_id            Int       @map("user_id")
+  name               String
+  description        String?
+  client_id          String    @unique @map("client_id")
+  client_secret_hash String    @map("client_secret_hash")
+  is_active          Boolean   @default(true) @map("is_active")
+  last_used_at       DateTime? @map("last_used_at")
+  expires_at         DateTime? @map("expires_at")
+  created_at         DateTime  @default(now()) @map("created_at")
+  updated_at         DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([client_id])
-  @@map("client_credentials")
+  @@map("app_microservice_client_credentials")
 }
 
 model RefreshToken {
@@ -109,7 +109,7 @@ model RefreshToken {
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@map("refresh_tokens")
+  @@map("app_microservice_refresh_tokens")
 }
 
 model TwoFactorToken {
@@ -124,7 +124,7 @@ model TwoFactorToken {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, type])
-  @@map("two_factor_tokens")
+  @@map("app_microservice_two_factor_tokens")
 }
 
 model Category {
@@ -137,38 +137,127 @@ model Category {
   created_at  DateTime @default(now()) @map("created_at")
   updated_at  DateTime @updatedAt @map("updated_at")
 
-  // Relations
-  items Item[]
-
-  @@map("categories")
+  @@map("app_microservice_categories")
 }
 
 model Item {
-  id          Int     @id @default(autoincrement())
-  name        String
-  description String?
-  price       Float
-  quantity    Int     @default(0)
-  category_id Int?    @map("category_id")
-  is_active   Boolean @default(true)
+  itemcode                 String    @id @db.VarChar(25)
+  itemname                 String?   @db.VarChar(255)
+  Alternatename            String?   @db.VarChar(100)
+  Barcode                  String?   @db.VarChar(50)
+  IsSet                    String?   @db.VarChar(1)
+  IsReuse                  String?   @db.VarChar(1)
+  IsNormal                 String?   @default("1") @db.VarChar(1)
+  itemtypeID               Int?
+  UnitID                   Int?      @default(0)
+  SpecialID                Int?      @default(0)
+  DepartmentID             Int?      @default(0)
+  ShelfLifeID              Int?      @default(0)
+  SetCount                 Int?      @default(0)
+  PackingMatID             Int?      @default(0)
+  CostPrice                Decimal?  @db.Decimal(10, 2)
+  SalePrice                Decimal?  @db.Decimal(10, 2)
+  UsagePrice               Decimal?  @db.Decimal(10, 2)
+  SterileMachineID         Int?      @default(0)
+  SterileProcessID         Int?      @default(0)
+  WashMachineID            Int?      @default(0)
+  WashProcessID            Int?      @default(0)
+  SupllierID               Int?      @default(0)
+  FactID                   Int?      @default(0)
+  LabelID                  Int?      @default(0)
+  Minimum                  Int?      @default(0)
+  Maximum                  Int?      @default(0)
+  weight                   Decimal?  @db.Decimal(10, 2)
+  IsSpecial                String?   @default("0") @db.VarChar(1)
+  LabelGroupID             Int?
+  Picture                  String?   @db.VarChar(100)
+  Picture2                 String?   @db.VarChar(100)
+  NoWash                   Boolean?  @default(false)
+  IsWashDept               Int?      @default(0)
+  PriceID                  Int?      @default(0)
+  itemcode2                String?   @db.VarChar(20)
+  IsNonUsage               Boolean?  @default(false)
+  itemcode3                String?   @db.VarChar(20)
+  IsPrintDepartment        Boolean?  @default(true)
+  IsStock                  Boolean?  @default(true)
+  IsRecieveRecordOnly      Boolean?  @default(false)
+  IsWasting                Boolean?  @default(false)
+  IsCheckList              Boolean?  @default(false)
+  RoundOfTimeUsed          Int?      @default(0)
+  NoWashType               Int?      @default(0)
+  CreateDate               DateTime? @default(now())
+  IsCSSDComfirm            Int?      @default(0)
+  IsDenger                 Int?      @default(0)
+  IsInternalIndicatorCheck Int?      @default(0)
+  IsFillterCheck           Int?      @default(0)
+  IsLabelingCheck          Int?      @default(0)
+  IsLoaner                 Int?
+  LimitUse                 Int?      @default(0)
+  PayDep                   Int?      @default(0)
+  IsRemarkRound            Int?      @default(0)
+  IsReceiveNotSterile      Boolean?  @default(true)
+  IsReceiveManual          Boolean?  @default(true)
+  RefNo                    String?
+  IsCancel                 Int?      @default(0)
+  IsSingle                 Boolean?  @default(false)
+  IsNotShowSendSterile     Boolean?  @default(false)
+  Store                    String?
+  PackingMat               String?
+  ShelfLife                Int?      @default(0)
+  ManufacturerName         String?
+  item_data_1_id           Int?
+  InternalCode             String?
+  ManufacturerMemo         String?
+  item_data_1              Int?
+  Picweb                   String?   @db.MediumText
+  SuplierName              String?
+  IsNoSterile              Boolean?  @default(false)
+  IsShowQrItemCode         Boolean?  @default(false)
+  SuplierNameMemo          String?
+  IsSingleUsage            Boolean?  @default(false)
+  ListUnderLineNo          String?
+  Isopdipd                 Int?
+  Note                     String?   @db.Text
+  B_ID                     Int?
+  ListColorLineNo          String?
+  IsPrintNoSterile         Boolean?  @default(false)
+  IsPayToSend              Int?
+  IsTrackAuto              Boolean?  @default(false)
+  IsGroupPrintSticker      Boolean?  @default(false)
+  FileUpload               String?   @db.Text
+  IsUsageName              Boolean?  @default(false)
+  Typeitemcode             Int?
+  Picture3                 String?   @db.Text
+  Picture4                 String?   @db.Text
+  Picture5                 String?   @db.Text
+  IsFabric                 Boolean?  @default(false)
+  WashPriceId              Int?
+  SterilePriceId           Int?
+  ReProcessPrice           Float?
+  wash_price_id            Int?
+  sterile_price_id         Int?
+  reprocess_price          Float?
+  UserCreate               Int?      @default(0)
+  UserModify               Int?      @default(0)
+  ModiflyDate              DateTime? @default(now())
+  IsNumber                 Boolean?  @default(false)
+  SapCode                  String?
+  IsChangeUsageInSet       Boolean?  @default(false)
+  IsNH                     Int?
+  MaxInventory             Int?
+  procedureID              Int?
+  Description              String?   @db.Text
+  ReuseDetect              String?
+  stock_max                Int?
+  stock_min                Int?
+  stock_balance            Int?
+  warehouseID              Int?
+  fixcost                  Boolean?  @default(false)
+  main_max                 Int?
+  main_min                 Int?
+  item_status              Int?      @default(0)
 
-  // Medical Supply Item Fields (สำหรับเวชภัณฑ์)
-  number       Int?    @map("number") // ลำดับที่
-  item_code    String? @unique @map("item_code") // ItemCode (S4214NACISP10)
-  uom          String? @map("uom") // Unit of Measure (ชิ้น, Each, ชุด)
-  picture_path String? @map("picture_path") // Path รูปภาพ (เช่น /items/images/item-xxx.jpg)
-  size         String? @map("size") // ขนาด (4*23 cm)
-  department   String? @map("department") // แผนก (Emergency Department)
-
-  created_at DateTime @default(now()) @map("created_at")
-  updated_at DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  category Category? @relation(fields: [category_id], references: [id], onDelete: Cascade)
-
-  @@index([item_code])
-  @@index([department])
-  @@map("items")
+  @@map("item")
 }
 
 // Medical Supplies Usage
@@ -226,7 +315,7 @@ model MedicalSupplyUsage {
   @@index([usage_datetime])
   @@index([department_code])
   @@index([billing_status])
-  @@map("medical_supply_usages")
+  @@map("app_microservice_medical_supply_usages")
 }
 
 // Supply Usage Items (Order Items)
@@ -262,7 +351,7 @@ model SupplyUsageItem {
   @@index([order_item_code])
   @@index([assession_no])
   @@index([supply_code])
-  @@map("supply_usage_items")
+  @@map("app_microservice_supply_usage_items")
 }
 
 // Medical Supplies Usage Logs
@@ -283,5 +372,5 @@ model MedicalSupplyUsageLog {
 
   @@index([usage_id])
   @@index([created_at])
-  @@map("medical_supply_usages_logs")
+  @@map("app_microservice_medical_supply_usages_logs")
 }

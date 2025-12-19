@@ -180,16 +180,17 @@ export class CategoryServiceService {
         throw new NotFoundException('Category not found');
       }
 
-      // Check if category has items (products) using it
-      const itemsCount = await this.prisma.item.count({
-        where: { category_id: parseInt(id) }
-      });
+      // Note: Item model no longer has category_id relation
+      // Check if category has items (products) using it - DISABLED
+      // const itemsCount = await this.prisma.item.count({
+      //   where: { /* no category_id field */ }
+      // });
 
-      if (itemsCount > 0) {
-        throw new BadRequestException(
-          `Cannot delete category. There are ${itemsCount} item(s) using this category. Please remove or reassign items first.`
-        );
-      }
+      // if (itemsCount > 0) {
+      //   throw new BadRequestException(
+      //     `Cannot delete category. There are ${itemsCount} item(s) using this category. Please remove or reassign items first.`
+      //   );
+      // }
 
       // Delete category
       await this.prisma.category.delete({

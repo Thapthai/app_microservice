@@ -9,25 +9,26 @@ export class ItemServiceService {
 
   async createItem(createItemDto: CreateItemDto) {
     try {
+     
+
+      // Remove undefined/null values from the DTO
+      const cleanData = Object.fromEntries(
+        Object.entries(createItemDto).filter(([_, value]) => value !== undefined && value !== null)
+      ) as any;
+
+ 
+
+      // Add timestamp if not provided
+      if (!cleanData.CreateDate) {
+        cleanData.CreateDate = new Date();
+      }
+      if (!cleanData.ModiflyDate) {
+        cleanData.ModiflyDate = new Date();
+      }
+ 
+
       const item = await this.prisma.item.create({
-        data: {
-          name: createItemDto.name,
-          description: createItemDto.description,
-          price: createItemDto.price,
-          quantity: createItemDto.quantity ?? 0,
-          category_id: createItemDto.category_id ?? null,
-          is_active: createItemDto.is_active ?? true,
-          // Medical Supply Fields
-          number: createItemDto.number ?? null,
-          item_code: createItemDto.item_code ?? null,
-          uom: createItemDto.uom ?? null,
-          picture_path: createItemDto.picture_path ?? null,
-          size: createItemDto.size ?? null,
-          department: createItemDto.department ?? null,
-        },
-        include: {
-          category: true,
-        },
+        data: cleanData,
       });
 
       return {
@@ -36,44 +37,48 @@ export class ItemServiceService {
         data: item,
       };
     } catch (error) {
+      console.error('❌ Create error:', error.message);
       return { success: false, message: 'Failed to create item', error: error.message };
     }
   }
 
-  async findAllItems(page: number, limit: number, keyword?: string, sort_by: string = 'created_at', sort_order: string = 'desc') {
+  async findAllItems(page: number, limit: number, keyword?: string, sort_by: string = 'itemcode', sort_order: string = 'desc') {
     try {
       const where: any = {};
       const skip = (page - 1) * limit;
       if (keyword) {
         where.OR = [
-          { name: { contains: keyword } },
-          { item_code: { contains: keyword } },
-          { department: { contains: keyword } },
+          { itemname: { contains: keyword } },
+          { itemcode: { contains: keyword } },
+          { itemcode2: { contains: keyword } },
+          { itemcode3: { contains: keyword } },
+          { Barcode: { contains: keyword } },
         ];
       }
 
       // Build orderBy object - Prisma needs proper type
-      const validSortFields = ['name', 'price', 'quantity', 'created_at'];
+      const validSortFields = ['itemcode', 'itemname', 'CostPrice', 'SalePrice', 'CreateDate'];
       const validSortOrders = ['asc', 'desc'];
 
-      const field = validSortFields.includes(sort_by) ? sort_by : 'created_at';
+      const field = validSortFields.includes(sort_by) ? sort_by : 'itemcode';
       const order = validSortOrders.includes(sort_order) ? sort_order as 'asc' | 'desc' : 'desc' as 'asc' | 'desc';
-
 
       const orderBy: any = {};
       orderBy[field] = order;
 
-      // Calculate total value of active items
+      // Calculate total value of active items (item_status = 0 means active)
       const activeItems = await this.prisma.item.findMany({
-        where: { is_active: true },
+        where: { item_status: 0 },
         select: {
-          price: true,
-          quantity: true,
+          CostPrice: true,
+          stock_balance: true,
         },
       });
 
       const totalValue = activeItems.reduce((sum, item) => {
-        return sum + (item.price * item.quantity);
+        const price = item.CostPrice ? Number(item.CostPrice) : 0;
+        const quantity = item.stock_balance ?? 0;
+        return sum + (price * quantity);
       }, 0);
 
       const [data, total, activeItemsCount] = await Promise.all([
@@ -82,12 +87,9 @@ export class ItemServiceService {
           skip,
           take: limit,
           orderBy,
-          include: {
-            category: true,
-          },
         }),
         this.prisma.item.count({ where }),
-        this.prisma.item.count({ where: { is_active: true } }),
+        this.prisma.item.count({ where: { item_status: 0 } }),
       ]);
 
       return {
@@ -107,13 +109,10 @@ export class ItemServiceService {
     }
   }
 
-  async findOneItem(id: number) {
+  async findOneItem(itemcode: string) {
     try {
       const item = await this.prisma.item.findUnique({
-        where: { id },
-        include: {
-          category: true,
-        },
+        where: { itemcode },
       });
 
       if (!item) {
@@ -129,22 +128,24 @@ export class ItemServiceService {
     }
   }
 
-  async updateItem(id: number, updateItemDto: UpdateItemDto) {
+  async updateItem(itemcode: string, updateItemDto: UpdateItemDto) {
     try {
       const existingItem = await this.prisma.item.findUnique({
-        where: { id },
+        where: { itemcode },
       });
 
       if (!existingItem) {
         return { success: false, message: 'Item not found' };
       }
 
+      // Remove undefined/null values from the DTO
+      const cleanData = Object.fromEntries(
+        Object.entries(updateItemDto).filter(([_, value]) => value !== undefined && value !== null)
+      ) as any;
+
       const item = await this.prisma.item.update({
-        where: { id },
-        data: updateItemDto,
-        include: {
-          category: true,
-        },
+        where: { itemcode },
+        data: cleanData,
       });
 
       return {
@@ -157,10 +158,10 @@ export class ItemServiceService {
     }
   }
 
-  async removeItem(id: number) {
+  async removeItem(itemcode: string) {
     try {
       const existingItem = await this.prisma.item.findUnique({
-        where: { id },
+        where: { itemcode },
       });
 
       if (!existingItem) {
@@ -168,7 +169,7 @@ export class ItemServiceService {
       }
 
       await this.prisma.item.delete({
-        where: { id },
+        where: { itemcode },
       });
 
       return {
@@ -191,8 +192,8 @@ export class ItemServiceService {
       }
 
       const items = await this.prisma.item.findMany({
-        where: {},
-        orderBy: { created_at: 'desc' },
+        where: { item_status: 0 },
+        orderBy: { CreateDate: 'desc' },
       });
 
       return {
