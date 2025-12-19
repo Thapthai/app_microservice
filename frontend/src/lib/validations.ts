@@ -17,9 +17,19 @@ export const registerSchema = z.object({
 });
 
 export const itemSchema = z.object({
-  name: z.string().min(2, 'ชื่อสินค้าต้องมีอย่างน้อย 2 ตัวอักษร'),
-  description: z.string().optional(),
-  category_id: z.number({ message: 'กรุณาเลือกหมวดหมู่' }).min(1, 'กรุณาเลือกหมวดหมู่'),
+  itemcode: z.string().min(1, 'รหัสสินค้าต้องไม่ว่าง').max(25, 'รหัสสินค้าต้องไม่เกิน 25 ตัวอักษร'),
+  itemname: z.string().min(2, 'ชื่อสินค้าต้องมีอย่างน้อย 2 ตัวอักษร').max(255, 'ชื่อสินค้าต้องไม่เกิน 255 ตัวอักษร'),
+  Alternatename: z.string().max(100).optional(),
+  Barcode: z.string().max(50).optional(),
+  Description: z.string().optional(),
+  CostPrice: z.number().min(0, 'ราคาทุนต้องไม่น้อยกว่า 0').optional(),
+  SalePrice: z.number().min(0).optional(),
+  UsagePrice: z.number().min(0).optional(),
+  stock_balance: z.number().int().min(0).optional(),
+  stock_min: z.number().int().min(0).optional(),
+  stock_max: z.number().int().min(0).optional(),
+  item_status: z.number().int().optional(),
+  warehouseID: z.number().int().optional(),
 });
 
 export const categorySchema = z.object({

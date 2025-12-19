@@ -13,19 +13,15 @@ import { Search, X, Filter } from 'lucide-react';
 
 interface ItemsFilterProps {
   searchTerm: string;
-  categoryFilter: string;
   statusFilter: string;
   onSearchChange: (value: string) => void;
-  onCategoryChange: (value: string) => void;
   onStatusChange: (value: string) => void;
 }
 
 export default function ItemsFilter({
   searchTerm,
-  categoryFilter,
   statusFilter,
   onSearchChange,
-  onCategoryChange,
   onStatusChange,
 }: ItemsFilterProps) {
   const [inputValue, setInputValue] = useState(searchTerm);
@@ -82,7 +78,7 @@ export default function ItemsFilter({
               ค้นหา
             </Button>
           </div>
-          {/* <Select value={statusFilter} onValueChange={onStatusChange}>
+          <Select value={statusFilter} onValueChange={onStatusChange}>
             <SelectTrigger className="w-full sm:w-[180px] border-gray-300 hover:border-blue-400 transition-colors focus:ring-blue-100">
               <SelectValue placeholder="สถานะ" />
             </SelectTrigger>
@@ -106,7 +102,7 @@ export default function ItemsFilter({
                 </div>
               </SelectItem>
             </SelectContent>
-          </Select> */}
+          </Select>
         </div>
       </CardContent>
     </Card>

@@ -18,63 +18,180 @@ export interface GetCategoriesQuery {
   parentId?: string;
 }
 
-// Item Types
+// Item Types (Updated to match backend schema)
 export interface Item {
-  id: number;
-  name: string;
-  description?: string;
-  price: number;
-  quantity: number;
-  category_id?: number;
+  // Primary Key
+  itemcode: string; // Primary key (changed from id)
+  
+  // Basic Information
+  itemname?: string;
+  Alternatename?: string;
+  Barcode?: string;
+  Description?: string;
+  
+  // Pricing
+  CostPrice?: number; // Decimal in DB
+  SalePrice?: number;
+  UsagePrice?: number;
+  
+  // Stock
+  stock_balance?: number;
+  stock_min?: number;
+  stock_max?: number;
+  Minimum?: number;
+  Maximum?: number;
+  
+  // Status & Flags
+  item_status?: number; // 0 = active, etc.
+  IsSet?: string; // '0' or '1'
+  IsReuse?: string;
+  IsNormal?: string;
+  IsSpecial?: string;
+  IsStock?: boolean;
+  IsCancel?: number;
+  IsSingle?: boolean;
+  fixcost?: boolean;
+  
+  // IDs
+  itemtypeID?: number;
+  UnitID?: number;
+  DepartmentID?: number;
+  SupllierID?: number;
+  warehouseID?: number;
+  procedureID?: number;
+  
+  // Images
+  Picture?: string;
+  Picture2?: string;
+  Picture3?: string;
+  Picture4?: string;
+  Picture5?: string;
+  Picweb?: string;
+  
+  // Dates
+  CreateDate?: string;
+  ModiflyDate?: string;
+  
+  // Other
+  weight?: number;
+  Note?: string;
+  RefNo?: string;
+  SapCode?: string;
+  InternalCode?: string;
+  ManufacturerName?: string;
+  SuplierName?: string;
+  UserCreate?: number;
+  UserModify?: number;
+  
+  // Legacy fields (for backward compatibility)
   category?: Category;
-  is_active: boolean;
-  number?: number;
-  item_code?: string;
-  uom?: string;
-  picture_path?: string;
-  size?: string;
-  department?: string;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface CreateItemDto {
-  name: string;
-  description?: string;
-  price: number;
-  quantity?: number;
-  category_id?: number;
-  is_active?: boolean;
-  number?: number;
-  item_code?: string;
-  uom?: string;
-  picture?: File;
-  size?: string;
-  department?: string;
+  // Required
+  itemcode: string; // Primary key, required
+  
+  // Basic Info
+  itemname?: string;
+  Alternatename?: string;
+  Barcode?: string;
+  Description?: string;
+  
+  // Pricing
+  CostPrice?: number;
+  SalePrice?: number;
+  UsagePrice?: number;
+  
+  // Stock
+  stock_balance?: number;
+  stock_min?: number;
+  stock_max?: number;
+  Minimum?: number;
+  Maximum?: number;
+  
+  // Status
+  item_status?: number;
+  IsSet?: string;
+  IsReuse?: string;
+  IsNormal?: string;
+  IsSpecial?: string;
+  IsStock?: boolean;
+  
+  // IDs
+  itemtypeID?: number;
+  UnitID?: number;
+  DepartmentID?: number;
+  SupllierID?: number;
+  warehouseID?: number;
+  
+  // Images
+  picture?: File; // For file upload
+  Picture?: string; // For existing path
+  
+  // Other
+  weight?: number;
+  Note?: string;
+  RefNo?: string;
+  SapCode?: string;
+  ManufacturerName?: string;
+  SuplierName?: string;
 }
 
 export interface UpdateItemDto {
-  name?: string;
-  description?: string;
-  price?: number;
-  quantity?: number;
-  category_id?: number;
-  is_active?: boolean;
-  number?: number;
-  item_code?: string;
-  uom?: string;
+  // All fields optional for update
+  itemname?: string;
+  Alternatename?: string;
+  Barcode?: string;
+  Description?: string;
+  
+  // Pricing
+  CostPrice?: number;
+  SalePrice?: number;
+  UsagePrice?: number;
+  
+  // Stock
+  stock_balance?: number;
+  stock_min?: number;
+  stock_max?: number;
+  Minimum?: number;
+  Maximum?: number;
+  
+  // Status
+  item_status?: number;
+  IsSet?: string;
+  IsReuse?: string;
+  IsNormal?: string;
+  IsSpecial?: string;
+  IsStock?: boolean;
+  
+  // IDs
+  itemtypeID?: number;
+  UnitID?: number;
+  DepartmentID?: number;
+  SupllierID?: number;
+  warehouseID?: number;
+  
+  // Images
   picture?: File;
-  size?: string;
-  department?: string;
+  Picture?: string;
+  
+  // Other
+  weight?: number;
+  Note?: string;
+  RefNo?: string;
+  SapCode?: string;
+  ManufacturerName?: string;
+  SuplierName?: string;
 }
 
 export interface GetItemsQuery {
   page?: number;
   limit?: number;
   keyword?: string;
-  category_id?: number;
-  is_active?: boolean;
-  sort_by?: 'name' | 'price' | 'quantity' | 'created_at';
+  item_status?: number;
+  itemtypeID?: number;
+  warehouseID?: number;
+  sort_by?: 'itemname' | 'itemcode' | 'CostPrice' | 'stock_balance' | 'CreateDate';
   sort_order?: 'asc' | 'desc';
 }
 

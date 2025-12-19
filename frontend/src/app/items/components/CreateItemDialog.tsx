@@ -10,14 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { FolderOpen, Tag } from 'lucide-react';
-import type { Category } from '@/types/item';
 
 interface CreateItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId?: number;
-  categories: Category[];
   onSuccess: () => void;
 }
 
@@ -25,7 +22,6 @@ export default function CreateItemDialog({
   open,
   onOpenChange,
   userId,
-  categories,
   onSuccess,
 }: CreateItemDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -33,8 +29,14 @@ export default function CreateItemDialog({
   const form = useForm<ItemFormData>({
     resolver: zodResolver(itemSchema),
     defaultValues: {
-      name: '',
-      description: '',
+      itemcode: '',
+      itemname: '',
+      Alternatename: '',
+      Barcode: '',
+      Description: '',
+      CostPrice: 0,
+      stock_balance: 0,
+      item_status: 0,
     },
   });
 
@@ -50,9 +52,9 @@ export default function CreateItemDialog({
       setLoading(true);
       const response = await itemsApi.create({
         ...data,
-        price: 0,
-        quantity: 0,
-        is_active: true,
+        IsNormal: '1',
+        IsStock: true,
+        item_status: data.item_status || 0,
       });
 
       if (response.success) {
@@ -64,6 +66,7 @@ export default function CreateItemDialog({
         toast.error(response.message || 'ไม่สามารถเพิ่มสินค้าได้');
       }
     } catch (error: any) {
+      console.error('Create item error:', error);
       toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการเพิ่มสินค้า');
     } finally {
       setLoading(false);
@@ -82,15 +85,17 @@ export default function CreateItemDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* รหัสสินค้า */}
             <FormField
               control={form.control}
-              name="name"
+              name="itemcode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ชื่อสินค้า *</FormLabel>
+                  <FormLabel>รหัสสินค้า *</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="เช่น อุปกรณ์ทางการแพทย์"
+                      placeholder="เช่น MED2024001"
+                      maxLength={25}
                       {...field}
                     />
                   </FormControl>
@@ -99,9 +104,112 @@ export default function CreateItemDialog({
               )}
             />
 
+            {/* ชื่อสินค้า */}
             <FormField
               control={form.control}
-              name="description"
+              name="itemname"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ชื่อสินค้า *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="เช่น ชุดเครื่องมือผ่าตัดใหญ่"
+                      maxLength={255}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* ชื่อสำรอง */}
+            <FormField
+              control={form.control}
+              name="Alternatename"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ชื่อสำรอง (EN)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="เช่น Major Surgical Instrument Set"
+                      maxLength={100}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Barcode */}
+            <FormField
+              control={form.control}
+              name="Barcode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>บาร์โค้ด</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="เช่น 8859876543210"
+                      maxLength={50}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* ราคาทุน */}
+              <FormField
+                control={form.control}
+                name="CostPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ราคาทุน</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* จำนวนในสต็อก */}
+              <FormField
+                control={form.control}
+                name="stock_balance"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>จำนวนในสต็อก</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* คำอธิบาย */}
+            <FormField
+              control={form.control}
+              name="Description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>คำอธิบาย</FormLabel>
@@ -116,79 +224,6 @@ export default function CreateItemDialog({
                 </FormItem>
               )}
             />
-
-            <div className="pt-2 border-t border-gray-100">
-              <FormField
-                control={form.control}
-                name="category_id"
-                render={({ field }) => {
-                  const selectedCategory = categories.find(cat => cat.id === field.value);
-                  return (
-                    <FormItem className="w-full">
-                      <FormLabel className="flex items-center gap-2">
-                        <FolderOpen className="h-4 w-4 text-blue-600" />
-                        <span>หมวดหมู่ <span className="text-red-500">*</span></span>
-                      </FormLabel>
-                      <FormControl>
-                      <Select
-                        value={field.value?.toString()}
-                        onValueChange={(val) => field.onChange(parseInt(val))}
-                        disabled={loading}
-                      >
-                        <SelectTrigger className="w-full h-auto min-h-[2.75rem] bg-gradient-to-r from-gray-50 to-white border-gray-300 hover:border-blue-400 transition-colors py-2">
-                          <SelectValue placeholder="เลือกหมวดหมู่...">
-                            {selectedCategory ? (
-                              <div className="flex flex-col items-start gap-1 w-full">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                  <span className="font-medium text-gray-900">{selectedCategory.name}</span>
-                                </div>
-                                {selectedCategory.description && (
-                                  <span className="text-xs text-gray-500 pl-4 w-full text-left">
-                                    {selectedCategory.description}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-gray-500">เลือกหมวดหมู่...</span>
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          
-                          {categories.map((category) => (
-                            <SelectItem 
-                              key={category.id} 
-                              value={category.id.toString()}
-                              className="cursor-pointer py-3 hover:bg-blue-50 transition-colors"
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
-                                <div className="flex flex-col gap-0.5 flex-1">
-                                  <span className="font-medium text-gray-900">{category.name}</span>
-                                  {category.description && (
-                                    <span className="text-xs text-gray-500 line-clamp-2">{category.description}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </SelectItem>
-                          ))}
-                          
-                          {categories.length === 0 && (
-                            <div className="text-center py-8 px-4">
-                              <FolderOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                              <p className="text-sm text-gray-500">ไม่พบหมวดหมู่</p>
-                            </div>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-            </div>
 
             <div className="flex justify-end space-x-3 pt-4">
               <Button

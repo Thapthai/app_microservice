@@ -153,26 +153,34 @@ export const categoriesApi = {
 // Items API
 export const itemsApi = {
   create: async (data: CreateItemDto): Promise<ApiResponse<Item>> => {
-    // Always use FormData for consistency with backend expectations
-    const formData = new FormData();
+    const { picture, ...restData } = data;
     
-    // Append all fields to FormData
-    Object.keys(data).forEach((key) => {
-      const value = data[key as keyof CreateItemDto];
-      if (value !== undefined && value !== null) {
-        if (key === 'picture' && value instanceof File) {
-          formData.append(key, value);
-        } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-          // Convert to string for FormData (backend will parse it)
+    // If has file, use multipart/form-data with /items/upload endpoint
+    if (picture && picture instanceof File) {
+      const formData = new FormData();
+      
+      // Append all fields to FormData
+      Object.keys(restData).forEach((key) => {
+        const value = restData[key as keyof typeof restData];
+        if (value !== undefined && value !== null && value !== '') {
           formData.append(key, String(value));
         }
-        // Skip other types (objects, arrays, etc.)
-      }
-    });
-
-    const response = await api.post('/items', formData, {
+      });
+      
+      formData.append('picture', picture);
+      
+      const response = await api.post('/items/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    }
+    
+    // Otherwise, send as JSON to /items endpoint
+    const response = await api.post('/items', restData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'application/json',
       },
     });
     return response.data;
@@ -183,46 +191,47 @@ export const itemsApi = {
     return response.data;
   },
 
-  getById: async (id: number): Promise<ApiResponse<Item>> => {
-    const response = await api.get(`/items/${id}`);
+  getById: async (itemcode: string): Promise<ApiResponse<Item>> => {
+    const response = await api.get(`/items/${itemcode}`);
     return response.data;
   },
 
-  update: async (id: number, data: UpdateItemDto): Promise<ApiResponse<Item>> => {
-    // Always use FormData for consistency with backend expectations
-    // Backend expects multipart/form-data even without file
-    const formData = new FormData();
-    
-    // Remove picture field if it's not a File (could be string URL or undefined)
+  update: async (itemcode: string, data: UpdateItemDto): Promise<ApiResponse<Item>> => {
     const { picture, ...restData } = data;
     
-    // Append all fields to FormData
-    Object.keys(restData).forEach((key) => {
-      const value = restData[key as keyof typeof restData];
-      if (value !== undefined && value !== null) {
-        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-          // Convert to string for FormData (backend will parse it)
+    // If has file, use multipart/form-data with /items/upload endpoint
+    if (picture && picture instanceof File) {
+      const formData = new FormData();
+      
+      // Append all fields to FormData
+      Object.keys(restData).forEach((key) => {
+        const value = restData[key as keyof typeof restData];
+        if (value !== undefined && value !== null && value !== '') {
           formData.append(key, String(value));
         }
-        // Skip other types (objects, arrays, etc.)
-      }
-    });
-
-    // Add picture file if it's a File object
-    if (picture && picture instanceof File) {
+      });
+      
       formData.append('picture', picture);
+      
+      const response = await api.put(`/items/${itemcode}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
     }
-
-    const response = await api.put(`/items/${id}`, formData, {
+    
+    // Otherwise, send as JSON
+    const response = await api.put(`/items/${itemcode}`, restData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'application/json',
       },
     });
     return response.data;
   },
 
-  delete: async (id: number): Promise<ApiResponse> => {
-    const response = await api.delete(`/items/${id}`);
+  delete: async (itemcode: string): Promise<ApiResponse> => {
+    const response = await api.delete(`/items/${itemcode}`);
     return response.data;
   },
 };

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { itemsApi, categoriesApi } from '@/lib/api';
+import { itemsApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
-import type { Item, Category } from '@/types/item';
+import type { Item } from '@/types/item';
 import type { PaginatedResponse } from '@/types/common';
 import DashboardHeader from './components/DashboardHeader';
 import StatsCards from './components/StatsCards';
@@ -23,7 +23,6 @@ export default function DashboardPage() {
     inactiveItems: 0,
     totalValue: 0,
   });
-  const [categories, setCategories] = useState<Category[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Pagination states
@@ -32,24 +31,8 @@ export default function DashboardPage() {
   const itemsPerPage = 10;
 
   // Sorting states
-  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortBy, setSortBy] = useState<string>('CreateDate');
   const [sortOrder, setSortOrder] = useState<string>('desc');
-
-  // Fetch categories on mount
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await categoriesApi.getAll({ page: 1, limit: 100 });
-      if (response.data) {
-        setCategories(response.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch categories:', error);
-    }
-  };
 
   // Fetch stats from backend
   useEffect(() => {
@@ -166,7 +149,6 @@ export default function DashboardPage() {
           open={isCreateDialogOpen}
           onOpenChange={setIsCreateDialogOpen}
           userId={user?.id}
-          categories={categories}
           onSuccess={handleCreateSuccess}
         />
       </AppLayout>

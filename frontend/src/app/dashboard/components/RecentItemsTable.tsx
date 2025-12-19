@@ -24,7 +24,7 @@ export default function RecentItemsTable({
   currentPage,
   totalPages,
   onPageChange,
-  sortBy = 'created_at',
+  sortBy = 'CreateDate',
   sortOrder = 'desc',
   onSortChange,
 }: RecentItemsTableProps) {
@@ -139,38 +139,38 @@ function ItemsTable({
             <tr>
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
                 <button
-                  onClick={() => handleSort('name')}
+                  onClick={() => handleSort('itemname')}
                   className="flex items-center hover:text-blue-600 transition-colors cursor-pointer"
                   disabled={!onSortChange}
                 >
                   สินค้า
-                  <SortIcon field="name" />
+                  <SortIcon field="itemname" />
                 </button>
               </th>
               <th className="hidden lg:table-cell px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                 รหัสสินค้า
               </th>
               <th className="hidden sm:table-cell px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
-                หมวดหมู่
+                บาร์โค้ด
               </th>
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[90px]">
                 <button
-                  onClick={() => handleSort('price')}
+                  onClick={() => handleSort('CostPrice')}
                   className="flex items-center hover:text-blue-600 transition-colors cursor-pointer"
                   disabled={!onSortChange}
                 >
-                  ราคา
-                  <SortIcon field="price" />
+                  ราคาทุน
+                  <SortIcon field="CostPrice" />
                 </button>
               </th>
               <th className="hidden md:table-cell px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[70px]">
                 <button
-                  onClick={() => handleSort('quantity')}
+                  onClick={() => handleSort('stock_balance')}
                   className="flex items-center hover:text-blue-600 transition-colors cursor-pointer"
                   disabled={!onSortChange}
                 >
-                  จำนวน
-                  <SortIcon field="quantity" />
+                  สต็อก
+                  <SortIcon field="stock_balance" />
                 </button>
               </th>
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[90px]">
@@ -180,48 +180,48 @@ function ItemsTable({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {items.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+              <tr key={item.itemcode} className="hover:bg-gray-50 transition-colors">
                 <td className="px-2 py-2">
                   <div className="max-w-[140px]">
                     <div className="text-sm font-medium text-gray-900 truncate">
-                      {item.name}
+                      {item.itemname || 'ไม่มีชื่อ'}
                     </div>
-                    {item.description && (
+                    {item.Alternatename && (
                       <div className="text-xs text-gray-500 truncate">
-                        {item.description}
+                        {item.Alternatename}
                       </div>
                     )}
-                    {item.department && (
+                    {item.Description && (
                       <div className="text-xs text-blue-600 truncate mt-0.5">
-                        {item.department}
+                        {item.Description}
                       </div>
                     )}
                   </div>
                 </td>
                 <td className="hidden lg:table-cell px-2 py-2 text-sm text-gray-700">
                   <div className="truncate max-w-[100px] font-mono text-xs">
-                    {item.item_code || '-'}
+                    {item.itemcode}
                   </div>
                 </td>
                 <td className="hidden sm:table-cell px-2 py-2 text-sm text-gray-900">
-                  <div className="truncate max-w-[100px]">
-                    {typeof item.category === 'string' ? item.category : item.category?.name || '-'}
+                  <div className="truncate max-w-[100px] font-mono text-xs">
+                    {item.Barcode || '-'}
                   </div>
                 </td>
                 <td className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                  ฿{item.price.toLocaleString()}
+                  ฿{item.CostPrice !== undefined && item.CostPrice !== null ? Number(item.CostPrice).toLocaleString() : '0'}
                 </td>
                 <td className="hidden md:table-cell px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
-                  {item.quantity.toLocaleString()}
+                  {item.stock_balance !== undefined && item.stock_balance !== null ? item.stock_balance.toLocaleString() : '0'}
                 </td>
                 <td className="px-2 py-2 whitespace-nowrap">
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full shadow-sm ${item.is_active
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full shadow-sm ${item.item_status === 0
                       ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
                       : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
                     }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-white' : 'bg-white'
+                    <span className={`w-1.5 h-1.5 rounded-full ${item.item_status === 0 ? 'bg-white' : 'bg-white'
                       }`}></span>
-                    {item.is_active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+                    {item.item_status === 0 ? 'ใช้งาน' : 'ไม่ใช้งาน'}
                   </span>
                 </td>
               </tr>

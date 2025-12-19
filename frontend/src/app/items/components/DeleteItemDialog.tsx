@@ -36,7 +36,7 @@ export default function DeleteItemDialog({
 
     try {
       setLoading(true);
-      const response = await itemsApi.delete(item.id);
+      const response = await itemsApi.delete(item.itemcode);
 
       if (response.success) {
         toast.success('ลบสินค้าสำเร็จ');
@@ -46,6 +46,7 @@ export default function DeleteItemDialog({
         toast.error(response.message || 'ไม่สามารถลบสินค้าได้');
       }
     } catch (error: any) {
+      console.error('Delete item error:', error);
       toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการลบสินค้า');
     } finally {
       setLoading(false);
@@ -72,22 +73,30 @@ export default function DeleteItemDialog({
         <div className="py-4">
           <p className="text-sm text-gray-600">
             คุณกำลังจะลบสินค้า{' '}
-            <span className="font-semibold text-gray-900">&quot;{item?.name}&quot;</span>
+            <span className="font-semibold text-gray-900">&quot;{item?.itemname || item?.itemcode}&quot;</span>
           </p>
           {item && (
             <div className="mt-4 rounded-lg bg-gray-50 p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">ราคา:</span>
-                <span className="font-medium">฿{item.price.toLocaleString()}</span>
+                <span className="text-gray-500">รหัสสินค้า:</span>
+                <span className="font-medium font-mono">{item.itemcode}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">จำนวน:</span>
-                <span className="font-medium">{item.quantity}</span>
-              </div>
-              {item.category && (
+              {item.CostPrice !== undefined && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">หมวดหมู่:</span>
-                  <span className="font-medium">{item.category.name}</span>
+                  <span className="text-gray-500">ราคาทุน:</span>
+                  <span className="font-medium">฿{Number(item.CostPrice).toLocaleString()}</span>
+                </div>
+              )}
+              {item.stock_balance !== undefined && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">จำนวนในสต็อก:</span>
+                  <span className="font-medium">{item.stock_balance}</span>
+                </div>
+              )}
+              {item.Barcode && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">บาร์โค้ด:</span>
+                  <span className="font-medium font-mono">{item.Barcode}</span>
                 </div>
               )}
             </div>

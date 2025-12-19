@@ -6,21 +6,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
-import { itemsApi, categoriesApi } from '@/lib/api';
-import { itemSchema, type ItemFormData } from '@/lib/validations';
+import { itemsApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, FolderOpen, Tag } from 'lucide-react';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import type { Item, Category } from '@/types/item';
+import type { Item } from '@/types/item';
 
 interface EditItemPageProps {
   params: Promise<{
@@ -28,76 +25,83 @@ interface EditItemPageProps {
   }>;
 }
 
+// Validation schema for editing
+const editItemSchema = z.object({
+  itemname: z.string().min(2, 'ชื่อสินค้าต้องมีอย่างน้อย 2 ตัวอักษร').max(255).optional(),
+  Alternatename: z.string().max(100).optional(),
+  Barcode: z.string().max(50).optional(),
+  Description: z.string().optional(),
+  CostPrice: z.number().min(0).optional(),
+  SalePrice: z.number().min(0).optional(),
+  UsagePrice: z.number().min(0).optional(),
+  stock_balance: z.number().int().min(0).optional(),
+  stock_min: z.number().int().min(0).optional(),
+  stock_max: z.number().int().min(0).optional(),
+  item_status: z.number().int().optional(),
+});
+
+type EditItemFormData = z.infer<typeof editItemSchema>;
+
 export default function EditItemPage({ params }: EditItemPageProps) {
-  const [itemId, setItemId] = useState<string>('');
+  const [itemcode, setItemcode] = useState<string>('');
 
   // Unwrap params Promise (Next.js 15+)
   useEffect(() => {
-    params.then((p) => setItemId(p.id));
+    params.then((p) => setItemcode(p.id));
   }, [params]);
+  
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [item, setItem] = useState<Item | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  const editItemSchema = itemSchema.extend({
-    is_active: z.boolean(),
-  });
-
-  type EditItemFormData = z.infer<typeof editItemSchema>;
 
   const form = useForm<EditItemFormData>({
     resolver: zodResolver(editItemSchema),
     defaultValues: {
-      name: '',
-      description: '',
-      is_active: true,
+      itemname: '',
+      Alternatename: '',
+      Barcode: '',
+      Description: '',
+      CostPrice: 0,
+      stock_balance: 0,
+      item_status: 0,
     },
   });
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    if (itemId) {
+    if (itemcode) {
       fetchItem();
     }
-  }, [itemId]);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await categoriesApi.getAll({ page: 1, limit: 100 });
-      if (response.data) {
-        setCategories(response.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch categories:', error);
-    }
-  };
+  }, [itemcode]);
 
   const fetchItem = async () => {
-    if (!itemId) return;
+    if (!itemcode) return;
     try {
-      const response = await itemsApi.getById(parseInt(itemId));
+      const response = await itemsApi.getById(itemcode);
       if (response.success && response.data) {
         const itemData = response.data;
         setItem(itemData);
 
-
         form.reset({
-          name: itemData.name,
-          description: itemData.description || '',
-          category_id: itemData.category_id || undefined,
-          is_active: itemData.is_active,
+          itemname: itemData.itemname || '',
+          Alternatename: itemData.Alternatename || '',
+          Barcode: itemData.Barcode || '',
+          Description: itemData.Description || '',
+          CostPrice: itemData.CostPrice ? Number(itemData.CostPrice) : 0,
+          SalePrice: itemData.SalePrice ? Number(itemData.SalePrice) : 0,
+          UsagePrice: itemData.UsagePrice ? Number(itemData.UsagePrice) : 0,
+          stock_balance: itemData.stock_balance || 0,
+          stock_min: itemData.stock_min || 0,
+          stock_max: itemData.stock_max || 0,
+          item_status: itemData.item_status || 0,
         });
       } else {
         toast.error('ไม่พบสินค้าที่ต้องการแก้ไข');
         router.push('/items');
       }
     } catch (error: any) {
+      console.error('Failed to fetch item:', error);
       toast.error('ไม่สามารถโหลดข้อมูลสินค้าได้');
       router.push('/items');
     } finally {
@@ -109,11 +113,7 @@ export default function EditItemPage({ params }: EditItemPageProps) {
     try {
       setLoading(true);
 
-      const response = await itemsApi.update(parseInt(itemId), {
-        ...data,
-        price: item?.price, // Keep original price
-        quantity: item?.quantity, // Keep original quantity
-      });
+      const response = await itemsApi.update(itemcode, data);
 
       if (response.success) {
         toast.success('อัปเดตสินค้าเรียบร้อยแล้ว');
@@ -122,6 +122,7 @@ export default function EditItemPage({ params }: EditItemPageProps) {
         toast.error(response.message || 'ไม่สามารถอัปเดตสินค้าได้');
       }
     } catch (error: any) {
+      console.error('Update error:', error);
       toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัปเดตสินค้า');
     } finally {
       setLoading(false);
@@ -162,7 +163,7 @@ export default function EditItemPage({ params }: EditItemPageProps) {
               </Link>
               <h1 className="text-3xl font-bold text-gray-900">แก้ไขสินค้า</h1>
               <p className="mt-2 text-gray-600">
-                แก้ไขข้อมูลสินค้า: {item.name}
+                แก้ไขข้อมูลสินค้า: {item.itemname || item.itemcode}
               </p>
             </div>
 
@@ -174,16 +175,19 @@ export default function EditItemPage({ params }: EditItemPageProps) {
               <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    {/* ชื่อสินค้า */}
                     <FormField
                       control={form.control}
-                      name="name"
+                      name="itemname"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>ชื่อสินค้า *</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="เช่น อุปกรณ์ทางการแพทย์"
+                              placeholder="เช่น ชุดเครื่องมือผ่าตัดใหญ่"
+                              maxLength={255}
                               {...field}
+                              disabled={loading}
                             />
                           </FormControl>
                           <FormMessage />
@@ -191,9 +195,189 @@ export default function EditItemPage({ params }: EditItemPageProps) {
                       )}
                     />
 
+                    {/* ชื่อสำรอง */}
                     <FormField
                       control={form.control}
-                      name="description"
+                      name="Alternatename"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>ชื่อสำรอง (EN)</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="เช่น Major Surgical Instrument Set"
+                              maxLength={100}
+                              {...field}
+                              disabled={loading}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Barcode */}
+                    <FormField
+                      control={form.control}
+                      name="Barcode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>บาร์โค้ด</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="เช่น 8859876543210"
+                              maxLength={50}
+                              {...field}
+                              disabled={loading}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* ราคาทุน */}
+                      <FormField
+                        control={form.control}
+                        name="CostPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>ราคาทุน</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                disabled={loading}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* ราคาขาย */}
+                      <FormField
+                        control={form.control}
+                        name="SalePrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>ราคาขาย</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                disabled={loading}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* ราคาใช้งาน */}
+                      <FormField
+                        control={form.control}
+                        name="UsagePrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>ราคาใช้งาน</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                disabled={loading}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* จำนวนในสต็อก */}
+                      <FormField
+                        control={form.control}
+                        name="stock_balance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>จำนวนในสต็อก</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                disabled={loading}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* จำนวนขั้นต่ำ */}
+                      <FormField
+                        control={form.control}
+                        name="stock_min"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>จำนวนขั้นต่ำ</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                disabled={loading}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* จำนวนสูงสุด */}
+                      <FormField
+                        control={form.control}
+                        name="stock_max"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>จำนวนสูงสุด</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                disabled={loading}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* คำอธิบาย */}
+                    <FormField
+                      control={form.control}
+                      name="Description"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>คำอธิบาย</FormLabel>
@@ -202,95 +386,10 @@ export default function EditItemPage({ params }: EditItemPageProps) {
                               placeholder="รายละเอียดของสินค้า..."
                               className="min-h-[100px]"
                               {...field}
+                              disabled={loading}
                             />
                           </FormControl>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="category_id"
-                      render={({ field }) => {
-                        const selectedCategory = categories.find(cat => cat.id === field.value);
-                        return (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <FolderOpen className="h-4 w-4 text-blue-600" />
-                              <span>หมวดหมู่ <span className="text-red-500">*</span></span>
-                            </FormLabel>
-                            <FormControl>
-                              <Select
-                                value={field.value?.toString()}
-                                onValueChange={(val) => field.onChange(parseInt(val))}
-                                disabled={loading}
-                              >
-                                <SelectTrigger className="w-full h-auto min-h-[2.75rem] bg-gradient-to-r from-gray-50 to-white border-gray-300 hover:border-blue-400 transition-colors py-2">
-                                  <SelectValue placeholder="เลือกหมวดหมู่...">
-                                    {selectedCategory ? (
-                                      <div className="flex flex-col items-start gap-1 w-full">
-                                        <div className="flex items-center gap-2">
-                                          <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                          <span className="font-medium text-gray-900">{selectedCategory.name}</span>
-                                        </div>
-                                        {selectedCategory.description && (
-                                          <span className="text-xs text-gray-500 pl-4 w-full text-left">
-                                            {selectedCategory.description}
-                                          </span>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="text-gray-500">เลือกหมวดหมู่...</span>
-                                    )}
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[300px]">
-                                  {categories.map((category) => (
-                                    <SelectItem key={category.id} value={category.id.toString()} className="cursor-pointer py-3 hover:bg-blue-50 transition-colors">
-                                      <div className="flex items-start gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
-                                        <div className="flex flex-col gap-0.5 flex-1">
-                                          <span className="font-medium text-gray-900">{category.name}</span>
-                                          {category.description && (
-                                            <span className="text-xs text-gray-500 line-clamp-2">{category.description}</span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                  {categories.length === 0 && (
-                                    <div className="text-center py-8 px-4">
-                                      <FolderOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                                      <p className="text-sm text-gray-500">ไม่พบหมวดหมู่</p>
-                                    </div>
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="is_active"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">สถานะการใช้งาน</FormLabel>
-                            <FormDescription>
-                              เปิด/ปิดการใช้งานสินค้านี้
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
                         </FormItem>
                       )}
                     />
