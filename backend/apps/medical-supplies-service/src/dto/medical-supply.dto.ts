@@ -1,5 +1,19 @@
-import { IsString, IsOptional, IsNumber, IsArray, ValidateNested, IsObject, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsArray, ValidateNested, IsObject, IsInt, IsEnum, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+
+// Enums
+export enum ItemStatus {
+  PENDING = 'PENDING',     // ยังไม่ได้ดำเนินการ
+  PARTIAL = 'PARTIAL',     // ดำเนินการบางส่วน
+  COMPLETED = 'COMPLETED', // ดำเนินการครบแล้ว
+}
+
+export enum ReturnReason {
+  UNWRAPPED_UNUSED = 'UNWRAPPED_UNUSED', // แกะห่อแล้วไม่ได้ใช้
+  EXPIRED = 'EXPIRED',                   // อุปกรณ์หมดอายุ
+  CONTAMINATED = 'CONTAMINATED',         // อุปกรณ์มีการปนเปื้อนไม่สามารถนำกลับมาใช้งานได้
+  DAMAGED = 'DAMAGED',                   // อุปกรณ์มีการชำรุดไม่สามารถนำมาใช้งานได้
+}
 
 // Order Item Input (New Format from API Spec)
 export interface OrderItemInput {
@@ -32,6 +46,11 @@ export interface OrderItemResponse {
   order_item_status: string;
   qty: number;
   uom: string;
+  // Quantity Management
+  qty_used_with_patient: number;
+  qty_returned_to_cabinet: number;
+  qty_pending?: number; // คำนวณได้ = qty - qty_used_with_patient - qty_returned_to_cabinet
+  item_status: ItemStatus;
   // Legacy fields
   supply_code?: string;
   supply_name?: string;
@@ -41,6 +60,18 @@ export interface OrderItemResponse {
   unit_price?: number;
   total_price?: number;
   expiry_date?: string;
+  // Return records
+  return_items?: ReturnRecordResponse[];
+}
+
+// Return Record Response
+export interface ReturnRecordResponse {
+  id: number;
+  qty_returned: number;
+  return_reason: ReturnReason;
+  return_datetime: Date;
+  return_by_user_id: string;
+  return_note?: string;
 }
 
 // Create DTO (New Format)
@@ -255,6 +286,94 @@ export class GetMedicalSupplyUsagesQueryDto {
   @IsOptional()
   @IsString()
   usage_type?: string;
+
+  @IsOptional()
+  @IsNumber()
+  page?: number;
+
+  @IsOptional()
+  @IsNumber()
+  limit?: number;
+}
+
+// DTO สำหรับบันทึกการใช้กับคนไข้
+export class RecordItemUsedWithPatientDto {
+  @IsInt()
+  item_id: number;
+
+  @IsInt()
+  @Min(1)
+  qty_used: number; // จำนวนที่ใช้กับคนไข้
+
+  @IsOptional()
+  @IsString()
+  recorded_by_user_id?: string;
+}
+
+// DTO สำหรับบันทึกการคืนอุปกรณ์เข้าตู้
+export class RecordItemReturnDto {
+  @IsInt()
+  item_id: number;
+
+  @IsInt()
+  @Min(1)
+  qty_returned: number; // จำนวนที่คืน
+
+  @IsEnum(ReturnReason)
+  return_reason: ReturnReason;
+
+  @IsString()
+  return_by_user_id: string;
+
+  @IsOptional()
+  @IsString()
+  return_note?: string;
+}
+
+// Query DTO สำหรับรายการที่รอดำเนินการ
+export class GetPendingItemsQueryDto {
+  @IsOptional()
+  @IsString()
+  department_code?: string;
+
+  @IsOptional()
+  @IsString()
+  patient_hn?: string;
+
+  @IsOptional()
+  @IsEnum(ItemStatus)
+  item_status?: ItemStatus;
+
+  @IsOptional()
+  @IsNumber()
+  page?: number;
+
+  @IsOptional()
+  @IsNumber()
+  limit?: number;
+}
+
+// Query DTO สำหรับประวัติการคืน
+export class GetReturnHistoryQueryDto {
+  @IsOptional()
+  @IsString()
+  department_code?: string;
+
+  @IsOptional()
+  @IsString()
+  patient_hn?: string;
+
+  @IsOptional()
+  @IsEnum(ReturnReason)
+  return_reason?: ReturnReason;
+
+  @IsOptional()
+  @IsString()
+  date_from?: string;
+
+  @IsOptional()
+  @IsString()
+  date_to?: string;
 
   @IsOptional()
   @IsNumber()

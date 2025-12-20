@@ -2,7 +2,7 @@ import { Controller, Post, Body, Get, Headers, HttpException, HttpStatus, Put, P
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { GatewayApiService } from './gateway-api.service';
-import { RegisterDto, LoginDto, CreateItemDto, UpdateItemDto, ChangePasswordDto, UpdateUserProfileDto, ResetPasswordDto, CreateCategoryDto, UpdateCategoryDto, CreateMedicalSupplyUsageDto, UpdateMedicalSupplyUsageDto } from './dto';
+import { RegisterDto, LoginDto, CreateItemDto, UpdateItemDto, ChangePasswordDto, UpdateUserProfileDto, ResetPasswordDto, CreateCategoryDto, UpdateCategoryDto, CreateMedicalSupplyUsageDto, UpdateMedicalSupplyUsageDto, RecordItemUsedWithPatientDto, RecordItemReturnDto, GetPendingItemsQueryDto, GetReturnHistoryQueryDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ClientCredentialGuard } from './guards/client-credential.guard';
 import { FlexibleAuthGuard } from './guards/flexible-auth.guard';
@@ -939,6 +939,124 @@ export class GatewayApiController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to get medical supply statistics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ============================================================
+  // MEDICAL SUPPLY ITEM - QUANTITY MANAGEMENT ENDPOINTS
+  // ============================================================
+
+  @Post('medical-supply-items/record-used')
+  @UseGuards(FlexibleAuthGuard)
+  async recordItemUsedWithPatient(@Body() data: RecordItemUsedWithPatientDto) {
+    try {
+      const result = await this.gatewayApiService.recordItemUsedWithPatient(data);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to record item usage with patient',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('medical-supply-items/record-return')
+  @UseGuards(FlexibleAuthGuard)
+  async recordItemReturn(@Body() data: RecordItemReturnDto) {
+    try {
+      const result = await this.gatewayApiService.recordItemReturn(data);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to record item return',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supply-items/pending')
+  @UseGuards(FlexibleAuthGuard)
+  async getPendingItems(
+    @Query('department_code') department_code?: string,
+    @Query('patient_hn') patient_hn?: string,
+    @Query('item_status') item_status?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    try {
+      const query = { department_code, patient_hn, item_status, page, limit };
+      const result = await this.gatewayApiService.getPendingItems(query);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get pending items',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supply-items/return-history')
+  @UseGuards(FlexibleAuthGuard)
+  async getReturnHistory(
+    @Query('department_code') department_code?: string,
+    @Query('patient_hn') patient_hn?: string,
+    @Query('return_reason') return_reason?: string,
+    @Query('date_from') date_from?: string,
+    @Query('date_to') date_to?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    try {
+      const query = { department_code, patient_hn, return_reason, date_from, date_to, page, limit };
+      const result = await this.gatewayApiService.getReturnHistory(query);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get return history',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supply-items/statistics')
+  @UseGuards(FlexibleAuthGuard)
+  async getQuantityStatistics(@Query('department_code') department_code?: string) {
+    try {
+      const result = await this.gatewayApiService.getQuantityStatistics(department_code);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get quantity statistics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supply-items/:id')
+  @UseGuards(FlexibleAuthGuard)
+  async getSupplyItemById(@Param('id', ParseIntPipe) id: number) {
+    try {
+      const result = await this.gatewayApiService.getSupplyItemById(id);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get supply item',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supply-items/usage/:usageId')
+  @UseGuards(FlexibleAuthGuard)
+  async getSupplyItemsByUsageId(@Param('usageId', ParseIntPipe) usageId: number) {
+    try {
+      const result = await this.gatewayApiService.getSupplyItemsByUsageId(usageId);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get supply items by usage',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -341,17 +341,50 @@ model SupplyUsageItem {
   total_price     Float?  @map("total_price")
   expiry_date     String? @map("expiry_date")
 
+  // Quantity Management - แยกจำนวนอุปกรณ์ตามการใช้งาน
+  qty_used_with_patient   Int @default(0) @map("qty_used_with_patient")   // จำนวนที่ใช้กับคนไข้
+  qty_returned_to_cabinet Int @default(0) @map("qty_returned_to_cabinet") // จำนวนที่คืนเข้าตู้แล้ว
+  // qty_pending = qty - qty_used_with_patient - qty_returned_to_cabinet (คำนวณได้)
+
+  // Status Management
+  item_status String @default("PENDING") @map("item_status") // PENDING, PARTIAL, COMPLETED
+
   created_at DateTime @default(now()) @map("created_at")
   updated_at DateTime @updatedAt @map("updated_at")
 
   // Relations
-  usage MedicalSupplyUsage @relation(fields: [medical_supply_usage_id], references: [id], onDelete: Cascade)
+  usage        MedicalSupplyUsage         @relation(fields: [medical_supply_usage_id], references: [id], onDelete: Cascade)
+  return_items SupplyItemReturnRecord[]
 
   @@index([medical_supply_usage_id])
   @@index([order_item_code])
   @@index([assession_no])
   @@index([supply_code])
+  @@index([item_status])
   @@map("app_microservice_supply_usage_items")
+}
+
+// Supply Item Return Records - บันทึกรายการคืนอุปกรณ์แต่ละครั้ง
+model SupplyItemReturnRecord {
+  id                   Int      @id @default(autoincrement())
+  supply_usage_item_id Int      @map("supply_usage_item_id")
+  
+  // Return Details
+  qty_returned      Int      @map("qty_returned")       // จำนวนที่คืนในครั้งนี้
+  return_reason     String   @map("return_reason")      // UNWRAPPED_UNUSED, EXPIRED, CONTAMINATED, DAMAGED
+  return_datetime   DateTime @default(now()) @map("return_datetime")
+  return_by_user_id String   @map("return_by_user_id")
+  return_note       String?  @map("return_note")        // หมายเหตุเพิ่มเติม
+  
+  created_at DateTime @default(now()) @map("created_at")
+
+  // Relations
+  supply_item SupplyUsageItem @relation(fields: [supply_usage_item_id], references: [id], onDelete: Cascade)
+
+  @@index([supply_usage_item_id])
+  @@index([return_reason])
+  @@index([return_datetime])
+  @@map("app_microservice_supply_item_return_records")
 }
 
 // Medical Supplies Usage Logs

@@ -1,4 +1,18 @@
-import { IsString, IsOptional, IsNumber, IsArray, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsArray, IsObject, IsInt, IsEnum, Min } from 'class-validator';
+
+// Enums
+export enum ItemStatus {
+  PENDING = 'PENDING',
+  PARTIAL = 'PARTIAL',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum ReturnReason {
+  UNWRAPPED_UNUSED = 'UNWRAPPED_UNUSED',
+  EXPIRED = 'EXPIRED',
+  CONTAMINATED = 'CONTAMINATED',
+  DAMAGED = 'DAMAGED',
+}
 
 // Supply Item Interface
 export interface SupplyItem {
@@ -122,4 +136,96 @@ export class UpdateMedicalSupplyUsageDto {
   @IsOptional()
   @IsString()
   billing_currency?: string;
+}
+
+// ==========================================
+// Quantity Management DTOs
+// ==========================================
+
+// บันทึกการใช้กับคนไข้
+export class RecordItemUsedWithPatientDto {
+  @IsInt()
+  item_id: number;
+
+  @IsInt()
+  @Min(1)
+  qty_used: number;
+
+  @IsOptional()
+  @IsString()
+  recorded_by_user_id?: string;
+}
+
+// บันทึกการคืนอุปกรณ์
+export class RecordItemReturnDto {
+  @IsInt()
+  item_id: number;
+
+  @IsInt()
+  @Min(1)
+  qty_returned: number;
+
+  @IsEnum(ReturnReason)
+  return_reason: ReturnReason;
+
+  @IsString()
+  return_by_user_id: string;
+
+  @IsOptional()
+  @IsString()
+  return_note?: string;
+}
+
+// Query รายการที่รอดำเนินการ
+export class GetPendingItemsQueryDto {
+  @IsOptional()
+  @IsString()
+  department_code?: string;
+
+  @IsOptional()
+  @IsString()
+  patient_hn?: string;
+
+  @IsOptional()
+  @IsEnum(ItemStatus)
+  item_status?: ItemStatus;
+
+  @IsOptional()
+  @IsNumber()
+  page?: number;
+
+  @IsOptional()
+  @IsNumber()
+  limit?: number;
+}
+
+// Query ประวัติการคืน
+export class GetReturnHistoryQueryDto {
+  @IsOptional()
+  @IsString()
+  department_code?: string;
+
+  @IsOptional()
+  @IsString()
+  patient_hn?: string;
+
+  @IsOptional()
+  @IsEnum(ReturnReason)
+  return_reason?: ReturnReason;
+
+  @IsOptional()
+  @IsString()
+  date_from?: string;
+
+  @IsOptional()
+  @IsString()
+  date_to?: string;
+
+  @IsOptional()
+  @IsNumber()
+  page?: number;
+
+  @IsOptional()
+  @IsNumber()
+  limit?: number;
 }

@@ -5,6 +5,10 @@ import {
   CreateMedicalSupplyUsageDto,
   UpdateMedicalSupplyUsageDto,
   GetMedicalSupplyUsagesQueryDto,
+  RecordItemUsedWithPatientDto,
+  RecordItemReturnDto,
+  GetPendingItemsQueryDto,
+  GetReturnHistoryQueryDto,
 } from './dto';
 
 @Controller()
@@ -106,6 +110,80 @@ export class MedicalSuppliesServiceController {
     try {
       const stats = await this.medicalSuppliesService.getStatistics();
       return { success: true, data: stats };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  // ===============================================
+  // Quantity Management & Return System Endpoints
+  // ===============================================
+
+  @MessagePattern({ cmd: 'medical_supply_item.recordUsedWithPatient' })
+  async recordItemUsedWithPatient(@Payload() data: RecordItemUsedWithPatientDto) {
+    try {
+      const result = await this.medicalSuppliesService.recordItemUsedWithPatient(data);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.recordReturn' })
+  async recordItemReturn(@Payload() data: RecordItemReturnDto) {
+    try {
+      const result = await this.medicalSuppliesService.recordItemReturn(data);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.getPendingItems' })
+  async getPendingItems(@Payload() query: GetPendingItemsQueryDto) {
+    try {
+      const result = await this.medicalSuppliesService.getPendingItems(query);
+      return { success: true, ...result };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.getReturnHistory' })
+  async getReturnHistory(@Payload() query: GetReturnHistoryQueryDto) {
+    try {
+      const result = await this.medicalSuppliesService.getReturnHistory(query);
+      return { success: true, ...result };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.getQuantityStatistics' })
+  async getQuantityStatistics(@Payload() data: { department_code?: string }) {
+    try {
+      const result = await this.medicalSuppliesService.getQuantityStatistics(data.department_code);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.getById' })
+  async getSupplyItemById(@Payload() data: { item_id: number }) {
+    try {
+      const result = await this.medicalSuppliesService.getSupplyItemById(data.item_id);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.getByUsageId' })
+  async getSupplyItemsByUsageId(@Payload() data: { usage_id: number }) {
+    try {
+      const result = await this.medicalSuppliesService.getSupplyItemsByUsageId(data.usage_id);
+      return { success: true, data: result };
     } catch (error) {
       return { success: false, message: error.message };
     }

@@ -240,6 +240,36 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.statistics' }, {}).toPromise();
   }
 
+  // ==================================== Quantity Management Methods ====================================
+
+  async recordItemUsedWithPatient(data: any) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.recordUsedWithPatient' }, data).toPromise();
+  }
+
+  async recordItemReturn(data: any) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.recordReturn' }, data).toPromise();
+  }
+
+  async getPendingItems(query: any) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getPendingItems' }, query).toPromise();
+  }
+
+  async getReturnHistory(query: any) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getReturnHistory' }, query).toPromise();
+  }
+
+  async getQuantityStatistics(department_code?: string) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getQuantityStatistics' }, { department_code }).toPromise();
+  }
+
+  async getSupplyItemById(itemId: number) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getById' }, { item_id: itemId }).toPromise();
+  }
+
+  async getSupplyItemsByUsageId(usageId: number) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getByUsageId' }, { usage_id: usageId }).toPromise();
+  }
+
   // ================================ Client Credential Methods ================================
 
   async createClientCredential(user_id: number, clientCredentialDto: any) {
