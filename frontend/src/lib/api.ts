@@ -247,7 +247,8 @@ export const medicalSuppliesApi = {
     page?: number;
     limit?: number;
     keyword?: string;
-    hn?: string;
+    patient_hn?: string;  // แก้จาก hn เป็น patient_hn ให้ตรงกับ backend
+    hn?: string;  // เก็บไว้เพื่อ backward compatibility
     an?: string;
     sort_by?: string;
     sort_order?: string;
@@ -282,6 +283,67 @@ export const medicalSuppliesApi = {
 
   getStatistics: async (): Promise<ApiResponse<any>> => {
     const response = await api.get('/medical-supplies/statistics/all');
+    return response.data;
+  },
+
+  // Quantity Management APIs
+  getSupplyItemById: async (itemId: number): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/medical-supply-items/${itemId}`);
+    return response.data;
+  },
+
+  getSupplyItemsByUsageId: async (usageId: number): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/medical-supply-items/usage/${usageId}`);
+    return response.data;
+  },
+
+  recordItemUsedWithPatient: async (data: {
+    item_id: number;
+    qty_used: number;
+    recorded_by_user_id?: string;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/medical-supply-items/record-used', data);
+    return response.data;
+  },
+
+  recordItemReturn: async (data: {
+    item_id: number;
+    qty_returned: number;
+    return_reason: string;
+    return_by_user_id: string;
+    return_note?: string;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/medical-supply-items/record-return', data);
+    return response.data;
+  },
+
+  getPendingItems: async (query?: {
+    department_code?: string;
+    patient_hn?: string;
+    item_status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.get('/medical-supply-items/pending', { params: query });
+    return response.data;
+  },
+
+  getReturnHistory: async (query?: {
+    department_code?: string;
+    patient_hn?: string;
+    return_reason?: string;
+    date_from?: string;
+    date_to?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.get('/medical-supply-items/return-history', { params: query });
+    return response.data;
+  },
+
+  getQuantityStatistics: async (departmentCode?: string): Promise<ApiResponse<any>> => {
+    const params = departmentCode ? { department_code: departmentCode } : {};
+    const response = await api.get('/medical-supply-items/statistics', { params });
     return response.data;
   },
 };

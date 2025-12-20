@@ -739,8 +739,11 @@ export class GatewayApiController {
         if (patient_hn && filteredData.length === 1) {
           const item = filteredData[0];
           return {
+            id: item.id, // เพิ่ม id ใน top level
+            usage_id: item.id, // เพิ่ม usage_id ใน top level สำหรับ frontend
             status: 'success',
             data: {
+              id: item.id, // เพิ่ม id สำหรับ frontend
               hospital: item.hospital,
               en: item.en,
               patient_hn: item.patient_hn,
@@ -748,6 +751,8 @@ export class GatewayApiController {
               lastname: item.lastname,
               name_th: item.patient_name_th || `${item.first_name} ${item.lastname}`,
               name_en: item.patient_name_en || `${item.first_name} ${item.lastname}`,
+              department_code: item.department_code, // เพิ่มแผนก
+              usage_datetime: item.usage_datetime, // เพิ่มวันที่
             },
             supplies_count: item.supply_items?.length || 0,
             supplies_summary: item.supply_items?.map((supply: any) => ({

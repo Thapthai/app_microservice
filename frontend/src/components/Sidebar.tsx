@@ -12,6 +12,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Sparkles,
   Syringe,
   Settings,
@@ -35,6 +37,18 @@ const mainMenuItems = [
     href: '/medical-supplies',
     icon: Syringe,
     description: 'จัดการเวชภัณฑ์',
+    submenu: [
+      {
+        name: 'รายการเบิก',
+        href: '/medical-supplies',
+        description: 'จัดการรายการเบิกเวชภัณฑ์',
+      },
+      {
+        name: 'รายงานเปรียบเทียบ',
+        href: '/medical-supplies/comparison',
+        description: 'เปรียบเทียบการเบิกกับการใช้งาน',
+      },
+    ],
   },
 ];
 
@@ -62,6 +76,16 @@ const managementMenuItems = [
 export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const [openSubmenus, setOpenSubmenus] = React.useState<{ [key: string]: boolean }>({
+    '/medical-supplies': true, // เปิด submenu เวชภัณฑ์ by default
+  });
+
+  const toggleSubmenu = (href: string) => {
+    setOpenSubmenus(prev => ({
+      ...prev,
+      [href]: !prev[href]
+    }));
+  };
 
   return (
     <>
@@ -158,48 +182,98 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
               {mainMenuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                const hasSubmenu = item.submenu && item.submenu.length > 0;
+                const isSubmenuOpen = openSubmenus[item.href];
                 
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setIsMobileOpen(false)}
-                    className={cn(
-                      'group relative flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200',
-                      isActive
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
-                        : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
-                      'space-x-3',
-                      isCollapsed && 'lg:justify-center lg:space-x-0'
-                    )}
-                    title={isCollapsed ? item.name : undefined}
-                  >
-                    {isActive && (
-                      <div className={cn(
-                        "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full",
-                        isCollapsed && "lg:hidden"
-                      )}></div>
-                    )}
-                    
-                    <Icon className={cn(
-                      'h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110',
-                      isActive && 'drop-shadow-lg'
-                    )} />
-                    
-                    <div className={cn(
-                      "flex-1 min-w-0",
-                      isCollapsed && "lg:hidden"
-                    )}>
-                      <p className="font-medium truncate">{item.name}</p>
-                      {!isActive && (
-                        <p className="text-xs text-slate-400 truncate">{item.description}</p>
+                  <div key={item.href}>
+                    <button
+                      onClick={() => {
+                        if (hasSubmenu) {
+                          toggleSubmenu(item.href);
+                        } else {
+                          window.location.href = item.href;
+                          setIsMobileOpen(false);
+                        }
+                      }}
+                      className={cn(
+                        'group relative flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200',
+                        isActive
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
+                          : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
+                        'space-x-3',
+                        isCollapsed && 'lg:justify-center lg:space-x-0'
                       )}
-                    </div>
+                      title={isCollapsed ? item.name : undefined}
+                    >
+                      {isActive && (
+                        <div className={cn(
+                          "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full",
+                          isCollapsed && "lg:hidden"
+                        )}></div>
+                      )}
+                      
+                      <Icon className={cn(
+                        'h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110',
+                        isActive && 'drop-shadow-lg'
+                      )} />
                     
-                    {!isActive && (
-                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-purple-600/0 group-hover:from-blue-500/5 group-hover:to-purple-600/5 transition-all"></div>
+                      <div className={cn(
+                        "flex-1 min-w-0 text-left",
+                        isCollapsed && "lg:hidden"
+                      )}>
+                        <p className="font-medium truncate">{item.name}</p>
+                        {!isActive && (
+                          <p className="text-xs text-slate-400 truncate">{item.description}</p>
+                        )}
+                      </div>
+
+                      {/* Dropdown Icon สำหรับ submenu */}
+                      {hasSubmenu && !isCollapsed && (
+                        <div className="flex-shrink-0">
+                          {isSubmenuOpen ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </div>
+                      )}
+                      
+                      {!isActive && (
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-purple-600/0 group-hover:from-blue-500/5 group-hover:to-purple-600/5 transition-all"></div>
+                      )}
+                    </button>
+                    
+                    {/* Submenu - แสดงเมื่อเปิด */}
+                    {hasSubmenu && !isCollapsed && isSubmenuOpen && (
+                      <div className="mt-1 ml-6 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                        {item.submenu.map((subItem: any) => {
+                          const isSubActive = pathname === subItem.href;
+                          return (
+                            <Link
+                              key={subItem.href}
+                              href={subItem.href}
+                              onClick={() => setIsMobileOpen(false)}
+                              className={cn(
+                                'block px-3 py-2 text-xs rounded-lg transition-all duration-200',
+                                isSubActive
+                                  ? 'bg-slate-700/70 text-white font-semibold'
+                                  : 'text-slate-400 hover:bg-slate-700/30 hover:text-white'
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "w-1.5 h-1.5 rounded-full",
+                                  isSubActive ? "bg-blue-400" : "bg-slate-600"
+                                )}></div>
+                                {subItem.name}
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
                     )}
-                  </Link>
+                  </div>
                 );
               })}
             </div>
