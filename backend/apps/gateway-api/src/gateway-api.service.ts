@@ -10,6 +10,7 @@ export class GatewayApiService {
     @Inject('EMAIL_SERVICE') private readonly emailClient: ClientProxy,
     @Inject('CATEGORY_SERVICE') private readonly categoryClient: ClientProxy,
     @Inject('MEDICAL_SUPPLIES_SERVICE') private readonly medicalSuppliesClient: ClientProxy,
+    @Inject('REPORT_SERVICE') private readonly reportClient: ClientProxy,
   ) { }
 
   getHello(): string {
@@ -288,5 +289,52 @@ export class GatewayApiService {
       user_id,
       credentialId
     }).toPromise();
+  }
+
+  // ==================================== Report Service Methods ====================================
+  async generateComparisonExcel(usageId: number) {
+    return this.reportClient.send({ cmd: 'report.comparison.excel' }, { usageId }).toPromise();
+  }
+
+  async generateComparisonPDF(usageId: number) {
+    return this.reportClient.send({ cmd: 'report.comparison.pdf' }, { usageId }).toPromise();
+  }
+
+  async generateEquipmentUsageExcel(params: {
+    dateFrom?: string;
+    dateTo?: string;
+    hospital?: string;
+    department?: string;
+    usageIds?: number[];
+  }) {
+    return this.reportClient.send({ cmd: 'report.equipment_usage.excel' }, params).toPromise();
+  }
+
+  async generateEquipmentUsagePDF(params: {
+    dateFrom?: string;
+    dateTo?: string;
+    hospital?: string;
+    department?: string;
+    usageIds?: number[];
+  }) {
+    return this.reportClient.send({ cmd: 'report.equipment_usage.pdf' }, params).toPromise();
+  }
+
+  async generateEquipmentDisbursementExcel(params: {
+    dateFrom?: string;
+    dateTo?: string;
+    hospital?: string;
+    department?: string;
+  }) {
+    return this.reportClient.send({ cmd: 'report.equipment_disbursement.excel' }, params).toPromise();
+  }
+
+  async generateEquipmentDisbursementPDF(params: {
+    dateFrom?: string;
+    dateTo?: string;
+    hospital?: string;
+    department?: string;
+  }) {
+    return this.reportClient.send({ cmd: 'report.equipment_disbursement.pdf' }, params).toPromise();
   }
 }

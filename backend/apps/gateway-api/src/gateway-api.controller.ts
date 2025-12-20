@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Headers, HttpException, HttpStatus, Put, Patch, Delete, Param, Query, ParseIntPipe, DefaultValuePipe, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Post, Body, Get, Headers, HttpException, HttpStatus, Put, Patch, Delete, Param, Query, ParseIntPipe, DefaultValuePipe, UseGuards, Request, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { GatewayApiService } from './gateway-api.service';
@@ -1062,6 +1062,220 @@ export class GatewayApiController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to get supply items by usage',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ==================================== Report Endpoints ====================================
+
+  @Get('reports/comparison/:usageId/excel')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportComparisonExcel(@Param('usageId', ParseIntPipe) usageId: number, @Res() res) {
+    try {
+      const result = await this.gatewayApiService.generateComparisonExcel(usageId);
+      
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Excel report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/comparison/:usageId/pdf')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportComparisonPDF(@Param('usageId', ParseIntPipe) usageId: number, @Res() res) {
+    try {
+      const result = await this.gatewayApiService.generateComparisonPDF(usageId);
+      
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate PDF report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate PDF report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/equipment-usage/excel')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportEquipmentUsageExcel(
+    @Res() res,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('hospital') hospital?: string,
+    @Query('department') department?: string,
+    @Query('usageIds') usageIds?: string
+  ) {
+    try {
+      const params: {
+        dateFrom?: string;
+        dateTo?: string;
+        hospital?: string;
+        department?: string;
+        usageIds?: number[];
+      } = {
+        dateFrom,
+        dateTo,
+        hospital,
+        department,
+      };
+
+      // Parse usageIds from comma-separated string to array
+      if (usageIds) {
+        params.usageIds = usageIds.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+      }
+
+      const result = await this.gatewayApiService.generateEquipmentUsageExcel(params);
+      
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Equipment Usage Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Equipment Usage Excel report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/equipment-usage/pdf')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportEquipmentUsagePDF(
+    @Res() res,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('hospital') hospital?: string,
+    @Query('department') department?: string,
+    @Query('usageIds') usageIds?: string
+  ) {
+    try {
+      const params: {
+        dateFrom?: string;
+        dateTo?: string;
+        hospital?: string;
+        department?: string;
+        usageIds?: number[];
+      } = {
+        dateFrom,
+        dateTo,
+        hospital,
+        department,
+      };
+
+      // Parse usageIds from comma-separated string to array
+      if (usageIds) {
+        params.usageIds = usageIds.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+      }
+
+      const result = await this.gatewayApiService.generateEquipmentUsagePDF(params);
+      
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Equipment Usage PDF report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Equipment Usage PDF report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/equipment-disbursement/excel')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportEquipmentDisbursementExcel(
+    @Res() res,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('hospital') hospital?: string,
+    @Query('department') department?: string
+  ) {
+    try {
+      const params: {
+        dateFrom?: string;
+        dateTo?: string;
+        hospital?: string;
+        department?: string;
+      } = {
+        dateFrom,
+        dateTo,
+        hospital,
+        department,
+      };
+
+      const result = await this.gatewayApiService.generateEquipmentDisbursementExcel(params);
+      
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Equipment Disbursement Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Equipment Disbursement Excel report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/equipment-disbursement/pdf')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportEquipmentDisbursementPDF(
+    @Res() res,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('hospital') hospital?: string,
+    @Query('department') department?: string
+  ) {
+    try {
+      const params: {
+        dateFrom?: string;
+        dateTo?: string;
+        hospital?: string;
+        department?: string;
+      } = {
+        dateFrom,
+        dateTo,
+        hospital,
+        department,
+      };
+
+      const result = await this.gatewayApiService.generateEquipmentDisbursementPDF(params);
+      
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Equipment Disbursement PDF report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Equipment Disbursement PDF report',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

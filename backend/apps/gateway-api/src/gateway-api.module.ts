@@ -51,6 +51,14 @@ import { MetricsModule } from '../../../libs/metrics/metrics.module';
           port: parseInt(process.env.MEDICAL_SUPPLIES_SERVICE_PORT || '3008', 10),
         },
       },
+      {
+        name: 'REPORT_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: process.env.REPORT_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.REPORT_SERVICE_PORT || '3006', 10),
+        },
+      },
     ]),
   ],
   controllers: [GatewayApiController],
