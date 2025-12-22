@@ -31,6 +31,7 @@ echo -e "${YELLOW}📦 Step 1/5: Building Docker image...${NC}"
 echo -e "${CYAN}   → Building ${IMAGE_NAME}${NC}"
 echo -e "${CYAN}   → API URL: ${API_URL}${NC}"
 echo -e "${CYAN}   → Base Path: ${BASE_PATH}${NC}"
+echo -e "${CYAN}   → Note: Dockerfile has default values, build args are optional${NC}"
 cd ..
 docker build \
   --build-arg NEXT_PUBLIC_API_URL=${API_URL} \
@@ -38,6 +39,9 @@ docker build \
   -f docker/Dockerfile \
   -t ${IMAGE_NAME} \
   .
+
+# Alternative: Simple build (uses defaults from Dockerfile)
+# docker build -f docker/Dockerfile -t ${IMAGE_NAME} .
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Build completed successfully!${NC}"

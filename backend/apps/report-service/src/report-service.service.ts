@@ -6,9 +6,12 @@ import { EquipmentUsageExcelService } from './services/equipment_usage_excel.ser
 import { EquipmentUsagePdfService } from './services/equipment_usage_pdf.service';
 import { EquipmentDisbursementExcelService } from './services/equipment_disbursement_excel.service';
 import { EquipmentDisbursementPdfService } from './services/equipment_disbursement_pdf.service';
+import { ItemComparisonExcelService } from './services/item-comparison-excel.service';
+import { ItemComparisonPdfService } from './services/item-comparison-pdf.service';
 import { ComparisonReportData } from './types/comparison-report.types';
 import { EquipmentUsageReportData } from './types/equipment-usage-report.types';
 import { EquipmentDisbursementReportData } from './types/equipment-disbursement-report.types';
+import { ItemComparisonReportData } from './types/item-comparison-report.types';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -22,6 +25,8 @@ export class ReportServiceService {
     private readonly equipmentUsagePdfService: EquipmentUsagePdfService,
     private readonly equipmentDisbursementExcelService: EquipmentDisbursementExcelService,
     private readonly equipmentDisbursementPdfService: EquipmentDisbursementPdfService,
+    private readonly itemComparisonExcelService: ItemComparisonExcelService,
+    private readonly itemComparisonPdfService: ItemComparisonPdfService,
   ) { }
 
   /**
@@ -561,6 +566,168 @@ export class ReportServiceService {
       console.error('[Report Service] Error generating Equipment Disbursement PDF:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
       throw new Error(`Failed to generate Equipment Disbursement PDF report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate item comparison report in Excel format
+   */
+  async generateItemComparisonExcel(params: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+    includeUsageDetails?: boolean;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const queryParams: any = {};
+      if (params.itemCode) queryParams.itemCode = params.itemCode;
+      if (params.itemTypeId) queryParams.itemTypeId = params.itemTypeId;
+      if (params.startDate) queryParams.startDate = params.startDate;
+      if (params.endDate) queryParams.endDate = params.endDate;
+      if (params.departmentCode) queryParams.departmentCode = params.departmentCode;
+
+      // Fetch comparison data from medical-supplies-service
+      const comparisonResponse: any = await firstValueFrom(
+        this.medicalSuppliesClient.send({ cmd: 'medical_supply.compareDispensedVsUsage' }, queryParams)
+      );
+
+      if (!comparisonResponse || !comparisonResponse.success) {
+        throw new Error('Failed to fetch comparison data');
+      }
+
+      const reportData: ItemComparisonReportData = {
+        filters: {
+          itemCode: params.itemCode,
+          itemTypeId: params.itemTypeId,
+          startDate: params.startDate,
+          endDate: params.endDate,
+          departmentCode: params.departmentCode,
+        },
+        summary: comparisonResponse.summary || {
+          total_items: 0,
+          total_dispensed: 0,
+          total_used: 0,
+          matched_count: 0,
+          discrepancy_count: 0,
+        },
+        comparison: comparisonResponse.comparison || [],
+      };
+
+      // If include usage details and itemCode is specified, fetch usage details
+      if (params.includeUsageDetails && params.itemCode) {
+        try {
+          const usageResponse: any = await firstValueFrom(
+            this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCode' }, {
+              itemCode: params.itemCode,
+              startDate: params.startDate,
+              endDate: params.endDate,
+              departmentCode: params.departmentCode,
+            })
+          );
+
+          if (usageResponse && usageResponse.success && usageResponse.data) {
+            reportData.usageDetails = usageResponse.data;
+          }
+        } catch (error) {
+          console.warn('Failed to fetch usage details:', error);
+          // Continue without usage details
+        }
+      }
+
+      // Generate Excel
+      const buffer = await this.itemComparisonExcelService.generateReport(reportData);
+      const dateStr = params.startDate ? params.startDate.replace(/\//g, '-') : new Date().toISOString().split('T')[0];
+      const itemCodeStr = params.itemCode ? `_${params.itemCode}` : '';
+      const filename = `item_comparison_report${itemCodeStr}_${dateStr}.xlsx`;
+
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Item Comparison Excel:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Item Comparison Excel report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate item comparison report in PDF format
+   */
+  async generateItemComparisonPDF(params: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+    includeUsageDetails?: boolean;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const queryParams: any = {};
+      if (params.itemCode) queryParams.itemCode = params.itemCode;
+      if (params.itemTypeId) queryParams.itemTypeId = params.itemTypeId;
+      if (params.startDate) queryParams.startDate = params.startDate;
+      if (params.endDate) queryParams.endDate = params.endDate;
+      if (params.departmentCode) queryParams.departmentCode = params.departmentCode;
+
+      // Fetch comparison data from medical-supplies-service
+      const comparisonResponse: any = await firstValueFrom(
+        this.medicalSuppliesClient.send({ cmd: 'medical_supply.compareDispensedVsUsage' }, queryParams)
+      );
+
+      if (!comparisonResponse || !comparisonResponse.success) {
+        throw new Error('Failed to fetch comparison data');
+      }
+
+      const reportData: ItemComparisonReportData = {
+        filters: {
+          itemCode: params.itemCode,
+          itemTypeId: params.itemTypeId,
+          startDate: params.startDate,
+          endDate: params.endDate,
+          departmentCode: params.departmentCode,
+        },
+        summary: comparisonResponse.summary || {
+          total_items: 0,
+          total_dispensed: 0,
+          total_used: 0,
+          matched_count: 0,
+          discrepancy_count: 0,
+        },
+        comparison: comparisonResponse.comparison || [],
+      };
+
+      // If include usage details and itemCode is specified, fetch usage details
+      if (params.includeUsageDetails && params.itemCode) {
+        try {
+          const usageResponse: any = await firstValueFrom(
+            this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCode' }, {
+              itemCode: params.itemCode,
+              startDate: params.startDate,
+              endDate: params.endDate,
+              departmentCode: params.departmentCode,
+            })
+          );
+
+          if (usageResponse && usageResponse.success && usageResponse.data) {
+            reportData.usageDetails = usageResponse.data;
+          }
+        } catch (error) {
+          console.warn('Failed to fetch usage details:', error);
+          // Continue without usage details
+        }
+      }
+
+      // Generate PDF
+      const buffer = await this.itemComparisonPdfService.generateReport(reportData);
+      const dateStr = params.startDate ? params.startDate.replace(/\//g, '-') : new Date().toISOString().split('T')[0];
+      const itemCodeStr = params.itemCode ? `_${params.itemCode}` : '';
+      const filename = `item_comparison_report${itemCodeStr}_${dateStr}.pdf`;
+
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Item Comparison PDF:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Item Comparison PDF report: ${errorMessage}`);
     }
   }
 }

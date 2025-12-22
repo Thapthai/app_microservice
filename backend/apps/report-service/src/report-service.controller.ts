@@ -150,4 +150,64 @@ export class ReportServiceController {
       };
     }
   }
+
+  @MessagePattern({ cmd: 'report.item_comparison.excel' })
+  async generateItemComparisonExcel(@Payload() data: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+    includeUsageDetails?: boolean;
+  }) {
+    console.log('[Report Service Controller] Received item_comparison.excel request:', JSON.stringify(data));
+    try {
+      const result = await this.reportServiceService.generateItemComparisonExcel(data);
+      console.log('[Report Service Controller] Item comparison Excel generated successfully');
+      return {
+        success: true,
+        data: {
+          buffer: result.buffer,
+          filename: result.filename,
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
+      };
+    } catch (error) {
+      console.error('[Report Service Controller] Error generating item comparison Excel:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'report.item_comparison.pdf' })
+  async generateItemComparisonPDF(@Payload() data: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+    includeUsageDetails?: boolean;
+  }) {
+    console.log('[Report Service Controller] Received item_comparison.pdf request:', JSON.stringify(data));
+    try {
+      const result = await this.reportServiceService.generateItemComparisonPDF(data);
+      console.log('[Report Service Controller] Item comparison PDF generated successfully');
+      return {
+        success: true,
+        data: {
+          buffer: result.buffer,
+          filename: result.filename,
+          contentType: 'application/pdf',
+        },
+      };
+    } catch (error) {
+      console.error('[Report Service Controller] Error generating item comparison PDF:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

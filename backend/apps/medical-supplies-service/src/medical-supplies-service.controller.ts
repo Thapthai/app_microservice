@@ -188,4 +188,90 @@ export class MedicalSuppliesServiceController {
       return { success: false, message: error.message };
     }
   }
+
+  // Validate ItemCode
+  @MessagePattern({ cmd: 'medical_supply.validateItemCode' })
+  async validateItemCode(@Payload() data: { itemCode: string }) {
+    try {
+      const result = await this.medicalSuppliesService.validateItemCode(data.itemCode);
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Validate multiple ItemCodes
+  @MessagePattern({ cmd: 'medical_supply.validateItemCodes' })
+  async validateItemCodes(@Payload() data: { itemCodes: string[] }) {
+    try {
+      const result = await this.medicalSuppliesService.validateItemCodes(data.itemCodes);
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply.getDispensedItems' })
+  async getDispensedItems(@Payload() data: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      const result = await this.medicalSuppliesService.getDispensedItems(data);
+      return {
+        success: true,
+        data: result.data,
+        total: result.total,
+        filters: result.filters,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply.compareDispensedVsUsage' })
+  async compareDispensedVsUsage(@Payload() data: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+  }) {
+    try {
+      const result = await this.medicalSuppliesService.compareDispensedVsUsage(data);
+      return {
+        success: true,
+        summary: result.summary,
+        comparison: result.comparison,
+        filters: result.filters,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply.getUsageByItemCode' })
+  async getUsageByItemCode(@Payload() data?: any) {
+    return this.medicalSuppliesService.getUsageByItemCode(data);
+  }
 }

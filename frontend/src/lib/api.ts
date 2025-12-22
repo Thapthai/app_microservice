@@ -346,6 +346,39 @@ export const medicalSuppliesApi = {
     const response = await api.get('/medical-supply-items/statistics', { params });
     return response.data;
   },
+
+  // Item Comparison APIs
+  getDispensedItems: async (query?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.get('/medical-supplies-dispensed-items', { params: query });
+    return response.data;
+  },
+
+  compareDispensedVsUsage: async (query?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.get('/medical-supplies-comparison', { params: query });
+    return response.data;
+  },
+
+  getUsageByItemCode: async (query?: {
+    itemCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.get('/medical-supplies-usage-by-item', { params: query });
+    return response.data;
+  },
 };
 
 // Reports API

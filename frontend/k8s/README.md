@@ -84,7 +84,11 @@ docker build \
 #   .
 ```
 
-**⚠️ สำคัญ:** ต้องส่ง `--build-arg NEXT_PUBLIC_BASE_PATH=/medical-supplies` เพราะ `NEXT_PUBLIC_*` variables ต้องถูก embed ใน build time
+**✅ Default Values ใน Dockerfile:**
+- `NEXT_PUBLIC_API_URL`: `https://phc.dyndns.biz/medical-supplies-api/v1/`
+- `NEXT_PUBLIC_BASE_PATH`: `/medical-supplies`
+
+**💡 หมายเหตุ:** Dockerfile มี default values แล้ว สามารถ build แบบง่ายๆ ได้โดยไม่ต้องส่ง build args (แต่ถ้าต้องการ override ก็ส่ง `--build-arg` ได้)
 
 **Expected Output:**
 

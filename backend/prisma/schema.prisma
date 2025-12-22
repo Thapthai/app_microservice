@@ -257,6 +257,11 @@ model Item {
   main_min                 Int?
   item_status              Int?      @default(0)
 
+  // Relations
+  itemType   ItemType?   @relation(fields: [itemtypeID], references: [ID], onDelete: SetNull)
+  itemStocks ItemStock[]
+
+  @@index([itemtypeID])
   @@map("item")
 }
 
@@ -342,7 +347,7 @@ model SupplyUsageItem {
   expiry_date     String? @map("expiry_date")
 
   // Quantity Management - แยกจำนวนอุปกรณ์ตามการใช้งาน
-  qty_used_with_patient   Int @default(0) @map("qty_used_with_patient")   // จำนวนที่ใช้กับคนไข้
+  qty_used_with_patient   Int @default(0) @map("qty_used_with_patient") // จำนวนที่ใช้กับคนไข้
   qty_returned_to_cabinet Int @default(0) @map("qty_returned_to_cabinet") // จำนวนที่คืนเข้าตู้แล้ว
   // qty_pending = qty - qty_used_with_patient - qty_returned_to_cabinet (คำนวณได้)
 
@@ -353,7 +358,7 @@ model SupplyUsageItem {
   updated_at DateTime @updatedAt @map("updated_at")
 
   // Relations
-  usage        MedicalSupplyUsage         @relation(fields: [medical_supply_usage_id], references: [id], onDelete: Cascade)
+  usage        MedicalSupplyUsage       @relation(fields: [medical_supply_usage_id], references: [id], onDelete: Cascade)
   return_items SupplyItemReturnRecord[]
 
   @@index([medical_supply_usage_id])
@@ -366,16 +371,16 @@ model SupplyUsageItem {
 
 // Supply Item Return Records - บันทึกรายการคืนอุปกรณ์แต่ละครั้ง
 model SupplyItemReturnRecord {
-  id                   Int      @id @default(autoincrement())
-  supply_usage_item_id Int      @map("supply_usage_item_id")
-  
+  id                   Int @id @default(autoincrement())
+  supply_usage_item_id Int @map("supply_usage_item_id")
+
   // Return Details
-  qty_returned      Int      @map("qty_returned")       // จำนวนที่คืนในครั้งนี้
-  return_reason     String   @map("return_reason")      // UNWRAPPED_UNUSED, EXPIRED, CONTAMINATED, DAMAGED
+  qty_returned      Int      @map("qty_returned") // จำนวนที่คืนในครั้งนี้
+  return_reason     String   @map("return_reason") // UNWRAPPED_UNUSED, EXPIRED, CONTAMINATED, DAMAGED
   return_datetime   DateTime @default(now()) @map("return_datetime")
   return_by_user_id String   @map("return_by_user_id")
-  return_note       String?  @map("return_note")        // หมายเหตุเพิ่มเติม
-  
+  return_note       String?  @map("return_note") // หมายเหตุเพิ่มเติม
+
   created_at DateTime @default(now()) @map("created_at")
 
   // Relations
@@ -406,4 +411,95 @@ model MedicalSupplyUsageLog {
   @@index([usage_id])
   @@index([created_at])
   @@map("app_microservice_medical_supply_usages_logs")
+}
+
+// Item Stock (Inventory Management)
+model ItemStock {
+  RowID                 Int       @id @default(autoincrement()) @map("RowID")
+  CreateDate            DateTime? @default(now()) @map("CreateDate")
+  ItemCode              String?   @map("ItemCode") @db.VarChar(20)
+  UsageCode             String?   @map("UsageCode") @db.VarChar(20)
+  UsageCode2            String?   @map("UsageCode2") @db.VarChar(20)
+  RfidCode              String?   @map("RfidCode") @db.VarChar(255)
+  IsStatus              Int?      @default(0) @map("IsStatus")
+  IsNew                 Boolean?  @default(true) @map("IsNew")
+  IsNewUsage            Boolean?  @default(true) @map("IsNewUsage")
+  LastSendDeptDate      DateTime? @map("LastSendDeptDate")
+  PackDate              DateTime? @map("PackDate")
+  ExpireDate            DateTime? @map("ExpireDate")
+  DepID                 Int?      @default(0) @map("DepID")
+  PackingMatID          Int?      @map("PackingMatID")
+  Qty                   Int?      @default(0) @map("Qty")
+  UsageCount            Int?      @default(0) @map("UsageCount")
+  IsPay                 Int?      @default(0) @map("IsPay")
+  LastPayDeptDate       DateTime? @map("LastPayDeptDate")
+  IsDispatch            Boolean?  @default(false) @map("IsDispatch")
+  LastReceiveDeptDate   DateTime? @map("LastReceiveDeptDate")
+  IsTag                 Boolean?  @default(false) @map("IsTag")
+  IsNoStep12            Boolean?  @default(false) @map("IsNoStep12")
+  IsPrint               Boolean?  @default(false) @map("IsPrint")
+  IsCancel              Boolean?  @default(false) @map("IsCancel")
+  B_ID                  Int?      @default(0) @map("B_ID")
+  ImportOccurrenceID    Int?      @default(0) @map("ImportOccurrenceID")
+  LastSterileDetailID   Int?      @map("LastSterileDetailID")
+  LastReceiveInDeptDate DateTime? @map("LastReceiveInDeptDate")
+  LastDispatchModify    DateTime? @map("LastDispatchModify")
+  IsHN                  Int?      @default(0) @map("IsHN")
+  CancellDate           DateTime? @map("CancellDate")
+  IsStock               Boolean?  @default(true) @map("IsStock")
+  IsBorrow              Boolean?  @default(false) @map("IsBorrow")
+  PreviousStatus        Int?      @default(0) @map("PreviousStatus")
+  IsWeb                 Int?      @default(0) @map("IsWeb")
+  IsRemarkExpress       Int?      @default(0) @map("IsRemarkExpress")
+  RemarkExpress         String?   @map("RemarkExpress") @db.VarChar(255)
+  IsReuse               Int?      @default(1) @map("IsReuse")
+  IsTrade               Boolean?  @default(false) @map("IsTrade")
+  IsDeposit             Int?      @default(0) @map("IsDeposit")
+  TransactionCreate     Int?      @map("TransactionCreate")
+  DeptID                Int?      @default(0) @map("DeptID")
+  isPairing             Boolean?  @default(false) @map("isPairing")
+  PreviousIsPay         Boolean?  @default(false) @map("PreviousIsPay")
+  IsREUsageCount        Boolean?  @default(false) @map("IsREUsageCount")
+  IsCancelByLimit       Boolean?  @default(false) @map("IsCancelByLimit")
+  UsageName             String?   @map("UsageName") @db.VarChar(255)
+  ProductSerial         String?   @map("ProductSerial") @db.VarChar(25)
+  StockID               Int?      @map("StockID")
+  HNCode                String?   @map("HNCode") @db.VarChar(20)
+  CabinetUserID         Int?      @map("CabinetUserID")
+  LastCabinetModify     DateTime? @map("LastCabinetModify")
+  InsertRfidDocNo       String?   @map("InsertRfidDocNo") @db.VarChar(20)
+  Istatus_rfid          Int?      @map("Istatus_rfid") // 1=เดิม 2=เบิก 3=ส่ง
+  ShiptoDate            DateTime? @map("ShiptoDate")
+  ReturnDate            DateTime? @map("ReturnDate")
+  InsertDate            DateTime? @map("InsertDate")
+  IsDeproom             String?   @map("IsDeproom") @db.VarChar(5)
+  IsClaim               Int?      @map("IsClaim")
+  IsCross               Int?      @map("IsCross")
+  departmentroomId      Int?      @map("departmentroomId")
+  IsDamage              Int?      @map("IsDamage")
+  serialNo              String?   @map("serialNo") @db.VarChar(50)
+  lotNo                 String?   @map("lotNo") @db.VarChar(50)
+  expDate               DateTime? @map("expDate")
+  IsTracking            Boolean?  @default(false) @map("IsTracking")
+  remarkTracking        String?   @map("remarkTracking") @db.VarChar(255)
+  return_userID         Int?      @map("return_userID")
+  IsSell                Int?      @default(0) @map("IsSell")
+
+  // Relations
+  item Item? @relation(fields: [ItemCode], references: [itemcode], onDelete: SetNull)
+
+  @@map("itemstock")
+}
+
+// Item Type (Type of Medical Supplies)
+model ItemType {
+  ID       Int      @id @default(autoincrement()) @map("ID")
+  TypeName String?  @map("TypeName") @db.VarChar(50)
+  IsCancel Boolean? @default(false) @map("IsCancel")
+  B_ID     Int?     @map("B_ID")
+
+  // Relations
+  items Item[]
+
+  @@map("itemtype")
 }

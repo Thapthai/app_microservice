@@ -53,9 +53,15 @@ const mainMenuItems = [
         icon: FileBarChart,
       },
       {
-        name: 'รายงานเปรียบเทียบ',
+        name: 'รายเปรียบเทียบตามผู้ป่วย',
         href: '/medical-supplies/comparison',
-        description: 'เปรียบเทียบการเบิกกับการใช้งาน',
+        description: 'เปรียบเทียบการเบิกกับการใช้งานตามผู้ป่วย',
+        icon: FileBarChart,
+      },
+      {
+        name: 'รายเปรียบเทียบตามเวชภัณฑ์',
+        href: '/medical-supplies/item-comparison',
+        description: 'เปรียบเทียบการเบิกกับการใช้งานตามเวชภัณฑ์',
         icon: FileBarChart,
       },
       {

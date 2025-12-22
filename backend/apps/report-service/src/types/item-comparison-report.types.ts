@@ -1,0 +1,40 @@
+export interface ItemComparisonReportData {
+  filters: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+  };
+  summary: {
+    total_items: number;
+    total_dispensed: number;
+    total_used: number;
+    matched_count: number;
+    discrepancy_count: number;
+  };
+  comparison: ComparisonItem[];
+  usageDetails?: UsageDetail[];
+}
+
+export interface ComparisonItem {
+  itemcode: string;
+  itemname: string;
+  item_type: string;
+  total_dispensed: number;
+  total_used: number;
+  difference: number;
+  status: 'MATCHED' | 'DISPENSED_NOT_USED' | 'USED_WITHOUT_DISPENSE' | 'DISPENSE_EXCEEDS_USAGE' | 'USAGE_EXCEEDS_DISPENSE';
+}
+
+export interface UsageDetail {
+  usage_id: number;
+  patient_hn: string;
+  patient_name?: string;
+  patient_en?: string;
+  department_code?: string;
+  usage_datetime: Date | string;
+  qty_used: number;
+  qty_returned: number;
+}
+

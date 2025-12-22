@@ -949,6 +949,93 @@ export class GatewayApiController {
     }
   }
 
+  @Get('medical-supplies-dispensed-items')
+  @UseGuards(FlexibleAuthGuard)
+  async getDispensedItems(
+    @Query('itemCode') itemCode?: string,
+    @Query('itemTypeId') itemTypeId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    try {
+      const filters: any = {};
+      if (itemCode) filters.itemCode = itemCode;
+      if (itemTypeId) filters.itemTypeId = parseInt(itemTypeId, 10);
+      if (startDate) filters.startDate = startDate;
+      if (endDate) filters.endDate = endDate;
+      if (page) filters.page = parseInt(page, 10);
+      if (limit) filters.limit = parseInt(limit, 10);
+
+      const result = await this.gatewayApiService.getDispensedItems(filters);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get dispensed items',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supplies-comparison')
+  @UseGuards(FlexibleAuthGuard)
+  async compareDispensedVsUsage(
+    @Query('itemCode') itemCode?: string,
+    @Query('itemTypeId') itemTypeId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('departmentCode') departmentCode?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    try {
+      const filters: any = {};
+      if (itemCode) filters.itemCode = itemCode;
+      if (itemTypeId) filters.itemTypeId = parseInt(itemTypeId, 10);
+      if (startDate) filters.startDate = startDate;
+      if (endDate) filters.endDate = endDate;
+      if (departmentCode) filters.departmentCode = departmentCode;
+      if (page) filters.page = parseInt(page, 10);
+      if (limit) filters.limit = parseInt(limit, 10);
+
+      const result = await this.gatewayApiService.compareDispensedVsUsage(filters);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to compare dispensed vs usage',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supplies-usage-by-item')
+  @UseGuards(FlexibleAuthGuard)
+  async getUsageByItemCode(
+    @Query('itemCode') itemCode?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    try {
+      const filters: any = {};
+      if (itemCode) filters.itemCode = itemCode;
+      if (startDate) filters.startDate = startDate;
+      if (endDate) filters.endDate = endDate;
+      if (page) filters.page = parseInt(page, 10);
+      if (limit) filters.limit = parseInt(limit, 10);
+
+      const result = await this.gatewayApiService.getUsageByItemCode(filters);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get usage by item code',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // ============================================================
   // MEDICAL SUPPLY ITEM - QUANTITY MANAGEMENT ENDPOINTS
   // ============================================================
@@ -1276,6 +1363,78 @@ export class GatewayApiController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to generate Equipment Disbursement PDF report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supplies-comparison/export/excel')
+  async exportItemComparisonExcel(
+    @Query('itemCode') itemCode?: string,
+    @Query('itemTypeId') itemTypeId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('departmentCode') departmentCode?: string,
+    @Query('includeUsageDetails') includeUsageDetails?: string,
+    @Res() res?: any,
+  ) {
+    try {
+      const params: any = {};
+      if (itemCode) params.itemCode = itemCode;
+      if (itemTypeId) params.itemTypeId = parseInt(itemTypeId);
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (departmentCode) params.departmentCode = departmentCode;
+      params.includeUsageDetails = includeUsageDetails === 'true';
+
+      const result = await this.gatewayApiService.generateItemComparisonExcelReport(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Item Comparison Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Item Comparison Excel report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supplies-comparison/export/pdf')
+  async exportItemComparisonPDF(
+    @Query('itemCode') itemCode?: string,
+    @Query('itemTypeId') itemTypeId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('departmentCode') departmentCode?: string,
+    @Query('includeUsageDetails') includeUsageDetails?: string,
+    @Res() res?: any,
+  ) {
+    try {
+      const params: any = {};
+      if (itemCode) params.itemCode = itemCode;
+      if (itemTypeId) params.itemTypeId = parseInt(itemTypeId);
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (departmentCode) params.departmentCode = departmentCode;
+      params.includeUsageDetails = includeUsageDetails === 'true';
+
+      const result = await this.gatewayApiService.generateItemComparisonPDFReport(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Item Comparison PDF report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Item Comparison PDF report',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { RegisterDto, LoginDto } from './dto';
 
 @Injectable()
@@ -336,5 +337,65 @@ export class GatewayApiService {
     department?: string;
   }) {
     return this.reportClient.send({ cmd: 'report.equipment_disbursement.pdf' }, params).toPromise();
+  }
+
+  async getDispensedItems(filters?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply.getDispensedItems' }, filters || {}).toPromise();
+  }
+
+  async compareDispensedVsUsage(filters?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply.compareDispensedVsUsage' }, filters || {}).toPromise();
+  }
+
+  async getUsageByItemCode(filters?: {
+    itemCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCode' }, filters || {}).toPromise();
+  }
+
+  // Report Service Methods
+  async generateItemComparisonExcelReport(params: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+    includeUsageDetails?: boolean;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.item_comparison.excel' }, params)
+    );
+  }
+
+  async generateItemComparisonPDFReport(params: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+    includeUsageDetails?: boolean;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.item_comparison.pdf' }, params)
+    );
   }
 }

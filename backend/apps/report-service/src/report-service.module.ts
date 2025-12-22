@@ -8,6 +8,8 @@ import { EquipmentUsageExcelService } from './services/equipment_usage_excel.ser
 import { EquipmentUsagePdfService } from './services/equipment_usage_pdf.service';
 import { EquipmentDisbursementExcelService } from './services/equipment_disbursement_excel.service';
 import { EquipmentDisbursementPdfService } from './services/equipment_disbursement_pdf.service';
+import { ItemComparisonExcelService } from './services/item-comparison-excel.service';
+import { ItemComparisonPdfService } from './services/item-comparison-pdf.service';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { EquipmentDisbursementPdfService } from './services/equipment_disburseme
     EquipmentUsagePdfService,
     EquipmentDisbursementExcelService,
     EquipmentDisbursementPdfService,
+    ItemComparisonExcelService,
+    ItemComparisonPdfService,
   ],
 })
 export class ReportServiceModule {}
