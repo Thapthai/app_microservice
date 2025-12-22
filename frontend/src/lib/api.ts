@@ -348,4 +348,104 @@ export const medicalSuppliesApi = {
   },
 };
 
+// Reports API
+export const reportsApi = {
+  // Comparison Report
+  exportComparisonExcel: async (usageId: number): Promise<Blob> => {
+    const response = await api.get(`/reports/comparison/${usageId}/excel`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  exportComparisonPDF: async (usageId: number): Promise<Blob> => {
+    const response = await api.get(`/reports/comparison/${usageId}/pdf`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  // Equipment Usage Report
+  exportEquipmentUsageExcel: async (params?: {
+    dateFrom?: string;
+    dateTo?: string;
+    hospital?: string;
+    department?: string;
+    usageIds?: number[];
+  }): Promise<Blob> => {
+    const queryParams = new URLSearchParams();
+    if (params?.dateFrom) queryParams.append('dateFrom', params.dateFrom);
+    if (params?.dateTo) queryParams.append('dateTo', params.dateTo);
+    if (params?.hospital) queryParams.append('hospital', params.hospital);
+    if (params?.department) queryParams.append('department', params.department);
+    if (params?.usageIds && params.usageIds.length > 0) {
+      queryParams.append('usageIds', params.usageIds.join(','));
+    }
+
+    const response = await api.get(`/reports/equipment-usage/excel?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  exportEquipmentUsagePDF: async (params?: {
+    dateFrom?: string;
+    dateTo?: string;
+    hospital?: string;
+    department?: string;
+    usageIds?: number[];
+  }): Promise<Blob> => {
+    const queryParams = new URLSearchParams();
+    if (params?.dateFrom) queryParams.append('dateFrom', params.dateFrom);
+    if (params?.dateTo) queryParams.append('dateTo', params.dateTo);
+    if (params?.hospital) queryParams.append('hospital', params.hospital);
+    if (params?.department) queryParams.append('department', params.department);
+    if (params?.usageIds && params.usageIds.length > 0) {
+      queryParams.append('usageIds', params.usageIds.join(','));
+    }
+
+    const response = await api.get(`/reports/equipment-usage/pdf?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  // Equipment Disbursement Report
+  exportEquipmentDisbursementExcel: async (params?: {
+    dateFrom?: string;
+    dateTo?: string;
+    hospital?: string;
+    department?: string;
+  }): Promise<Blob> => {
+    const queryParams = new URLSearchParams();
+    if (params?.dateFrom) queryParams.append('dateFrom', params.dateFrom);
+    if (params?.dateTo) queryParams.append('dateTo', params.dateTo);
+    if (params?.hospital) queryParams.append('hospital', params.hospital);
+    if (params?.department) queryParams.append('department', params.department);
+
+    const response = await api.get(`/reports/equipment-disbursement/excel?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  exportEquipmentDisbursementPDF: async (params?: {
+    dateFrom?: string;
+    dateTo?: string;
+    hospital?: string;
+    department?: string;
+  }): Promise<Blob> => {
+    const queryParams = new URLSearchParams();
+    if (params?.dateFrom) queryParams.append('dateFrom', params.dateFrom);
+    if (params?.dateTo) queryParams.append('dateTo', params.dateTo);
+    if (params?.hospital) queryParams.append('hospital', params.hospital);
+    if (params?.department) queryParams.append('department', params.department);
+
+    const response = await api.get(`/reports/equipment-disbursement/pdf?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+};
+
 export default api;

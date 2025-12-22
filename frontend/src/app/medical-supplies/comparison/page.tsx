@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { medicalSuppliesApi } from '@/lib/api';
+import { medicalSuppliesApi, reportsApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import { toast } from 'sonner';
-import { FileBarChart, Search, Download, RefreshCw } from 'lucide-react';
+import { FileBarChart, Search, Download, RefreshCw, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,7 +111,7 @@ export default function ComparisonReportPage() {
 
       console.log('📊 Search response (raw):', response);
 
-      if (response.data || response.status === 'success') {
+      if (response.data || response.success) {
         // Handle both single object and array response
         let dataArray: any[] = [];
         
@@ -121,7 +121,7 @@ export default function ComparisonReportPage() {
         } else if (response.data && typeof response.data === 'object') {
           // Single object wrapped in data
           dataArray = [response];
-        } else if (response.status === 'success' && !response.data) {
+        } else if (response.success && !response.data) {
           // Single object format (old format)
           dataArray = [response];
         }
@@ -195,6 +195,54 @@ export default function ComparisonReportPage() {
     } catch (error) {
       console.error('Error exporting CSV:', error);
       toast.error('เกิดข้อผิดพลาดในการ export');
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (!selectedUsageId) {
+      toast.error('กรุณาเลือกรายการเบิกก่อน');
+      return;
+    }
+
+    try {
+      const blob = await reportsApi.exportComparisonExcel(selectedUsageId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `comparison_report_${selectedUsageId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Export Excel สำเร็จ');
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการ export');
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!selectedUsageId) {
+      toast.error('กรุณาเลือกรายการเบิกก่อน');
+      return;
+    }
+
+    try {
+      const blob = await reportsApi.exportComparisonPDF(selectedUsageId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `comparison_report_${selectedUsageId}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Export PDF สำเร็จ');
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการ export');
     }
   };
 
@@ -422,15 +470,35 @@ export default function ComparisonReportPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>ข้อมูลผู้ป่วย (Usage ID: {selectedUsageId})</CardTitle>
-                      <Button 
-                        onClick={handleExportCSV} 
-                        disabled={!comparisonData?.items || comparisonData.items.length === 0}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Export CSV
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={handleExportCSV} 
+                          disabled={!comparisonData?.items || comparisonData.items.length === 0}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          CSV
+                        </Button>
+                        <Button 
+                          onClick={handleExportExcel} 
+                          disabled={!selectedUsageId}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <FileBarChart className="h-4 w-4 mr-2" />
+                          Excel
+                        </Button>
+                        <Button 
+                          onClick={handleExportPDF} 
+                          disabled={!selectedUsageId}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          PDF
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>

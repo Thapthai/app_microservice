@@ -18,6 +18,9 @@ import {
   Syringe,
   Settings,
   Tag,
+  FileBarChart,
+  FileText,
+  ClipboardList,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -44,9 +47,28 @@ const mainMenuItems = [
         description: 'จัดการรายการเบิกเวชภัณฑ์',
       },
       {
+        name: 'รายงานทั้งหมด',
+        href: '/medical-supplies/reports',
+        description: 'รายงานทางการแพทย์ทั้งหมด',
+        icon: FileBarChart,
+      },
+      {
         name: 'รายงานเปรียบเทียบ',
         href: '/medical-supplies/comparison',
         description: 'เปรียบเทียบการเบิกกับการใช้งาน',
+        icon: FileBarChart,
+      },
+      {
+        name: 'รายงานการใช้อุปกรณ์',
+        href: '/medical-supplies/equipment-usage',
+        description: 'รายงานการใช้อุปกรณ์กับคนไข้',
+        icon: ClipboardList,
+      },
+      {
+        name: 'รายงานการตัดจ่าย',
+        href: '/medical-supplies/equipment-disbursement',
+        description: 'รายงานการรับบันทึกตัดจ่ายอุปกรณ์',
+        icon: FileText,
       },
     ],
   },
@@ -249,6 +271,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                       <div className="mt-1 ml-6 space-y-1 animate-in slide-in-from-top-2 duration-200">
                         {item.submenu.map((subItem: any) => {
                           const isSubActive = pathname === subItem.href;
+                          const SubIcon = subItem.icon;
                           return (
                             <Link
                               key={subItem.href}
@@ -262,10 +285,17 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                               )}
                             >
                               <div className="flex items-center gap-2">
-                                <div className={cn(
-                                  "w-1.5 h-1.5 rounded-full",
-                                  isSubActive ? "bg-blue-400" : "bg-slate-600"
-                                )}></div>
+                                {SubIcon ? (
+                                  <SubIcon className={cn(
+                                    "h-3.5 w-3.5 flex-shrink-0",
+                                    isSubActive ? "text-blue-400" : "text-slate-500"
+                                  )} />
+                                ) : (
+                                  <div className={cn(
+                                    "w-1.5 h-1.5 rounded-full",
+                                    isSubActive ? "bg-blue-400" : "bg-slate-600"
+                                  )}></div>
+                                )}
                                 {subItem.name}
                               </div>
                             </Link>
