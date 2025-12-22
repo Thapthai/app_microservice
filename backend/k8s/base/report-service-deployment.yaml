@@ -34,9 +34,15 @@ spec:
               name: pose-secrets
               key: DATABASE_URL
         - name: MEDICAL_SUPPLIES_SERVICE_HOST
-          value: "medical-supplies-service"
+          valueFrom:
+            configMapKeyRef:
+              name: pose-config
+              key: MEDICAL_SUPPLIES_SERVICE_HOST
         - name: MEDICAL_SUPPLIES_SERVICE_PORT
-          value: "3008"
+          valueFrom:
+            configMapKeyRef:
+              name: pose-config
+              key: MEDICAL_SUPPLIES_SERVICE_PORT
         resources:
           requests:
             memory: "64Mi"

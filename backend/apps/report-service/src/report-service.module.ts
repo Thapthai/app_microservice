@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ReportServiceController } from './report-service.controller';
 import { ReportServiceService } from './report-service.service';
@@ -13,14 +14,22 @@ import { ItemComparisonPdfService } from './services/item-comparison-pdf.service
 
 @Module({
   imports: [
-    ClientsModule.register([
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    ClientsModule.registerAsync([
       {
         name: 'MEDICAL_SUPPLIES_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host: '127.0.0.1',
-          port: 3008, // แก้จาก 3005 เป็น 3008
-        },
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: configService.get<string>('MEDICAL_SUPPLIES_SERVICE_HOST', 'localhost'),
+            port: configService.get<number>('MEDICAL_SUPPLIES_SERVICE_PORT', 3008),
+          },
+        }),
+        inject: [ConfigService],
       },
     ]),
   ],
