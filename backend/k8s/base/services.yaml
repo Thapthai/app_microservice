@@ -126,6 +126,27 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: report-service
+  namespace: pose-microservices
+  labels:
+    app: report-service
+spec:
+  selector:
+    app: report-service
+  ports:
+  - name: tcp
+    port: 3006
+    targetPort: 3006
+    protocol: TCP
+  - name: metrics
+    port: 9106
+    targetPort: 9106
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: gateway-service
   namespace: pose-microservices
   labels:

@@ -1,6 +1,9 @@
 # POSE Microservices - Production Guide (K3s)
 # คู่มือ Production POSE Microservices (K3s)
 
+**Version:** 2.0  
+**Last Updated:** January 2025
+
 ---
 
 ## 📋 Table of Contents / สารบัญ
@@ -112,6 +115,7 @@ docker build --target production -f docker/Dockerfile.item -t backend-item-servi
 docker build --target production -f docker/Dockerfile.email -t backend-email-service:latest .
 docker build --target production -f docker/Dockerfile.category -t backend-category-service:latest .
 docker build --target production -f docker/Dockerfile.medical-supplies -t backend-medical-supplies-service:latest .
+docker build --target production -f docker/Dockerfile.report -t backend-report-service:latest .
 
 # 3. Import images เข้า K3s
 docker save \
@@ -121,6 +125,7 @@ docker save \
   backend-email-service:latest \
   backend-category-service:latest \
   backend-medical-supplies-service:latest \
+  backend-report-service:latest \
   | sudo k3s ctr images import -
 
 # 4. Pull Redis image
@@ -131,14 +136,19 @@ docker save redis:7-alpine | sudo k3s ctr images import -
 sudo k3s ctr images ls | grep -E "(backend|redis)"
 ```
 
-**ผลลัพธ์ควรเห็น 6 images:**
-- docker.io/library/backend-gateway-api:latest
-- docker.io/library/backend-auth-service:latest
-- docker.io/library/backend-item-service:latest
-- docker.io/library/backend-email-service:latest
-- docker.io/library/backend-category-service:latest
-- docker.io/library/backend-medical-supplies-service:latest 
-- docker.io/library/redis:7-alpine
+**ผลลัพธ์ควรเห็น 8 images (7 backend services + 1 redis):**
+- docker.io/library/backend-gateway-api:latest ✅
+- docker.io/library/backend-auth-service:latest ✅
+- docker.io/library/backend-item-service:latest ✅
+- docker.io/library/backend-email-service:latest ✅
+- docker.io/library/backend-category-service:latest ✅
+- docker.io/library/backend-medical-supplies-service:latest ✅
+- docker.io/library/backend-report-service:latest ✅
+- docker.io/library/redis:7-alpine ✅
+
+**📝 หมายเหตุ:** 
+- ทุก service มี Dockerfile ที่สอดคล้องกัน (Dockerfile.{service-name})
+- ทุก service deploy แยกกันและเชื่อมต่อผ่าน TCP microservices
 
 **💡 Tips:**
 - Build ใหม่เมื่อมีการแก้ code: รัน `docker build` และ `k3s ctr images import` อีกครั้ง
@@ -147,6 +157,27 @@ sudo k3s ctr images ls | grep -E "(backend|redis)"
 ---
 
 ## 🚀 Deploy Application
+
+### 📦 Services Overview
+
+**Backend Services ที่ Deploy (7 services):**
+1. **gateway-api** - API Gateway (Port 3000)
+2. **auth-service** - Authentication Service (Port 3001)
+3. **item-service** - Item Management Service (Port 3002)
+4. **email-service** - Email Notification Service (Port 3003)
+5. **category-service** - Category Management Service (Port 3004)
+6. **medical-supplies-service** - Medical Supplies Service (Port 3008)
+7. **report-service** - Report Generation Service (Port 3006)
+
+**Infrastructure:**
+- **redis** - Cache & Session Store (Port 6379)
+
+**📝 หมายเหตุ:**
+- ทุก service มี Dockerfile และ deployment.yaml ที่สอดคล้องกัน
+- จำนวน Docker images ทั้งหมด: **8 images** (7 backend services + 1 redis)
+- ทุก service เชื่อมต่อกันผ่าน TCP microservices และ gateway-api เป็น entry point
+
+---
 
 ### 1. Setup Secrets
 
@@ -201,6 +232,8 @@ pod/category-service-xxx                1/1     Running   0          2m
 pod/email-service-xxx                   1/1     Running   0          2m
 pod/gateway-api-xxx                     1/1     Running   0          2m
 pod/item-service-xxx                    1/1     Running   0          2m
+pod/medical-supplies-service-xxx        1/1     Running   0          2m
+pod/report-service-xxx                   1/1     Running   0          2m
 pod/redis-xxx                           1/1     Running   0          2m
 
 NAME                       TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)
@@ -386,22 +419,58 @@ kubectl -n monitoring get pods
 
 ### 3. Update Application
 
-```bash
-# 1. Rebuild image (จาก backend directory)
-cd backend
-docker build -f docker/Dockerfile.auth -t backend-auth-service:latest .
+#### Update Single Service
 
-# 2. Import ใหม่
+```bash
+# 1. Pull code ล่าสุด
+cd /var/www/app_microservice/backend
+git pull origin main
+
+# 2. Rebuild image (ตัวอย่าง: auth-service)
+docker build --target production -f docker/Dockerfile.auth -t backend-auth-service:latest .
+
+# 3. Import ใหม่
 docker save backend-auth-service:latest | sudo k3s ctr images import -
 
-# 3. Restart deployment
+# 4. Restart deployment
 kubectl -n pose-microservices rollout restart deployment/auth-service
 
-# 4. ตรวจสอบ rollout
+# 5. ตรวจสอบ rollout
 kubectl -n pose-microservices rollout status deployment/auth-service
 
-# 5. ดู logs
+# 6. ดู logs
 kubectl -n pose-microservices logs -l app=auth-service --tail=50
+```
+
+#### Update All Services
+
+```bash
+# ใช้ script ที่มีอยู่แล้ว
+cd /var/www/app_microservice/backend
+chmod +x k8s/scripts/deploy-all-services.sh
+./k8s/scripts/deploy-all-services.sh
+
+# หรือ build และ import ทุก services ด้วยตัวเอง
+docker build --target production -f docker/Dockerfile.auth -t backend-auth-service:latest .
+docker build --target production -f docker/Dockerfile.gateway -t backend-gateway-api:latest .
+docker build --target production -f docker/Dockerfile.item -t backend-item-service:latest .
+docker build --target production -f docker/Dockerfile.email -t backend-email-service:latest .
+docker build --target production -f docker/Dockerfile.category -t backend-category-service:latest .
+docker build --target production -f docker/Dockerfile.medical-supplies -t backend-medical-supplies-service:latest .
+docker build --target production -f docker/Dockerfile.report -t backend-report-service:latest .
+
+docker save \
+  backend-gateway-api:latest \
+  backend-auth-service:latest \
+  backend-item-service:latest \
+  backend-email-service:latest \
+  backend-category-service:latest \
+  backend-medical-supplies-service:latest \
+  backend-report-service:latest \
+  | sudo k3s ctr images import -
+
+# Restart all deployments
+kubectl -n pose-microservices rollout restart deployment --all
 ```
 
 ---
@@ -482,6 +551,7 @@ docker save \
   backend-item-service:latest \
   backend-email-service:latest \
   backend-category-service:latest \
+  backend-medical-supplies-service:latest \
   | sudo k3s ctr images import -
 
 # Restart pods
@@ -609,10 +679,23 @@ cd /var/www/app_microservice/backend
 git pull origin main
 
 docker build --target production -f docker/Dockerfile.item -t backend-item-service:latest .
-# ... build services อื่นๆ
+docker build --target production -f docker/Dockerfile.auth -t backend-auth-service:latest .
+docker build --target production -f docker/Dockerfile.gateway -t backend-gateway-api:latest .
+docker build --target production -f docker/Dockerfile.email -t backend-email-service:latest .
+docker build --target production -f docker/Dockerfile.category -t backend-category-service:latest .
+docker build --target production -f docker/Dockerfile.medical-supplies -t backend-medical-supplies-service:latest .
+docker build --target production -f docker/Dockerfile.report -t backend-report-service:latest .
 
 # 2. Import เข้า k3s
-docker save backend-item-service:latest | sudo k3s ctr images import -
+docker save \
+  backend-item-service:latest \
+  backend-auth-service:latest \
+  backend-gateway-api:latest \
+  backend-email-service:latest \
+  backend-category-service:latest \
+  backend-medical-supplies-service:latest \
+  backend-report-service:latest \
+  | sudo k3s ctr images import -
 
 # 3. ลบ pods เก่า
 kubectl delete pod -n pose-microservices -l app=item-service
@@ -658,12 +741,27 @@ kubectl delete pod -n pose-microservices --all
 
 **แนะนำ:** ใช้ build cache หรือ build บน local แล้วส่งมา
 
-**วิธีเร็วกว่า - Build บน Local (Mac):**
+**วิธีเร็วกว่า - Build บน Local (Mac/Windows):**
 ```bash
 # บน Local
-cd /Users/night/Desktop/POSE/app_microservice/backend
-docker-compose -f docker-compose.yml build
-docker save backend-gateway-api:latest backend-auth-service:latest backend-item-service:latest backend-email-service:latest backend-category-service:latest -o services.tar
+cd /path/to/app_microservice/backend
+docker build --target production -f docker/Dockerfile.auth -t backend-auth-service:latest .
+docker build --target production -f docker/Dockerfile.gateway -t backend-gateway-api:latest .
+docker build --target production -f docker/Dockerfile.item -t backend-item-service:latest .
+docker build --target production -f docker/Dockerfile.email -t backend-email-service:latest .
+docker build --target production -f docker/Dockerfile.category -t backend-category-service:latest .
+docker build --target production -f docker/Dockerfile.medical-supplies -t backend-medical-supplies-service:latest .
+docker build --target production -f docker/Dockerfile.report -t backend-report-service:latest .
+
+docker save \
+  backend-gateway-api:latest \
+  backend-auth-service:latest \
+  backend-item-service:latest \
+  backend-email-service:latest \
+  backend-category-service:latest \
+  backend-medical-supplies-service:latest \
+  backend-report-service:latest \
+  -o services.tar
 
 # ส่งไป Server
 scp services.tar root@YOUR_SERVER_IP:/tmp/
@@ -686,6 +784,8 @@ rm /tmp/services.tar
 4. **Update regularly** - Upgrade K3s ตาม security patches
 5. **Use LoadBalancer** - เข้าถึง services ผ่าน LoadBalancer IP
 6. **Monitor with Grafana** - ดู metrics เป็นประจำ
+7. **Use deployment scripts** - ใช้ scripts ใน `k8s/scripts/` สำหรับ zero-downtime deployment
+8. **Version control** - Tag Docker images ด้วย version numbers สำหรับ production
 
 ### ❌ ไม่ควรทำ:
 
@@ -693,6 +793,8 @@ rm /tmp/services.tar
 2. **ไม่ monitor disk space** - disk เต็มจะทำให้ pods ไม่ทำงาน
 3. **ใช้ default secrets** - เปลี่ยน JWT_SECRET และ Grafana password
 4. **ไม่ test ก่อน deploy** - ควร test ใน development ก่อน
+5. **Delete pods โดยตรง** - ใช้ `kubectl rollout restart` แทนการ delete pods
+6. **Build บน production server** - Build บน local แล้วส่ง images ไป server จะเร็วกว่า
 
 ---
 
@@ -702,6 +804,24 @@ rm /tmp/services.tar
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
 - [Prometheus Documentation](https://prometheus.io/docs/)
 - [Grafana Documentation](https://grafana.com/docs/)
+- [Monitoring Guide](./monitoring/DEPLOYMENT-GUIDE.md) - คู่มือ Monitoring แบบละเอียด
+- [Zero Downtime Deployment](./ZERO-DOWNTIME-DEPLOYMENT.md) - คู่มือ Deploy แบบไม่มี downtime
+
+---
+
+## 📝 Changelog
+
+### Version 2.0 (January 2025)
+- ✅ เพิ่ม medical-supplies-service ใน build commands
+- ✅ **เพิ่ม report-service:** สร้าง Dockerfile.report และ report-service-deployment.yaml
+- ✅ แก้ไขจำนวน images จาก 6 เป็น 8 (7 backend services + 1 redis)
+- ✅ เพิ่ม section สำหรับ update all services
+- ✅ อัพเดท troubleshooting section ให้ครบถ้วน
+- ✅ เพิ่ม best practices สำหรับ deployment
+- ✅ ปรับปรุงคำแนะนำสำหรับ build บน local
+- ✅ **ตรวจสอบและยืนยัน Services:** มี 7 backend services ที่ deploy จริง (auth, category, email, gateway, item, medical-supplies, report)
+- ✅ **ยืนยัน Dockerfiles:** มี Dockerfile ครบทั้ง 7 services และสอดคล้องกับ deployments
+- ✅ เพิ่ม Services Overview section เพื่อความชัดเจน
 
 ---
 
