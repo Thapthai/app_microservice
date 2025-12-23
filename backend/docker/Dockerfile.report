@@ -42,6 +42,9 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/prisma ./prisma
 
+# Copy assets (fonts for PDF generation)
+COPY --from=build /app/apps/report-service/assets ./apps/report-service/assets
+
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nestjs -u 1001

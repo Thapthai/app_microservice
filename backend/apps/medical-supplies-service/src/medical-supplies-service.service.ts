@@ -1412,7 +1412,7 @@ export class MedicalSuppliesServiceService {
         SELECT COUNT(DISTINCT CONCAT(i.itemcode, '-', ist.LastCabinetModify)) as total
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
-        INNER JOIN itemtype it ON i.itemtypeID = it.ID
+        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
         WHERE ${whereClause}
       `;
       const totalCount = Number(countResult[0]?.total || 0);
@@ -1430,11 +1430,10 @@ export class MedicalSuppliesServiceService {
           i.itemtypeID,
           ist.RfidCode,
           ist.StockID,
-          ist.CabinetCode,
           ist.Istatus_rfid
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
-        INNER JOIN itemtype it ON i.itemtypeID = it.ID
+        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
         WHERE ${whereClause}
         ORDER BY ist.LastCabinetModify DESC
         LIMIT ${limit}
@@ -1618,7 +1617,7 @@ export class MedicalSuppliesServiceService {
           i.itemtypeID
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
-        INNER JOIN itemtype it ON i.itemtypeID = it.ID
+        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
         WHERE ${whereClauseDispensed}
         GROUP BY i.itemcode, i.itemname, it.TypeName, i.itemtypeID
         ORDER BY i.itemcode
@@ -1693,14 +1692,67 @@ export class MedicalSuppliesServiceService {
       // 3. Compare and create comparison data
       const comparison: any[] = [];
       const dispensedMap = new Map(dispensedItems.map(item => [item.itemcode, item]));
+      
+      // Get all item codes (from dispensed, usage, and all items matching filters)
       const allItemCodes = new Set([
         ...dispensedItems.map(d => d.itemcode),
         ...Array.from(usageByItem.keys()),
       ]);
 
+      // If filters are applied, get all items matching the filters (not just dispensed/used)
+      if (filters?.itemTypeId || filters?.itemCode) {
+        const itemFilter: any = {};
+        if (filters.itemTypeId) {
+          itemFilter.itemtypeID = filters.itemTypeId;
+        }
+        if (filters.itemCode) {
+          itemFilter.itemcode = filters.itemCode;
+        }
+        
+        const allFilteredItems = await this.prisma.item.findMany({
+          where: itemFilter,
+          select: { itemcode: true },
+        });
+        
+        allFilteredItems.forEach(item => allItemCodes.add(item.itemcode));
+      }
+
+      // Fetch item details for items not in dispensedMap
+      const itemsToLookup = Array.from(allItemCodes).filter(code => !dispensedMap.has(code));
+      const itemDetailsMap = new Map();
+      
+      if (itemsToLookup.length > 0) {
+        const itemDetails = await this.prisma.item.findMany({
+          where: {
+            itemcode: {
+              in: itemsToLookup,
+            },
+          },
+          select: {
+            itemcode: true,
+            itemname: true,
+            itemtypeID: true,
+            itemType: {
+              select: {
+                TypeName: true,
+              },
+            },
+          },
+        });
+        
+        itemDetails.forEach(item => {
+          itemDetailsMap.set(item.itemcode, {
+            itemname: item.itemname,
+            itemType: item.itemType?.TypeName || null,
+            itemtypeID: item.itemtypeID,
+          });
+        });
+      }
+
       for (const itemCode of allItemCodes) {
         const dispensed = dispensedMap.get(itemCode);
         const usage = usageByItem.get(itemCode);
+        const itemDetail = itemDetailsMap.get(itemCode);
 
         const totalDispensed = dispensed ? Number(dispensed.total_dispensed) : 0;
         const totalUsed = usage ? usage.total_used : 0;
@@ -1721,9 +1773,9 @@ export class MedicalSuppliesServiceService {
 
         comparison.push({
           itemcode: itemCode,
-          itemname: dispensed?.itemname || null,
-          itemType: dispensed?.itemType || null,
-          itemtypeID: dispensed?.itemtypeID ? Number(dispensed.itemtypeID) : null,
+          itemname: dispensed?.itemname || itemDetail?.itemname || null,
+          itemType: dispensed?.itemType || itemDetail?.itemType || null,
+          itemtypeID: dispensed?.itemtypeID ? Number(dispensed.itemtypeID) : (itemDetail?.itemtypeID || null),
           
           // Dispensed data
           total_dispensed: totalDispensed,

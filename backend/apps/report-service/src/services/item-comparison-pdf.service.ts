@@ -7,57 +7,71 @@ import * as path from 'path';
 @Injectable()
 export class ItemComparisonPdfService {
   /**
-   * Register Tahoma font (supports Thai) from system
+   * Not using Arial - using Thai fonts from project only
    */
-  private async registerTahomaFont(doc: PDFKit.PDFDocument): Promise<boolean> {
+  private async registerArialFont(doc: PDFKit.PDFDocument): Promise<boolean> {
+    return false;
+  }
+
+  /**
+   * Register Thai font from project assets only
+   * Ensures consistent rendering across all environments
+   */
+  private async registerThaiFont(doc: PDFKit.PDFDocument): Promise<boolean> {
     try {
-      const tahomaPaths = [
-        'C:/Windows/Fonts/tahoma.ttf',
-        'C:/Windows/Fonts/tahomabd.ttf',
-        '/System/Library/Fonts/Supplemental/Tahoma.ttf',
-        '/System/Library/Fonts/Supplemental/Tahoma Bold.ttf',
-        '/Library/Fonts/Tahoma.ttf',
-        '/Library/Fonts/Tahoma Bold.ttf',
-        '/usr/share/fonts/truetype/msttcorefonts/tahoma.ttf',
-        '/usr/share/fonts/truetype/msttcorefonts/tahomabd.ttf',
+      console.log(`[PDF Service] __dirname = ${__dirname}`);
+      console.log(`[PDF Service] process.cwd() = ${process.cwd()}`);
+      
+      // Try multiple paths for dev and production
+      const possiblePaths = [
+        // Development: from source (apps/report-service/src/services/ -> apps/report-service/assets/fonts/)
+        path.join(__dirname, '../../assets/fonts'),
+        // Development: from dist (dist/apps/report-service/ -> apps/report-service/assets/fonts/)
+        path.join(__dirname, '../../../apps/report-service/assets/fonts'),
+        // Production (Docker): /app/dist/apps/report-service/ -> /app/apps/report-service/assets/fonts/
+        path.join(__dirname, '../../apps/report-service/assets/fonts'),
+        // Using process.cwd() as base
+        path.join(process.cwd(), 'apps/report-service/assets/fonts'),
+        // Absolute path for development
+        '/Users/night/Desktop/POSE/app_microservice/backend/apps/report-service/assets/fonts',
       ];
 
-      let regularPath: string | null = null;
-      let boldPath: string | null = null;
-
-      for (const fontPath of tahomaPaths) {
-        if (fs.existsSync(fontPath) && fontPath.toLowerCase().includes('tahoma') && !fontPath.toLowerCase().includes('bold')) {
-          regularPath = fontPath;
+      let basePath: string | null = null;
+      
+      // Find the correct path
+      for (const testPath of possiblePaths) {
+        const testFile = path.join(testPath, 'THSarabunNew.ttf');
+        console.log(`[PDF Service] Testing: ${testFile}`);
+        if (fs.existsSync(testFile)) {
+          basePath = testPath;
+          console.log(`[PDF Service] ✅ Found fonts at: ${basePath}`);
           break;
         }
       }
 
-      for (const fontPath of tahomaPaths) {
-        if (fs.existsSync(fontPath) && fontPath.toLowerCase().includes('tahoma') && fontPath.toLowerCase().includes('bold')) {
-          boldPath = fontPath;
-          break;
-        }
+      if (!basePath) {
+        console.error(`[PDF Service] ❌ Thai font not found in any of the expected paths`);
+        console.error(`[PDF Service] Tried paths:`, possiblePaths);
+        return false;
       }
 
-      if (regularPath) {
-        try {
-          doc.registerFont('Tahoma', regularPath);
-          if (boldPath) {
-            doc.registerFont('Tahoma-Bold', boldPath);
-          } else {
-            doc.registerFont('Tahoma-Bold', regularPath);
-          }
-          console.log(`[PDF Service] Registered Tahoma font from: ${regularPath}`);
-          return true;
-        } catch (error) {
-          console.warn(`[PDF Service] Failed to register Tahoma font:`, error);
-          return false;
-        }
+      const regularFont = path.join(basePath, 'THSarabunNew.ttf');
+      const boldFont = path.join(basePath, 'THSarabunNew Bold.ttf');
+
+      // Register fonts
+      doc.registerFont('ThaiFont', regularFont);
+      
+      if (fs.existsSync(boldFont)) {
+        doc.registerFont('ThaiFontBold', boldFont);
+        console.log(`[PDF Service] ✅ Registered Thai fonts (regular + bold)`);
+      } else {
+        doc.registerFont('ThaiFontBold', regularFont);
+        console.log(`[PDF Service] ✅ Registered Thai font (regular only, using for bold)`);
       }
 
-      return false;
+      return true;
     } catch (error) {
-      console.error('[PDF Service] Error in registerTahomaFont:', error);
+      console.error('[PDF Service] ❌ Error registering Thai font:', error);
       return false;
     }
   }
@@ -86,22 +100,16 @@ export class ItemComparisonPdfService {
 
       const chunks: Buffer[] = [];
 
-      // Try to register Tahoma first
-      let finalFontName = 'Helvetica';
-      let finalFontBoldName = 'Helvetica-Bold';
+      // Register Thai font from project assets
+      let finalFontName = 'ThaiFont';
+      let finalFontBoldName = 'ThaiFontBold';
       
-      try {
-        const hasTahoma = await this.registerTahomaFont(doc);
-        if (hasTahoma) {
-          finalFontName = 'Tahoma';
-          finalFontBoldName = 'Tahoma-Bold';
-          console.log('[PDF Service] Using Tahoma font (supports Thai)');
-        } else {
-          console.log('[PDF Service] Using Helvetica (Tahoma font not available)');
-        }
-      } catch (fontError) {
-        console.warn('[PDF Service] Font registration error, using Helvetica:', fontError);
+      const hasThaiFont = await this.registerThaiFont(doc);
+      if (!hasThaiFont) {
+        throw new Error('Thai font not found in project assets. Please ensure THSarabunNew.ttf exists in apps/report-service/assets/fonts/');
       }
+      
+      console.log('[PDF Service] ✅ Using Thai font from project assets');
 
       return new Promise((resolve, reject) => {
         doc.on('data', (chunk) => chunks.push(chunk));

@@ -9,112 +9,59 @@ export { EquipmentDisbursementReportData };
 @Injectable()
 export class EquipmentDisbursementPdfService {
   /**
-   * Register Tahoma font (supports Thai) from system
+   * Not using Tahoma - using Thai fonts from project only
    */
   private async registerTahomaFont(doc: PDFKit.PDFDocument): Promise<boolean> {
-    try {
-      const tahomaPaths = [
-        'C:/Windows/Fonts/tahoma.ttf',
-        'C:/Windows/Fonts/tahomabd.ttf',
-        '/System/Library/Fonts/Supplemental/Tahoma.ttf',
-        '/System/Library/Fonts/Supplemental/Tahoma Bold.ttf',
-        '/Library/Fonts/Tahoma.ttf',
-        '/Library/Fonts/Tahoma Bold.ttf',
-        '/usr/share/fonts/truetype/msttcorefonts/tahoma.ttf',
-        '/usr/share/fonts/truetype/msttcorefonts/tahomabd.ttf',
-      ];
-
-      let regularPath: string | null = null;
-      let boldPath: string | null = null;
-
-      for (const fontPath of tahomaPaths) {
-        if (fs.existsSync(fontPath) && fontPath.toLowerCase().includes('tahoma') && !fontPath.toLowerCase().includes('bold')) {
-          regularPath = fontPath;
-          break;
-        }
-      }
-
-      for (const fontPath of tahomaPaths) {
-        if (fs.existsSync(fontPath) && fontPath.toLowerCase().includes('tahoma') && fontPath.toLowerCase().includes('bold')) {
-          boldPath = fontPath;
-          break;
-        }
-      }
-
-      if (regularPath) {
-        try {
-          doc.registerFont('Tahoma', regularPath);
-          if (boldPath) {
-            doc.registerFont('Tahoma-Bold', boldPath);
-          } else {
-            doc.registerFont('Tahoma-Bold', regularPath);
-          }
-          console.log(`[PDF Service] Registered Tahoma font from: ${regularPath}`);
-          return true;
-        } catch (error) {
-          console.warn(`[PDF Service] Failed to register Tahoma font:`, error);
-          return false;
-        }
-      }
-
-      return false;
-    } catch (error) {
-      console.error('[PDF Service] Error in registerTahomaFont:', error);
-      return false;
-    }
+    return false;
   }
 
   /**
-   * Register Thai font for PDF generation
+   * Register Thai font from project assets only
+   * Ensures consistent rendering across all environments
    */
   private async registerThaiFont(doc: PDFKit.PDFDocument): Promise<boolean> {
     try {
-      const projectFonts = [
-        path.join(__dirname, '../../assets/fonts/THSarabunNew-Regular.ttf'),
-        path.join(__dirname, '../../assets/fonts/THSarabunNew.ttf'),
-        path.join(__dirname, '../../assets/fonts/THSarabunNew-Bold.ttf'),
-        path.join(__dirname, '../../../assets/fonts/THSarabunNew-Regular.ttf'),
-        path.join(__dirname, '../../../assets/fonts/THSarabunNew.ttf'),
-        path.join(__dirname, '../../../assets/fonts/THSarabunNew-Bold.ttf'),
+      // Try multiple paths for dev and production
+      const possiblePaths = [
+        path.join(__dirname, '../../assets/fonts'),
+        path.join(__dirname, '../../../apps/report-service/assets/fonts'),
+        path.join(__dirname, '../../apps/report-service/assets/fonts'),
+        path.join(process.cwd(), 'apps/report-service/assets/fonts'),
       ];
 
-      for (const fontPath of projectFonts) {
-        if (fs.existsSync(fontPath)) {
-          try {
-            doc.registerFont('ThaiFont', fontPath);
-            doc.registerFont('ThaiFontBold', fontPath);
-            console.log(`[PDF Service] Successfully registered Thai font from: ${fontPath}`);
-            return true;
-          } catch (error) {
-            console.warn(`[PDF Service] Failed to register font from ${fontPath}:`, error);
-          }
+      let basePath: string | null = null;
+      
+      // Find the correct path
+      for (const testPath of possiblePaths) {
+        const testFile = path.join(testPath, 'THSarabunNew.ttf');
+        if (fs.existsSync(testFile)) {
+          basePath = testPath;
+          break;
         }
       }
 
-      const systemFonts = [
-        '/System/Library/Fonts/Supplemental/Thonburi.ttc',
-        '/System/Library/Fonts/Supplemental/Ayuthaya.ttf',
-        '/usr/share/fonts/truetype/thai/THSarabunNew.ttf',
-        '/usr/share/fonts/truetype/thai/THSarabunNew-Bold.ttf',
-      ];
-
-      for (const fontPath of systemFonts) {
-        if (fs.existsSync(fontPath)) {
-          try {
-            doc.registerFont('ThaiFont', fontPath);
-            doc.registerFont('ThaiFontBold', fontPath);
-            console.log(`[PDF Service] Successfully registered Thai font from system: ${fontPath}`);
-            return true;
-          } catch (error) {
-            console.warn(`[PDF Service] Failed to register system font from ${fontPath}:`, error);
-          }
-        }
+      if (!basePath) {
+        console.error(`[PDF Service] Thai font not found in project assets`);
+        return false;
       }
 
-      console.warn('[PDF Service] Thai font not found. Thai text may display incorrectly.');
-      return false;
+      const regularFont = path.join(basePath, 'THSarabunNew.ttf');
+      const boldFont = path.join(basePath, 'THSarabunNew Bold.ttf');
+
+      // Register fonts
+      doc.registerFont('ThaiFont', regularFont);
+      
+      if (fs.existsSync(boldFont)) {
+        doc.registerFont('ThaiFontBold', boldFont);
+        console.log(`[PDF Service] ✅ Registered Thai fonts (regular + bold) from project`);
+      } else {
+        doc.registerFont('ThaiFontBold', regularFont);
+        console.log(`[PDF Service] ✅ Registered Thai font (regular only) from project`);
+      }
+
+      return true;
     } catch (error) {
-      console.error('[PDF Service] Error in registerThaiFont:', error);
+      console.error('[PDF Service] ❌ Error registering Thai font:', error);
       return false;
     }
   }
