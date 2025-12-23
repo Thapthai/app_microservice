@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { ASSETS } from '@/lib/assets';
 import {
   LayoutDashboard,
   Package,
@@ -84,15 +85,15 @@ const mainMenuItems = [
 const managementMenuItems = [
   {
     name: 'Category',
-    href: '/categories',
+    href: '/admin/categories',
     icon: Tag,
     description: 'จัดการหมวดหมู่',
   },
   {
     name: 'สินค้า',
-    href: '/items',
+    href: '/admin/items',
     icon: Package,
-    description: 'รายการสินค้าทั้งหมด',
+    description: 'รายการเวชภัณฑ์ทั้งหมด',
   },
   {
     name: 'Staff Users',
@@ -167,8 +168,14 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                 )}
               >
                 <div className="relative flex-shrink-0">
-                  <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Package className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-lg p-1">
+                    <img
+                      src={ASSETS.LOGO}
+                      alt="POSE Logo"
+                      width={32}
+                      height={32}
+                      className="object-contain"
+                    />
                   </div>
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-slate-900"></div>
                 </div>
@@ -400,7 +407,15 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
               isCollapsed && "lg:hidden"
             )}>
               <div className="flex items-center space-x-2 mb-2">
-                <Sparkles className="h-4 w-4 text-blue-400" />
+                <div className="w-5 h-5 bg-white rounded flex items-center justify-center p-0.5">
+                  <img
+                    src={ASSETS.LOGO}
+                    alt="POSE Logo"
+                    width={16}
+                    height={16}
+                    className="object-contain"
+                  />
+                </div>
                 <p className="text-xs font-semibold text-white">POSE Intelligence</p>
               </div>
               <p className="text-[10px] text-slate-400">
@@ -408,12 +423,20 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
               </p>
             </div>
             
-            {/* Desktop เมื่อหุบ: แสดงแค่ icon */}
+            {/* Desktop เมื่อหุบ: แสดงแค่ logo */}
             <div className={cn(
               "hidden justify-center",
               isCollapsed && "lg:flex"
             )}>
-              <Sparkles className="h-5 w-5 text-blue-400" />
+              <div className="w-6 h-6 bg-white rounded flex items-center justify-center p-0.5">
+                <img
+                  src={ASSETS.LOGO}
+                  alt="POSE Logo"
+                  width={20}
+                  height={20}
+                  className="object-contain"
+                />
+              </div>
             </div>
           </div>
         </div>

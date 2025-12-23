@@ -10,7 +10,7 @@ import type { PaginatedResponse } from '@/types/common';
 import DashboardHeader from './components/DashboardHeader';
 import StatsCards from './components/StatsCards';
 import RecentItemsTable from './components/RecentItemsTable';
-import CreateItemDialog from '../items/components/CreateItemDialog';
+import CreateItemDialog from '../admin/items/components/CreateItemDialog';
 
 export default function DashboardPage() {
   const { user } = useAuth();

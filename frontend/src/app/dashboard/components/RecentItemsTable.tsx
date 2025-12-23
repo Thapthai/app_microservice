@@ -33,7 +33,7 @@ export default function RecentItemsTable({
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle>รายการสินค้า</CardTitle>
+            <CardTitle>รายการเวชภัณฑ์</CardTitle>
             <CardDescription>
               สินค้าล่าสุด {!loading && items.length > 0 && `(${items.length} รายการในหน้านี้)`}
             </CardDescription>

@@ -33,7 +33,7 @@ export default function ItemsGrid({
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-bold">รายการสินค้า</h2>
+            <h2 className="text-xl font-bold">รายการเวชภัณฑ์</h2>
             {!loading && totalItems > 0 && (
               <p className="text-sm text-gray-600 mt-1">
                 ทั้งหมด {totalItems} รายการ
@@ -69,7 +69,7 @@ function EmptyState() {
   return (
     <div className="text-center py-12 px-6">
       <Package className="mx-auto h-12 w-12 text-gray-400" />
-      <h3 className="mt-2 text-sm font-medium text-gray-900">ไม่พบสินค้า</h3>
+      <h3 className="mt-2 text-sm font-medium text-gray-900">ไม่พบเวชภัณฑ์</h3>
       <p className="mt-1 text-sm text-gray-500">
         ลองเปลี่ยนคำค้นหาหรือตัวกรอง
       </p>

@@ -12,7 +12,7 @@ export default function ItemsHeader({ onAddClick }: ItemsHeaderProps) {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">จัดการสินค้า</h1>
         <p className="mt-2 text-gray-600">
-          จัดการและดูรายการสินค้าทั้งหมด
+          จัดการและดูรายการเวชภัณฑ์ทั้งหมด
         </p>
       </div>
       <Button 
@@ -20,7 +20,7 @@ export default function ItemsHeader({ onAddClick }: ItemsHeaderProps) {
         className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all duration-200"
       >
         <Plus className="mr-2 h-4 w-4" />
-        เพิ่มสินค้าใหม่
+        เพิ่มเวชภัณฑ์ใหม่
       </Button>
     </div>
   );

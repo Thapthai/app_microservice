@@ -33,10 +33,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      // Redirect to login page on unauthorized
-      // Use basePath if configured (Next.js will handle this automatically)
+      // Redirect to staff login page on unauthorized
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-      window.location.href = `${basePath}/auth/login`;
+      window.location.href = `${basePath}/auth/staff/login`;
     }
     return Promise.reject(error);
   }

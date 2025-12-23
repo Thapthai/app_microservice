@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { signInWithGoogle } from '@/lib/firebase';
 import TwoFactorModal from '@/components/TwoFactorModal';
 import { authApi } from '@/lib/api';
+import { ASSETS } from '@/lib/assets';
 
 export default function LoginPage() {
   const [error, setError] = useState<string>('');
@@ -198,8 +199,19 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="text-center space-y-2 pb-8">
-            <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center mb-4">
-              <User className="w-6 h-6 text-white" />
+            <div className="flex justify-center mb-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-blue-600 rounded-full blur-2xl opacity-20 animate-pulse"></div>
+                <div className="relative bg-white rounded-xl p-3 shadow-lg">
+                  <img
+                    src={ASSETS.LOGO}
+                    alt="POSE Logo"
+                    width={80}
+                    height={80}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
             </div>
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               เข้าสู่ระบบ
@@ -369,6 +381,29 @@ export default function LoginPage() {
                   className="text-blue-600 hover:text-blue-800 font-medium hover:underline transition-colors"
                 >
                   สมัครสมาชิก
+                </Link>
+              </div>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500">หรือ</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Link href="/auth/staff/login">
+                  <Button variant="outline" className="w-full border-2 hover:bg-green-50 hover:border-green-600 transition-all">
+                    เข้าสู่ระบบ Staff
+                  </Button>
+                </Link>
+                
+                <Link href="/">
+                  <Button variant="ghost" className="w-full text-gray-600 hover:text-gray-900">
+                    ← กลับหน้าหลัก
+                  </Button>
                 </Link>
               </div>
             </form>
