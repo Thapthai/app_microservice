@@ -218,7 +218,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-6 space-y-4 overflow-y-auto">
+          <nav className="flex-1 px-3 py-6 space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50 hover:scrollbar-thumb-slate-500">
             {/* Main Menu Items */}
             <div className="space-y-2">
               {mainMenuItems.map((item) => {

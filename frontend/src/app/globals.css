@@ -119,6 +119,11 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Smooth Scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer utilities {
@@ -136,5 +141,32 @@
   
   .animate-shake {
     animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  }
+
+  /* Custom Scrollbar Styles */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 100vh;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(71, 85, 105, 0.8);
+    border-radius: 100vh;
+    transition: background 0.2s ease;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.9);
+  }
+
+  /* Firefox Scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(71, 85, 105, 0.8) rgba(15, 23, 42, 0.5);
   }
 }
