@@ -1,14 +1,30 @@
 -- ===================================
--- Complete Prisma Schema Migration SQL
--- All Models from schema.prisma
+-- FULL DATABASE SCHEMA
+-- Generated from Prisma Schema
 -- ===================================
 
--- Set charset and collation
-SET NAMES utf8mb4;
-SET CHARACTER SET utf8mb4;
+SET FOREIGN_KEY_CHECKS=0;
+
+-- Drop existing tables
+DROP TABLE IF EXISTS `app_microservice_two_factor_tokens`;
+DROP TABLE IF EXISTS `app_microservice_refresh_tokens`;
+DROP TABLE IF EXISTS `app_microservice_client_credentials`;
+DROP TABLE IF EXISTS `app_microservice_api_keys`;
+DROP TABLE IF EXISTS `app_microservice_oauth_accounts`;
+DROP TABLE IF EXISTS `app_microservice_users`;
+DROP TABLE IF EXISTS `app_microservice_categories`;
+DROP TABLE IF EXISTS `app_microservice_medical_supply_usages_logs`;
+DROP TABLE IF EXISTS `app_microservice_supply_item_return_records`;
+DROP TABLE IF EXISTS `app_microservice_supply_usage_items`;
+DROP TABLE IF EXISTS `app_microservice_medical_supply_usages`;
+DROP TABLE IF EXISTS `itemstock`;
+DROP TABLE IF EXISTS `item`;
+DROP TABLE IF EXISTS `itemtype`;
+
+SET FOREIGN_KEY_CHECKS=1;
 
 -- ===================================
--- 1. USER MANAGEMENT TABLES
+-- AUTH TABLES
 -- ===================================
 
 -- Users table
@@ -46,7 +62,7 @@ CREATE TABLE IF NOT EXISTS `app_microservice_oauth_accounts` (
   `scope` VARCHAR(191),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updated_at` DATETIME(3) NOT NULL,
-  UNIQUE KEY `app_microservice_oauth_accounts_provider_provider_id_key` (`provider`, `provider_id`),
+  UNIQUE INDEX `app_microservice_oauth_accounts_provider_provider_id_key` (`provider`, `provider_id`),
   INDEX `app_microservice_oauth_accounts_user_id_idx` (`user_id`),
   FOREIGN KEY (`user_id`) REFERENCES `app_microservice_users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -91,15 +107,12 @@ CREATE TABLE IF NOT EXISTS `app_microservice_client_credentials` (
 CREATE TABLE IF NOT EXISTS `app_microservice_refresh_tokens` (
   `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `user_id` INTEGER NOT NULL,
-  `token_hash` VARCHAR(191) NOT NULL UNIQUE,
+  `token` VARCHAR(191) NOT NULL UNIQUE,
   `expires_at` DATETIME(3) NOT NULL,
   `is_revoked` BOOLEAN NOT NULL DEFAULT false,
-  `device_info` VARCHAR(191),
-  `ip_address` VARCHAR(191),
-  `user_agent` VARCHAR(191),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   INDEX `app_microservice_refresh_tokens_user_id_idx` (`user_id`),
-  INDEX `app_microservice_refresh_tokens_token_hash_idx` (`token_hash`),
+  INDEX `app_microservice_refresh_tokens_token_hash_idx` (`token`),
   INDEX `app_microservice_refresh_tokens_expires_at_idx` (`expires_at`),
   FOREIGN KEY (`user_id`) REFERENCES `app_microservice_users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -109,129 +122,123 @@ CREATE TABLE IF NOT EXISTS `app_microservice_two_factor_tokens` (
   `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `user_id` INTEGER NOT NULL,
   `token` VARCHAR(191) NOT NULL,
+  `type` VARCHAR(191) NOT NULL,
   `expires_at` DATETIME(3) NOT NULL,
   `is_used` BOOLEAN NOT NULL DEFAULT false,
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   INDEX `app_microservice_two_factor_tokens_user_id_idx` (`user_id`),
   INDEX `app_microservice_two_factor_tokens_token_idx` (`token`),
   INDEX `app_microservice_two_factor_tokens_expires_at_idx` (`expires_at`),
+  INDEX `app_microservice_two_factor_tokens_user_id_type_idx` (`user_id`, `type`),
   FOREIGN KEY (`user_id`) REFERENCES `app_microservice_users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ===================================
--- 2. CATEGORY TABLE
--- ===================================
-
+-- Categories table
 CREATE TABLE IF NOT EXISTS `app_microservice_categories` (
   `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(191) NOT NULL,
   `description` VARCHAR(191),
+  `slug` VARCHAR(191) NOT NULL UNIQUE,
+  `image` VARCHAR(191),
+  `is_active` BOOLEAN NOT NULL DEFAULT true,
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updated_at` DATETIME(3) NOT NULL,
   INDEX `app_microservice_categories_name_idx` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ===================================
--- 3. ITEM TYPE TABLE
+-- ITEM AND INVENTORY TABLES
 -- ===================================
 
+-- Item Type table
 CREATE TABLE IF NOT EXISTS `itemtype` (
   `ID` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `TypeName` VARCHAR(50),
   `IsCancel` BOOLEAN DEFAULT false,
-  `B_ID` INTEGER,
-  INDEX `itemtype_ID_idx` (`ID`)
+  `B_ID` INTEGER
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ===================================
--- 4. ITEM TABLE (if not exists, otherwise add columns)
--- ===================================
-
+-- Item table
 CREATE TABLE IF NOT EXISTS `item` (
-  `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `itemcode` VARCHAR(20) UNIQUE,
+  `itemcode` VARCHAR(25) NOT NULL PRIMARY KEY,
   `itemname` VARCHAR(255),
+  `Alternatename` VARCHAR(100),
+  `Barcode` VARCHAR(50),
+  `IsSet` VARCHAR(1),
+  `IsReuse` VARCHAR(1),
+  `IsNormal` VARCHAR(1) DEFAULT '1',
   `itemtypeID` INTEGER,
-  `itemgroupID` INTEGER DEFAULT 0,
-  `itemsubgroupID` INTEGER DEFAULT 0,
-  `IsForceLockUsage` BOOLEAN DEFAULT false,
-  `IsQuickPrepare` BOOLEAN DEFAULT false,
-  `UseCanReuse` INTEGER DEFAULT 0,
-  `PrepareCostPerQty` DOUBLE,
-  `TransportCostPerQty` DOUBLE,
-  `LongNameInEng` VARCHAR(255),
-  `ShortNameInEng` VARCHAR(100),
-  `LongNameInThai` VARCHAR(255),
-  `ShortNameInThai` VARCHAR(100),
-  `IsUseQrCodeRfid` BOOLEAN DEFAULT false,
-  `NetWeight` DOUBLE,
-  `MaxUsage` INTEGER,
-  `Unit` VARCHAR(50),
-  `SterileMethodID` INTEGER,
-  `InstrumentTypeID` INTEGER,
-  `GrossWeight` DOUBLE,
-  `TemperatureMin` DOUBLE,
-  `TemperatureMax` DOUBLE,
-  `ManufacturerID` INTEGER,
-  `MaterialID` INTEGER,
-  `IsIgnoreItem` BOOLEAN DEFAULT false,
-  `SterileMethodID_2` INTEGER,
-  `SizeLong` DOUBLE,
-  `SizeWide` DOUBLE,
-  `SizeHigh` DOUBLE,
-  `IsReusable` BOOLEAN DEFAULT true,
-  `UnitBarcode` VARCHAR(50),
-  `IsBasicSet` BOOLEAN DEFAULT false,
-  `IsNotQrCode` BOOLEAN DEFAULT false,
-  `IsPacking` BOOLEAN DEFAULT false,
-  `IsCostTran` BOOLEAN DEFAULT false,
-  `IsIngore` BOOLEAN DEFAULT false,
-  `itemcodeexpress` VARCHAR(20),
-  `PricePerpare` DOUBLE,
-  `PricePerQty` DOUBLE,
-  `PriceTotal` DOUBLE,
-  `PriceTransPort` DOUBLE,
-  `Barcode` VARCHAR(100),
-  `QrcodeSerial` VARCHAR(100),
-  `IsExpress` BOOLEAN DEFAULT false,
-  `IsActive` BOOLEAN DEFAULT true,
-  `IsSterile` BOOLEAN DEFAULT false,
-  `IsDisplayDeptName` BOOLEAN DEFAULT false,
-  `IsShowDept` BOOLEAN DEFAULT false,
-  `IsOnlyOneLine` BOOLEAN DEFAULT false,
-  `IsDisplayStockCount` BOOLEAN DEFAULT false,
-  `IsPackingOneRow` BOOLEAN DEFAULT false,
-  `IsPrintExpressBarcode` BOOLEAN DEFAULT false,
-  `PackingCost` DOUBLE,
-  `Remark` VARCHAR(255),
-  `Picture` TEXT,
-  `Picture2` TEXT,
-  `StoreCost` DOUBLE,
-  `CleaningCost` DOUBLE,
-  `IsAutoAddSterile` BOOLEAN DEFAULT false,
-  `RefNo` VARCHAR(50),
+  `UnitID` INTEGER DEFAULT 0,
+  `SpecialID` INTEGER DEFAULT 0,
+  `DepartmentID` INTEGER DEFAULT 0,
+  `ShelfLifeID` INTEGER DEFAULT 0,
+  `SetCount` INTEGER DEFAULT 0,
+  `PackingMatID` INTEGER DEFAULT 0,
+  `CostPrice` DECIMAL(10, 2),
+  `SalePrice` DECIMAL(10, 2),
+  `UsagePrice` DECIMAL(10, 2),
+  `SterileMachineID` INTEGER DEFAULT 0,
+  `SterileProcessID` INTEGER DEFAULT 0,
+  `WashMachineID` INTEGER DEFAULT 0,
+  `WashProcessID` INTEGER DEFAULT 0,
+  `SupllierID` INTEGER DEFAULT 0,
+  `FactID` INTEGER DEFAULT 0,
+  `LabelID` INTEGER DEFAULT 0,
+  `Minimum` INTEGER DEFAULT 0,
+  `Maximum` INTEGER DEFAULT 0,
+  `weight` DECIMAL(10, 2),
+  `IsSpecial` VARCHAR(1) DEFAULT '0',
+  `LabelGroupID` INTEGER,
+  `Picture` VARCHAR(100),
+  `Picture2` VARCHAR(100),
+  `NoWash` BOOLEAN DEFAULT false,
+  `IsWashDept` INTEGER DEFAULT 0,
+  `PriceID` INTEGER DEFAULT 0,
+  `itemcode2` VARCHAR(20),
+  `IsNonUsage` BOOLEAN DEFAULT false,
+  `itemcode3` VARCHAR(20),
+  `IsPrintDepartment` BOOLEAN DEFAULT true,
+  `IsStock` BOOLEAN DEFAULT true,
+  `IsRecieveRecordOnly` BOOLEAN DEFAULT false,
+  `IsWasting` BOOLEAN DEFAULT false,
+  `IsCheckList` BOOLEAN DEFAULT false,
+  `RoundOfTimeUsed` INTEGER DEFAULT 0,
+  `NoWashType` INTEGER DEFAULT 0,
+  `CreateDate` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
+  `IsCSSDComfirm` INTEGER DEFAULT 0,
+  `IsDenger` INTEGER DEFAULT 0,
+  `IsInternalIndicatorCheck` INTEGER DEFAULT 0,
+  `IsFillterCheck` INTEGER DEFAULT 0,
+  `IsLabelingCheck` INTEGER DEFAULT 0,
+  `IsLoaner` INTEGER,
+  `LimitUse` INTEGER DEFAULT 0,
+  `PayDep` INTEGER DEFAULT 0,
+  `IsRemarkRound` INTEGER DEFAULT 0,
+  `IsReceiveNotSterile` BOOLEAN DEFAULT true,
+  `IsReceiveManual` BOOLEAN DEFAULT true,
+  `RefNo` VARCHAR(191),
   `IsCancel` INTEGER DEFAULT 0,
   `IsSingle` BOOLEAN DEFAULT false,
   `IsNotShowSendSterile` BOOLEAN DEFAULT false,
-  `Store` VARCHAR(100),
-  `PackingMat` VARCHAR(100),
+  `Store` VARCHAR(191),
+  `PackingMat` VARCHAR(191),
   `ShelfLife` INTEGER DEFAULT 0,
-  `ManufacturerName` VARCHAR(255),
+  `ManufacturerName` VARCHAR(191),
   `item_data_1_id` INTEGER,
-  `InternalCode` VARCHAR(50),
-  `ManufacturerMemo` VARCHAR(255),
+  `InternalCode` VARCHAR(191),
+  `ManufacturerMemo` VARCHAR(191),
   `item_data_1` INTEGER,
   `Picweb` MEDIUMTEXT,
-  `SuplierName` VARCHAR(255),
+  `SuplierName` VARCHAR(191),
   `IsNoSterile` BOOLEAN DEFAULT false,
   `IsShowQrItemCode` BOOLEAN DEFAULT false,
-  `SuplierNameMemo` VARCHAR(255),
+  `SuplierNameMemo` VARCHAR(191),
   `IsSingleUsage` BOOLEAN DEFAULT false,
-  `ListUnderLineNo` VARCHAR(50),
+  `ListUnderLineNo` VARCHAR(191),
   `Isopdipd` INTEGER,
   `Note` TEXT,
   `B_ID` INTEGER,
-  `ListColorLineNo` VARCHAR(50),
+  `ListColorLineNo` VARCHAR(191),
   `IsPrintNoSterile` BOOLEAN DEFAULT false,
   `IsPayToSend` INTEGER,
   `IsTrackAuto` BOOLEAN DEFAULT false,
@@ -245,21 +252,21 @@ CREATE TABLE IF NOT EXISTS `item` (
   `IsFabric` BOOLEAN DEFAULT false,
   `WashPriceId` INTEGER,
   `SterilePriceId` INTEGER,
-  `ReProcessPrice` DOUBLE,
+  `ReProcessPrice` FLOAT,
   `wash_price_id` INTEGER,
   `sterile_price_id` INTEGER,
-  `reprocess_price` DOUBLE,
+  `reprocess_price` FLOAT,
   `UserCreate` INTEGER DEFAULT 0,
   `UserModify` INTEGER DEFAULT 0,
   `ModiflyDate` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
   `IsNumber` BOOLEAN DEFAULT false,
-  `SapCode` VARCHAR(50),
+  `SapCode` VARCHAR(191),
   `IsChangeUsageInSet` BOOLEAN DEFAULT false,
   `IsNH` INTEGER,
   `MaxInventory` INTEGER,
   `procedureID` INTEGER,
   `Description` TEXT,
-  `ReuseDetect` VARCHAR(100),
+  `ReuseDetect` VARCHAR(191),
   `stock_max` INTEGER,
   `stock_min` INTEGER,
   `stock_balance` INTEGER,
@@ -268,15 +275,11 @@ CREATE TABLE IF NOT EXISTS `item` (
   `main_max` INTEGER,
   `main_min` INTEGER,
   `item_status` INTEGER DEFAULT 0,
-  INDEX `item_itemcode_idx` (`itemcode`),
   INDEX `item_itemtypeID_idx` (`itemtypeID`),
   FOREIGN KEY (`itemtypeID`) REFERENCES `itemtype`(`ID`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ===================================
--- 5. ITEM STOCK TABLE
--- ===================================
-
+-- Item Stock table
 CREATE TABLE IF NOT EXISTS `itemstock` (
   `RowID` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `CreateDate` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
@@ -331,7 +334,7 @@ CREATE TABLE IF NOT EXISTS `itemstock` (
   `CabinetUserID` INTEGER,
   `LastCabinetModify` DATETIME(3),
   `InsertRfidDocNo` VARCHAR(20),
-  `Istatus_rfid` INTEGER COMMENT '1=เดิม 2=เบิก 3=ส่ง',
+  `Istatus_rfid` INTEGER,
   `ShiptoDate` DATETIME(3),
   `ReturnDate` DATETIME(3),
   `InsertDate` DATETIME(3),
@@ -354,7 +357,7 @@ CREATE TABLE IF NOT EXISTS `itemstock` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ===================================
--- 6. MEDICAL SUPPLIES USAGE TABLES
+-- MEDICAL SUPPLIES TABLES
 -- ===================================
 
 -- Medical Supply Usage table
@@ -376,53 +379,63 @@ CREATE TABLE IF NOT EXISTS `app_microservice_medical_supply_usages` (
   `billing_subtotal` DOUBLE,
   `billing_tax` DOUBLE,
   `billing_total` DOUBLE,
+  `billing_currency` VARCHAR(191) DEFAULT 'THB',
+  `twu` VARCHAR(191),
+  `print_location` VARCHAR(191),
+  `print_date` VARCHAR(191),
+  `time_print_date` VARCHAR(191),
+  `update` VARCHAR(191),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updated_at` DATETIME(3) NOT NULL,
   INDEX `app_microservice_medical_supply_usages_patient_hn_idx` (`patient_hn`),
   INDEX `app_microservice_medical_supply_usages_en_idx` (`en`),
+  INDEX `app_microservice_medical_supply_usages_usage_datetime_idx` (`usage_datetime`),
   INDEX `app_microservice_medical_supply_usages_department_code_idx` (`department_code`),
-  INDEX `app_microservice_medical_supply_usages_created_at_idx` (`created_at`)
+  INDEX `app_microservice_medical_supply_usages_billing_status_idx` (`billing_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Supply Usage Item table
 CREATE TABLE IF NOT EXISTS `app_microservice_supply_usage_items` (
   `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `usage_id` INTEGER NOT NULL,
-  `supply_code` VARCHAR(191) NOT NULL,
-  `supply_name` VARCHAR(191) NOT NULL,
-  `qty` INTEGER NOT NULL DEFAULT 1,
-  `qty_used_with_patient` INTEGER NOT NULL DEFAULT 0,
-  `qty_returned_to_cabinet` INTEGER NOT NULL DEFAULT 0,
-  `qty_pending` INTEGER,
+  `medical_supply_usage_id` INTEGER NOT NULL,
+  `order_item_code` VARCHAR(191) DEFAULT '',
+  `order_item_description` VARCHAR(191) DEFAULT '',
+  `assession_no` VARCHAR(191) DEFAULT '',
+  `order_item_status` VARCHAR(191) DEFAULT '',
+  `qty` INTEGER DEFAULT 0,
+  `uom` VARCHAR(191) DEFAULT '',
+  `supply_code` VARCHAR(191),
+  `supply_name` VARCHAR(191),
+  `supply_category` VARCHAR(191),
+  `unit` VARCHAR(191),
+  `quantity` INTEGER,
   `unit_price` DOUBLE,
   `total_price` DOUBLE,
-  `assession_no` VARCHAR(191),
-  `order_item_code` VARCHAR(191),
-  `order_item_description` VARCHAR(191),
-  `order_item_status` VARCHAR(191),
-  `item_status` VARCHAR(191),
-  `uom` VARCHAR(191),
+  `expiry_date` VARCHAR(191),
+  `qty_used_with_patient` INTEGER NOT NULL DEFAULT 0,
+  `qty_returned_to_cabinet` INTEGER NOT NULL DEFAULT 0,
+  `item_status` VARCHAR(191) NOT NULL DEFAULT 'PENDING',
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updated_at` DATETIME(3) NOT NULL,
-  INDEX `app_microservice_supply_usage_items_usage_id_idx` (`usage_id`),
+  INDEX `app_microservice_supply_usage_items_usage_id_idx` (`medical_supply_usage_id`),
+  INDEX `app_microservice_supply_usage_items_order_item_code_idx` (`order_item_code`),
+  INDEX `app_microservice_supply_usage_items_assession_no_idx` (`assession_no`),
   INDEX `app_microservice_supply_usage_items_supply_code_idx` (`supply_code`),
-  INDEX `app_microservice_supply_usage_items_created_at_idx` (`created_at`),
-  FOREIGN KEY (`usage_id`) REFERENCES `app_microservice_medical_supply_usages`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  INDEX `app_microservice_supply_usage_items_item_status_idx` (`item_status`),
+  FOREIGN KEY (`medical_supply_usage_id`) REFERENCES `app_microservice_medical_supply_usages`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Supply Item Return Record table
 CREATE TABLE IF NOT EXISTS `app_microservice_supply_item_return_records` (
   `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `supply_usage_item_id` INTEGER NOT NULL,
-  `return_qty` INTEGER NOT NULL,
+  `qty_returned` INTEGER NOT NULL,
   `return_reason` VARCHAR(191) NOT NULL,
   `return_datetime` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `return_by_user_id` VARCHAR(191) NOT NULL,
   `return_note` VARCHAR(191),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  INDEX `app_microservice_supply_item_return_records_supply_usage_item_id_idx` (`supply_usage_item_id`),
-  INDEX `app_microservice_supply_item_return_records_return_reason_idx` (`return_reason`),
-  INDEX `app_microservice_supply_item_return_records_return_datetime_idx` (`return_datetime`),
+  INDEX `idx_return_supply_item` (`supply_usage_item_id`),
   FOREIGN KEY (`supply_usage_item_id`) REFERENCES `app_microservice_supply_usage_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -461,4 +474,3 @@ FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
 WHERE TABLE_SCHEMA = DATABASE()
 AND REFERENCED_TABLE_NAME IS NOT NULL
 ORDER BY TABLE_NAME, COLUMN_NAME;
-

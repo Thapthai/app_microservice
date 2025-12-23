@@ -386,9 +386,7 @@ model SupplyItemReturnRecord {
   // Relations
   supply_item SupplyUsageItem @relation(fields: [supply_usage_item_id], references: [id], onDelete: Cascade)
 
-  @@index([supply_usage_item_id])
-  @@index([return_reason])
-  @@index([return_datetime])
+  @@index([supply_usage_item_id], map: "idx_return_supply_item")
   @@map("app_microservice_supply_item_return_records")
 }
 
