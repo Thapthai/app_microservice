@@ -481,4 +481,64 @@ export const reportsApi = {
   },
 };
 
+// Staff User API
+export const staffUserApi = {
+  createStaffUser: async (data: {
+    email: string;
+    fname: string;
+    lname: string;
+    password?: string;
+    expires_at?: string;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/staff-users', data);
+    return response.data;
+  },
+
+  getAllStaffUsers: async (): Promise<ApiResponse<any[]>> => {
+    const response = await api.get('/staff-users');
+    return response.data;
+  },
+
+  getStaffUserById: async (id: number): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/staff-users/${id}`);
+    return response.data;
+  },
+
+  updateStaffUser: async (
+    id: number,
+    data: {
+      email?: string;
+      fname?: string;
+      lname?: string;
+      password?: string;
+      is_active?: boolean;
+      expires_at?: string;
+    }
+  ): Promise<ApiResponse<any>> => {
+    const response = await api.put(`/staff-users/${id}`, data);
+    return response.data;
+  },
+
+  deleteStaffUser: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/staff-users/${id}`);
+    return response.data;
+  },
+
+  regenerateClientSecret: async (
+    id: number,
+    data?: { expires_at?: string }
+  ): Promise<ApiResponse<any>> => {
+    const response = await api.post(`/staff-users/${id}/regenerate-secret`, data || {});
+    return response.data;
+  },
+
+  staffUserLogin: async (data: {
+    email: string;
+    password: string;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/staff-users/login', data);
+    return response.data;
+  },
+};
+
 export default api;

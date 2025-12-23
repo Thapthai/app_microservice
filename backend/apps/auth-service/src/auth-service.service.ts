@@ -11,6 +11,12 @@ import {
   FirebaseLoginDto,
   AuthMethod
 } from './dto/auth.dto';
+import {
+  CreateStaffUserDto,
+  UpdateStaffUserDto,
+  StaffUserResponseDto,
+  RegenerateClientSecretDto
+} from './dto/staff-user.dto';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { ClientCredentialStrategy } from './strategies/client-credential.strategy';
 import { TOTPService } from './services/totp.service';
@@ -1293,6 +1299,320 @@ export class AuthServiceService {
     } catch (error) {
       console.error('Firebase login error:', error);
       return { success: false, message: 'Firebase authentication failed', error: error.message };
+    }
+  }
+
+  // ==================== Staff User Management ====================
+
+  /**
+   * Create a new staff user with client credentials
+   */
+  async createStaffUser(data: CreateStaffUserDto) {
+    try {
+      // Check if email already exists
+      const existingStaff = await this.prisma.staffUser.findUnique({
+        where: { email: data.email },
+      });
+
+      if (existingStaff) {
+        return { success: false, message: 'Staff user with this email already exists' };
+      }
+
+      // Default password if not provided
+      const password = data.password || 'password123';
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Generate unique client_id and client_secret
+      const clientId = `staff_${crypto.randomBytes(16).toString('hex')}`;
+      const clientSecret = crypto.randomBytes(32).toString('hex');
+      const hashedClientSecret = await bcrypt.hash(clientSecret, 10);
+
+      // Create staff user
+      const staffUser = await this.prisma.staffUser.create({
+        data: {
+          email: data.email,
+          fname: data.fname,
+          lname: data.lname,
+          password: hashedPassword,
+          client_id: clientId,
+          client_secret: hashedClientSecret,
+          expires_at: data.expires_at ? new Date(data.expires_at) : null,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Staff user created successfully',
+        data: {
+          id: staffUser.id,
+          email: staffUser.email,
+          fname: staffUser.fname,
+          lname: staffUser.lname,
+          client_id: clientId,
+          client_secret: clientSecret, // Return unhashed secret only once
+          expires_at: staffUser.expires_at,
+          is_active: staffUser.is_active,
+          created_at: staffUser.created_at,
+        },
+        warning: 'Please save the client_secret securely. It will not be shown again.',
+      };
+    } catch (error) {
+      console.error('Create staff user error:', error);
+      return { success: false, message: 'Failed to create staff user', error: error.message };
+    }
+  }
+
+  /**
+   * Get all staff users
+   */
+  async getAllStaffUsers() {
+    try {
+      const staffUsers = await this.prisma.staffUser.findMany({
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          fname: true,
+          lname: true,
+          client_id: true,
+          expires_at: true,
+          is_active: true,
+          created_at: true,
+          updated_at: true,
+          // Don't return password or client_secret
+        },
+      });
+
+      return {
+        success: true,
+        data: staffUsers,
+      };
+    } catch (error) {
+      console.error('Get all staff users error:', error);
+      return { success: false, message: 'Failed to retrieve staff users', error: error.message };
+    }
+  }
+
+  /**
+   * Get staff user by ID
+   */
+  async getStaffUserById(id: number) {
+    try {
+      const staffUser = await this.prisma.staffUser.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          fname: true,
+          lname: true,
+          client_id: true,
+          expires_at: true,
+          is_active: true,
+          created_at: true,
+          updated_at: true,
+        },
+      });
+
+      if (!staffUser) {
+        return { success: false, message: 'Staff user not found' };
+      }
+
+      return {
+        success: true,
+        data: staffUser,
+      };
+    } catch (error) {
+      console.error('Get staff user error:', error);
+      return { success: false, message: 'Failed to retrieve staff user', error: error.message };
+    }
+  }
+
+  /**
+   * Update staff user
+   */
+  async updateStaffUser(id: number, data: UpdateStaffUserDto) {
+    try {
+      const staffUser = await this.prisma.staffUser.findUnique({
+        where: { id },
+      });
+
+      if (!staffUser) {
+        return { success: false, message: 'Staff user not found' };
+      }
+
+      // Check email uniqueness if updating email
+      if (data.email && data.email !== staffUser.email) {
+        const existingStaff = await this.prisma.staffUser.findUnique({
+          where: { email: data.email },
+        });
+
+        if (existingStaff) {
+          return { success: false, message: 'Email already in use by another staff user' };
+        }
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        ...(data.email && { email: data.email }),
+        ...(data.fname && { fname: data.fname }),
+        ...(data.lname && { lname: data.lname }),
+        ...(data.is_active !== undefined && { is_active: data.is_active }),
+        ...(data.expires_at && { expires_at: new Date(data.expires_at) }),
+      };
+
+      // Hash password if updating
+      if (data.password) {
+        updateData.password = await bcrypt.hash(data.password, 10);
+      }
+
+      const updatedStaff = await this.prisma.staffUser.update({
+        where: { id },
+        data: updateData,
+        select: {
+          id: true,
+          email: true,
+          fname: true,
+          lname: true,
+          client_id: true,
+          expires_at: true,
+          is_active: true,
+          created_at: true,
+          updated_at: true,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Staff user updated successfully',
+        data: updatedStaff,
+      };
+    } catch (error) {
+      console.error('Update staff user error:', error);
+      return { success: false, message: 'Failed to update staff user', error: error.message };
+    }
+  }
+
+  /**
+   * Delete staff user
+   */
+  async deleteStaffUser(id: number) {
+    try {
+      const staffUser = await this.prisma.staffUser.findUnique({
+        where: { id },
+      });
+
+      if (!staffUser) {
+        return { success: false, message: 'Staff user not found' };
+      }
+
+      await this.prisma.staffUser.delete({
+        where: { id },
+      });
+
+      return {
+        success: true,
+        message: 'Staff user deleted successfully',
+      };
+    } catch (error) {
+      console.error('Delete staff user error:', error);
+      return { success: false, message: 'Failed to delete staff user', error: error.message };
+    }
+  }
+
+  /**
+   * Regenerate client secret for staff user
+   */
+  async regenerateClientSecret(id: number, data?: RegenerateClientSecretDto) {
+    try {
+      const staffUser = await this.prisma.staffUser.findUnique({
+        where: { id },
+      });
+
+      if (!staffUser) {
+        return { success: false, message: 'Staff user not found' };
+      }
+
+      // Generate new client secret
+      const newClientSecret = crypto.randomBytes(32).toString('hex');
+      const hashedClientSecret = await bcrypt.hash(newClientSecret, 10);
+
+      const updateData: any = {
+        client_secret: hashedClientSecret,
+      };
+
+      if (data?.expires_at) {
+        updateData.expires_at = new Date(data.expires_at);
+      }
+
+      await this.prisma.staffUser.update({
+        where: { id },
+        data: updateData,
+      });
+
+      return {
+        success: true,
+        message: 'Client secret regenerated successfully',
+        data: {
+          client_id: staffUser.client_id,
+          client_secret: newClientSecret, // Return unhashed secret only once
+        },
+        warning: 'Please save the new client_secret securely. It will not be shown again.',
+      };
+    } catch (error) {
+      console.error('Regenerate client secret error:', error);
+      return { success: false, message: 'Failed to regenerate client secret', error: error.message };
+    }
+  }
+
+  /**
+   * Staff user login with email and password
+   */
+  async staffUserLogin(email: string, password: string) {
+    try {
+      const staffUser = await this.prisma.staffUser.findUnique({
+        where: { email },
+      });
+
+      if (!staffUser || !staffUser.is_active) {
+        return { success: false, message: 'Invalid credentials or inactive account' };
+      }
+
+      // Check password
+      const isValidPassword = await bcrypt.compare(password, staffUser.password);
+      if (!isValidPassword) {
+        return { success: false, message: 'Invalid credentials' };
+      }
+
+      // Generate JWT token
+      const payload = {
+        sub: staffUser.id,
+        email: staffUser.email,
+        fname: staffUser.fname,
+        lname: staffUser.lname,
+        type: 'staff',
+      };
+
+      const accessToken = this.jwtService.sign(payload);
+
+      return {
+        success: true,
+        message: 'Login successful',
+        data: {
+          user: {
+            id: staffUser.id,
+            email: staffUser.email,
+            fname: staffUser.fname,
+            lname: staffUser.lname,
+            client_id: staffUser.client_id,
+            is_active: staffUser.is_active,
+          },
+          access_token: accessToken,
+          token_type: 'Bearer',
+        },
+      };
+    } catch (error) {
+      console.error('Staff user login error:', error);
+      return { success: false, message: 'Login failed', error: error.message };
     }
   }
 }

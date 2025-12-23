@@ -21,6 +21,7 @@ import {
   FileBarChart,
   FileText,
   ClipboardList,
+  Users,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -92,6 +93,12 @@ const managementMenuItems = [
     href: '/items',
     icon: Package,
     description: 'รายการสินค้าทั้งหมด',
+  },
+  {
+    name: 'Staff Users',
+    href: '/admin/staff-users',
+    icon: Users,
+    description: 'จัดการ Staff Users และ Client Credentials',
   },
   {
     name: 'โปรไฟล์',

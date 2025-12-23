@@ -20,6 +20,11 @@ import {
   ResetPasswordDto,
   ConfirmResetPasswordDto
 } from './dto/auth.dto';
+import {
+  CreateStaffUserDto,
+  UpdateStaffUserDto,
+  RegenerateClientSecretDto
+} from './dto/staff-user.dto';
 
 @Controller()
 export class AuthServiceController {
@@ -201,5 +206,42 @@ export class AuthServiceController {
   async confirmPasswordReset(@Payload() confirmResetPasswordDto: ConfirmResetPasswordDto) {
     // This would need additional implementation for token validation
     return { success: false, message: 'Password reset confirmation not yet implemented' };
+  }
+
+  // ================================ Staff User Management ================================
+
+  @MessagePattern('auth.staff.create')
+  async createStaffUser(@Payload() createStaffUserDto: CreateStaffUserDto) {
+    return this.authServiceService.createStaffUser(createStaffUserDto);
+  }
+
+  @MessagePattern('auth.staff.getAll')
+  async getAllStaffUsers() {
+    return this.authServiceService.getAllStaffUsers();
+  }
+
+  @MessagePattern('auth.staff.getById')
+  async getStaffUserById(@Payload() id: number) {
+    return this.authServiceService.getStaffUserById(id);
+  }
+
+  @MessagePattern('auth.staff.update')
+  async updateStaffUser(@Payload() payload: { id: number; data: UpdateStaffUserDto }) {
+    return this.authServiceService.updateStaffUser(payload.id, payload.data);
+  }
+
+  @MessagePattern('auth.staff.delete')
+  async deleteStaffUser(@Payload() id: number) {
+    return this.authServiceService.deleteStaffUser(id);
+  }
+
+  @MessagePattern('auth.staff.regenerateSecret')
+  async regenerateClientSecret(@Payload() payload: { id: number; data?: RegenerateClientSecretDto }) {
+    return this.authServiceService.regenerateClientSecret(payload.id, payload.data);
+  }
+
+  @MessagePattern('auth.staff.login')
+  async staffUserLogin(@Payload() payload: { email: string; password: string }) {
+    return this.authServiceService.staffUserLogin(payload.email, payload.password);
   }
 }

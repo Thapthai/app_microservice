@@ -43,6 +43,22 @@ model User {
   @@map("app_microservice_users")
 }
 
+model StaffUser {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  fname         String // First name
+  lname         String // Last name
+  password      String // Hashed password, default: password123
+  client_id     String    @unique @map("client_id") // For API access
+  client_secret String    @map("client_secret") // Hashed secret
+  expires_at    DateTime? @map("expires_at") // Client credential expiration
+  is_active     Boolean   @default(true) @map("is_active")
+  created_at    DateTime  @default(now()) @map("created_at")
+  updated_at    DateTime  @updatedAt @map("updated_at")
+
+  @@map("app_microservice_staff_users")
+}
+
 model OAuthAccount {
   id            Int       @id @default(autoincrement())
   user_id       Int       @map("user_id")

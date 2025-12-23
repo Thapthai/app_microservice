@@ -1440,4 +1440,41 @@ export class GatewayApiController {
     }
   }
 
+  // ==================== Staff User Management ====================
+
+  @Post('staff-users')
+  async createStaffUser(@Body() createStaffUserDto: any) {
+    return this.gatewayApiService.createStaffUser(createStaffUserDto);
+  }
+
+  @Get('staff-users')
+  async getAllStaffUsers() {
+    return this.gatewayApiService.getAllStaffUsers();
+  }
+
+  @Get('staff-users/:id')
+  async getStaffUserById(@Param('id') id: string) {
+    return this.gatewayApiService.getStaffUserById(parseInt(id));
+  }
+
+  @Put('staff-users/:id')
+  async updateStaffUser(@Param('id') id: string, @Body() updateStaffUserDto: any) {
+    return this.gatewayApiService.updateStaffUser(parseInt(id), updateStaffUserDto);
+  }
+
+  @Delete('staff-users/:id')
+  async deleteStaffUser(@Param('id') id: string) {
+    return this.gatewayApiService.deleteStaffUser(parseInt(id));
+  }
+
+  @Post('staff-users/:id/regenerate-secret')
+  async regenerateClientSecret(@Param('id') id: string, @Body() data?: any) {
+    return this.gatewayApiService.regenerateClientSecret(parseInt(id), data);
+  }
+
+  @Post('staff-users/login')
+  async staffUserLogin(@Body() loginDto: { email: string; password: string }) {
+    return this.gatewayApiService.staffUserLogin(loginDto.email, loginDto.password);
+  }
+
 }

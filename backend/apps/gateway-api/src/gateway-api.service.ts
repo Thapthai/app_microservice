@@ -398,4 +398,34 @@ export class GatewayApiService {
       this.reportClient.send({ cmd: 'report.item_comparison.pdf' }, params)
     );
   }
+
+  // ==================== Staff User Management ====================
+
+  async createStaffUser(data: any) {
+    return this.authClient.send('auth.staff.create', data).toPromise();
+  }
+
+  async getAllStaffUsers() {
+    return this.authClient.send('auth.staff.getAll', {}).toPromise();
+  }
+
+  async getStaffUserById(id: number) {
+    return this.authClient.send('auth.staff.getById', id).toPromise();
+  }
+
+  async updateStaffUser(id: number, data: any) {
+    return this.authClient.send('auth.staff.update', { id, data }).toPromise();
+  }
+
+  async deleteStaffUser(id: number) {
+    return this.authClient.send('auth.staff.delete', id).toPromise();
+  }
+
+  async regenerateClientSecret(id: number, data?: any) {
+    return this.authClient.send('auth.staff.regenerateSecret', { id, data }).toPromise();
+  }
+
+  async staffUserLogin(email: string, password: string) {
+    return this.authClient.send('auth.staff.login', { email, password }).toPromise();
+  }
 }
