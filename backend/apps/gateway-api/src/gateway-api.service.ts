@@ -60,6 +60,10 @@ export class GatewayApiService {
     return this.itemClient.send('item.findByUser', user_id).toPromise();
   }
 
+  async updateItemMinMax(itemcode: string, updateMinMaxDto: any) {
+    return this.itemClient.send('item.updateMinMax', { itemcode, updateMinMaxDto }).toPromise();
+  }
+
   // ==================================== Email Service Methods ====================================
 
   async sendEmail(emailData: any) {

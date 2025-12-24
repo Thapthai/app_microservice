@@ -233,6 +233,11 @@ export const itemsApi = {
     const response = await api.delete(`/items/${itemcode}`);
     return response.data;
   },
+
+  updateMinMax: async (itemcode: string, data: { Minimum?: number; Maximum?: number }): Promise<ApiResponse<Item>> => {
+    const response = await api.patch(`/items/${itemcode}/minmax`, data);
+    return response.data;
+  },
 };
 
 // Medical Supplies API

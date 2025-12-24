@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { UpdateItemMinMaxDto } from './dto/update-item-minmax.dto';
 
 @Injectable()
 export class ItemServiceService {
@@ -42,7 +43,7 @@ export class ItemServiceService {
     }
   }
 
-  async findAllItems(page: number, limit: number, keyword?: string, sort_by: string = 'itemcode', sort_order: string = 'desc') {
+  async findAllItems(page: number, limit: number, keyword?: string, sort_by: string = 'itemcode', sort_order: string = 'asc') {
     try {
       const where: any = {};
       const skip = (page - 1) * limit;
@@ -91,6 +92,15 @@ export class ItemServiceService {
         this.prisma.item.count({ where }),
         this.prisma.item.count({ where: { item_status: 0 } }),
       ]);
+
+      // Debug: ตรวจสอบข้อมูล Min/Max
+      if (data.length > 0) {
+        console.log('🔍 First item Min/Max:', {
+          itemcode: data[0].itemcode,
+          Minimum: data[0].Minimum,
+          Maximum: data[0].Maximum,
+        });
+      }
 
       return {
         data,
@@ -203,6 +213,55 @@ export class ItemServiceService {
       };
     } catch (error) {
       return { success: false, message: 'Failed to fetch user items', error: error.message };
+    }
+  }
+
+  async updateItemMinMax(itemcode: string, updateMinMaxDto: UpdateItemMinMaxDto) {
+    try {
+      // Check if item exists
+      const existingItem = await this.prisma.item.findUnique({
+        where: { itemcode },
+      });
+
+      if (!existingItem) {
+        return { success: false, message: 'Item not found' };
+      }
+
+      // Validate: Maximum should be >= Minimum
+      if (updateMinMaxDto.Maximum !== undefined && updateMinMaxDto.Minimum !== undefined) {
+        if (updateMinMaxDto.Maximum < updateMinMaxDto.Minimum) {
+          return { 
+            success: false, 
+            message: 'Maximum must be greater than or equal to Minimum' 
+          };
+        }
+      }
+
+      // Remove undefined values
+      const cleanData = Object.fromEntries(
+        Object.entries(updateMinMaxDto).filter(([_, value]) => value !== undefined)
+      ) as any;
+
+      // Add ModiflyDate
+      cleanData.ModiflyDate = new Date();
+
+      const updatedItem = await this.prisma.item.update({
+        where: { itemcode },
+        data: cleanData,
+      });
+
+      return {
+        success: true,
+        message: 'Item min/max updated successfully',
+        data: updatedItem,
+      };
+    } catch (error) {
+      console.error('❌ Update min/max error:', error.message);
+      return { 
+        success: false, 
+        message: 'Failed to update item min/max', 
+        error: error.message 
+      };
     }
   }
 }

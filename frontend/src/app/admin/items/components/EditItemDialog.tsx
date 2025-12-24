@@ -1,33 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { itemsApi } from '@/lib/api';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import type { Item, UpdateItemDto } from '@/types/item';
-import { Loader2 } from 'lucide-react';
-import { z } from 'zod';
-
-// Validation schema for editing (all fields optional except required ones)
-const editItemSchema = z.object({
-  itemname: z.string().min(2, 'ชื่อสินค้าต้องมีอย่างน้อย 2 ตัวอักษร').max(255).optional(),
-  Alternatename: z.string().max(100).optional(),
-  Barcode: z.string().max(50).optional(),
-  Description: z.string().optional(),
-  CostPrice: z.number().min(0).optional(),
-  SalePrice: z.number().min(0).optional(),
-  UsagePrice: z.number().min(0).optional(),
-  stock_balance: z.number().int().min(0).optional(),
-  stock_min: z.number().int().min(0).optional(),
-  stock_max: z.number().int().min(0).optional(),
-  item_status: z.number().int().optional(),
-});
-
-type EditItemFormData = z.infer<typeof editItemSchema>;
+import type { Item } from '@/types/item';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 interface EditItemDialogProps {
   open: boolean;
@@ -43,53 +22,43 @@ export default function EditItemDialog({
   onSuccess,
 }: EditItemDialogProps) {
   const [loading, setLoading] = useState(false);
-
-  const form = useForm<EditItemFormData>({
-    resolver: zodResolver(editItemSchema),
-    defaultValues: {
-      itemname: '',
-      Alternatename: '',
-      Barcode: '',
-      Description: '',
-      CostPrice: 0,
-      stock_balance: 0,
-      item_status: 0,
-    },
-  });
+  const [itemname, setItemname] = useState('');
+  const [error, setError] = useState('');
 
   // Update form when item changes or dialog opens
   useEffect(() => {
     if (open && item) {
-      form.reset({
-        itemname: item.itemname || '',
-        Alternatename: item.Alternatename || '',
-        Barcode: item.Barcode || '',
-        Description: item.Description || '',
-        CostPrice: item.CostPrice ? Number(item.CostPrice) : 0,
-        SalePrice: item.SalePrice ? Number(item.SalePrice) : 0,
-        UsagePrice: item.UsagePrice ? Number(item.UsagePrice) : 0,
-        stock_balance: item.stock_balance || 0,
-        stock_min: item.stock_min || 0,
-        stock_max: item.stock_max || 0,
-        item_status: item.item_status || 0,
-      });
-    } else if (!open) {
-      form.reset();
+      setItemname(item.itemname || '');
+      setError('');
     }
-  }, [open, item, form]);
+  }, [open, item]);
 
-  const onSubmit = async (data: EditItemFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!item) {
       toast.error('ไม่พบข้อมูลสินค้า');
       return;
     }
 
+    // Validation
+    if (!itemname || itemname.trim().length < 2) {
+      setError('ชื่อสินค้าต้องมีอย่างน้อย 2 ตัวอักษร');
+      return;
+    }
+
+    if (itemname.length > 255) {
+      setError('ชื่อสินค้าต้องไม่เกิน 255 ตัวอักษร');
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await itemsApi.update(item.itemcode, data);
+      setError('');
+      const response = await itemsApi.update(item.itemcode, { itemname: itemname.trim() });
 
       if (response.success) {
-        toast.success('แก้ไขสินค้าเรียบร้อยแล้ว');
+        toast.success('แก้ไขชื่อสินค้าเรียบร้อยแล้ว');
         onOpenChange(false);
         onSuccess();
       } else {
@@ -105,257 +74,82 @@ export default function EditItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>แก้ไขสินค้า</DialogTitle>
+          <DialogTitle>แก้ไขชื่อสินค้า</DialogTitle>
           <DialogDescription>
-            แก้ไขข้อมูลสินค้า: {item?.itemcode || ''}
+            แก้ไขชื่อสินค้า: {item?.itemcode || ''}
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* ชื่อสินค้า */}
-            <FormField
-              control={form.control}
-              name="itemname"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ชื่อสินค้า *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="เช่น ชุดเครื่องมือผ่าตัดใหญ่"
-                      maxLength={255}
-                      {...field}
-                      disabled={loading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* ชื่อสำรอง */}
-            <FormField
-              control={form.control}
-              name="Alternatename"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ชื่อสำรอง (EN)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="เช่น Major Surgical Instrument Set"
-                      maxLength={100}
-                      {...field}
-                      disabled={loading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Barcode */}
-            <FormField
-              control={form.control}
-              name="Barcode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>บาร์โค้ด</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="เช่น 8859876543210"
-                      maxLength={50}
-                      {...field}
-                      disabled={loading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-3 gap-4">
-              {/* ราคาทุน */}
-              <FormField
-                control={form.control}
-                name="CostPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ราคาทุน</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* ราคาขาย */}
-              <FormField
-                control={form.control}
-                name="SalePrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ราคาขาย</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* ราคาใช้งาน */}
-              <FormField
-                control={form.control}
-                name="UsagePrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ราคาใช้งาน</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Item Info */}
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <div className="text-sm">
+              <span className="text-gray-600">รหัส: </span>
+              <code className="text-xs bg-white px-2 py-1 rounded">{item?.itemcode}</code>
             </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              {/* จำนวนในสต็อก */}
-              <FormField
-                control={form.control}
-                name="stock_balance"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>จำนวนในสต็อก</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* จำนวนขั้นต่ำ */}
-              <FormField
-                control={form.control}
-                name="stock_min"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>จำนวนขั้นต่ำ</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* จำนวนสูงสุด */}
-              <FormField
-                control={form.control}
-                name="stock_max"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>จำนวนสูงสุด</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="text-sm mt-1">
+              <span className="text-gray-600">ชื่อเดิม: </span>
+              <span className="font-medium">{item?.itemname}</span>
             </div>
+          </div>
 
-            {/* คำอธิบาย */}
-            <FormField
-              control={form.control}
-              name="Description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>คำอธิบาย</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="รายละเอียดของสินค้า..."
-                      className="min-h-[100px]"
-                      {...field}
-                      disabled={loading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Item Name Input */}
+          <div>
+            <Label htmlFor="itemname">
+              ชื่อสินค้าใหม่ <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="itemname"
+              type="text"
+              placeholder="กรอกชื่อสินค้า..."
+              value={itemname}
+              onChange={(e) => {
+                setItemname(e.target.value);
+                setError('');
+              }}
+              maxLength={255}
+              disabled={loading}
+              className="mt-1"
+              autoFocus
             />
+            <p className="text-xs text-gray-500 mt-1">
+              ความยาว: {itemname.length}/255 ตัวอักษร
+            </p>
+          </div>
 
-            <div className="flex justify-end space-x-3 pt-4">
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => onOpenChange(false)}
-                disabled={loading}
-              >
-                ยกเลิก
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    กำลังบันทึก...
-                  </>
-                ) : (
-                  'บันทึกการแก้ไข'
-                )}
-              </Button>
-            </div>
-          </form>
-        </Form>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              ยกเลิก
+            </Button>
+            <Button type="submit" disabled={loading || !itemname.trim()}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  กำลังบันทึก...
+                </>
+              ) : (
+                'บันทึก'
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

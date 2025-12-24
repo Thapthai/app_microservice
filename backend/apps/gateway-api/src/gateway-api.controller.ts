@@ -495,6 +495,55 @@ export class GatewayApiController {
     }
   }
 
+  @Get('items/:itemcode/minmax')
+  @UseGuards(FlexibleAuthGuard)
+  async getItemMinMax(
+    @Param('itemcode') itemcode: string,
+    @Request() req: any
+  ) {
+    try {
+      const result = await this.gatewayApiService.findOneItem(itemcode);
+      if (result.success && result.data) {
+        return {
+          success: true,
+          data: {
+            itemcode: result.data.itemcode,
+            itemname: result.data.itemname,
+            Minimum: result.data.Minimum ?? 0,
+            Maximum: result.data.Maximum ?? 0,
+          },
+        };
+      }
+      throw new HttpException(
+        result.message || 'Item not found',
+        HttpStatus.NOT_FOUND,
+      );
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get item min/max',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Patch('items/:itemcode/minmax')
+  @UseGuards(FlexibleAuthGuard)
+  async updateItemMinMax(
+    @Param('itemcode') itemcode: string,
+    @Body() updateMinMaxDto: any,
+    @Request() req: any
+  ) {
+    try {
+      const result = await this.gatewayApiService.updateItemMinMax(itemcode, updateMinMaxDto);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update item min/max',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // ==================================== Email Endpoints ====================================
 
   @Post('email/test')

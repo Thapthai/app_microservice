@@ -3,6 +3,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ItemServiceService } from './item-service.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { UpdateItemMinMaxDto } from './dto/update-item-minmax.dto';
 
 
 @Controller()
@@ -44,5 +45,10 @@ export class ItemServiceController {
   @MessagePattern('item.findByUser')
   async findItemsByUser(@Payload() user_id: number) {
     return this.itemServiceService.findItemsByUser(user_id);
+  }
+
+  @MessagePattern('item.updateMinMax')
+  async updateItemMinMax(@Payload() data: { itemcode: string; updateMinMaxDto: UpdateItemMinMaxDto }) {
+    return this.itemServiceService.updateItemMinMax(data.itemcode, data.updateMinMaxDto);
   }
 }
