@@ -44,12 +44,12 @@ export class GatewayApiService {
     return this.itemClient.send('item.findAll', query).toPromise();
   }
 
-  async findOneItem(id: number) {
-    return this.itemClient.send('item.findOne', id).toPromise();
+  async findOneItem(itemcode: string) {
+    return this.itemClient.send('item.findOne', itemcode).toPromise();
   }
 
-  async updateItem(id: number, updateItemDto: any) {
-    return this.itemClient.send('item.update', { id, updateItemDto }).toPromise();
+  async updateItem(itemcode: string, updateItemDto: any) {
+    return this.itemClient.send('item.update', { itemcode, updateItemDto }).toPromise();
   }
 
   async removeItem(id: number) {
