@@ -16,9 +16,10 @@ export class MedicalSuppliesServiceController {
   constructor(private readonly medicalSuppliesService: MedicalSuppliesServiceService) {}
 
   @MessagePattern({ cmd: 'medical_supply_usage.create' })
-  async create(@Payload() data: CreateMedicalSupplyUsageDto) {
+  async create(@Payload() payload: any) {
     try {
-      const usage = await this.medicalSuppliesService.create(data);
+      const { _userContext, ...data } = payload;
+      const usage = await this.medicalSuppliesService.create(data, _userContext);
       return { success: true, data: usage };
     } catch (error) {
       return { success: false, message: error.message };

@@ -19,8 +19,5 @@ async function bootstrap() {
   app.enableCors();
 
   await app.listen(process.env.PORT ?? 3000);
-  console.log('Gateway API is running on port 3000');
-  console.log('API Version: v1');
-  console.log('Base URL: http://localhost:3000/api/v1');
 }
 bootstrap();

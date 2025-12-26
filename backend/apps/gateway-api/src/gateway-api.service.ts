@@ -206,8 +206,12 @@ export class GatewayApiService {
   }
 
   // ==================================== Medical Supplies Service Methods ====================================
-  async createMedicalSupplyUsage(data: any) {
-    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.create' }, data).toPromise();
+  async checkStaffUser(client_id: string) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply.checkStaffUser' }, { client_id }).toPromise();
+  }
+
+  async createMedicalSupplyUsage(data: any, userContext?: { user: any; userType: string }) {   
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.create' }, { ...data, _userContext: userContext }).toPromise();
   }
 
   async getMedicalSupplyUsages(query: any) {

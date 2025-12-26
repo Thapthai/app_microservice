@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getSession } from 'next-auth/react';
 import type { ApiResponse, PaginatedResponse } from '@/types/common';
 import type { AuthResponse, User, RegisterDto, LoginDto } from '@/types/auth';
-import type { Item, CreateItemDto, UpdateItemDto, GetItemsQuery, Category, GetCategoriesQuery } from '@/types/item';
+import type { Item, CreateItemDto, UpdateItemDto, GetItemsQuery } from '@/types/item';
 
 // Create axios instance
 const api = axios.create({
@@ -116,39 +116,6 @@ export const authApi = {
   },
 };
 
-// Categories API
-export const categoriesApi = {
-  getAll: async (query?: GetCategoriesQuery): Promise<PaginatedResponse<Category>> => {
-    const response = await api.get('/categories', { params: query });
-    return response.data;
-  },
-
-  getById: async (id: number): Promise<ApiResponse<Category>> => {
-    const response = await api.get(`/categories/${id}`);
-    return response.data;
-  },
-
-  getBySlug: async (slug: string): Promise<ApiResponse<Category>> => {
-    const response = await api.get(`/categories/slug/${slug}`);
-    return response.data;
-  },
-
-  create: async (data: { name: string; description?: string; slug?: string; is_active?: boolean }): Promise<ApiResponse<Category>> => {
-    const response = await api.post('/categories', data);
-    return response.data;
-  },
-
-  update: async (id: number, data: { name?: string; description?: string; slug?: string; is_active?: boolean }): Promise<ApiResponse<Category>> => {
-    const response = await api.put(`/categories/${id}`, data);
-    return response.data;
-  },
-
-  delete: async (id: number): Promise<ApiResponse> => {
-    const response = await api.delete(`/categories/${id}`);
-    return response.data;
-  },
-};
-
 // Items API
 export const itemsApi = {
   create: async (data: CreateItemDto): Promise<ApiResponse<Item>> => {
@@ -234,7 +201,7 @@ export const itemsApi = {
     return response.data;
   },
 
-  updateMinMax: async (itemcode: string, data: { Minimum?: number; Maximum?: number }): Promise<ApiResponse<Item>> => {
+  updateMinMax: async (itemcode: string, data: { stock_min?: number; stock_max?: number }): Promise<ApiResponse<Item>> => {
     const response = await api.patch(`/items/${itemcode}/minmax`, data);
     return response.data;
   },
@@ -256,6 +223,12 @@ export const medicalSuppliesApi = {
     an?: string;
     sort_by?: string;
     sort_order?: string;
+    startDate?: string;
+    endDate?: string;
+    user_name?: string;
+    first_name?: string;
+    lastname?: string;
+    assession_no?: string;
   }): Promise<PaginatedResponse<any>> => {
     const response = await api.get('/medical-supplies', { params: query });
     return response.data;
@@ -377,6 +350,9 @@ export const medicalSuppliesApi = {
     itemCode?: string;
     startDate?: string;
     endDate?: string;
+    first_name?: string;
+    lastname?: string;
+    assession_no?: string;
     page?: number;
     limit?: number;
   }): Promise<ApiResponse<any>> => {

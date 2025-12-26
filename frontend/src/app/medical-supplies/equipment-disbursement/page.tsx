@@ -296,8 +296,8 @@ export default function EquipmentDisbursementReportPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="border rounded-lg overflow-hidden">
+                <CardContent className="px-4 py-4">
+                  <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -349,8 +349,8 @@ export default function EquipmentDisbursementReportPage() {
                     <CardTitle>สรุปผลรวม</CardTitle>
                     <CardDescription>ผลรวมของแต่ละอุปกรณ์</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="border rounded-lg overflow-hidden">
+                  <CardContent className="px-4 py-4">
+                    <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>

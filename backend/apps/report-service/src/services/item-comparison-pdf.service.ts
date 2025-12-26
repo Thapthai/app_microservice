@@ -19,8 +19,6 @@ export class ItemComparisonPdfService {
    */
   private async registerThaiFont(doc: PDFKit.PDFDocument): Promise<boolean> {
     try {
-      console.log(`[PDF Service] __dirname = ${__dirname}`);
-      console.log(`[PDF Service] process.cwd() = ${process.cwd()}`);
       
       // Try multiple paths for dev and production
       const possiblePaths = [
@@ -41,10 +39,8 @@ export class ItemComparisonPdfService {
       // Find the correct path
       for (const testPath of possiblePaths) {
         const testFile = path.join(testPath, 'THSarabunNew.ttf');
-        console.log(`[PDF Service] Testing: ${testFile}`);
         if (fs.existsSync(testFile)) {
           basePath = testPath;
-          console.log(`[PDF Service] ✅ Found fonts at: ${basePath}`);
           break;
         }
       }
@@ -63,10 +59,8 @@ export class ItemComparisonPdfService {
       
       if (fs.existsSync(boldFont)) {
         doc.registerFont('ThaiFontBold', boldFont);
-        console.log(`[PDF Service] ✅ Registered Thai fonts (regular + bold)`);
       } else {
         doc.registerFont('ThaiFontBold', regularFont);
-        console.log(`[PDF Service] ✅ Registered Thai font (regular only, using for bold)`);
       }
 
       return true;
@@ -109,7 +103,6 @@ export class ItemComparisonPdfService {
         throw new Error('Thai font not found in project assets. Please ensure THSarabunNew.ttf exists in apps/report-service/assets/fonts/');
       }
       
-      console.log('[PDF Service] ✅ Using Thai font from project assets');
 
       return new Promise((resolve, reject) => {
         doc.on('data', (chunk) => chunks.push(chunk));

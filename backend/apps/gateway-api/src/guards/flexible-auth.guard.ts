@@ -39,7 +39,7 @@ export class FlexibleAuthGuard implements CanActivate {
           throw new UnauthorizedException(result.message || 'Invalid token');
         }
         
-        request.user = result.data;
+        request.user = result.data.user;
         return true;
       }),
       catchError((error) => {
@@ -60,15 +60,24 @@ export class FlexibleAuthGuard implements CanActivate {
     }).pipe(
       map((result: any) => {
         if (!result.success) {
-          throw new UnauthorizedException(result.message || 'Invalid client credential');
+          // If admin validation fails, allow request to pass (will check staff in controller)
+          request.clientIdForStaffCheck = clientId; // Store client_id for staff check
+          return true;
         }
         
+        // Admin credential validated successfully
         request.user = result.data.user;
-        request.clientCredential = result.data.credential;
+        request.clientCredential = {
+          ...result.data.credential,
+          user: result.data.user,
+          userType: result.data.userType
+        };
         return true;
       }),
       catchError((error) => {
-        throw new UnauthorizedException(error.message || 'Client credential validation failed');
+        // If error occurs, allow request to pass (will check staff in controller)
+        request.clientIdForStaffCheck = clientId; // Store client_id for staff check
+        return of(true); // Return Observable<boolean>
       })
     );
   }

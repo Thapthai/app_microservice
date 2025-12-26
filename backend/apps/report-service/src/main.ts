@@ -14,8 +14,6 @@ async function bootstrap() {
     },
   );
 
-  console.log('[Report Service] Starting on port 3006...');
   await app.listen();
-  console.log('[Report Service] Microservice is listening on port 3006');
 }
 bootstrap();

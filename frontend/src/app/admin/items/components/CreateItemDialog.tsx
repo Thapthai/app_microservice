@@ -58,16 +58,16 @@ export default function CreateItemDialog({
       });
 
       if (response.success) {
-        toast.success('เพิ่มสินค้าเรียบร้อยแล้ว');
+        toast.success('เพิ่มอุปกรณ์เรียบร้อยแล้ว');
         form.reset();
         onOpenChange(false);
         onSuccess();
       } else {
-        toast.error(response.message || 'ไม่สามารถเพิ่มสินค้าได้');
+        toast.error(response.message || 'ไม่สามารถเพิ่มอุปกรณ์ได้');
       }
     } catch (error: any) {
       console.error('Create item error:', error);
-      toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการเพิ่มสินค้า');
+      toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการเพิ่มอุปกรณ์');
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export default function CreateItemDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
+          <DialogTitle>เพิ่มอุปกรณ์ใหม่</DialogTitle>
           <DialogDescription>
             เพิ่มเวชภัณฑ์หรืออุปกรณ์ใหม่เข้าสู่ระบบ
           </DialogDescription>

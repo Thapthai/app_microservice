@@ -305,15 +305,12 @@ export class GatewayApiController {
       const axios = require('axios');
       const itemServiceUrl = process.env.ITEM_SERVICE_URL || 'http://localhost:3009';
 
-      console.log('🌐 Gateway JSON received body:', JSON.stringify(body, null, 2));
-      console.log('🌐 Body keys:', Object.keys(body || {}));
-
       const response = await axios.post(`${itemServiceUrl}/items`, body, {
         headers: {
           'Content-Type': 'application/json',
         },
       });
-      
+
       return response.data;
     } catch (error) {
       console.error('❌ Gateway error:', error.response?.data || error.message);
@@ -338,9 +335,6 @@ export class GatewayApiController {
       const axios = require('axios');
       const itemServiceUrl = process.env.ITEM_SERVICE_URL || 'http://localhost:3009';
       const FormData = require('form-data');
-
-      console.log('🌐 Gateway Upload received body:', JSON.stringify(body, null, 2));
-      console.log('🌐 Has file?', !!file);
 
       const formData = new FormData();
 
@@ -719,7 +713,7 @@ export class GatewayApiController {
 
   @Post('medical-supplies')
   @UseGuards(FlexibleAuthGuard)
-  async createMedicalSupplyUsage(@Body() data: any) {
+  async createMedicalSupplyUsage(@Body() data: any, @Request() req: any) {
     try {
       // Validate required fields based on format
       if (data.Order && Array.isArray(data.Order)) {
@@ -745,8 +739,34 @@ export class GatewayApiController {
         );
       }
 
-      // Pass data directly to service (no transformation needed)
-      const result = await this.gatewayApiService.createMedicalSupplyUsage(data);
+      // Extract user information from request
+      let userInfo = req.user;
+      let userType = 'admin'; // Default for JWT authentication
+
+      // Priority 1: If using Bearer token (JWT) → use admin
+      if (req.user && !req.clientCredential) {
+        userInfo = req.user;
+        userType = 'admin';
+      }
+      // Priority 2: If client credential validated successfully → use userType from credential
+      else if (req.clientCredential) {
+        userInfo = req.clientCredential.user;
+        userType = req.clientCredential.userType || 'admin';
+      }
+      // Priority 3: If admin validation failed but has client_id → pass to service to check staff
+      else if (req.clientIdForStaffCheck) {
+        // Pass client_id to service, service will check if it's staff
+        userInfo = { client_id: req.clientIdForStaffCheck };
+        userType = 'unknown'; // Will be determined by service
+      } else {
+        throw new HttpException(
+          'Authentication required. Provide either Bearer token or client_id/client_secret headers.',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      // Pass data with user information to service
+      const result = await this.gatewayApiService.createMedicalSupplyUsage(data, { user: userInfo, userType });
       return result;
     } catch (error) {
       throw new HttpException(
@@ -766,138 +786,39 @@ export class GatewayApiController {
     @Query('department_code') department_code?: string,
     @Query('billing_status') billing_status?: string,
     @Query('usage_type') usage_type?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('keyword') keyword?: string,
+    @Query('user_name') user_name?: string,
+    @Query('first_name') first_name?: string,
+    @Query('lastname') lastname?: string,
+    @Query('assession_no') assession_no?: string,
   ) {
     try {
-      const query = { page, limit, patient_hn, department_code, billing_status, usage_type };
+      const query = { page, limit, patient_hn, department_code, billing_status, usage_type, startDate, endDate, keyword, user_name, first_name, lastname, assession_no };
       const result = await this.gatewayApiService.getMedicalSupplyUsages(query);
 
-      // Transform response to match required format
+      // Return data from service directly, only filter by visit_date if needed
       if (result.success && result.data) {
-        // Filter by visit_date if provided
         let filteredData = result.data;
+        
+        // Filter by visit_date if provided (use created_at instead of usage_datetime)
         if (visit_date && result.data.length > 0) {
           filteredData = result.data.filter((item: any) => {
-            if (!item.usage_datetime) return false;
-            // Extract date part from usage_datetime (YYYY-MM-DD)
-            const usageDate = item.usage_datetime.split('T')[0];
+            if (!item.created_at) return false;
+            const usageDate = item.created_at.split('T')[0];
             return usageDate === visit_date;
           });
         }
 
-        // If single record (filtered by patient_hn and optionally visit_date), return single object
-        if (patient_hn && filteredData.length === 1) {
-          const item = filteredData[0];
-          return {
-            id: item.id, // เพิ่ม id ใน top level
-            usage_id: item.id, // เพิ่ม usage_id ใน top level สำหรับ frontend
-            status: 'success',
-            data: {
-              id: item.id, // เพิ่ม id สำหรับ frontend
-              hospital: item.hospital,
-              en: item.en,
-              patient_hn: item.patient_hn,
-              first_name: item.first_name,
-              lastname: item.lastname,
-              name_th: item.patient_name_th || `${item.first_name} ${item.lastname}`,
-              name_en: item.patient_name_en || `${item.first_name} ${item.lastname}`,
-              department_code: item.department_code, // เพิ่มแผนก
-              usage_datetime: item.usage_datetime, // เพิ่มวันที่
-            },
-            supplies_count: item.supply_items?.length || 0,
-            supplies_summary: item.supply_items?.map((supply: any) => ({
-              order_item_code: supply.order_item_code,
-              order_item_description: supply.order_item_description,
-              assession_no: supply.assession_no,
-              order_item_status: supply.order_item_status,
-              qty: supply.qty,
-              uom: supply.uom,
-              // Legacy fields
-              supply_code: supply.supply_code,
-              supply_name: supply.supply_name,
-              quantity: supply.quantity,
-              unit: supply.unit,
-              total_price: supply.total_price || 0,
-            })) || [],
-            usage_details: {
-              usage_datetime: item.usage_datetime,
-              usage_type: item.usage_type,
-            },
-            personnel: {
-              recorded_by: item.recorded_by_user_id,
-            },
-            billing: {
-              status: item.billing_status,
-              subtotal: item.billing_subtotal || 0,
-              tax: item.billing_tax || 0,
-              total: item.billing_total || 0,
-              currency: item.billing_currency || 'THB',
-            },
-            print_info: {
-              twu: item.twu,
-              print_location: item.print_location,
-              print_date: item.print_date,
-              time_print_date: item.time_print_date,
-              update: item.update,
-            },
-            created_at: item.created_at,
-            timestamp: item.created_at,
-          };
-        }
-
-        // Multiple records - return array
-        const transformedData = filteredData.map((item: any) => ({
-          id: item.id, // เพิ่ม id เพื่อให้ frontend ใช้งาน
-          status: 'success',
-          data: {
-            id: item.id, // เพิ่ม id ใน nested data ด้วย
-            hospital: item.hospital,
-            en: item.en,
-            patient_hn: item.patient_hn,
-            first_name: item.first_name,
-            lastname: item.lastname,
-            name_th: item.patient_name_th || `${item.first_name} ${item.lastname}`,
-            name_en: item.patient_name_en || `${item.first_name} ${item.lastname}`,
-          },
-          supplies_count: item.supply_items?.length || 0,
-          supplies_summary: item.supply_items?.map((supply: any) => ({
-            order_item_code: supply.order_item_code,
-            order_item_description: supply.order_item_description,
-            assession_no: supply.assession_no,
-            order_item_status: supply.order_item_status,
-            qty: supply.qty,
-            uom: supply.uom,
-            // Legacy fields
-            supply_code: supply.supply_code,
-            supply_name: supply.supply_name,
-            quantity: supply.quantity,
-            unit: supply.unit,
-            total_price: supply.total_price || 0,
-          })) || [],
-          usage_details: {
-            usage_datetime: item.usage_datetime,
-            usage_type: item.usage_type,
-          },
-          personnel: {
-            recorded_by: item.recorded_by_user_id,
-          },
-          billing: {
-            status: item.billing_status,
-            subtotal: item.billing_subtotal || 0,
-            tax: item.billing_tax || 0,
-            total: item.billing_total || 0,
-            currency: item.billing_currency || 'THB',
-          },
-          created_at: item.created_at,
-          timestamp: item.created_at,
-        }));
-
+        // Return service response directly with filtered data (preserve all fields including recorded_by_name and recorded_by_display)
         return {
           status: 'success',
-          data: transformedData,
-          total: filteredData.length,
-          page: result.page,
-          limit: result.limit,
-          timestamp: new Date().toISOString(),
+          data: filteredData,
+          total: result.total || filteredData.length,
+          page: result.page || page || 1,
+          limit: result.limit || limit || 10,
+          lastPage: result.lastPage || Math.ceil((result.total || filteredData.length) / (result.limit || limit || 10)),
         };
       }
 
@@ -941,6 +862,20 @@ export class GatewayApiController {
   @Put('medical-supplies/:id')
   @UseGuards(FlexibleAuthGuard)
   async updateMedicalSupplyUsage(@Param('id') id: string, @Body() updateData: UpdateMedicalSupplyUsageDto) {
+    try {
+      const result = await this.gatewayApiService.updateMedicalSupplyUsage(parseInt(id), updateData);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update medical supply usage',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Patch('medical-supplies/:id')
+  @UseGuards(FlexibleAuthGuard)
+  async patchMedicalSupplyUsage(@Param('id') id: string, @Body() updateData: any) {
     try {
       const result = await this.gatewayApiService.updateMedicalSupplyUsage(parseInt(id), updateData);
       return result;
@@ -1210,7 +1145,7 @@ export class GatewayApiController {
   async exportComparisonExcel(@Param('usageId', ParseIntPipe) usageId: number, @Res() res) {
     try {
       const result = await this.gatewayApiService.generateComparisonExcel(usageId);
-      
+
       if (!result.success) {
         throw new HttpException(result.error || 'Failed to generate Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
       }
@@ -1231,7 +1166,7 @@ export class GatewayApiController {
   async exportComparisonPDF(@Param('usageId', ParseIntPipe) usageId: number, @Res() res) {
     try {
       const result = await this.gatewayApiService.generateComparisonPDF(usageId);
-      
+
       if (!result.success) {
         throw new HttpException(result.error || 'Failed to generate PDF report', HttpStatus.INTERNAL_SERVER_ERROR);
       }
@@ -1277,7 +1212,7 @@ export class GatewayApiController {
       }
 
       const result = await this.gatewayApiService.generateEquipmentUsageExcel(params);
-      
+
       if (!result.success) {
         throw new HttpException(result.error || 'Failed to generate Equipment Usage Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
       }
@@ -1323,7 +1258,7 @@ export class GatewayApiController {
       }
 
       const result = await this.gatewayApiService.generateEquipmentUsagePDF(params);
-      
+
       if (!result.success) {
         throw new HttpException(result.error || 'Failed to generate Equipment Usage PDF report', HttpStatus.INTERNAL_SERVER_ERROR);
       }
@@ -1362,7 +1297,7 @@ export class GatewayApiController {
       };
 
       const result = await this.gatewayApiService.generateEquipmentDisbursementExcel(params);
-      
+
       if (!result.success) {
         throw new HttpException(result.error || 'Failed to generate Equipment Disbursement Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
       }
@@ -1401,7 +1336,7 @@ export class GatewayApiController {
       };
 
       const result = await this.gatewayApiService.generateEquipmentDisbursementPDF(params);
-      
+
       if (!result.success) {
         throw new HttpException(result.error || 'Failed to generate Equipment Disbursement PDF report', HttpStatus.INTERNAL_SERVER_ERROR);
       }

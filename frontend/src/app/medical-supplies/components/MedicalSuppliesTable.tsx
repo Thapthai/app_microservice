@@ -1,54 +1,30 @@
 'use client';
 
-import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Syringe, Edit, Trash2, Printer, Eye } from 'lucide-react';
-import { SkeletonTable } from '@/components/Skeleton';
-import Pagination from '@/components/Pagination';
-
-interface MedicalSupply {
-  id?: number;
-  data?: {
-    hospital?: string;
-    en?: string;
-    patient_hn?: string;
-    first_name?: string;
-    lastname?: string;
-    name_th?: string;
-    name_en?: string;
-  };
-  supplies_count?: number;
-  supplies_summary?: any[];
-  usage_details?: {
-    usage_datetime?: string;
-    usage_type?: string;
-  };
-  personnel?: {
-    recorded_by?: string;
-  };
-  billing?: {
-    status?: string;
-    subtotal?: number;
-    tax?: number;
-    total?: number;
-    currency?: string;
-  };
-  created_at: string;
-  timestamp?: string;
-}
+import { Badge } from '@/components/ui/badge';
+import { RefreshCw, Package } from 'lucide-react';
 
 interface MedicalSuppliesTableProps {
   loading: boolean;
-  supplies: MedicalSupply[];
+  supplies: any[];
   currentPage: number;
   totalPages: number;
   totalItems: number;
+  itemsPerPage: number;
   onPageChange: (page: number) => void;
-  onView?: (supply: MedicalSupply) => void;
-  onEdit?: (supply: MedicalSupply) => void;
-  onDelete?: (supply: MedicalSupply) => void;
-  onPrint?: (supply: MedicalSupply) => void;
+  onSelectSupply?: (supply: any) => void;
+  selectedSupplyId?: number | null;
+  filters: {
+    startDate: string;
+    endDate: string;
+    patientHN: string;
+    keyword: string;
+    firstName: string;
+    lastName: string;
+    assessionNo: string;
+  };
 }
 
 export default function MedicalSuppliesTable({
@@ -57,368 +33,288 @@ export default function MedicalSuppliesTable({
   currentPage,
   totalPages,
   totalItems,
+  itemsPerPage,
   onPageChange,
-  onView,
-  onEdit,
-  onDelete,
-  onPrint,
+  onSelectSupply,
+  selectedSupplyId,
+  filters,
 }: MedicalSuppliesTableProps) {
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const getBillingStatusBadge = (status: string | null | undefined) => {
+    if (!status) {
+      return (
+        <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+          <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-gray-500"></span>
+          ไม่ระบุ
+        </Badge>
+      );
+    }
+
+    const statusLower = status.toLowerCase();
+    const statusConfig: any = {
+      'cancelled': {
+        label: 'ยกเลิก',
+        className: 'bg-red-50 text-red-700 border-red-200',
+        dotColor: 'bg-red-500'
+      },
+      'paid': {
+        label: 'ชำระแล้ว',
+        className: 'bg-green-50 text-green-700 border-green-200',
+        dotColor: 'bg-green-500'
+      },
+      'pending': {
+        label: 'รอชำระ',
+        className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+        dotColor: 'bg-yellow-500'
+      },
+      'verified': {
+        label: 'ยืนยันแล้ว',
+        className: 'bg-blue-50 text-blue-700 border-blue-200',
+        dotColor: 'bg-blue-500'
+      },
+    };
+
+    const config = statusConfig[statusLower] || {
+      label: status,
+      className: 'bg-gray-50 text-gray-700 border-gray-200',
+      dotColor: 'bg-gray-500'
+    };
+
+    return (
+      <Badge variant="outline" className={`${config.className} border`}>
+        <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${config.dotColor}`}></span>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const generatePageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <div>
-            <CardTitle>รายการใช้เวชภัณฑ์</CardTitle>
+            <CardTitle>รายการเบิกอุปกรณ์</CardTitle>
             <CardDescription>
-              {!loading && supplies.length > 0 && `ทั้งหมด ${totalItems} รายการ`}
+              ทั้งหมด {totalItems} รายการ
+              {filters.startDate && filters.endDate && (
+                <span className="ml-2">
+                  (วันที่ {new Date(filters.startDate).toLocaleDateString('th-TH')} - {new Date(filters.endDate).toLocaleDateString('th-TH')})
+                </span>
+              )}
             </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="px-4 py-4">
         {loading ? (
-          <div className="p-6">
-            <SkeletonTable />
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+            <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
           </div>
         ) : supplies.length === 0 ? (
-          <EmptyState />
+          <div className="text-center py-12">
+            <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">ไม่พบรายการเบิก</p>
+            <p className="text-sm text-gray-400 mt-2">ลองเปลี่ยนเงื่อนไขการค้นหา</p>
+          </div>
         ) : (
-          <SuppliesTable
-            supplies={supplies}
-            onView={onView}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onPrint={onPrint}
-          />
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">ลำดับ</TableHead>
+                  <TableHead>HN</TableHead>
+                  <TableHead>ชื่อผู้ป่วย</TableHead>
+                  <TableHead>Assession No</TableHead>
+                  <TableHead>ผู้เบิก</TableHead>
+                  <TableHead>เวลาที่เบิก</TableHead>
+                  <TableHead className="text-center">จำนวนรายการ</TableHead>
+                  <TableHead>สถานะ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {supplies.map((supply, index) => {
+                  const supplyData = supply.data || supply;
+                  const id = supply.id || supplyData.id;
+                  const patientName = `${supplyData.first_name || ''} ${supplyData.lastname || ''}`.trim() || 
+                                     supplyData.patient_name_th || '-';
+                  const recordedByName = supplyData.recorded_by_display ||
+                                        supply.recorded_by_display ||
+                                        supply.recorded_by_name || 
+                                        supplyData.recorded_by_name || '-';
+                  
+                  const isSelected = selectedSupplyId === id;
+                  
+                  return (
+                    <TableRow 
+                      key={id || index}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected ? 'bg-purple-100 hover:bg-purple-100' : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => onSelectSupply && onSelectSupply(supply)}
+                    >
+                      <TableCell className="text-center">
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </TableCell>
+                      <TableCell className="font-mono font-medium">
+                        {supplyData.patient_hn || '-'}
+                      </TableCell>
+                      <TableCell>
+                        {patientName}
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const supplyItems = supplyData.supply_items || supply.supply_items || [];
+                          const assessionNos = supplyItems
+                            .map((item: any) => item.assession_no)
+                            .filter((no: string) => no && no.trim() !== '');
+                          
+                          if (assessionNos.length === 0) {
+                            return <span className="text-gray-400">-</span>;
+                          }
+                          
+                          // Show first assession_no, or multiple if there are few
+                          if (assessionNos.length === 1) {
+                            return (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
+                                {assessionNos[0]}
+                              </Badge>
+                            );
+                          }
+                          
+                          // If multiple, show first one with count
+                          return (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
+                              {assessionNos[0]} {assessionNos.length > 1 && `(+${assessionNos.length - 1})`}
+                            </Badge>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-700">{recordedByName}</span>
+                      </TableCell>
+                      <TableCell>
+                        {formatDate(supply.created_at || supplyData.created_at || supplyData.usage_datetime)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold">
+                          {supply.supplies_count || supplyData.supplies_count || (supplyData.supply_items || []).length || 0}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {getBillingStatusBadge(supplyData.billing_status || supply.billing_status)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && supplies.length > 0 && totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between border-t pt-4">
+            <div className="text-sm text-gray-500">
+              หน้า {currentPage} จาก {totalPages} ({totalItems} รายการ)
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(1)}
+                disabled={currentPage === 1}
+              >
+                แรกสุด
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                ก่อนหน้า
+              </Button>
+              
+              {generatePageNumbers().map((page, idx) =>
+                page === '...' ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>
+                ) : (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => onPageChange(page as number)}
+                  >
+                    {page}
+                  </Button>
+                )
+              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                ถัดไป
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                สุดท้าย
+              </Button>
+            </div>
+          </div>
         )}
       </CardContent>
-      {!loading && supplies.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-          loading={loading}
-        />
-      )}
     </Card>
   );
 }
-
-function EmptyState() {
-  return (
-    <div className="text-center py-12">
-      <Syringe className="mx-auto h-12 w-12 text-gray-400" />
-      <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-        ไม่มีข้อมูล
-      </h3>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        เริ่มต้นด้วยการบันทึกการใช้เวชภัณฑ์
-      </p>
-    </div>
-  );
-}
-
-function SuppliesTable({
-  supplies,
-  onView,
-  onEdit,
-  onDelete,
-  onPrint,
-}: {
-  supplies: MedicalSupply[];
-  onView?: (supply: MedicalSupply) => void;
-  onEdit?: (supply: MedicalSupply) => void;
-  onDelete?: (supply: MedicalSupply) => void;
-  onPrint?: (supply: MedicalSupply) => void;
-}) {
-  return (
-    <>
-      {/* Mobile Card View */}
-      <div className="block md:hidden">
-        {supplies.map((supply, index) => (
-          <MobileSupplyCard
-            key={supply.id || index}
-            supply={supply}
-            onView={onView}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onPrint={onPrint}
-          />
-        ))}
-      </div>
-
-      {/* Desktop Table View */}
-      <div className="hidden md:block w-full overflow-x-auto">
-        <div className="inline-block min-w-full align-middle">
-          <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                HN / EN
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                ชื่อผู้ป่วย
-              </th>
-              <th className="hidden lg:table-cell px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                โรงพยาบาล
-              </th>
-              <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                รายการ
-              </th>
-              <th className="hidden xl:table-cell px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                มูลค่ารวม
-              </th>
-              <th className="hidden lg:table-cell px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                วันที่บันทึก
-              </th>
-              <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                จัดการ
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
-            {supplies.map((supply, index) => {
-              const patientData = supply.data;
-              const hn = patientData?.patient_hn || '-';
-              const en = patientData?.en || '-';
-              const patientName = patientData?.name_th || patientData?.name_en || 
-                                  `${patientData?.first_name || ''} ${patientData?.lastname || ''}`.trim() || '-';
-              const hospital = patientData?.hospital || '-';
-              const suppliesCount = supply.supplies_count || 0;
-              const totalAmount = supply.billing?.total || 0;
-              const currency = supply.billing?.currency || 'THB';
-              const createdAt = supply.created_at || supply.timestamp;
-
-              return (
-                <tr key={supply.id || index} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="text-sm">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {hn}
-                      </div>
-                      {en && en !== '-' && (
-                        <div className="text-gray-500 dark:text-gray-400 text-xs">
-                          EN: {en}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {patientName}
-                    </div>
-                  </td>
-                  <td className="hidden lg:table-cell px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {hospital}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                      {suppliesCount}
-                    </span>
-                  </td>
-                  <td className="hidden xl:table-cell px-3 py-2 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                    {totalAmount > 0 ? (
-                      <span className="font-medium">
-                        {totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="hidden lg:table-cell px-3 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {createdAt ? new Date(createdAt).toLocaleDateString('th-TH', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    }) : '-'}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end gap-1">
-                      {onView && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900"
-                          onClick={() => onView(supply)}
-                          title="ดูรายละเอียด"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      {onPrint && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900"
-                          onClick={() => onPrint(supply)}
-                          title="พิมพ์"
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      {onEdit && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="hidden xl:inline-flex h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900"
-                          onClick={() => onEdit(supply)}
-                          title="แก้ไข"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      {onDelete && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="hidden xl:inline-flex h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900"
-                          onClick={() => onDelete(supply)}
-                          title="ลบ"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    </>
-  );
-}
-
-function MobileSupplyCard({
-  supply,
-  onView,
-  onEdit,
-  onDelete,
-  onPrint,
-}: {
-  supply: MedicalSupply;
-  onView?: (supply: MedicalSupply) => void;
-  onEdit?: (supply: MedicalSupply) => void;
-  onDelete?: (supply: MedicalSupply) => void;
-  onPrint?: (supply: MedicalSupply) => void;
-}) {
-  const patientData = supply.data;
-  const hn = patientData?.patient_hn || '-';
-  const en = patientData?.en || '-';
-  const patientName = patientData?.name_th || patientData?.name_en || 
-                      `${patientData?.first_name || ''} ${patientData?.lastname || ''}`.trim() || '-';
-  const hospital = patientData?.hospital || '-';
-  const suppliesCount = supply.supplies_count || 0;
-  const totalAmount = supply.billing?.total || 0;
-  const currency = supply.billing?.currency || 'THB';
-  const createdAt = supply.created_at || supply.timestamp;
-
-  return (
-    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">
-              {hn}
-            </span>
-            {en && en !== '-' && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                EN: {en}
-              </span>
-            )}
-          </div>
-          <div className="text-base font-medium text-gray-900 dark:text-white">
-            {patientName}
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          {onView && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900"
-              onClick={() => onView(supply)}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-          )}
-          {onPrint && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900"
-              onClick={() => onPrint(supply)}
-            >
-              <Printer className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Details */}
-      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-        {hospital && hospital !== '-' && (
-          <div>
-            <span className="text-gray-500 dark:text-gray-400">โรงพยาบาล:</span>
-            <span className="ml-1 text-gray-900 dark:text-white">{hospital}</span>
-          </div>
-        )}
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">รายการ:</span>
-          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-            {suppliesCount}
-          </span>
-        </div>
-        {totalAmount > 0 && (
-          <div className="col-span-2">
-            <span className="text-gray-500 dark:text-gray-400">มูลค่ารวม:</span>
-            <span className="ml-1 font-medium text-gray-900 dark:text-white">
-              {totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} {currency}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="flex justify-between items-center pt-2 border-t border-gray-100 dark:border-gray-800">
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          {createdAt ? new Date(createdAt).toLocaleDateString('th-TH', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          }) : '-'}
-        </span>
-        <div className="flex items-center gap-1">
-          {onEdit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900"
-              onClick={() => onEdit(supply)}
-            >
-              <Edit className="h-3 w-3 mr-1" />
-              แก้ไข
-            </Button>
-          )}
-          {onDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900"
-              onClick={() => onDelete(supply)}
-            >
-              <Trash2 className="h-3 w-3 mr-1" />
-              ลบ
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-

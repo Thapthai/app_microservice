@@ -10,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { CheckCircle, XCircle } from 'lucide-react';
 
 interface ComparisonTableProps {
   items: any[];
@@ -22,8 +21,8 @@ export default function ComparisonTable({ items }: ComparisonTableProps) {
       <CardHeader>
         <CardTitle>รายการเปรียบเทียบอุปกรณ์</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="rounded-md border overflow-x-auto">
+      <CardContent className="px-4 py-4">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">
@@ -67,10 +66,7 @@ export default function ComparisonTable({ items }: ComparisonTableProps) {
                 return (
                   <TableRow 
                     key={item.id || index}
-                    className={`
-                      ${isMatch ? 'bg-green-50 hover:bg-green-100' : 'bg-red-50 hover:bg-red-100'}
-                      transition-colors
-                    `}
+                    className="hover:bg-gray-50 transition-colors"
                   >
                     <TableCell className="text-center font-medium">
                       {index + 1}
@@ -120,13 +116,13 @@ export default function ComparisonTable({ items }: ComparisonTableProps) {
                     </TableCell>
                     <TableCell className="text-center">
                       {isMatch ? (
-                        <Badge variant="default" className="bg-green-600 hover:bg-green-700">
-                          <CheckCircle className="h-3 w-3 mr-1" />
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-green-500"></span>
                           Match
                         </Badge>
                       ) : (
-                        <Badge variant="destructive">
-                          <XCircle className="h-3 w-3 mr-1" />
+                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>
                           Not Match
                         </Badge>
                       )}

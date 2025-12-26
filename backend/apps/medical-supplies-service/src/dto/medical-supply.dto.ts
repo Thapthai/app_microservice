@@ -288,6 +288,34 @@ export class GetMedicalSupplyUsagesQueryDto {
   usage_type?: string;
 
   @IsOptional()
+  @IsString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsString()
+  keyword?: string;
+
+  @IsOptional()
+  @IsString()
+  user_name?: string;
+
+  @IsOptional()
+  @IsString()
+  first_name?: string;
+
+  @IsOptional()
+  @IsString()
+  lastname?: string;
+
+  @IsOptional()
+  @IsString()
+  assession_no?: string;
+
+  @IsOptional()
   @IsNumber()
   page?: number;
 
@@ -400,6 +428,8 @@ export interface MedicalSupplyUsageResponse {
   purpose?: string;
   department_code?: string;
   recorded_by_user_id?: string;
+  recorded_by_name?: string;
+  recorded_by_display?: string;
   billing_status?: string;
   billing_subtotal?: number;
   billing_tax?: number;

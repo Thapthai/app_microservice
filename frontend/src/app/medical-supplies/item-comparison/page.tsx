@@ -56,6 +56,9 @@ export default function ItemComparisonPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [itemTypeFilter, setItemTypeFilter] = useState('all');
+  const [searchFirstName, setSearchFirstName] = useState('');
+  const [searchLastName, setSearchLastName] = useState('');
+  const [searchAssessionNo, setSearchAssessionNo] = useState('');
 
   // Pagination for comparison list
   const [currentPage, setCurrentPage] = useState(1);
@@ -147,6 +150,9 @@ export default function ItemComparisonPage() {
     setItemTypeFilter('all');
     setStartDate('');
     setEndDate('');
+    setSearchFirstName('');
+    setSearchLastName('');
+    setSearchAssessionNo('');
     setCurrentPage(1);
     fetchComparisonList(1);
   };
@@ -168,6 +174,9 @@ export default function ItemComparisonPage() {
       
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
+      if (searchFirstName) params.first_name = searchFirstName;
+      if (searchLastName) params.lastname = searchLastName;
+      if (searchAssessionNo) params.assession_no = searchAssessionNo;
       
       const response = await medicalSuppliesApi.getUsageByItemCode(params) as any;
       
@@ -295,16 +304,42 @@ export default function ItemComparisonPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: any = {
-      'MATCHED': { label: 'ตรงกัน', variant: 'default', className: 'bg-green-500' },
-      'DISPENSED_NOT_USED': { label: 'เบิกแล้วไม่ใช้', variant: 'destructive', className: 'bg-orange-500' },
-      'USED_WITHOUT_DISPENSE': { label: 'ใช้โดยไม่เบิก', variant: 'destructive', className: 'bg-red-500' },
-      'DISPENSE_EXCEEDS_USAGE': { label: 'เบิกเกิน', variant: 'destructive', className: 'bg-yellow-500' },
-      'USAGE_EXCEEDS_DISPENSE': { label: 'ใช้เกิน', variant: 'destructive', className: 'bg-purple-500' }
+      'MATCHED': { 
+        label: 'ตรงกัน', 
+        className: 'bg-green-50 text-green-700 border-green-200',
+        dotColor: 'bg-green-500'
+      },
+      'DISPENSED_NOT_USED': { 
+        label: 'เบิกแล้วไม่ใช้', 
+        className: 'bg-orange-50 text-orange-700 border-orange-200',
+        dotColor: 'bg-orange-500'
+      },
+      'USED_WITHOUT_DISPENSE': { 
+        label: 'ใช้โดยไม่เบิก', 
+        className: 'bg-red-50 text-red-700 border-red-200',
+        dotColor: 'bg-red-500'
+      },
+      'DISPENSE_EXCEEDS_USAGE': { 
+        label: 'เบิกเกิน', 
+        className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+        dotColor: 'bg-yellow-500'
+      },
+      'USAGE_EXCEEDS_DISPENSE': { 
+        label: 'ใช้เกิน', 
+        className: 'bg-purple-50 text-purple-700 border-purple-200',
+        dotColor: 'bg-purple-500'
+      }
     };
 
-    const config = statusConfig[status] || { label: status, variant: 'secondary', className: '' };
+    const config = statusConfig[status] || { 
+      label: status, 
+      className: 'bg-gray-50 text-gray-700 border-gray-200',
+      dotColor: 'bg-gray-500'
+    };
+    
     return (
-      <Badge variant={config.variant as any} className={config.className}>
+      <Badge variant="outline" className={`${config.className} border`}>
+        <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${config.dotColor}`}></span>
         {config.label}
       </Badge>
     );
@@ -435,6 +470,39 @@ export default function ItemComparisonPage() {
                     onChange={(e) => setEndDate(e.target.value)}
                   />
                 </div>
+
+                {/* First Name */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">ชื่อ (Firstname)</label>
+                  <Input
+                    placeholder="กรอกชื่อ..."
+                    value={searchFirstName}
+                    onChange={(e) => setSearchFirstName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                </div>
+
+                {/* Last Name */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">นามสกุล (Lastname)</label>
+                  <Input
+                    placeholder="กรอกนามสกุล..."
+                    value={searchLastName}
+                    onChange={(e) => setSearchLastName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                </div>
+
+                {/* Assession No */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Assession No</label>
+                  <Input
+                    placeholder="กรอก Assession No..."
+                    value={searchAssessionNo}
+                    onChange={(e) => setSearchAssessionNo(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                </div>
               </div>
 
               <div className="flex gap-2 mt-4">
@@ -484,7 +552,7 @@ export default function ItemComparisonPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 py-4">
               {loadingList ? (
                 <div className="flex items-center justify-center py-12">
                   <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
@@ -492,12 +560,12 @@ export default function ItemComparisonPage() {
                 </div>
               ) : filteredList.length === 0 ? (
                 <div className="text-center py-12">
-                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">ไม่พบรายการเปรียบเทียบ</p>
                   <p className="text-sm text-gray-400 mt-2">กรุณาตรวจสอบว่ามีข้อมูลในระบบ</p>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -773,7 +841,7 @@ export default function ItemComparisonPage() {
                   <CardTitle>ผู้ป่วยที่ใช้เวชภัณฑ์นี้</CardTitle>
                   <CardDescription>รายการผู้ป่วยทั้งหมดที่ใช้ {selectedItem.itemname}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-4 py-4">
                   {loadingUsage ? (
                     <div className="flex items-center justify-center py-12">
                       <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
@@ -781,7 +849,7 @@ export default function ItemComparisonPage() {
                     </div>
                   ) : usageItems.length === 0 ? (
                     <div className="text-center py-12">
-                      <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                       <p className="text-gray-500">ไม่พบรายการใช้งาน</p>
                     </div>
                   ) : (

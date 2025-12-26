@@ -53,10 +53,8 @@ export class EquipmentUsagePdfService {
       
       if (fs.existsSync(boldFont)) {
         doc.registerFont('ThaiFontBold', boldFont);
-        console.log(`[PDF Service] ✅ Registered Thai fonts (regular + bold) from project`);
       } else {
         doc.registerFont('ThaiFontBold', regularFont);
-        console.log(`[PDF Service] ✅ Registered Thai font (regular only) from project`);
       }
 
       return true;
@@ -88,16 +86,12 @@ export class EquipmentUsagePdfService {
         if (hasTahoma) {
           finalFontName = 'Tahoma';
           finalFontBoldName = 'Tahoma-Bold';
-          console.log('[PDF Service] Using Tahoma font (supports Thai)');
         } else {
           // Try Thai font as fallback
           const hasThaiFont = await this.registerThaiFont(doc);
           if (hasThaiFont) {
             finalFontName = 'ThaiFont';
             finalFontBoldName = 'ThaiFontBold';
-            console.log('[PDF Service] Using Thai font');
-          } else {
-            console.log('[PDF Service] Using Helvetica (Tahoma/Thai font not available - Thai text may display incorrectly)');
           }
         }
       } catch (fontError) {
@@ -105,8 +99,6 @@ export class EquipmentUsagePdfService {
         finalFontName = 'Helvetica';
         finalFontBoldName = 'Helvetica-Bold';
       }
-      
-      console.log(`[PDF Service] Final font: ${finalFontName}`);
 
       return new Promise((resolve, reject) => {
         doc.on('data', (chunk) => chunks.push(chunk));

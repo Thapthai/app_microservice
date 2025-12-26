@@ -67,20 +67,20 @@ export class ItemServiceService {
       const orderBy: any = {};
       orderBy[field] = order;
 
-      // Calculate total value of active items (item_status = 0 means active)
-      const activeItems = await this.prisma.item.findMany({
-        where: { item_status: 0 },
+      // Calculate low stock items (stock_balance < stock_min)
+      const allItems = await this.prisma.item.findMany({
+        where: { item_status: 0 }, // Only active items
         select: {
-          CostPrice: true,
           stock_balance: true,
+          stock_min: true,
         },
       });
 
-      const totalValue = activeItems.reduce((sum, item) => {
-        const price = item.CostPrice ? Number(item.CostPrice) : 0;
-        const quantity = item.stock_balance ?? 0;
-        return sum + (price * quantity);
-      }, 0);
+      const lowStockItems = allItems.filter(item => {
+        const stockBalance = item.stock_balance ?? 0;
+        const minimum = item.stock_min ?? 0;
+        return minimum > 0 && stockBalance < minimum;
+      });
 
       const [data, total, activeItemsCount] = await Promise.all([
         this.prisma.item.findMany({
@@ -93,22 +93,14 @@ export class ItemServiceService {
         this.prisma.item.count({ where: { item_status: 0 } }),
       ]);
 
-      // Debug: ตรวจสอบข้อมูล Min/Max
-      if (data.length > 0) {
-        console.log('🔍 First item Min/Max:', {
-          itemcode: data[0].itemcode,
-          Minimum: data[0].Minimum,
-          Maximum: data[0].Maximum,
-        });
-      }
-
+ 
       return {
         data,
         total,
         page,
         lastPage: Math.ceil(total / limit),
         stats: {
-          total_value: totalValue,
+          low_stock_items: lowStockItems.length,
           total_items: total,
           active_items: activeItemsCount,
           inactive_items: total - activeItemsCount,
@@ -227,12 +219,12 @@ export class ItemServiceService {
         return { success: false, message: 'Item not found' };
       }
 
-      // Validate: Maximum should be >= Minimum
-      if (updateMinMaxDto.Maximum !== undefined && updateMinMaxDto.Minimum !== undefined) {
-        if (updateMinMaxDto.Maximum < updateMinMaxDto.Minimum) {
+      // Validate: stock_max should be >= stock_min
+      if (updateMinMaxDto.stock_max !== undefined && updateMinMaxDto.stock_min !== undefined) {
+        if (updateMinMaxDto.stock_max < updateMinMaxDto.stock_min) {
           return { 
             success: false, 
-            message: 'Maximum must be greater than or equal to Minimum' 
+            message: 'Stock Max must be greater than or equal to Stock Min' 
           };
         }
       }

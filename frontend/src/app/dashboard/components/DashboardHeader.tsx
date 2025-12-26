@@ -21,7 +21,7 @@ export default function DashboardHeader({ userName, onCreateClick }: DashboardHe
         </div>
         <Button onClick={onCreateClick} className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all duration-200">
           <Plus className="mr-2 h-4 w-4" />
-          เพิ่มสินค้าใหม่
+          เพิ่มอุปกรณ์ใหม่
         </Button>
       </div>
     </div>

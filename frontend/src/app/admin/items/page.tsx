@@ -11,7 +11,6 @@ import { Package, Search, Plus, RefreshCw, Pencil, Trash2, Filter, Gauge } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import CreateItemDialog from './components/CreateItemDialog';
@@ -117,9 +116,19 @@ export default function ItemsPage() {
 
   const getStatusBadge = (status: number | undefined) => {
     if (status === 0) {
-      return <Badge className="bg-green-500 hover:bg-green-600">ใช้งาน</Badge>;
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full border bg-green-100 text-green-800 border-green-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+          ใช้งาน
+        </span>
+      );
     }
-    return <Badge variant="secondary">ไม่ใช้งาน</Badge>;
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full border bg-gray-100 text-gray-800 border-gray-200">
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+        ไม่ใช้งาน
+      </span>
+    );
   };
 
   const generatePageNumbers = () => {
@@ -161,8 +170,8 @@ export default function ItemsPage() {
                 <Package className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">จัดการสินค้า</h1>
-                <p className="text-sm text-gray-500">รายการสินค้าทั้งหมดในระบบ</p>
+                <h1 className="text-2xl font-bold text-gray-900">จัดการอุปกรณ์</h1>
+                <p className="text-sm text-gray-500">รายการอุปกรณ์ทั้งหมดในระบบ</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -180,7 +189,7 @@ export default function ItemsPage() {
                 onClick={() => setShowCreateDialog(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                เพิ่มสินค้า
+                เพิ่มอุปกรณ์
               </Button>
             </div>
           </div>
@@ -242,12 +251,12 @@ export default function ItemsPage() {
           {/* Table Section */}
           <Card>
             <CardHeader>
-              <CardTitle>รายการสินค้า</CardTitle>
+              <CardTitle>รายการอุปกรณ์</CardTitle>
               <CardDescription>
-                แสดง {filteredItems.length} รายการ จากทั้งหมด {totalItems} รายการ
+                แสดง {filteredItems.length} รายการ จากทั้งหมด {totalItems} อุปกรณ์
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 py-4">
               {loading ? (
                 <div className="flex justify-center items-center py-12">
                   <div className="text-center">
@@ -258,7 +267,7 @@ export default function ItemsPage() {
               ) : filteredItems.length === 0 ? (
                 <div className="text-center py-12">
                   <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">ไม่พบข้อมูลสินค้า</p>
+                  <p className="text-gray-500">ไม่พบข้อมูลอุปกรณ์</p>
                 </div>
               ) : (
                 <>
@@ -267,10 +276,9 @@ export default function ItemsPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[100px]">ลำดับ</TableHead>
-                          <TableHead>รหัสสินค้า</TableHead>
+                          <TableHead>รหัสอุปกรณ์</TableHead>
                           <TableHead>ชื่อสินค้า</TableHead>
-                          <TableHead>หมวดหมู่</TableHead>
-                          <TableHead>ราคา</TableHead>
+                          <TableHead className="text-center">Stock Balance</TableHead>
                           <TableHead className="text-center">Min/Max</TableHead>
                           <TableHead>สถานะ</TableHead>
                           <TableHead className="text-right">จัดการ</TableHead>
@@ -288,19 +296,16 @@ export default function ItemsPage() {
                               </code>
                             </TableCell>
                             <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
-                            <TableCell>
-                              {item.category?.name || '-'}
-                            </TableCell>
-                            <TableCell>
-                              {item.SalePrice ? `฿${item.SalePrice.toLocaleString()}` : 
-                               item.UsagePrice ? `฿${item.UsagePrice.toLocaleString()}` : 
-                               item.CostPrice ? `฿${item.CostPrice.toLocaleString()}` : '-'}
+                            <TableCell className="text-center">
+                              <span className="font-semibold text-gray-900">
+                                {item.stock_balance?.toLocaleString() ?? 0}
+                              </span>
                             </TableCell>
                             <TableCell className="text-center">
                               <div className="flex items-center justify-center space-x-1 text-xs">
-                                <span className="text-gray-600">{item.Minimum ?? 0}</span>
+                                <span className="text-gray-600">{item.stock_min ?? 0}</span>
                                 <span className="text-gray-400">/</span>
-                                <span className="text-gray-600">{item.Maximum ?? 0}</span>
+                                <span className="text-gray-600">{item.stock_max ?? 0}</span>
                               </div>
                             </TableCell>
                             <TableCell>{getStatusBadge(item.item_status)}</TableCell>
@@ -328,7 +333,7 @@ export default function ItemsPage() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleDelete(item)}
-                                  title="ลบสินค้า"
+                                  title="ลบอุปกรณ์"
                                   className="text-red-600 hover:text-red-700 hover:border-red-600"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -345,7 +350,7 @@ export default function ItemsPage() {
                   {totalPages > 1 && (
                     <div className="mt-6 flex items-center justify-between border-t pt-4">
                       <div className="text-sm text-gray-500">
-                        หน้า {currentPage} จาก {totalPages} ({totalItems} รายการ)
+                        หน้า {currentPage} จาก {totalPages} ({totalItems} อุปกรณ์)
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button

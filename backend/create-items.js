@@ -12,7 +12,7 @@ let authToken = null;
 
 async function login() {
   try {
-    console.log('🔐 Logging in...');
+  
     const response = await axios.post(`${BASE_URL}/auth/login`, {
       email: LOGIN_EMAIL,
       password: LOGIN_PASSWORD
@@ -20,15 +20,14 @@ async function login() {
     
     if (response.data.success && response.data.data.token) {
       authToken = response.data.data.token;
-      console.log('✅ Login successful!');
-      console.log('');
+      
       return true;
     } else {
-      console.error('❌ Login failed:', response.data.message);
+     
       return false;
     }
   } catch (error) {
-    console.error('❌ Login error:', error.response?.data?.message || error.message);
+    
     return false;
   }
 }
@@ -48,10 +47,10 @@ async function createItem(n) {
         'Authorization': `Bearer ${authToken}`
       }
     });
-    console.log(`✅ Created item ${n}:`, response.data.message || 'Success');
+ 
     return response.data;
   } catch (error) {
-    console.error(`❌ Failed to create item ${n}:`, error.response?.data?.message || error.message);
+ 
     throw error;
   }
 }
@@ -60,13 +59,10 @@ async function createItemsBatch() {
   // Login first
   const loginSuccess = await login();
   if (!loginSuccess) {
-    console.error('💥 Cannot proceed without authentication');
+ 
     process.exit(1);
   }
-
-  console.log(`🚀 Starting to create ${TOTAL_ITEMS} items...`);
-  console.log('');
-
+ 
   const startTime = Date.now();
   let successCount = 0;
   let failCount = 0;
@@ -76,10 +72,7 @@ async function createItemsBatch() {
       await createItem(i);
       successCount++;
 
-      // Show progress every 50 items
-      if (i % 50 === 0) {
-        console.log(`📊 Progress: ${i}/${TOTAL_ITEMS} items created`);
-      }
+ 
     } catch (error) {
       failCount++;
     }
@@ -88,24 +81,17 @@ async function createItemsBatch() {
   const endTime = Date.now();
   const duration = ((endTime - startTime) / 1000).toFixed(2);
 
-  console.log('');
-  console.log('═══════════════════════════════════════');
-  console.log('✨ Summary:');
-  console.log(`   Total items: ${TOTAL_ITEMS}`);
-  console.log(`   ✅ Success: ${successCount}`);
-  console.log(`   ❌ Failed: ${failCount}`);
-  console.log(`   ⏱️  Time taken: ${duration} seconds`);
-  console.log('═══════════════════════════════════════');
+ 
 }
 
 // Run the script
 createItemsBatch()
   .then(() => {
-    console.log('🎉 Script completed!');
+ 
     process.exit(0);
   })
   .catch((error) => {
-    console.error('💥 Script failed:', error);
+ 
     process.exit(1);
   });
 

@@ -22,6 +22,9 @@ export default function ComparisonReportPage() {
   const [selectedUsageId, setSelectedUsageId] = useState<number | null>(null);
   const [comparisonData, setComparisonData] = useState<any>(null);
   const [searchPatientHN, setSearchPatientHN] = useState('');
+  const [searchFirstName, setSearchFirstName] = useState('');
+  const [searchLastName, setSearchLastName] = useState('');
+  const [searchAssessionNo, setSearchAssessionNo] = useState('');
   const [directUsageId, setDirectUsageId] = useState('');
   const [usageList, setUsageList] = useState<any[]>([]);
   const [filteredUsageList, setFilteredUsageList] = useState<any[]>([]);
@@ -92,8 +95,8 @@ export default function ComparisonReportPage() {
   };
 
   const handleSearch = async () => {
-    if (!searchPatientHN.trim()) {
-      // ถ้าไม่มีค่าค้นหา ให้แสดงทั้งหมด
+    // ถ้าไม่มีค่าค้นหาใดๆ ให้แสดงทั้งหมด
+    if (!searchPatientHN.trim() && !searchFirstName.trim() && !searchLastName.trim() && !searchAssessionNo.trim()) {
       setFilteredUsageList(usageList);
       toast.info('แสดงรายการทั้งหมด');
       return;
@@ -101,13 +104,19 @@ export default function ComparisonReportPage() {
 
     try {
       setLoadingList(true);
-      console.log('🔍 Searching with HN:', searchPatientHN);
+      console.log('🔍 Searching with filters:', { searchPatientHN, searchFirstName, searchLastName, searchAssessionNo });
       
-      const response = await medicalSuppliesApi.getAll({
-        patient_hn: searchPatientHN,
+      const params: any = {
         page: 1,
-        limit: 100
-      });
+        limit: 10000, // Large limit to get all matching records
+      };
+
+      if (searchPatientHN.trim()) params.patient_hn = searchPatientHN.trim();
+      if (searchFirstName.trim()) params.first_name = searchFirstName.trim();
+      if (searchLastName.trim()) params.lastname = searchLastName.trim();
+      if (searchAssessionNo.trim()) params.assession_no = searchAssessionNo.trim();
+      
+      const response = await medicalSuppliesApi.getAll(params);
 
       console.log('📊 Search response (raw):', response);
 
@@ -149,6 +158,9 @@ export default function ComparisonReportPage() {
 
   const handleClearSearch = () => {
     setSearchPatientHN('');
+    setSearchFirstName('');
+    setSearchLastName('');
+    setSearchAssessionNo('');
     setFilteredUsageList(usageList);
   };
 
@@ -294,21 +306,50 @@ export default function ComparisonReportPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Search by Patient HN */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">ค้นหาด้วย HN ผู้ป่วย (กรองตาราง)</label>
-                  <div className="flex gap-2">
+                {/* Search Filters */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">ค้นหาด้วย HN ผู้ป่วย</label>
                     <Input
                       placeholder="กรอก HN..."
                       value={searchPatientHN}
                       onChange={(e) => setSearchPatientHN(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">ชื่อ (Firstname)</label>
+                    <Input
+                      placeholder="กรอกชื่อ..."
+                      value={searchFirstName}
+                      onChange={(e) => setSearchFirstName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">นามสกุล (Lastname)</label>
+                    <Input
+                      placeholder="กรอกนามสกุล..."
+                      value={searchLastName}
+                      onChange={(e) => setSearchLastName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Assession No</label>
+                    <Input
+                      placeholder="กรอก Assession No..."
+                      value={searchAssessionNo}
+                      onChange={(e) => setSearchAssessionNo(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                  </div>
+                  <div className="flex gap-2">
                     <Button onClick={handleSearch} disabled={loadingList}>
                       <Search className="h-4 w-4 mr-2" />
                       ค้นหา
                     </Button>
-                    {searchPatientHN && (
+                    {(searchPatientHN || searchFirstName || searchLastName || searchAssessionNo) && (
                       <Button onClick={handleClearSearch} variant="outline">
                         ล้าง
                       </Button>
@@ -369,10 +410,19 @@ export default function ComparisonReportPage() {
               <CardTitle>รายการเบิกทั้งหมด</CardTitle>
               <CardDescription>
                 คลิกที่รายการเพื่อดูรายละเอียดการเปรียบเทียบ
-                {searchPatientHN && ` (กรองด้วย HN: ${searchPatientHN})`}
+                {(searchPatientHN || searchFirstName || searchLastName || searchAssessionNo) && (
+                  <span className="ml-2">
+                    (กรองด้วย: {[
+                      searchPatientHN && `HN: ${searchPatientHN}`,
+                      searchFirstName && `ชื่อ: ${searchFirstName}`,
+                      searchLastName && `นามสกุล: ${searchLastName}`,
+                      searchAssessionNo && `Assession No: ${searchAssessionNo}`
+                    ].filter(Boolean).join(', ')})
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 py-4">
               {loadingList ? (
                 <div className="flex items-center justify-center py-12">
                   <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
@@ -380,11 +430,11 @@ export default function ComparisonReportPage() {
                 </div>
               ) : filteredUsageList.length === 0 ? (
                 <div className="text-center py-12">
-                  <FileBarChart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <FileBarChart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">ไม่พบรายการเบิก</p>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>

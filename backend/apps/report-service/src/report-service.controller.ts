@@ -105,10 +105,8 @@ export class ReportServiceController {
     hospital?: string;
     department?: string;
   }) {
-    console.log('[Report Service Controller] Received equipment_disbursement.excel request:', JSON.stringify(data));
     try {
       const result = await this.reportServiceService.generateEquipmentDisbursementExcel(data);
-      console.log('[Report Service Controller] Equipment disbursement Excel generated successfully');
       return {
         success: true,
         data: {
@@ -160,10 +158,8 @@ export class ReportServiceController {
     departmentCode?: string;
     includeUsageDetails?: boolean;
   }) {
-    console.log('[Report Service Controller] Received item_comparison.excel request:', JSON.stringify(data));
     try {
       const result = await this.reportServiceService.generateItemComparisonExcel(data);
-      console.log('[Report Service Controller] Item comparison Excel generated successfully');
       return {
         success: true,
         data: {
@@ -190,10 +186,8 @@ export class ReportServiceController {
     departmentCode?: string;
     includeUsageDetails?: boolean;
   }) {
-    console.log('[Report Service Controller] Received item_comparison.pdf request:', JSON.stringify(data));
     try {
       const result = await this.reportServiceService.generateItemComparisonPDF(data);
-      console.log('[Report Service Controller] Item comparison PDF generated successfully');
       return {
         success: true,
         data: {

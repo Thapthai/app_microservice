@@ -4,11 +4,11 @@ export class UpdateItemMinMaxDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  Minimum?: number;
+  stock_min?: number;
 
   @IsOptional()
   @IsNumber()
   @Min(0)
-  Maximum?: number;
+  stock_max?: number;
 }
 

@@ -135,7 +135,7 @@ export default function HomePage() {
               <Card className="text-center">
                 <CardHeader>
                   <Package className="h-12 w-12 text-blue-600 mx-auto" />
-                  <CardTitle className="text-lg">จัดการสินค้า</CardTitle>
+                  <CardTitle className="text-lg">จัดการอุปกรณ์</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>

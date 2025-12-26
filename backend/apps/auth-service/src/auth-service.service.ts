@@ -389,6 +389,9 @@ export class AuthServiceService {
 
   async validateClientCredential(client_id: string, client_secret: string) {
     try {
+     
+      
+      // Try Admin User first
       const credential = await this.prisma.clientCredential.findUnique({
         where: { client_id },
         include: {
@@ -403,39 +406,41 @@ export class AuthServiceService {
           }
         }
       });
+ 
 
-      if (!credential || !credential.is_active || !credential.user.is_active) {
-        return { success: false, message: 'Invalid client credential' };
-      }
-
-      // Check if expired
-      if (this.clientCredentialStrategy.isExpired(credential.expires_at)) {
-        return { success: false, message: 'Client credential expired' };
-      }
-
-      // Verify client_secret
-      const isValid = await this.clientCredentialStrategy.verifyClientSecret(client_secret, credential.client_secret_hash);
-      if (!isValid) {
-        return { success: false, message: 'Invalid client secret' };
-      }
-
-      // Update last used timestamp
-      await this.prisma.clientCredential.update({
-        where: { id: credential.id },
-        data: { last_used_at: new Date() }
-      });
-
-      return {
-        success: true,
-        data: {
-          user: credential.user,
-          credential: {
-            id: credential.id,
-            name: credential.name,
-            client_id: credential.client_id
-          }
+      if (credential && credential.is_active && credential.user.is_active) {
+        // Check if expired
+        if (this.clientCredentialStrategy.isExpired(credential.expires_at)) {
+          return { success: false, message: 'Client credential expired' };
         }
-      };
+
+        // Verify client_secret
+        const isValid = await this.clientCredentialStrategy.verifyClientSecret(client_secret, credential.client_secret_hash);
+        if (!isValid) {
+          return { success: false, message: 'Invalid client secret' };
+        }
+
+        // Update last used timestamp
+        await this.prisma.clientCredential.update({
+          where: { id: credential.id },
+          data: { last_used_at: new Date() }
+        });
+ 
+        return {
+          success: true,
+          data: {
+            user: credential.user,
+            userType: 'admin',
+            credential: {
+              id: credential.id,
+              name: credential.name,
+              client_id: credential.client_id
+            }
+          }
+        };
+      }
+
+      return { success: false, message: 'Invalid client credential' };
     } catch (error) {
       return { success: false, message: 'Failed to validate client credential', error: error.message };
     }
@@ -1322,10 +1327,32 @@ export class AuthServiceService {
       const password = data.password || 'password123';
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Generate unique client_id and client_secret
-      const clientId = `staff_${crypto.randomBytes(16).toString('hex')}`;
+      // Generate unique client_id and client_secret (without staff_ prefix)
+      const clientId = crypto.randomBytes(16).toString('hex');
       const clientSecret = crypto.randomBytes(32).toString('hex');
-      const hashedClientSecret = await bcrypt.hash(clientSecret, 10);
+      // Store client_secret as plain text (not hashed)
+
+      // Create User record for staff (required for ClientCredential foreign key)
+      const user = await this.prisma.user.create({
+        data: {
+          email: data.email,
+          name: `${data.fname} ${data.lname}`.trim(),
+          password: null, // Staff users don't use User password
+          is_active: true,
+        },
+      });
+
+      // Create ClientCredential record
+      const clientCredential = await this.prisma.clientCredential.create({
+        data: {
+          user_id: user.id,
+          name: `Staff: ${data.fname} ${data.lname}`,
+          description: `Client credential for staff user: ${data.email}`,
+          client_id: clientId,
+          client_secret_hash: clientSecret, // Store plain text (not hashed)
+          expires_at: data.expires_at ? new Date(data.expires_at) : null,
+        },
+      });
 
       // Create staff user
       const staffUser = await this.prisma.staffUser.create({
@@ -1335,7 +1362,7 @@ export class AuthServiceService {
           lname: data.lname,
           password: hashedPassword,
           client_id: clientId,
-          client_secret: hashedClientSecret,
+          client_secret: clientSecret, // Store plain text (not hashed)
           expires_at: data.expires_at ? new Date(data.expires_at) : null,
         },
       });
@@ -1349,10 +1376,11 @@ export class AuthServiceService {
           fname: staffUser.fname,
           lname: staffUser.lname,
           client_id: clientId,
-          client_secret: clientSecret, // Return unhashed secret only once
+          client_secret: clientSecret, // Return plain text secret
           expires_at: staffUser.expires_at,
           is_active: staffUser.is_active,
           created_at: staffUser.created_at,
+          client_credential_id: clientCredential.id,
         },
         warning: 'Please save the client_secret securely. It will not be shown again.',
       };

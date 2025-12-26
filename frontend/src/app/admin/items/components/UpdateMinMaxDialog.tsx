@@ -32,8 +32,8 @@ export default function UpdateMinMaxDialog({
 }: UpdateMinMaxDialogProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    Minimum: 0,
-    Maximum: 0,
+    stock_min: 0,
+    stock_max: 0,
   });
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -42,13 +42,14 @@ export default function UpdateMinMaxDialog({
       console.log('🔍 Item data for MinMax:', {
         itemcode: item.itemcode,
         itemname: item.itemname,
-        Minimum: item.Minimum,
-        Maximum: item.Maximum,
+        stock_balance: item.stock_balance,
+        stock_min: item.stock_min,
+        stock_max: item.stock_max,
       });
       
       setFormData({
-        Minimum: item.Minimum ?? 0,
-        Maximum: item.Maximum ?? 0,
+        stock_min: item.stock_min ?? 0,
+        stock_max: item.stock_max ?? 0,
       });
       setErrors([]);
     }
@@ -57,16 +58,16 @@ export default function UpdateMinMaxDialog({
   const validateForm = () => {
     const newErrors: string[] = [];
 
-    if (formData.Maximum < formData.Minimum) {
-      newErrors.push('Maximum ต้องมากกว่าหรือเท่ากับ Minimum');
+    if (formData.stock_max < formData.stock_min) {
+      newErrors.push('Stock Max ต้องมากกว่าหรือเท่ากับ Stock Min');
     }
 
-    if (formData.Minimum < 0) {
-      newErrors.push('Minimum ต้องมากกว่าหรือเท่ากับ 0');
+    if (formData.stock_min < 0) {
+      newErrors.push('Stock Min ต้องมากกว่าหรือเท่ากับ 0');
     }
 
-    if (formData.Maximum < 0) {
-      newErrors.push('Maximum ต้องมากกว่าหรือเท่ากับ 0');
+    if (formData.stock_max < 0) {
+      newErrors.push('Stock Max ต้องมากกว่าหรือเท่ากับ 0');
     }
 
     setErrors(newErrors);
@@ -125,14 +126,18 @@ export default function UpdateMinMaxDialog({
               <span className="text-gray-600">ชื่อ: </span>
               <span className="font-medium">{item?.itemname}</span>
             </div>
+            <div className="text-sm">
+              <span className="text-gray-600">Stock Balance: </span>
+              <span className="font-bold text-green-600">{item?.stock_balance?.toLocaleString() ?? 0}</span>
+            </div>
             <div className="flex items-center space-x-4 pt-2 border-t border-blue-200">
               <div className="text-sm">
                 <span className="text-gray-600">Min ปัจจุบัน: </span>
-                <span className="font-bold text-blue-600">{item?.Minimum ?? 0}</span>
+                <span className="font-bold text-blue-600">{item?.stock_min ?? 0}</span>
               </div>
               <div className="text-sm">
                 <span className="text-gray-600">Max ปัจจุบัน: </span>
-                <span className="font-bold text-blue-600">{item?.Maximum ?? 0}</span>
+                <span className="font-bold text-blue-600">{item?.stock_max ?? 0}</span>
               </div>
             </div>
           </div>
@@ -153,34 +158,34 @@ export default function UpdateMinMaxDialog({
 
           {/* Form Fields */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Minimum */}
+            {/* Stock Min */}
             <div>
-              <Label htmlFor="minimum">
-                Minimum <span className="text-red-500">*</span>
+              <Label htmlFor="stock_min">
+                Stock Min <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="minimum"
+                id="stock_min"
                 type="number"
                 min="0"
-                value={formData.Minimum}
-                onChange={(e) => setFormData({ ...formData, Minimum: parseInt(e.target.value) || 0 })}
+                value={formData.stock_min}
+                onChange={(e) => setFormData({ ...formData, stock_min: parseInt(e.target.value) || 0 })}
                 required
                 className="font-medium"
               />
               <p className="text-xs text-gray-500 mt-1">จำนวนขั้นต่ำ</p>
             </div>
 
-            {/* Maximum */}
+            {/* Stock Max */}
             <div>
-              <Label htmlFor="maximum">
-                Maximum <span className="text-red-500">*</span>
+              <Label htmlFor="stock_max">
+                Stock Max <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="maximum"
+                id="stock_max"
                 type="number"
                 min="0"
-                value={formData.Maximum}
-                onChange={(e) => setFormData({ ...formData, Maximum: parseInt(e.target.value) || 0 })}
+                value={formData.stock_max}
+                onChange={(e) => setFormData({ ...formData, stock_max: parseInt(e.target.value) || 0 })}
                 required
                 className="font-medium"
               />
@@ -189,18 +194,18 @@ export default function UpdateMinMaxDialog({
           </div>
 
           {/* Change Summary */}
-          {(formData.Minimum !== (item?.Minimum ?? 0) || formData.Maximum !== (item?.Maximum ?? 0)) && (
+          {(formData.stock_min !== (item?.stock_min ?? 0) || formData.stock_max !== (item?.stock_max ?? 0)) && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <p className="text-sm font-medium text-yellow-800 mb-1">การเปลี่ยนแปลง:</p>
               <div className="space-y-1">
-                {formData.Minimum !== (item?.Minimum ?? 0) && (
+                {formData.stock_min !== (item?.stock_min ?? 0) && (
                   <p className="text-xs text-yellow-700">
-                    • Minimum: <span className="line-through">{item?.Minimum ?? 0}</span> → <span className="font-bold">{formData.Minimum}</span>
+                    • Stock Min: <span className="line-through">{item?.stock_min ?? 0}</span> → <span className="font-bold">{formData.stock_min}</span>
                   </p>
                 )}
-                {formData.Maximum !== (item?.Maximum ?? 0) && (
+                {formData.stock_max !== (item?.stock_max ?? 0) && (
                   <p className="text-xs text-yellow-700">
-                    • Maximum: <span className="line-through">{item?.Maximum ?? 0}</span> → <span className="font-bold">{formData.Maximum}</span>
+                    • Stock Max: <span className="line-through">{item?.stock_max ?? 0}</span> → <span className="font-bold">{formData.stock_max}</span>
                   </p>
                 )}
               </div>

@@ -21,7 +21,7 @@ export default function DashboardPage() {
     totalItems: 0,
     activeItems: 0,
     inactiveItems: 0,
-    totalValue: 0,
+    lowStockItems: 0,
   });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
@@ -50,7 +50,7 @@ export default function DashboardPage() {
               totalItems: response.stats.total_items || 0,
               activeItems: response.stats.active_items || 0,
               inactiveItems: response.stats.inactive_items || 0,
-              totalValue: response.stats.total_value || 0,
+              lowStockItems: response.stats.low_stock_items || 0,
             });
           }
         }
@@ -119,7 +119,7 @@ export default function DashboardPage() {
         totalItems: response.stats.total_items || 0,
         activeItems: response.stats.active_items || 0,
         inactiveItems: response.stats.inactive_items || 0,
-        totalValue: response.stats.total_value || 0,
+        lowStockItems: response.stats.low_stock_items || 0,
       });
     }
   };
