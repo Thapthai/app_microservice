@@ -26,6 +26,11 @@ import {
   Box,
   BarChart3,
   History,
+  TrendingUp,
+  XCircle,
+  RotateCcw,
+  Receipt,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -58,6 +63,18 @@ const mainMenuItems = [
         description: 'ประวัติการเบิกอุปกรณ์จากตู้ SmartCabinet',
         icon: History,
       },
+      {
+        name: 'คืนเวชภัณฑ์',
+        href: '/medical-supplies/return',
+        description: 'คืนเวชภัณฑ์ที่เบิกแล้วแต่ไม่ได้ใช้กลับเข้าตู้ Vending',
+        icon: RotateCcw,
+      },
+      // {
+      //   name: 'Cancel Bill ข้ามวัน',
+      //   href: '/medical-supplies/cancel-bill',
+      //   description: 'จัดการ Cancel Bill ยกเลิกรายการใบเสร็จข้ามวัน',
+      //   icon: XCircle,
+      // },
       // {
       //   name: 'Transaction',
       //   href: '/medical-supplies/transactions',
@@ -101,6 +118,24 @@ const mainMenuItems = [
         href: '/medical-supplies/equipment-disbursement',
         description: 'รายงานการรับบันทึกตัดจ่ายอุปกรณ์',
         icon: FileText,
+      },
+      {
+        name: 'รายงาน Vending',
+        href: '/medical-supplies/vending-reports',
+        description: 'รายงานการ Mapping และการเบิกอุปกรณ์จาก Vending',
+        icon: TrendingUp,
+      },
+      {
+        name: 'รายงานยกเลิก Bill',
+        href: '/medical-supplies/cancel-bill-report',
+        description: 'รายงานการยกเลิก Bill และใบเสร็จ',
+        icon: Receipt,
+      },
+      {
+        name: 'คืนเวชภัณฑ์',
+        href: '/medical-supplies/reports/return-report',
+        description: 'รายงานการคืนเวชภัณฑ์',
+        icon: RotateCcw,
       },
     ],
   },

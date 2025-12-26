@@ -359,9 +359,152 @@ export const medicalSuppliesApi = {
     const response = await api.get('/medical-supplies-usage-by-item', { params: query });
     return response.data;
   },
+
+  handleCrossDayCancelBill: async (data: {
+    en: string;
+    hn: string;
+    oldPrintDate: string;
+    newPrintDate: string;
+    cancelItems: Array<{
+      assession_no: string;
+      item_code: string;
+      qty: number;
+    }>;
+    newItems?: Array<{
+      item_code: string;
+      item_description: string;
+      assession_no: string;
+      qty: number;
+      uom: string;
+      item_status?: string;
+    }>;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/medical-supplies/cancel-bill/cross-day', data);
+    return response.data;
+  },
 };
 
 // Reports API
+export const vendingReportsApi = {
+  // Get data (JSON)
+  getVendingMappingData: async (params?: { startDate?: string; endDate?: string; printDate?: string }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.printDate) queryParams.append('printDate', params.printDate);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    const response = await api.get(`/reports/vending-mapping/data?${queryParams.toString()}`);
+    return response.data;
+  },
+  getUnmappedDispensedData: async (params?: { startDate?: string; endDate?: string; groupBy?: 'day' | 'month' }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.groupBy) queryParams.append('groupBy', params.groupBy);
+    const response = await api.get(`/reports/unmapped-dispensed/data?${queryParams.toString()}`);
+    return response.data;
+  },
+  getUnusedDispensedData: async (params?: { date?: string }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.date) queryParams.append('date', params.date);
+    const response = await api.get(`/reports/unused-dispensed/data?${queryParams.toString()}`);
+    return response.data;
+  },
+  getCancelBillReportData: async (params?: { startDate?: string; endDate?: string }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    const response = await api.get(`/reports/cancel-bill/data?${queryParams.toString()}`);
+    return response.data;
+  },
+  // Download reports
+  downloadVendingMappingExcel: async (params: { startDate?: string; endDate?: string; printDate?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params.printDate) queryParams.append('printDate', params.printDate);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    const response = await api.get(`/reports/vending-mapping/excel?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+  downloadVendingMappingPDF: async (params: { startDate?: string; endDate?: string; printDate?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params.printDate) queryParams.append('printDate', params.printDate);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    const response = await api.get(`/reports/vending-mapping/pdf?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+  downloadUnmappedDispensedExcel: async (params: { startDate?: string; endDate?: string; groupBy?: 'day' | 'month' }) => {
+    const queryParams = new URLSearchParams();
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.groupBy) queryParams.append('groupBy', params.groupBy);
+    const response = await api.get(`/reports/unmapped-dispensed/excel?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+  downloadUnusedDispensedExcel: async (params: { date?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params.date) queryParams.append('date', params.date);
+    const response = await api.get(`/reports/unused-dispensed/excel?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+  downloadReturnReportExcel: async (params?: {
+    date_from?: string;
+    date_to?: string;
+    return_reason?: string;
+    department_code?: string;
+    patient_hn?: string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.date_from) queryParams.append('date_from', params.date_from);
+    if (params?.date_to) queryParams.append('date_to', params.date_to);
+    if (params?.return_reason) queryParams.append('return_reason', params.return_reason);
+    if (params?.department_code) queryParams.append('department_code', params.department_code);
+    if (params?.patient_hn) queryParams.append('patient_hn', params.patient_hn);
+    const response = await api.get(`/reports/return/excel?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `return_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  },
+  downloadReturnReportPdf: async (params?: {
+    date_from?: string;
+    date_to?: string;
+    return_reason?: string;
+    department_code?: string;
+    patient_hn?: string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.date_from) queryParams.append('date_from', params.date_from);
+    if (params?.date_to) queryParams.append('date_to', params.date_to);
+    if (params?.return_reason) queryParams.append('return_reason', params.return_reason);
+    if (params?.department_code) queryParams.append('department_code', params.department_code);
+    if (params?.patient_hn) queryParams.append('patient_hn', params.patient_hn);
+    const response = await api.get(`/reports/return/pdf?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `return_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  },
+};
+
 export const reportsApi = {
   // Comparison Report
   exportComparisonExcel: async (usageId: number): Promise<Blob> => {

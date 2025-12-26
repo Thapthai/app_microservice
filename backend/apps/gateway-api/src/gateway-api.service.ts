@@ -436,4 +436,105 @@ export class GatewayApiService {
   async staffUserLogin(email: string, password: string) {
     return this.authClient.send('auth.staff.login', { email, password }).toPromise();
   }
+
+  // ==================== Vending Reports ====================
+
+  async generateVendingMappingExcel(params: {
+    startDate?: string;
+    endDate?: string;
+    printDate?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.vending_mapping.excel' }, params)
+    );
+  }
+
+  async generateVendingMappingPDF(params: {
+    startDate?: string;
+    endDate?: string;
+    printDate?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.vending_mapping.pdf' }, params)
+    );
+  }
+
+  async generateUnmappedDispensedExcel(params: {
+    startDate?: string;
+    endDate?: string;
+    groupBy?: 'day' | 'month';
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.unmapped_dispensed.excel' }, params)
+    );
+  }
+
+  async generateUnusedDispensedExcel(params: {
+    date?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.unused_dispensed.excel' }, params)
+    );
+  }
+
+  async getVendingMappingData(params: {
+    startDate?: string;
+    endDate?: string;
+    printDate?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.vending_mapping.data' }, params)
+    );
+  }
+
+  async getUnmappedDispensedData(params: {
+    startDate?: string;
+    endDate?: string;
+    groupBy?: 'day' | 'month';
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.unmapped_dispensed.data' }, params)
+    );
+  }
+
+  async getUnusedDispensedData(params: {
+    date?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.unused_dispensed.data' }, params)
+    );
+  }
+
+  async getCancelBillReportData(params: {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.cancel_bill.data' }, params)
+    );
+  }
+
+  async generateReturnReportExcel(params: {
+    date_from?: string;
+    date_to?: string;
+    return_reason?: string;
+    department_code?: string;
+    patient_hn?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.return.excel' }, params)
+    );
+  }
+
+  async generateReturnReportPdf(params: {
+    date_from?: string;
+    date_to?: string;
+    return_reason?: string;
+    department_code?: string;
+    patient_hn?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.return.pdf' }, params)
+    );
+  }
 }

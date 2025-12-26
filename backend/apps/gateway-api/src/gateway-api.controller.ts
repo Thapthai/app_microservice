@@ -1461,4 +1461,316 @@ export class GatewayApiController {
     return this.gatewayApiService.staffUserLogin(loginDto.email, loginDto.password);
   }
 
+  // ==================== Vending Reports Endpoints ====================
+
+  @Get('reports/vending-mapping/excel')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportVendingMappingExcel(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('printDate') printDate?: string,
+    @Res() res?: any,
+  ) {
+    try {
+      const params: any = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (printDate) params.printDate = printDate;
+
+      const result = await this.gatewayApiService.generateVendingMappingExcel(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Vending Mapping Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Vending Mapping Excel report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/vending-mapping/pdf')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportVendingMappingPDF(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('printDate') printDate?: string,
+    @Res() res?: any,
+  ) {
+    try {
+      const params: any = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (printDate) params.printDate = printDate;
+
+      const result = await this.gatewayApiService.generateVendingMappingPDF(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Vending Mapping PDF report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Vending Mapping PDF report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/unmapped-dispensed/excel')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportUnmappedDispensedExcel(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('groupBy') groupBy?: 'day' | 'month',
+    @Res() res?: any,
+  ) {
+    try {
+      const params: any = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (groupBy) params.groupBy = groupBy;
+
+      const result = await this.gatewayApiService.generateUnmappedDispensedExcel(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Unmapped Dispensed Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Unmapped Dispensed Excel report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/unused-dispensed/excel')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportUnusedDispensedExcel(
+    @Query('date') date?: string,
+    @Res() res?: any,
+  ) {
+    try {
+      const params: any = {};
+      if (date) params.date = date;
+
+      const result = await this.gatewayApiService.generateUnusedDispensedExcel(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Unused Dispensed Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Unused Dispensed Excel report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ==================== Vending Reports Data (JSON) ====================
+
+  @Get('reports/vending-mapping/data')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async getVendingMappingData(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('printDate') printDate?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (printDate) params.printDate = printDate;
+
+      const result = await this.gatewayApiService.getVendingMappingData(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to get Vending Mapping data', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      return {
+        status: 'success',
+        data: result.data,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get Vending Mapping data',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/unmapped-dispensed/data')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async getUnmappedDispensedData(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('groupBy') groupBy?: 'day' | 'month',
+  ) {
+    try {
+      const params: any = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (groupBy) params.groupBy = groupBy;
+
+      const result = await this.gatewayApiService.getUnmappedDispensedData(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to get Unmapped Dispensed data', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      return {
+        status: 'success',
+        data: result.data,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get Unmapped Dispensed data',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/unused-dispensed/data')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async getUnusedDispensedData(
+    @Query('date') date?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (date) params.date = date;
+
+      const result = await this.gatewayApiService.getUnusedDispensedData(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to get Unused Dispensed data', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      return {
+        status: 'success',
+        data: result.data,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get Unused Dispensed data',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/cancel-bill/data')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async getCancelBillReportData(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const result = await this.gatewayApiService.getCancelBillReportData(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to get Cancel Bill data', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      return {
+        status: 'success',
+        data: result.data,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get Cancel Bill data',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/return/excel')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportReturnReportExcel(
+    @Res() res,
+    @Query('date_from') date_from?: string,
+    @Query('date_to') date_to?: string,
+    @Query('return_reason') return_reason?: string,
+    @Query('department_code') department_code?: string,
+    @Query('patient_hn') patient_hn?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (date_from) params.date_from = date_from;
+      if (date_to) params.date_to = date_to;
+      if (return_reason) params.return_reason = return_reason;
+      if (department_code) params.department_code = department_code;
+      if (patient_hn) params.patient_hn = patient_hn;
+
+      const result = await this.gatewayApiService.generateReturnReportExcel(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Return Report Excel', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.send(Buffer.from(result.buffer, 'base64'));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Return Report Excel',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/return/pdf')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportReturnReportPdf(
+    @Res() res,
+    @Query('date_from') date_from?: string,
+    @Query('date_to') date_to?: string,
+    @Query('return_reason') return_reason?: string,
+    @Query('department_code') department_code?: string,
+    @Query('patient_hn') patient_hn?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (date_from) params.date_from = date_from;
+      if (date_to) params.date_to = date_to;
+      if (return_reason) params.return_reason = return_reason;
+      if (department_code) params.department_code = department_code;
+      if (patient_hn) params.patient_hn = patient_hn;
+
+      const result = await this.gatewayApiService.generateReturnReportPdf(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Return Report PDF', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.send(Buffer.from(result.buffer, 'base64'));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Return Report PDF',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 }

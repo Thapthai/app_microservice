@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import MedicalSuppliesTable from './components/MedicalSuppliesTable';
+import CancelBillDialog from './components/CancelBillDialog';
 
 export default function MedicalSuppliesPage() {
   const { user } = useAuth();
@@ -21,6 +22,8 @@ export default function MedicalSuppliesPage() {
   const [supplies, setSupplies] = useState<any[]>([]);
   const [selectedSupply, setSelectedSupply] = useState<any>(null);
   const [selectedSupplyId, setSelectedSupplyId] = useState<number | null>(null);
+  const [cancelBillDialogOpen, setCancelBillDialogOpen] = useState(false);
+  const [selectedSupplyForCancel, setSelectedSupplyForCancel] = useState<any>(null);
 
   const [filters, setFilters] = useState({
     startDate: '',
@@ -133,6 +136,17 @@ export default function MedicalSuppliesPage() {
         detailSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 100);
+  };
+
+  const handleCancelBill = (supply: any) => {
+    setSelectedSupplyForCancel(supply);
+    setCancelBillDialogOpen(true);
+  };
+
+  const handleCancelBillSuccess = () => {
+    fetchSupplies();
+    setSelectedSupply(null);
+    setSelectedSupplyId(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -288,6 +302,7 @@ export default function MedicalSuppliesPage() {
             onPageChange={handlePageChange}
             onSelectSupply={handleSelectSupply}
             selectedSupplyId={selectedSupplyId}
+            onCancelBill={handleCancelBill}
             filters={filters}
           />
 
@@ -478,6 +493,14 @@ export default function MedicalSuppliesPage() {
             </div>
           )}
         </div>
+
+        {/* Cancel Bill Dialog */}
+        <CancelBillDialog
+          open={cancelBillDialogOpen}
+          onOpenChange={setCancelBillDialogOpen}
+          supply={selectedSupplyForCancel}
+          onSuccess={handleCancelBillSuccess}
+        />
       </AppLayout>
     </ProtectedRoute>
   );

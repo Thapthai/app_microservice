@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { ComparisonReportExcelService } from './services/comparison_report_excel.service';
 import { ComparisonReportPdfService } from './services/comparison_report_pdf.service';
 import { EquipmentUsageExcelService } from './services/equipment_usage_excel.service';
@@ -8,6 +9,12 @@ import { EquipmentDisbursementExcelService } from './services/equipment_disburse
 import { EquipmentDisbursementPdfService } from './services/equipment_disbursement_pdf.service';
 import { ItemComparisonExcelService } from './services/item-comparison-excel.service';
 import { ItemComparisonPdfService } from './services/item-comparison-pdf.service';
+import { VendingMappingReportExcelService } from './services/vending-mapping-report-excel.service';
+import { VendingMappingReportPdfService } from './services/vending-mapping-report-pdf.service';
+import { UnmappedDispensedReportExcelService } from './services/unmapped-dispensed-report-excel.service';
+import { UnusedDispensedReportExcelService } from './services/unused-dispensed-report-excel.service';
+import { ReturnReportExcelService, ReturnReportData } from './services/return-report-excel.service';
+import { ReturnReportPdfService } from './services/return-report-pdf.service';
 import { ComparisonReportData } from './types/comparison-report.types';
 import { EquipmentUsageReportData } from './types/equipment-usage-report.types';
 import { EquipmentDisbursementReportData } from './types/equipment-disbursement-report.types';
@@ -16,6 +23,8 @@ import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class ReportServiceService {
+  private prisma: PrismaClient;
+
   constructor(
     @Inject('MEDICAL_SUPPLIES_SERVICE')
     private readonly medicalSuppliesClient: ClientProxy,
@@ -27,7 +36,19 @@ export class ReportServiceService {
     private readonly equipmentDisbursementPdfService: EquipmentDisbursementPdfService,
     private readonly itemComparisonExcelService: ItemComparisonExcelService,
     private readonly itemComparisonPdfService: ItemComparisonPdfService,
-  ) { }
+    private readonly vendingMappingReportExcelService: VendingMappingReportExcelService,
+    private readonly vendingMappingReportPdfService: VendingMappingReportPdfService,
+    private readonly unmappedDispensedReportExcelService: UnmappedDispensedReportExcelService,
+    private readonly unusedDispensedReportExcelService: UnusedDispensedReportExcelService,
+    private readonly returnReportExcelService: ReturnReportExcelService,
+    private readonly returnReportPdfService: ReturnReportPdfService,
+  ) {
+    this.prisma = new PrismaClient();
+  }
+
+  async onModuleDestroy() {
+    await this.prisma.$disconnect();
+  }
 
   /**
    * Generate comparison report in Excel format
@@ -728,6 +749,899 @@ export class ReportServiceService {
       console.error('[Report Service] Error generating Item Comparison PDF:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
       throw new Error(`Failed to generate Item Comparison PDF report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Report 1: Generate Vending Mapping Report (Excel)
+   * ดึงข้อมูลจาก database โดยตรงใน report-service
+   */
+  async generateVendingMappingExcel(params: {
+    startDate?: string;
+    endDate?: string;
+    printDate?: string;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const whereConditions: any = {
+        print_date: { not: null },
+      };
+
+      if (params?.printDate) {
+        whereConditions.print_date = params.printDate;
+      } else if (params?.startDate || params?.endDate) {
+        whereConditions.print_date = {
+          not: null,
+        };
+        if (params?.startDate) {
+          whereConditions.print_date.gte = params.startDate;
+        }
+        if (params?.endDate) {
+          whereConditions.print_date.lte = params.endDate;
+        }
+      }
+
+      const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
+        where: whereConditions,
+        include: {
+          supply_items: true,
+        },
+        orderBy: {
+          print_date: 'desc',
+        },
+      });
+
+      const reportByDate = new Map<string, any>();
+
+      for (const usage of usageRecords) {
+        const printDate = usage.print_date || usage.update || '';
+        if (!printDate) continue;
+
+        if (!reportByDate.has(printDate)) {
+          reportByDate.set(printDate, {
+            print_date: printDate,
+            total_episodes: 0,
+            total_patients: new Set<string>(),
+            total_items: 0,
+            mapped_items: [],
+            unmapped_items: [],
+          });
+        }
+
+        const report = reportByDate.get(printDate);
+        report.total_episodes += 1;
+        report.total_patients.add(usage.patient_hn);
+
+        for (const item of usage.supply_items) {
+          const itemCode = item.order_item_code || item.supply_code;
+          if (!itemCode) continue;
+
+          report.total_items += item.qty || 0;
+
+          const dispensedItem = await this.prisma.$queryRaw<any[]>`
+            SELECT 
+              ist.RowID,
+              ist.ItemCode,
+              i.itemname,
+              ist.LastCabinetModify,
+              ist.Qty,
+              ist.RfidCode
+            FROM itemstock ist
+            INNER JOIN item i ON ist.ItemCode = i.itemcode
+            WHERE ist.ItemCode = ${itemCode}
+              AND ist.StockID = 0
+              AND DATE(ist.LastCabinetModify) = DATE(${new Date(printDate)})
+            LIMIT 1
+          `;
+
+          if (dispensedItem && dispensedItem.length > 0) {
+            report.mapped_items.push({
+              item_code: itemCode,
+              item_name: item.order_item_description || item.supply_name,
+              patient_hn: usage.patient_hn,
+              patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
+              en: usage.en,
+              qty: item.qty,
+              assession_no: item.assession_no,
+              dispensed_date: dispensedItem[0].LastCabinetModify,
+              rfid_code: dispensedItem[0].RfidCode,
+            });
+          } else {
+            report.unmapped_items.push({
+              item_code: itemCode,
+              item_name: item.order_item_description || item.supply_name,
+              patient_hn: usage.patient_hn,
+              patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
+              en: usage.en,
+              qty: item.qty,
+              assession_no: item.assession_no,
+            });
+          }
+        }
+      }
+
+      const result = Array.from(reportByDate.values()).map(report => ({
+        ...report,
+        total_patients: report.total_patients.size,
+      }));
+
+      const reportData = {
+        filters: params,
+        summary: {
+          total_days: result.length,
+          total_episodes: result.reduce((sum, r) => sum + r.total_episodes, 0),
+          total_patients: result.reduce((sum, r) => sum + r.total_patients, 0),
+          total_items: result.reduce((sum, r) => sum + r.total_items, 0),
+          total_mapped: result.reduce((sum, r) => sum + r.mapped_items.length, 0),
+          total_unmapped: result.reduce((sum, r) => sum + r.unmapped_items.length, 0),
+        },
+        data: result,
+      };
+
+      const buffer = await this.vendingMappingReportExcelService.generateReport(reportData);
+      const dateStr = params.printDate || params.startDate || new Date().toISOString().split('T')[0];
+      const filename = `vending_mapping_report_${dateStr}.xlsx`;
+
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Vending Mapping Excel:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Vending Mapping Excel report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Report 1: Generate Vending Mapping Report (PDF)
+   * ดึงข้อมูลจาก database โดยตรงใน report-service
+   */
+  async generateVendingMappingPDF(params: {
+    startDate?: string;
+    endDate?: string;
+    printDate?: string;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const whereConditions: any = {
+        print_date: { not: null },
+      };
+
+      if (params?.printDate) {
+        whereConditions.print_date = params.printDate;
+      } else if (params?.startDate || params?.endDate) {
+        whereConditions.print_date = {
+          not: null,
+        };
+        if (params?.startDate) {
+          whereConditions.print_date.gte = params.startDate;
+        }
+        if (params?.endDate) {
+          whereConditions.print_date.lte = params.endDate;
+        }
+      }
+
+      const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
+        where: whereConditions,
+        include: {
+          supply_items: true,
+        },
+        orderBy: {
+          print_date: 'desc',
+        },
+      });
+
+      const reportByDate = new Map<string, any>();
+
+      for (const usage of usageRecords) {
+        const printDate = usage.print_date || usage.update || '';
+        if (!printDate) continue;
+
+        if (!reportByDate.has(printDate)) {
+          reportByDate.set(printDate, {
+            print_date: printDate,
+            total_episodes: 0,
+            total_patients: new Set<string>(),
+            total_items: 0,
+            mapped_items: [],
+            unmapped_items: [],
+          });
+        }
+
+        const report = reportByDate.get(printDate);
+        report.total_episodes += 1;
+        report.total_patients.add(usage.patient_hn);
+
+        for (const item of usage.supply_items) {
+          const itemCode = item.order_item_code || item.supply_code;
+          if (!itemCode) continue;
+
+          report.total_items += item.qty || 0;
+
+          const dispensedItem = await this.prisma.$queryRaw<any[]>`
+            SELECT 
+              ist.RowID,
+              ist.ItemCode,
+              i.itemname,
+              ist.LastCabinetModify,
+              ist.Qty,
+              ist.RfidCode
+            FROM itemstock ist
+            INNER JOIN item i ON ist.ItemCode = i.itemcode
+            WHERE ist.ItemCode = ${itemCode}
+              AND ist.StockID = 0
+              AND DATE(ist.LastCabinetModify) = DATE(${new Date(printDate)})
+            LIMIT 1
+          `;
+
+          if (dispensedItem && dispensedItem.length > 0) {
+            report.mapped_items.push({
+              item_code: itemCode,
+              item_name: item.order_item_description || item.supply_name,
+              patient_hn: usage.patient_hn,
+              patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
+              en: usage.en,
+              qty: item.qty,
+              assession_no: item.assession_no,
+              dispensed_date: dispensedItem[0].LastCabinetModify,
+              rfid_code: dispensedItem[0].RfidCode,
+            });
+          } else {
+            report.unmapped_items.push({
+              item_code: itemCode,
+              item_name: item.order_item_description || item.supply_name,
+              patient_hn: usage.patient_hn,
+              patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
+              en: usage.en,
+              qty: item.qty,
+              assession_no: item.assession_no,
+            });
+          }
+        }
+      }
+
+      const result = Array.from(reportByDate.values()).map(report => ({
+        ...report,
+        total_patients: report.total_patients.size,
+      }));
+
+      const reportData = {
+        filters: params,
+        summary: {
+          total_days: result.length,
+          total_episodes: result.reduce((sum, r) => sum + r.total_episodes, 0),
+          total_patients: result.reduce((sum, r) => sum + r.total_patients, 0),
+          total_items: result.reduce((sum, r) => sum + r.total_items, 0),
+          total_mapped: result.reduce((sum, r) => sum + r.mapped_items.length, 0),
+          total_unmapped: result.reduce((sum, r) => sum + r.unmapped_items.length, 0),
+        },
+        data: result,
+      };
+
+      const buffer = await this.vendingMappingReportPdfService.generateReport(reportData);
+      const dateStr = params.printDate || params.startDate || new Date().toISOString().split('T')[0];
+      const filename = `vending_mapping_report_${dateStr}.pdf`;
+
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Vending Mapping PDF:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Vending Mapping PDF report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Report 2: Generate Unmapped Dispensed Report (Excel)
+   * ดึงข้อมูลจาก database โดยตรงใน report-service
+   */
+  async generateUnmappedDispensedExcel(params: {
+    startDate?: string;
+    endDate?: string;
+    groupBy?: 'day' | 'month';
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const groupBy = params.groupBy || 'day';
+
+      let whereClause = Prisma.sql`ist.StockID = 0 AND ist.RfidCode <> ''`;
+      
+      if (params?.startDate) {
+        whereClause = Prisma.sql`${whereClause} AND DATE(ist.LastCabinetModify) >= DATE(${new Date(params.startDate)})`;
+      }
+      if (params?.endDate) {
+        whereClause = Prisma.sql`${whereClause} AND DATE(ist.LastCabinetModify) <= DATE(${new Date(params.endDate)})`;
+      }
+
+      const dateFormat = groupBy === 'day' 
+        ? Prisma.sql`DATE(ist.LastCabinetModify)`
+        : Prisma.sql`DATE_FORMAT(ist.LastCabinetModify, '%Y-%m')`;
+
+      const dispensedItems: any[] = await this.prisma.$queryRaw`
+        SELECT
+          ist.RowID,
+          ist.ItemCode,
+          i.itemname,
+          ist.LastCabinetModify,
+          ist.Qty,
+          ist.RfidCode,
+          ${dateFormat} as group_date
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        WHERE ${whereClause}
+        ORDER BY ist.LastCabinetModify DESC
+      `;
+
+      const reportByDate = new Map<string, any>();
+
+      for (const dispensed of dispensedItems) {
+        const itemCode = dispensed.ItemCode;
+        const dispensedDate = dispensed.LastCabinetModify;
+        const groupDate = dispensed.group_date;
+
+        const usageRecord = await this.prisma.medicalSupplyUsage.findFirst({
+          where: {
+            supply_items: {
+              some: {
+                OR: [
+                  { order_item_code: itemCode },
+                  { supply_code: itemCode },
+                ],
+              },
+            },
+            created_at: {
+              gte: new Date(new Date(dispensedDate).setHours(0, 0, 0, 0)),
+              lte: new Date(new Date(dispensedDate).setHours(23, 59, 59, 999)),
+            },
+          },
+        });
+
+        if (!usageRecord) {
+          if (!reportByDate.has(groupDate)) {
+            reportByDate.set(groupDate, {
+              date: groupDate,
+              items: [],
+              total_qty: 0,
+            });
+          }
+
+          const report = reportByDate.get(groupDate);
+          report.items.push({
+            item_code: itemCode,
+            item_name: dispensed.itemname,
+            dispensed_date: dispensedDate,
+            qty: Number(dispensed.Qty),
+            rfid_code: dispensed.RfidCode,
+          });
+          report.total_qty += Number(dispensed.Qty);
+        }
+      }
+
+      const result = Array.from(reportByDate.values());
+
+      const reportData = {
+        filters: params,
+        summary: {
+          total_periods: result.length,
+          total_unmapped_items: result.reduce((sum, r) => sum + r.items.length, 0),
+          total_unmapped_qty: result.reduce((sum, r) => sum + r.total_qty, 0),
+        },
+        groupBy,
+        data: result,
+      };
+
+      const buffer = await this.unmappedDispensedReportExcelService.generateReport(reportData);
+      const dateStr = params.startDate || new Date().toISOString().split('T')[0];
+      const groupByStr = params.groupBy || 'day';
+      const filename = `unmapped_dispensed_report_${groupByStr}_${dateStr}.xlsx`;
+
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Unmapped Dispensed Excel:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Unmapped Dispensed Excel report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Report 3: Generate Unused Dispensed Report (Excel)
+   * ดึงข้อมูลจาก database โดยตรงใน report-service
+   */
+  async generateUnusedDispensedExcel(params: {
+    date?: string;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const targetDate = params?.date 
+        ? new Date(params.date)
+        : new Date();
+      
+      const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+      const dispensedItems: any[] = await this.prisma.$queryRaw`
+        SELECT
+          ist.RowID,
+          ist.ItemCode,
+          i.itemname,
+          ist.LastCabinetModify,
+          ist.Qty,
+          ist.RfidCode
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        WHERE ist.StockID = 0
+          AND ist.RfidCode <> ''
+          AND DATE(ist.LastCabinetModify) = DATE(${startOfDay})
+        ORDER BY ist.LastCabinetModify DESC
+      `;
+
+      const unusedItems: any[] = [];
+
+      for (const dispensed of dispensedItems) {
+        const itemCode = dispensed.ItemCode;
+
+        const usageRecord = await this.prisma.medicalSupplyUsage.findFirst({
+          where: {
+            supply_items: {
+              some: {
+                OR: [
+                  { order_item_code: itemCode },
+                  { supply_code: itemCode },
+                ],
+              },
+            },
+            created_at: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+        });
+
+        if (!usageRecord) {
+          unusedItems.push({
+            item_code: itemCode,
+            item_name: dispensed.itemname,
+            dispensed_date: dispensed.LastCabinetModify,
+            qty: Number(dispensed.Qty),
+            rfid_code: dispensed.RfidCode,
+            hours_since_dispense: Math.floor(
+              (new Date().getTime() - new Date(dispensed.LastCabinetModify).getTime()) / (1000 * 60 * 60)
+            ),
+          });
+        }
+      }
+
+      const reportData = {
+        summary: {
+          date: targetDate.toISOString().split('T')[0],
+          total_unused_items: unusedItems.length,
+          total_unused_qty: unusedItems.reduce((sum, item) => sum + item.qty, 0),
+        },
+        data: unusedItems,
+      };
+
+      const buffer = await this.unusedDispensedReportExcelService.generateReport(reportData);
+      const dateStr = params.date || new Date().toISOString().split('T')[0];
+      const filename = `unused_dispensed_report_${dateStr}.xlsx`;
+
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Unused Dispensed Excel:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Unused Dispensed Excel report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get Vending Mapping Report Data (JSON)
+   * ดึงข้อมูลจาก database โดยตรงใน report-service
+   */
+  async getVendingMappingData(params: {
+    startDate?: string;
+    endDate?: string;
+    printDate?: string;
+  }): Promise<any> {
+    try {
+      const whereConditions: any = {
+        print_date: { not: null },
+      };
+
+      if (params?.printDate) {
+        whereConditions.print_date = params.printDate;
+      } else if (params?.startDate || params?.endDate) {
+        whereConditions.print_date = {
+          not: null,
+        };
+        if (params?.startDate) {
+          whereConditions.print_date.gte = params.startDate;
+        }
+        if (params?.endDate) {
+          whereConditions.print_date.lte = params.endDate;
+        }
+      }
+
+      const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
+        where: whereConditions,
+        include: {
+          supply_items: true,
+        },
+        orderBy: {
+          print_date: 'desc',
+        },
+      });
+
+      const reportByDate = new Map<string, any>();
+
+      for (const usage of usageRecords) {
+        const printDate = usage.print_date || usage.update || '';
+        if (!printDate) continue;
+
+        if (!reportByDate.has(printDate)) {
+          reportByDate.set(printDate, {
+            print_date: printDate,
+            total_episodes: 0,
+            total_patients: new Set<string>(),
+            total_items: 0,
+            mapped_items: [],
+            unmapped_items: [],
+          });
+        }
+
+        const report = reportByDate.get(printDate);
+        report.total_episodes += 1;
+        report.total_patients.add(usage.patient_hn);
+
+        for (const item of usage.supply_items) {
+          const itemCode = item.order_item_code || item.supply_code;
+          if (!itemCode) continue;
+
+          report.total_items += item.qty || 0;
+
+          const dispensedItem = await this.prisma.$queryRaw<any[]>`
+            SELECT 
+              ist.RowID,
+              ist.ItemCode,
+              i.itemname,
+              ist.LastCabinetModify,
+              ist.Qty,
+              ist.RfidCode
+            FROM itemstock ist
+            INNER JOIN item i ON ist.ItemCode = i.itemcode
+            WHERE ist.ItemCode = ${itemCode}
+              AND ist.StockID = 0
+              AND DATE(ist.LastCabinetModify) = DATE(${new Date(printDate)})
+            LIMIT 1
+          `;
+
+          if (dispensedItem && dispensedItem.length > 0) {
+            report.mapped_items.push({
+              item_code: itemCode,
+              item_name: item.order_item_description || item.supply_name,
+              patient_hn: usage.patient_hn,
+              patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
+              en: usage.en,
+              qty: item.qty,
+              assession_no: item.assession_no,
+              dispensed_date: dispensedItem[0].LastCabinetModify,
+              rfid_code: dispensedItem[0].RfidCode,
+            });
+          } else {
+            report.unmapped_items.push({
+              item_code: itemCode,
+              item_name: item.order_item_description || item.supply_name,
+              patient_hn: usage.patient_hn,
+              patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
+              en: usage.en,
+              qty: item.qty,
+              assession_no: item.assession_no,
+            });
+          }
+        }
+      }
+
+      const result = Array.from(reportByDate.values()).map(report => ({
+        ...report,
+        total_patients: report.total_patients.size,
+      }));
+
+      return {
+        filters: params,
+        summary: {
+          total_days: result.length,
+          total_episodes: result.reduce((sum, r) => sum + r.total_episodes, 0),
+          total_patients: result.reduce((sum, r) => sum + r.total_patients, 0),
+          total_items: result.reduce((sum, r) => sum + r.total_items, 0),
+          total_mapped: result.reduce((sum, r) => sum + r.mapped_items.length, 0),
+          total_unmapped: result.reduce((sum, r) => sum + r.unmapped_items.length, 0),
+        },
+        data: result,
+      };
+    } catch (error) {
+      console.error('[Report Service] Error getting Vending Mapping data:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to get Vending Mapping data: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get Unmapped Dispensed Report Data (JSON)
+   * ดึงข้อมูลจาก database โดยตรงใน report-service
+   */
+  async getUnmappedDispensedData(params: {
+    startDate?: string;
+    endDate?: string;
+    groupBy?: 'day' | 'month';
+  }): Promise<any> {
+    try {
+      const groupBy = params.groupBy || 'day';
+
+      let whereClause = Prisma.sql`ist.StockID = 0 AND ist.RfidCode <> ''`;
+      
+      if (params?.startDate) {
+        whereClause = Prisma.sql`${whereClause} AND DATE(ist.LastCabinetModify) >= DATE(${new Date(params.startDate)})`;
+      }
+      if (params?.endDate) {
+        whereClause = Prisma.sql`${whereClause} AND DATE(ist.LastCabinetModify) <= DATE(${new Date(params.endDate)})`;
+      }
+
+      const dateFormat = groupBy === 'day' 
+        ? Prisma.sql`DATE(ist.LastCabinetModify)`
+        : Prisma.sql`DATE_FORMAT(ist.LastCabinetModify, '%Y-%m')`;
+
+      const dispensedItems: any[] = await this.prisma.$queryRaw`
+        SELECT
+          ist.RowID,
+          ist.ItemCode,
+          i.itemname,
+          ist.LastCabinetModify,
+          ist.Qty,
+          ist.RfidCode,
+          ${dateFormat} as group_date
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        WHERE ${whereClause}
+        ORDER BY ist.LastCabinetModify DESC
+      `;
+
+      const reportByDate = new Map<string, any>();
+
+      for (const dispensed of dispensedItems) {
+        const itemCode = dispensed.ItemCode;
+        const dispensedDate = dispensed.LastCabinetModify;
+        const groupDate = dispensed.group_date;
+
+        const usageRecord = await this.prisma.medicalSupplyUsage.findFirst({
+          where: {
+            supply_items: {
+              some: {
+                OR: [
+                  { order_item_code: itemCode },
+                  { supply_code: itemCode },
+                ],
+              },
+            },
+            created_at: {
+              gte: new Date(new Date(dispensedDate).setHours(0, 0, 0, 0)),
+              lte: new Date(new Date(dispensedDate).setHours(23, 59, 59, 999)),
+            },
+          },
+        });
+
+        if (!usageRecord) {
+          if (!reportByDate.has(groupDate)) {
+            reportByDate.set(groupDate, {
+              date: groupDate,
+              items: [],
+              total_qty: 0,
+            });
+          }
+
+          const report = reportByDate.get(groupDate);
+          report.items.push({
+            item_code: itemCode,
+            item_name: dispensed.itemname,
+            dispensed_date: dispensedDate,
+            qty: Number(dispensed.Qty),
+            rfid_code: dispensed.RfidCode,
+          });
+          report.total_qty += Number(dispensed.Qty);
+        }
+      }
+
+      const result = Array.from(reportByDate.values());
+
+      return {
+        filters: params,
+        summary: {
+          total_periods: result.length,
+          total_unmapped_items: result.reduce((sum, r) => sum + r.items.length, 0),
+          total_unmapped_qty: result.reduce((sum, r) => sum + r.total_qty, 0),
+        },
+        groupBy,
+        data: result,
+      };
+    } catch (error) {
+      console.error('[Report Service] Error getting Unmapped Dispensed data:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to get Unmapped Dispensed data: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get Unused Dispensed Report Data (JSON)
+   * ดึงข้อมูลจาก database โดยตรงใน report-service
+   */
+  async getUnusedDispensedData(params: {
+    date?: string;
+  }): Promise<any> {
+    try {
+      const targetDate = params?.date 
+        ? new Date(params.date)
+        : new Date();
+      
+      const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+      const dispensedItems: any[] = await this.prisma.$queryRaw`
+        SELECT
+          ist.RowID,
+          ist.ItemCode,
+          i.itemname,
+          ist.LastCabinetModify,
+          ist.Qty,
+          ist.RfidCode
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        WHERE ist.StockID = 0
+          AND ist.RfidCode <> ''
+          AND DATE(ist.LastCabinetModify) = DATE(${startOfDay})
+        ORDER BY ist.LastCabinetModify DESC
+      `;
+
+      const unusedItems: any[] = [];
+
+      for (const dispensed of dispensedItems) {
+        const itemCode = dispensed.ItemCode;
+
+        const usageRecord = await this.prisma.medicalSupplyUsage.findFirst({
+          where: {
+            supply_items: {
+              some: {
+                OR: [
+                  { order_item_code: itemCode },
+                  { supply_code: itemCode },
+                ],
+              },
+            },
+            created_at: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+          include: {
+            supply_items: {
+              where: {
+                OR: [
+                  { order_item_code: itemCode },
+                  { supply_code: itemCode },
+                ],
+              },
+            },
+          },
+        });
+
+        if (!usageRecord) {
+          unusedItems.push({
+            item_code: itemCode,
+            item_name: dispensed.itemname,
+            dispensed_date: dispensed.LastCabinetModify,
+            qty: Number(dispensed.Qty),
+            rfid_code: dispensed.RfidCode,
+            hours_since_dispense: Math.floor(
+              (new Date().getTime() - new Date(dispensed.LastCabinetModify).getTime()) / (1000 * 60 * 60)
+            ),
+            supply_usage_item_id: null,
+          });
+        } else {
+          // Find matching supply item that can be returned
+          const matchingItem = usageRecord.supply_items.find((item: any) => {
+            const availableQty = item.qty - (item.qty_used_with_patient || 0) - (item.qty_returned_to_cabinet || 0);
+            return availableQty > 0;
+          });
+          
+          if (matchingItem) {
+            const availableQty = matchingItem.qty || 0 - (matchingItem.qty_used_with_patient || 0) - (matchingItem.qty_returned_to_cabinet || 0);
+            unusedItems.push({
+              item_code: itemCode,
+              item_name: dispensed.itemname,
+              dispensed_date: dispensed.LastCabinetModify,
+              qty: Number(dispensed.Qty),
+              rfid_code: dispensed.RfidCode,
+              hours_since_dispense: Math.floor(
+                (new Date().getTime() - new Date(dispensed.LastCabinetModify).getTime()) / (1000 * 60 * 60)
+              ),
+              supply_usage_item_id: matchingItem.id,
+              available_qty: availableQty,
+            });
+          }
+        }
+      }
+
+      return {
+        summary: {
+          date: targetDate.toISOString().split('T')[0],
+          total_unused_items: unusedItems.length,
+          total_unused_qty: unusedItems.reduce((sum, item) => sum + item.qty, 0),
+        },
+        data: unusedItems,
+      };
+    } catch (error) {
+      console.error('[Report Service] Error getting Unused Dispensed data:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to get Unused Dispensed data: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get Cancel Bill Report Data (JSON)
+   * ดึงข้อมูลรายการที่ยกเลิก Bill จาก MedicalSupplyUsage
+   */
+  async getCancelBillReportData(params: {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any> {
+    try {
+      const whereConditions: any = {
+        billing_status: 'CANCELLED',
+      };
+
+      if (params?.startDate || params?.endDate) {
+        whereConditions.created_at = {};
+        if (params?.startDate) {
+          whereConditions.created_at.gte = new Date(params.startDate);
+        }
+        if (params?.endDate) {
+          whereConditions.created_at.lte = new Date(params.endDate);
+        }
+      }
+
+      const cancelledRecords = await this.prisma.medicalSupplyUsage.findMany({
+        where: whereConditions,
+        include: {
+          supply_items: {
+            where: {
+              order_item_status: 'Discontinue',
+            },
+          },
+        },
+        orderBy: {
+          created_at: 'desc',
+        },
+      });
+
+      const result = cancelledRecords.map(record => ({
+        id: record.id,
+        en: record.en,
+        patient_hn: record.patient_hn,
+        patient_name: `${record.first_name || ''} ${record.lastname || ''}`.trim() || record.patient_name_th || '-',
+        print_date: record.print_date,
+        created_at: record.created_at,
+        billing_status: record.billing_status,
+        cancelled_items: record.supply_items.map(item => ({
+          item_code: item.order_item_code || item.supply_code,
+          item_name: item.order_item_description || item.supply_name,
+          assession_no: item.assession_no,
+          qty: item.qty,
+          qty_used_with_patient: item.qty_used_with_patient,
+          order_item_status: item.order_item_status,
+        })),
+      }));
+
+      return {
+        filters: params,
+        summary: {
+          total_cancelled_bills: result.length,
+          total_cancelled_items: result.reduce((sum, r) => sum + r.cancelled_items.length, 0),
+        },
+        data: result,
+      };
+    } catch (error) {
+      console.error('[Report Service] Error getting Cancel Bill data:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to get Cancel Bill data: ${errorMessage}`);
     }
   }
 }

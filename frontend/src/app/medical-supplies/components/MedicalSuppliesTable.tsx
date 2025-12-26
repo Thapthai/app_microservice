@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Package } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { RefreshCw, Package, XCircle } from 'lucide-react';
 
 interface MedicalSuppliesTableProps {
   loading: boolean;
@@ -16,6 +17,7 @@ interface MedicalSuppliesTableProps {
   onPageChange: (page: number) => void;
   onSelectSupply?: (supply: any) => void;
   selectedSupplyId?: number | null;
+  onCancelBill?: (supply: any) => void;
   filters: {
     startDate: string;
     endDate: string;
@@ -37,8 +39,42 @@ export default function MedicalSuppliesTable({
   onPageChange,
   onSelectSupply,
   selectedSupplyId,
+  onCancelBill,
   filters,
 }: MedicalSuppliesTableProps) {
+  
+  const canShowCancelBill = (supply: any): boolean => {
+    const supplyData = supply.data || supply;
+    const createdDate = supplyData.created_at || supply.created_at;
+    const billingStatus = supplyData.billing_status || supply.billing_status;
+    
+    // ถ้า cancel แล้ว ไม่แสดงปุ่ม
+    if (billingStatus && billingStatus.toLowerCase() === 'cancelled') {
+      return false;
+    }
+    
+    if (!createdDate) {
+      return false;
+    }
+    
+    try {
+      const created = new Date(createdDate);
+      const today = new Date();
+      
+      // เอาแค่วันที่ ไม่เอาเวลา
+      const createdDay = new Date(created.getFullYear(), created.getMonth(), created.getDate());
+      const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      // คำนวณความแตกต่างของวัน (วันเบิก - วันนี้)
+      const diffTime = todayDay.getTime() - createdDay.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      // แสดงปุ่มเฉพาะเมื่อวันเบิก - วันนี้ ไม่เกิน 1 วัน (0 หรือ 1 วัน)
+      return diffDays >= 0 && diffDays <= 1;
+    } catch (e) {
+      return false;
+    }
+  };
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -132,34 +168,52 @@ export default function MedicalSuppliesTable({
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>รายการเบิกอุปกรณ์</CardTitle>
-            <CardDescription>
-              ทั้งหมด {totalItems} รายการ
-              {filters.startDate && filters.endDate && (
-                <span className="ml-2">
-                  (วันที่ {new Date(filters.startDate).toLocaleDateString('th-TH')} - {new Date(filters.endDate).toLocaleDateString('th-TH')})
-                </span>
-              )}
-            </CardDescription>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>รายการเบิกอุปกรณ์</CardTitle>
+              <CardDescription>
+                ทั้งหมด {totalItems} รายการ
+                {filters.startDate && filters.endDate && (
+                  <span className="ml-2">
+                    (วันที่ {new Date(filters.startDate).toLocaleDateString('th-TH')} - {new Date(filters.endDate).toLocaleDateString('th-TH')})
+                  </span>
+                )}
+              </CardDescription>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="px-4 py-4">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-            <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
-          </div>
-        ) : supplies.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">ไม่พบรายการเบิก</p>
-            <p className="text-sm text-gray-400 mt-2">ลองเปลี่ยนเงื่อนไขการค้นหา</p>
-          </div>
-        ) : (
+        </CardHeader>
+        <CardContent className="px-4 py-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>กำลังโหลดข้อมูล...</p>
+                </TooltipContent>
+              </Tooltip>
+              <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
+            </div>
+          ) : supplies.length === 0 ? (
+            <div className="text-center py-12">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-block">
+                    <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>ไม่พบรายการเบิก</p>
+                </TooltipContent>
+              </Tooltip>
+              <p className="text-gray-500">ไม่พบรายการเบิก</p>
+              <p className="text-sm text-gray-400 mt-2">ลองเปลี่ยนเงื่อนไขการค้นหา</p>
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -172,6 +226,7 @@ export default function MedicalSuppliesTable({
                   <TableHead>เวลาที่เบิก</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
                   <TableHead>สถานะ</TableHead>
+                  <TableHead className="text-center">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -247,6 +302,28 @@ export default function MedicalSuppliesTable({
                       </TableCell>
                       <TableCell>
                         {getBillingStatusBadge(supplyData.billing_status || supply.billing_status)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {canShowCancelBill(supply) && onCancelBill && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700 h-8 w-8 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onCancelBill(supply);
+                                }}
+                              >
+                                <XCircle className="h-5 w-5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Cancel Bill ข้ามวัน</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

@@ -11,6 +11,12 @@ import { EquipmentDisbursementExcelService } from './services/equipment_disburse
 import { EquipmentDisbursementPdfService } from './services/equipment_disbursement_pdf.service';
 import { ItemComparisonExcelService } from './services/item-comparison-excel.service';
 import { ItemComparisonPdfService } from './services/item-comparison-pdf.service';
+import { VendingMappingReportExcelService } from './services/vending-mapping-report-excel.service';
+import { VendingMappingReportPdfService } from './services/vending-mapping-report-pdf.service';
+import { UnmappedDispensedReportExcelService } from './services/unmapped-dispensed-report-excel.service';
+import { UnusedDispensedReportExcelService } from './services/unused-dispensed-report-excel.service';
+import { ReturnReportExcelService } from './services/return-report-excel.service';
+import { ReturnReportPdfService } from './services/return-report-pdf.service';
 
 @Module({
   imports: [
@@ -44,6 +50,12 @@ import { ItemComparisonPdfService } from './services/item-comparison-pdf.service
     EquipmentDisbursementPdfService,
     ItemComparisonExcelService,
     ItemComparisonPdfService,
+    VendingMappingReportExcelService,
+    VendingMappingReportPdfService,
+    UnmappedDispensedReportExcelService,
+    UnusedDispensedReportExcelService,
+    ReturnReportExcelService,
+    ReturnReportPdfService,
   ],
 })
 export class ReportServiceModule {}

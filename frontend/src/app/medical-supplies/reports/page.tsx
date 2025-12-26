@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
-import { FileBarChart, FileText, ClipboardList, ArrowRight } from 'lucide-react';
+import { FileBarChart, FileText, ClipboardList, ArrowRight, TrendingUp, RotateCcw, Receipt } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -53,6 +53,48 @@ export default function ReportsPage() {
         'สรุปผลรวมของแต่ละอุปกรณ์',
         'Export เป็น Excel หรือ PDF'
       ]
+    },
+    {
+      id: 'vending-reports',
+      title: 'รายงาน Vending',
+      description: 'รายงานการ Mapping และการเบิกอุปกรณ์จาก Vending',
+      icon: TrendingUp,
+      color: 'blue',
+      href: '/medical-supplies/vending-reports',
+      features: [
+        'รายงาน Mapping Vending กับ HIS',
+        'รายงานการเบิกที่ Mapping ไม่ได้',
+        'รายงานรายการที่เบิกแล้วแต่ไม่ได้ใช้',
+        'Export เป็น Excel หรือ PDF'
+      ]
+    },
+    {
+      id: 'cancel-bill-report',
+      title: 'รายงานยกเลิก Bill',
+      description: 'รายงานการยกเลิก Bill และใบเสร็จ',
+      icon: Receipt,
+      color: 'red',
+      href: '/medical-supplies/cancel-bill-report',
+      features: [
+        'แสดงรายการที่ยกเลิก Bill',
+        'กรองตามวันที่',
+        'แสดงสถานะการยกเลิก',
+        'Export เป็น Excel หรือ PDF'
+      ]
+    },
+    {
+      id: 'return-report',
+      title: 'รายงานการคืนเวชภัณฑ์',
+      description: 'รายงานการคืนเวชภัณฑ์ทั้งหมด',
+      icon: RotateCcw,
+      color: 'green',
+      href: '/medical-supplies/reports/return-report',
+      features: [
+        'แสดงประวัติการคืนเวชภัณฑ์',
+        'กรองตามวันที่และสาเหตุการคืน',
+        'แสดงรายละเอียดการคืน',
+        'Export เป็น Excel หรือ PDF'
+      ]
     }
   ];
 
@@ -72,6 +114,11 @@ export default function ReportsPage() {
         bg: 'bg-purple-100',
         icon: 'text-purple-600',
         button: 'bg-purple-600 hover:bg-purple-700'
+      },
+      red: {
+        bg: 'bg-red-100',
+        icon: 'text-red-600',
+        button: 'bg-red-600 hover:bg-red-700'
       }
     };
     return colors[color] || colors.blue;
