@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
-import { Receipt, Search, RefreshCw, Download } from 'lucide-react';
+import { Receipt, Search, RefreshCw, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -155,23 +155,70 @@ export default function CancelBillReportPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>รายละเอียดการยกเลิก Bill</CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          กำลังดาวน์โหลด...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="h-4 w-4 mr-2" />
-                          ดาวน์โหลด Excel
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={loading}
+                        onClick={async () => {
+                          try {
+                            setLoading(true);
+                            await vendingReportsApi.downloadCancelBillReportExcel({
+                              startDate,
+                              endDate,
+                            });
+                            toast.success('ดาวน์โหลด Excel สำเร็จ');
+                          } catch (error: any) {
+                            toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                      >
+                        {loading ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            กำลังดาวน์โหลด...
+                          </>
+                        ) : (
+                          <>
+                            <FileSpreadsheet className="h-4 w-4 mr-2" />
+                            ดาวน์โหลด Excel
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={loading}
+                        onClick={async () => {
+                          try {
+                            setLoading(true);
+                            await vendingReportsApi.downloadCancelBillReportPdf({
+                              startDate,
+                              endDate,
+                            });
+                            toast.success('ดาวน์โหลด PDF สำเร็จ');
+                          } catch (error: any) {
+                            toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                      >
+                        {loading ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            กำลังดาวน์โหลด...
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4 mr-2" />
+                            ดาวน์โหลด PDF
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="px-4 py-4">

@@ -1773,4 +1773,62 @@ export class GatewayApiController {
     }
   }
 
+  @Get('reports/cancel-bill/excel')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportCancelBillReportExcel(
+    @Res() res,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const result = await this.gatewayApiService.generateCancelBillReportExcel(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Cancel Bill Report Excel', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.send(Buffer.from(result.buffer, 'base64'));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Cancel Bill Report Excel',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/cancel-bill/pdf')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportCancelBillReportPdf(
+    @Res() res,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const result = await this.gatewayApiService.generateCancelBillReportPdf(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Cancel Bill Report PDF', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.send(Buffer.from(result.buffer, 'base64'));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Cancel Bill Report PDF',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 }

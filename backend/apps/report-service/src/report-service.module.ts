@@ -17,6 +17,8 @@ import { UnmappedDispensedReportExcelService } from './services/unmapped-dispens
 import { UnusedDispensedReportExcelService } from './services/unused-dispensed-report-excel.service';
 import { ReturnReportExcelService } from './services/return-report-excel.service';
 import { ReturnReportPdfService } from './services/return-report-pdf.service';
+import { CancelBillReportExcelService } from './services/cancel-bill-report-excel.service';
+import { CancelBillReportPdfService } from './services/cancel-bill-report-pdf.service';
 
 @Module({
   imports: [
@@ -56,6 +58,8 @@ import { ReturnReportPdfService } from './services/return-report-pdf.service';
     UnusedDispensedReportExcelService,
     ReturnReportExcelService,
     ReturnReportPdfService,
+    CancelBillReportExcelService,
+    CancelBillReportPdfService,
   ],
 })
 export class ReportServiceModule {}

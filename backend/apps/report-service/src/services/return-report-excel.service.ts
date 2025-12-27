@@ -39,6 +39,10 @@ export interface ReturnReportData {
 @Injectable()
 export class ReturnReportExcelService {
   async generateReport(data: ReturnReportData): Promise<Buffer> {
+    if (!data || !data.data || !Array.isArray(data.data)) {
+      throw new Error('Invalid data structure: data.data must be an array');
+    }
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('รายงานการคืนเวชภัณฑ์');
 
@@ -103,12 +107,17 @@ export class ReturnReportExcelService {
 
     // Data rows
     data.data.forEach((record, index) => {
+      const itemCode = record.supply_item?.order_item_code || record.supply_item?.supply_code || '-';
+      const itemName = record.supply_item?.order_item_description || record.supply_item?.supply_name || '-';
+      const patientHn = record.supply_item?.usage?.patient_hn || '-';
+      const en = record.supply_item?.usage?.en || '-';
+
       const row = worksheet.addRow([
         index + 1,
-        record.supply_item?.order_item_code || record.supply_item?.supply_code || '-',
-        record.supply_item?.order_item_description || record.supply_item?.supply_name || '-',
-        record.supply_item?.usage?.patient_hn || '-',
-        record.supply_item?.usage?.en || '-',
+        itemCode,
+        itemName,
+        patientHn,
+        en,
         record.qty_returned,
         this.getReturnReasonLabel(record.return_reason),
         record.return_datetime,

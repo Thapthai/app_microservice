@@ -432,4 +432,48 @@ export class ReportServiceController {
       };
     }
   }
+
+  // Generate Cancel Bill Report Excel
+  @MessagePattern({ cmd: 'report.cancel_bill.excel' })
+  async generateCancelBillReportExcel(@Payload() data: {
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      const buffer = await this.reportServiceService.generateCancelBillReportExcel(data);
+      return {
+        success: true,
+        buffer: buffer.toString('base64'),
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        filename: `cancel_bill_report_${new Date().toISOString().split('T')[0]}.xlsx`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Generate Cancel Bill Report PDF
+  @MessagePattern({ cmd: 'report.cancel_bill.pdf' })
+  async generateCancelBillReportPdf(@Payload() data: {
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      const buffer = await this.reportServiceService.generateCancelBillReportPdf(data);
+      return {
+        success: true,
+        buffer: buffer.toString('base64'),
+        contentType: 'application/pdf',
+        filename: `cancel_bill_report_${new Date().toISOString().split('T')[0]}.pdf`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

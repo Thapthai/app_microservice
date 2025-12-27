@@ -15,6 +15,8 @@ import { UnmappedDispensedReportExcelService } from './services/unmapped-dispens
 import { UnusedDispensedReportExcelService } from './services/unused-dispensed-report-excel.service';
 import { ReturnReportExcelService, ReturnReportData } from './services/return-report-excel.service';
 import { ReturnReportPdfService } from './services/return-report-pdf.service';
+import { CancelBillReportExcelService, CancelBillReportData } from './services/cancel-bill-report-excel.service';
+import { CancelBillReportPdfService } from './services/cancel-bill-report-pdf.service';
 import { ComparisonReportData } from './types/comparison-report.types';
 import { EquipmentUsageReportData } from './types/equipment-usage-report.types';
 import { EquipmentDisbursementReportData } from './types/equipment-disbursement-report.types';
@@ -42,6 +44,8 @@ export class ReportServiceService {
     private readonly unusedDispensedReportExcelService: UnusedDispensedReportExcelService,
     private readonly returnReportExcelService: ReturnReportExcelService,
     private readonly returnReportPdfService: ReturnReportPdfService,
+    private readonly cancelBillReportExcelService: CancelBillReportExcelService,
+    private readonly cancelBillReportPdfService: CancelBillReportPdfService,
   ) {
     this.prisma = new PrismaClient();
   }
@@ -1670,7 +1674,14 @@ export class ReportServiceService {
         throw new Error('Failed to get return history data');
       }
 
-      return response.data || response;
+      // Response structure: { success: true, data: [...], total: ..., page: ..., limit: ... }
+      // Return the data object with data and total
+      return {
+        data: response.data || [],
+        total: response.total || 0,
+        page: response.page || 1,
+        limit: response.limit || 10,
+      };
     } catch (error) {
       console.error('[Report Service] Error getting Return Report data:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
@@ -1769,6 +1780,74 @@ export class ReportServiceService {
       console.error('[Report Service] Error generating Return Report PDF:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
       throw new Error(`Failed to generate Return Report PDF: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Cancel Bill Report in Excel format
+   */
+  async generateCancelBillReportExcel(params: {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Buffer> {
+    try {
+      // Get cancel bill data
+      const cancelBillData = await this.getCancelBillReportData(params);
+
+      // Prepare report data
+      const reportData: CancelBillReportData = {
+        filters: {
+          startDate: params.startDate,
+          endDate: params.endDate,
+        },
+        summary: {
+          total_cancelled_bills: cancelBillData.summary?.total_cancelled_bills || 0,
+          total_cancelled_items: cancelBillData.summary?.total_cancelled_items || 0,
+        },
+        data: cancelBillData.data || [],
+      };
+
+      // Generate Excel report
+      const buffer = await this.cancelBillReportExcelService.generateReport(reportData);
+      return buffer;
+    } catch (error) {
+      console.error('[Report Service] Error generating Cancel Bill Report Excel:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Cancel Bill Report Excel: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Cancel Bill Report in PDF format
+   */
+  async generateCancelBillReportPdf(params: {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Buffer> {
+    try {
+      // Get cancel bill data
+      const cancelBillData = await this.getCancelBillReportData(params);
+
+      // Prepare report data
+      const reportData: CancelBillReportData = {
+        filters: {
+          startDate: params.startDate,
+          endDate: params.endDate,
+        },
+        summary: {
+          total_cancelled_bills: cancelBillData.summary?.total_cancelled_bills || 0,
+          total_cancelled_items: cancelBillData.summary?.total_cancelled_items || 0,
+        },
+        data: cancelBillData.data || [],
+      };
+
+      // Generate PDF report
+      const buffer = await this.cancelBillReportPdfService.generateReport(reportData);
+      return buffer;
+    } catch (error) {
+      console.error('[Report Service] Error generating Cancel Bill Report PDF:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Cancel Bill Report PDF: ${errorMessage}`);
     }
   }
 }

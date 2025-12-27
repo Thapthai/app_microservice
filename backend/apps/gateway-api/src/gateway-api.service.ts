@@ -537,4 +537,22 @@ export class GatewayApiService {
       this.reportClient.send({ cmd: 'report.return.pdf' }, params)
     );
   }
+
+  async generateCancelBillReportExcel(params: {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.cancel_bill.excel' }, params)
+    );
+  }
+
+  async generateCancelBillReportPdf(params: {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.cancel_bill.pdf' }, params)
+    );
+  }
 }

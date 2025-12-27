@@ -2,12 +2,12 @@ import { Injectable } from '@nestjs/common';
 import * as PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ReturnReportData } from './return-report-excel.service';
+import { CancelBillReportData } from './cancel-bill-report-excel.service';
 
-export { ReturnReportData };
+export { CancelBillReportData };
 
 @Injectable()
-export class ReturnReportPdfService {
+export class CancelBillReportPdfService {
   /**
    * Not using Tahoma - using Thai fonts from project only
    */
@@ -15,17 +15,11 @@ export class ReturnReportPdfService {
     return false;
   }
 
-  /**
-   * Register Thai font from project assets only
-   * Ensures consistent rendering across all environments
-   */
   private async registerThaiFont(doc: PDFKit.PDFDocument): Promise<boolean> {
     try {
-      // Try multiple paths for dev and production
       const possiblePaths = [
-        path.join(__dirname, '../../assets/fonts'),
-        path.join(__dirname, '../../../apps/report-service/assets/fonts'),
-        path.join(__dirname, '../../apps/report-service/assets/fonts'),
+        path.join(process.cwd(), 'assets/fonts'),
+        path.join(process.cwd(), 'src/assets/fonts'),
         path.join(process.cwd(), 'apps/report-service/assets/fonts'),
       ];
 
@@ -65,9 +59,9 @@ export class ReturnReportPdfService {
   }
 
   /**
-   * Generate return report in PDF format
+   * Generate cancel bill report in PDF format
    */
-  async generateReport(data: ReturnReportData): Promise<Buffer> {
+  async generateReport(data: CancelBillReportData): Promise<Buffer> {
     try {
       if (!data || !data.data || !Array.isArray(data.data)) {
         throw new Error('Invalid data structure: data.data must be an array');
@@ -119,7 +113,7 @@ export class ReturnReportPdfService {
       doc.fontSize(20)
          .font(finalFontBoldName)
          .fillColor('#2C3E50')
-         .text('รายงานการคืนเวชภัณฑ์', 35, headerTop, { 
+         .text('รายงานยกเลิก Bill', 35, headerTop, { 
            align: 'center', 
            width: doc.page.width - 70 
          });
@@ -128,11 +122,11 @@ export class ReturnReportPdfService {
       doc.y = headerTop + 35;
 
       // Filters Box - Clean design with consistent spacing
-      if (data.filters && (data.filters.date_from || data.filters.date_to || data.filters.return_reason || data.filters.department_code || data.filters.patient_hn)) {
+      if (data.filters && (data.filters.startDate || data.filters.endDate)) {
         const filterBoxY = doc.y;
         const filterBoxPadding = 10;
         const filterHeaderHeight = 20;
-        const filterBoxHeight = 60;
+        const filterBoxHeight = 40;
         doc.rect(35, filterBoxY, doc.page.width - 70, filterBoxHeight)
            .fillAndStroke('#F8F9FA', '#E0E0E0');
         
@@ -151,46 +145,16 @@ export class ReturnReportPdfService {
            .fillColor('#333333');
         
         const leftColX = 35 + filterBoxPadding;
-        const rightColX = doc.page.width / 2 + 5;
-        const lineHeight = 15;
+        const labelWidth = 80;
         let currentY = filterBoxY + filterHeaderHeight + 8;
         
-        const labelWidth = 80;
-        if (data.filters.date_from || data.filters.date_to) {
+        if (data.filters.startDate || data.filters.endDate) {
           doc.font(finalFontBoldName)
              .fillColor('#2C3E50')
              .text('วันที่:', leftColX, currentY);
           doc.font(finalFontName)
              .fillColor('#333333')
-             .text(`${data.filters.date_from || ''} ถึง ${data.filters.date_to || ''}`, leftColX + labelWidth, currentY);
-          currentY += lineHeight;
-        }
-        
-        if (data.filters.return_reason) {
-          doc.font(finalFontBoldName)
-             .fillColor('#2C3E50')
-             .text('สาเหตุการคืน:', leftColX, currentY);
-          doc.font(finalFontName)
-             .fillColor('#333333')
-             .text(this.getReturnReasonLabel(data.filters.return_reason), leftColX + labelWidth, currentY);
-        }
-        
-        if (data.filters.department_code) {
-          doc.font(finalFontBoldName)
-             .fillColor('#2C3E50')
-             .text('แผนก:', rightColX, currentY);
-          doc.font(finalFontName)
-             .fillColor('#333333')
-             .text(data.filters.department_code, rightColX + labelWidth, currentY);
-        }
-        
-        if (data.filters.patient_hn) {
-          doc.font(finalFontBoldName)
-             .fillColor('#2C3E50')
-             .text('HN:', rightColX, currentY + (data.filters.department_code ? lineHeight : 0));
-          doc.font(finalFontName)
-             .fillColor('#333333')
-             .text(data.filters.patient_hn, rightColX + labelWidth, currentY + (data.filters.department_code ? lineHeight : 0));
+             .text(`${data.filters.startDate || ''} ถึง ${data.filters.endDate || ''}`, leftColX + labelWidth, currentY);
         }
         
         doc.y = filterBoxY + filterBoxHeight + 15;
@@ -213,31 +177,29 @@ export class ReturnReportPdfService {
          .fillColor('#2C3E50')
          .text('สรุปผล (Summary)', 35 + summaryBoxPadding, summaryBoxY + 5);
       
-      // Summary content
-      const summaryStartY = summaryBoxY + summaryHeaderHeight + 8;
-      const summaryLineHeight = 15;
-      const summaryLabelWidth = 100;
-      
+      // Summary details
+      const summaryStartY = summaryBoxY + summaryHeaderHeight + 10;
       const summaryLeftX = 35 + summaryBoxPadding;
       const summaryRightX = doc.page.width / 2 + 5;
+      const summaryLabelWidth = 120;
       
       doc.fontSize(10)
          .font(finalFontBoldName)
          .fillColor('#2C3E50')
-         .text('จำนวนรายการที่คืน:', summaryLeftX, summaryStartY);
+         .text('จำนวน Bill ที่ยกเลิก:', summaryLeftX, summaryStartY);
       doc.fontSize(10)
          .font(finalFontName)
          .fillColor('#333333')
-         .text(`${data.summary.total_records} รายการ`, summaryLeftX + summaryLabelWidth, summaryStartY);
+         .text(`${data.summary.total_cancelled_bills} Bill`, summaryLeftX + summaryLabelWidth, summaryStartY);
       
       doc.fontSize(10)
          .font(finalFontBoldName)
          .fillColor('#2C3E50')
-         .text('จำนวนรวมที่คืน:', summaryRightX, summaryStartY);
+         .text('จำนวนรายการที่ยกเลิก:', summaryRightX, summaryStartY);
       doc.fontSize(10)
          .font(finalFontName)
          .fillColor('#333333')
-         .text(`${data.summary.total_qty_returned} ชิ้น`, summaryRightX + summaryLabelWidth, summaryStartY);
+         .text(`${data.summary.total_cancelled_items} รายการ`, summaryRightX + summaryLabelWidth, summaryStartY);
       
       doc.y = summaryBoxY + summaryBoxHeight + 15;
 
@@ -249,25 +211,26 @@ export class ReturnReportPdfService {
       
       // Calculate column widths
       const colWidths = [
-        35,   // ลำดับ
-        70,   // รหัสอุปกรณ์
-        120,  // ชื่ออุปกรณ์
-        50,   // HN
+        30,   // ลำดับ
         50,   // EN
-        50,   // จำนวนที่คืน
-        100,  // สาเหตุการคืน
-        70,   // วันที่คืน
-        60    // หมายเหตุ
+        50,   // HN
+        80,   // ชื่อผู้ป่วย
+        60,   // วันที่ Print
+        60,   // วันที่ยกเลิก
+        60,   // รหัสอุปกรณ์
+        100,  // ชื่ออุปกรณ์
+        40,   // จำนวน
+        50    // สถานะ
       ];
       
       // Verify total width matches pageWidth
       const totalWidth = colWidths.reduce((sum, width) => sum + width, 0);
       if (Math.abs(totalWidth - pageWidth) > 10) {
         const diff = pageWidth - totalWidth;
-        colWidths[2] += diff; // Adjust name column
+        colWidths[6] += diff; // Adjust item code column
       }
       
-      const headers = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'HN', 'EN', 'จำนวน', 'สาเหตุ', 'วันที่คืน', 'หมายเหตุ'];
+      const headers = ['ลำดับ', 'EN', 'HN', 'ชื่อผู้ป่วย', 'วันที่ Print', 'วันที่ยกเลิก', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'จำนวน', 'สถานะ'];
 
       // Draw table header - clean styling with consistent padding
       const cellPadding = 3;
@@ -282,74 +245,146 @@ export class ReturnReportPdfService {
       });
       doc.fillColor('#000000');
 
-      // Draw table rows
+      // Draw table rows - Flatten cancelled_items
       let yPos = tableTop + itemHeight;
+      let rowIndex = 0;
 
-      data.data.forEach((record, index) => {
-        // Check if we need a new page
-        if (yPos > doc.page.height - 120) {
-          doc.addPage({ layout: 'portrait', margin: 35 });
+      data.data.forEach((record) => {
+        if (record.cancelled_items && record.cancelled_items.length > 0) {
+          record.cancelled_items.forEach((item, itemIndex) => {
+            const isFirstItem = itemIndex === 0;
+            
+            // Check if we need a new page
+            if (yPos > doc.page.height - 120) {
+              doc.addPage({ layout: 'portrait', margin: 35 });
+              
+              // Redraw header on new page
+              doc.fontSize(9).font(finalFontBoldName);
+              let xPosHeader = 35;
+              headers.forEach((header, i) => {
+                doc.rect(xPosHeader, 35, colWidths[i], itemHeight)
+                   .fillAndStroke('#E8E8E8', '#CCCCCC');
+                doc.fillColor('#2C3E50')
+                   .text(header, xPosHeader + cellPadding, 43, { width: colWidths[i] - cellPadding * 2, align: 'center' });
+                xPosHeader += colWidths[i];
+              });
+              doc.fillColor('#000000');
+              yPos = 35 + itemHeight;
+            }
+
+            const rowData = [
+              isFirstItem ? (rowIndex + 1).toString() : '',
+              isFirstItem ? record.en : '',
+              isFirstItem ? record.patient_hn : '',
+              isFirstItem ? record.patient_name : '',
+              isFirstItem ? (record.print_date ? new Date(record.print_date).toLocaleDateString('th-TH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              }) : '-') : '',
+              isFirstItem ? new Date(record.created_at).toLocaleDateString('th-TH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              }) : '',
+              item.item_code,
+              item.item_name,
+              item.qty.toString(),
+              'ยกเลิก',
+            ];
+
+            // Alternate row background with elegant contrast
+            const isEvenRow = rowIndex % 2 === 0;
+            if (isEvenRow) {
+              doc.rect(35, yPos, pageWidth, itemHeight).fill('#F8F9FA');
+            } else {
+              doc.rect(35, yPos, pageWidth, itemHeight).fill('#FFFFFF');
+            }
+            
+            doc.fontSize(8.5).font(finalFontName);
+            xPos = 35;
+            rowData.forEach((dataText, i) => {
+              doc.rect(xPos, yPos, colWidths[i], itemHeight).stroke('#E0E0E0');
+              doc.fillColor('#333333');
+              
+              doc.text(dataText, xPos + cellPadding, yPos + 6, { 
+                width: colWidths[i] - cellPadding * 2, 
+                align: i === 0 || i === 1 || i === 2 || i === 4 || i === 5 || i === 8 || i === 9 ? 'center' : 'left',
+                lineBreak: false,
+                ellipsis: true,
+              });
+              xPos += colWidths[i];
+            });
+            doc.fillColor('#000000');
+
+            yPos += itemHeight;
+            rowIndex++;
+          });
+        } else {
+          // If no cancelled items, still show the record
+          if (yPos > doc.page.height - 120) {
+            doc.addPage({ layout: 'portrait', margin: 35 });
+            
+            doc.fontSize(9).font(finalFontBoldName);
+            let xPosHeader = 35;
+            headers.forEach((header, i) => {
+              doc.rect(xPosHeader, 35, colWidths[i], itemHeight)
+                 .fillAndStroke('#E8E8E8', '#CCCCCC');
+              doc.fillColor('#2C3E50')
+                 .text(header, xPosHeader + cellPadding, 43, { width: colWidths[i] - cellPadding * 2, align: 'center' });
+              xPosHeader += colWidths[i];
+            });
+            doc.fillColor('#000000');
+            yPos = 35 + itemHeight;
+          }
+
+          const rowData = [
+            (rowIndex + 1).toString(),
+            record.en,
+            record.patient_hn,
+            record.patient_name,
+            record.print_date ? new Date(record.print_date).toLocaleDateString('th-TH', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            }) : '-',
+            new Date(record.created_at).toLocaleDateString('th-TH', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            }),
+            '-',
+            '-',
+            '0',
+            'ยกเลิก',
+          ];
+
+          const isEvenRow = rowIndex % 2 === 0;
+          if (isEvenRow) {
+            doc.rect(35, yPos, pageWidth, itemHeight).fill('#F8F9FA');
+          } else {
+            doc.rect(35, yPos, pageWidth, itemHeight).fill('#FFFFFF');
+          }
           
-          // Redraw header on new page
-          doc.fontSize(9).font(finalFontBoldName);
-          let xPosHeader = 35;
-          headers.forEach((header, i) => {
-            doc.rect(xPosHeader, 35, colWidths[i], itemHeight)
-               .fillAndStroke('#E8E8E8', '#CCCCCC');
-            doc.fillColor('#2C3E50')
-               .text(header, xPosHeader + cellPadding, 43, { width: colWidths[i] - cellPadding * 2, align: 'center' });
-            xPosHeader += colWidths[i];
+          doc.fontSize(8.5).font(finalFontName);
+          xPos = 35;
+          rowData.forEach((dataText, i) => {
+            doc.rect(xPos, yPos, colWidths[i], itemHeight).stroke('#E0E0E0');
+            doc.fillColor('#333333');
+            
+            doc.text(dataText, xPos + cellPadding, yPos + 6, { 
+              width: colWidths[i] - cellPadding * 2, 
+              align: i === 0 || i === 1 || i === 2 || i === 4 || i === 5 || i === 8 || i === 9 ? 'center' : 'left',
+              lineBreak: false,
+              ellipsis: true,
+            });
+            xPos += colWidths[i];
           });
           doc.fillColor('#000000');
-          yPos = 35 + itemHeight;
+
+          yPos += itemHeight;
+          rowIndex++;
         }
-
-        const itemCode = record.supply_item?.order_item_code || record.supply_item?.supply_code || '-';
-        const itemName = record.supply_item?.order_item_description || record.supply_item?.supply_name || '-';
-        const patientHn = record.supply_item?.usage?.patient_hn || '-';
-        const en = record.supply_item?.usage?.en || '-';
-
-        const rowData = [
-          (index + 1).toString(),
-          itemCode,
-          itemName,
-          patientHn,
-          en,
-          record.qty_returned.toString(),
-          this.getReturnReasonLabel(record.return_reason),
-          new Date(record.return_datetime).toLocaleDateString('th-TH', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          }),
-          record.return_note || '-',
-        ];
-
-        // Alternate row background with elegant contrast
-        const isEvenRow = index % 2 === 0;
-        if (isEvenRow) {
-          doc.rect(35, yPos, pageWidth, itemHeight).fill('#F8F9FA');
-        } else {
-          doc.rect(35, yPos, pageWidth, itemHeight).fill('#FFFFFF');
-        }
-        
-        doc.fontSize(8.5).font(finalFontName);
-        xPos = 35;
-        rowData.forEach((dataText, i) => {
-          doc.rect(xPos, yPos, colWidths[i], itemHeight).stroke('#E0E0E0');
-          doc.fillColor('#333333');
-          
-          doc.text(dataText, xPos + cellPadding, yPos + 6, { 
-            width: colWidths[i] - cellPadding * 2, 
-            align: i === 0 || i === 4 || i === 5 ? 'center' : 'left',
-            lineBreak: false,
-            ellipsis: true,
-          });
-          xPos += colWidths[i];
-        });
-        doc.fillColor('#000000');
-
-        yPos += itemHeight;
       });
 
       // Footer with elegant decorative line
@@ -376,14 +411,5 @@ export class ReturnReportPdfService {
       throw error;
     }
   }
-
-  private getReturnReasonLabel(reason: string): string {
-    const labels: { [key: string]: string } = {
-      'UNWRAPPED_UNUSED': 'ยังไม่ได้แกะซอง หรือยังอยู่ในสภาพเดิม',
-      'EXPIRED': 'อุปกรณ์หมดอายุ',
-      'CONTAMINATED': 'อุปกรณ์มีการปนเปื้อน',
-      'DAMAGED': 'อุปกรณ์ชำรุด',
-    };
-    return labels[reason] || reason;
-  }
 }
+
