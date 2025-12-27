@@ -664,4 +664,45 @@ export const staffUserApi = {
   },
 };
 
+// Categories API
+export const categoriesApi = {
+  getAll: async (params?: { page?: number; limit?: number; parentId?: string }): Promise<ApiResponse<any[]>> => {
+    const response = await api.get('/categories', { params });
+    return response.data;
+  },
+
+  getById: async (id: number | string): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/categories/${id}`);
+    return response.data;
+  },
+
+  create: async (data: {
+    name: string;
+    description?: string;
+    slug?: string;
+    is_active?: boolean;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/categories', data);
+    return response.data;
+  },
+
+  update: async (
+    id: number | string,
+    data: {
+      name?: string;
+      description?: string;
+      slug?: string;
+      is_active?: boolean;
+    }
+  ): Promise<ApiResponse<any>> => {
+    const response = await api.put(`/categories/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number | string): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/categories/${id}`);
+    return response.data;
+  },
+};
+
 export default api;

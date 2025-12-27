@@ -8,10 +8,11 @@ export interface ApiResponse<T = any> {
 }
 
 export interface ItemsStats {
-  total_value: number;
+  total_value?: number;
   total_items: number;
   active_items: number;
   inactive_items: number;
+  low_stock_items?: number;
 }
 
 export interface PaginatedResponse<T> {
