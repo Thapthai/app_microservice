@@ -1644,4 +1644,131 @@ export class ReportServiceService {
       throw new Error(`Failed to get Cancel Bill data: ${errorMessage}`);
     }
   }
+
+  /**
+   * Get Return Report Data (JSON)
+   * ดึงข้อมูลการคืนเวชภัณฑ์จาก medical-supplies-service
+   */
+  async getReturnReportData(params: {
+    date_from?: string;
+    date_to?: string;
+    return_reason?: string;
+    department_code?: string;
+    patient_hn?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<any> {
+    try {
+      const response: any = await firstValueFrom(
+        this.medicalSuppliesClient.send(
+          { cmd: 'medical_supply_item.getReturnHistory' },
+          params
+        )
+      );
+
+      if (!response || !response.success) {
+        throw new Error('Failed to get return history data');
+      }
+
+      return response.data || response;
+    } catch (error) {
+      console.error('[Report Service] Error getting Return Report data:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to get Return Report data: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Return Report in Excel format
+   */
+  async generateReturnReportExcel(params: {
+    date_from?: string;
+    date_to?: string;
+    return_reason?: string;
+    department_code?: string;
+    patient_hn?: string;
+  }): Promise<Buffer> {
+    try {
+      // Get return history data from medical-supplies-service
+      const returnData = await this.getReturnReportData({
+        ...params,
+        page: 1,
+        limit: 10000, // Get all records for report
+      });
+
+      // Prepare report data
+      const reportData: ReturnReportData = {
+        filters: {
+          date_from: params.date_from,
+          date_to: params.date_to,
+          return_reason: params.return_reason,
+          department_code: params.department_code,
+          patient_hn: params.patient_hn,
+        },
+        summary: {
+          total_records: returnData.total || returnData.data?.length || 0,
+          total_qty_returned: returnData.data?.reduce(
+            (sum: number, record: any) => sum + (record.qty_returned || 0),
+            0
+          ) || 0,
+        },
+        data: returnData.data || [],
+      };
+
+      // Generate Excel report
+      const buffer = await this.returnReportExcelService.generateReport(reportData);
+      return buffer;
+    } catch (error) {
+      console.error('[Report Service] Error generating Return Report Excel:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Return Report Excel: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Return Report in PDF format
+   */
+  async generateReturnReportPdf(params: {
+    date_from?: string;
+    date_to?: string;
+    return_reason?: string;
+    department_code?: string;
+    patient_hn?: string;
+  }): Promise<Buffer> {
+    try {
+      // Get return history data from medical-supplies-service
+      const returnData = await this.getReturnReportData({
+        ...params,
+        page: 1,
+        limit: 10000, // Get all records for report
+      });
+
+      // Prepare report data
+      const reportData: ReturnReportData = {
+        filters: {
+          date_from: params.date_from,
+          date_to: params.date_to,
+          return_reason: params.return_reason,
+          department_code: params.department_code,
+          patient_hn: params.patient_hn,
+        },
+        summary: {
+          total_records: returnData.total || returnData.data?.length || 0,
+          total_qty_returned: returnData.data?.reduce(
+            (sum: number, record: any) => sum + (record.qty_returned || 0),
+            0
+          ) || 0,
+        },
+        data: returnData.data || [],
+      };
+
+      // Generate PDF report
+      const buffer = await this.returnReportPdfService.generateReport(reportData);
+      return buffer;
+    } catch (error) {
+      console.error('[Report Service] Error generating Return Report PDF:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Return Report PDF: ${errorMessage}`);
+    }
+  }
 }
