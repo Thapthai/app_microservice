@@ -26,6 +26,8 @@ export interface ReturnHistoryRecord {
   return_reason: string;
   return_datetime: string;
   return_note?: string;
+  return_by_user_id?: string;
+  return_by_user_name?: string;
   supply_item?: {
     order_item_code?: string;
     supply_code?: string;

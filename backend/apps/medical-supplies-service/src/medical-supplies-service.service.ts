@@ -1737,7 +1737,7 @@ export class MedicalSuppliesServiceService {
         }
       }
 
-      const [data, total] = await Promise.all([
+      const [records, total] = await Promise.all([
         this.prisma.supplyItemReturnRecord.findMany({
           where,
           include: {
@@ -1755,6 +1755,64 @@ export class MedicalSuppliesServiceService {
         }),
         this.prisma.supplyItemReturnRecord.count({ where }),
       ]);
+
+      // Resolve return_by_user_name for each record
+      const data = await Promise.all(records.map(async (record) => {
+        let returnByName = 'ไม่ระบุ';
+        
+        if (record.return_by_user_id) {
+          const userId = record.return_by_user_id;
+          
+          // Check if it's in format "user:123" or "staff:456"
+          if (userId.includes(':')) {
+            const [userType, id] = userId.split(':');
+            const userIdNum = parseInt(id, 10);
+            
+            if (userType === 'user' && !isNaN(userIdNum)) {
+              const adminUser = await this.prisma.user.findUnique({
+                where: { id: userIdNum },
+                select: { name: true },
+              });
+              if (adminUser) {
+                returnByName = adminUser.name;
+              }
+            } else if (userType === 'staff' && !isNaN(userIdNum)) {
+              const staffUser = await this.prisma.staffUser.findUnique({
+                where: { id: userIdNum },
+                select: { fname: true, lname: true },
+              });
+              if (staffUser) {
+                returnByName = `${staffUser.fname} ${staffUser.lname}`.trim();
+              }
+            }
+          } else {
+            // Try as number - check admin first, then staff
+            const userIdNum = parseInt(userId, 10);
+            if (!isNaN(userIdNum)) {
+              const adminUser = await this.prisma.user.findUnique({
+                where: { id: userIdNum },
+                select: { name: true },
+              });
+              if (adminUser) {
+                returnByName = adminUser.name;
+              } else {
+                const staffUser = await this.prisma.staffUser.findUnique({
+                  where: { id: userIdNum },
+                  select: { fname: true, lname: true },
+                });
+                if (staffUser) {
+                  returnByName = `${staffUser.fname} ${staffUser.lname}`.trim();
+                }
+              }
+            }
+          }
+        }
+        
+        return {
+          ...record,
+          return_by_user_name: returnByName,
+        };
+      }));
 
       // Create log
       await this.createLog(null, {
@@ -1944,10 +2002,14 @@ export class MedicalSuppliesServiceService {
           i.itemtypeID,
           ist.RfidCode,
           ist.StockID,
-          ist.Istatus_rfid
+          ist.Istatus_rfid,
+          ist.CabinetUserID,
+          COALESCE(u.name, CONCAT(st.fname, ' ', st.lname), 'ไม่ระบุ') AS cabinetUserName
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
         LEFT JOIN itemtype it ON i.itemtypeID = it.ID
+        LEFT JOIN app_microservice_users u ON ist.CabinetUserID = u.id
+        LEFT JOIN app_microservice_staff_users st ON ist.CabinetUserID = st.id
         WHERE ${whereClause}
         ORDER BY ist.LastCabinetModify DESC
         LIMIT ${limit}
@@ -2059,10 +2121,14 @@ export class MedicalSuppliesServiceService {
           i.itemtypeID,
           ist.RfidCode,
           ist.StockID,
-          ist.Istatus_rfid
+          ist.Istatus_rfid,
+          ist.CabinetUserID,
+          COALESCE(u.name, CONCAT(st.fname, ' ', st.lname), 'ไม่ระบุ') AS cabinetUserName
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
         LEFT JOIN itemtype it ON i.itemtypeID = it.ID
+        LEFT JOIN app_microservice_users u ON ist.CabinetUserID = u.id
+        LEFT JOIN app_microservice_staff_users st ON ist.CabinetUserID = st.id
         WHERE ${whereClause}
         ORDER BY ist.LastCabinetModify DESC
         LIMIT ${limit}
@@ -3215,10 +3281,14 @@ export class MedicalSuppliesServiceService {
           i.itemcode,
           i.itemname,
           it.TypeName AS itemType,
-          i.itemtypeID
+          i.itemtypeID,
+          ist.CabinetUserID,
+          COALESCE(u.name, CONCAT(st.fname, ' ', st.lname), 'ไม่ระบุ') AS cabinetUserName
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
         LEFT JOIN itemtype it ON i.itemtypeID = it.ID
+        LEFT JOIN app_microservice_users u ON ist.CabinetUserID = u.id
+        LEFT JOIN app_microservice_staff_users st ON ist.CabinetUserID = st.id
         WHERE ${whereClause}
         ORDER BY ist.LastCabinetModify DESC, ist.RowID DESC
         LIMIT ${limit}
@@ -3271,16 +3341,20 @@ export class MedicalSuppliesServiceService {
   /**
    * Return items to cabinet by updating StockID from 0 to 1
    */
-  async returnItemsToCabinet(rowIds: number[]) {
+  async returnItemsToCabinet(rowIds: number[], userId: number) {
     try {
       if (!rowIds || rowIds.length === 0) {
         throw new Error('Row IDs are required');
       }
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
 
-      // Update StockID from 0 to 1 for selected rows
+      // Update StockID from 0 to 1 and CabinetUserID for selected rows
       const updateResult = await this.prisma.$executeRaw`
         UPDATE itemstock
         SET StockID = 1,
+            CabinetUserID = ${userId},
             LastCabinetModify = NOW()
         WHERE RowID IN (${Prisma.join(rowIds.map(id => Prisma.sql`${id}`), ',')})
           AND StockID = 0
@@ -3294,6 +3368,7 @@ export class MedicalSuppliesServiceService {
         status: 'SUCCESS',
         action: 'returnItemsToCabinet',
         row_ids: rowIds,
+        user_id: userId,
         updated_count: updatedCount,
       });
 
@@ -3309,6 +3384,7 @@ export class MedicalSuppliesServiceService {
         status: 'ERROR',
         action: 'returnItemsToCabinet',
         row_ids: rowIds,
+        user_id: userId,
         error_message: error.message,
         error_code: error.code,
       });
@@ -3437,16 +3513,20 @@ export class MedicalSuppliesServiceService {
   /**
    * Dispense items from cabinet by updating StockID from 1 to 0
    */
-  async dispenseItemsFromCabinet(rowIds: number[]) {
+  async dispenseItemsFromCabinet(rowIds: number[], userId: number) {
     try {
       if (!rowIds || rowIds.length === 0) {
         throw new Error('Row IDs are required');
       }
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
 
-      // Update StockID from 1 to 0 for selected rows
+      // Update StockID from 1 to 0 and CabinetUserID for selected rows
       const updateResult = await this.prisma.$executeRaw`
         UPDATE itemstock
         SET StockID = 0,
+            CabinetUserID = ${userId},
             LastCabinetModify = NOW()
         WHERE RowID IN (${Prisma.join(rowIds.map(id => Prisma.sql`${id}`), ',')})
           AND StockID = 1
@@ -3460,6 +3540,7 @@ export class MedicalSuppliesServiceService {
         status: 'SUCCESS',
         action: 'dispenseItemsFromCabinet',
         row_ids: rowIds,
+        user_id: userId,
         updated_count: updatedCount,
       });
 
@@ -3475,6 +3556,7 @@ export class MedicalSuppliesServiceService {
         status: 'ERROR',
         action: 'dispenseItemsFromCabinet',
         row_ids: rowIds,
+        user_id: userId,
         error_message: error.message,
         error_code: error.code,
       });

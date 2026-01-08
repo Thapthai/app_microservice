@@ -83,6 +83,7 @@ export default function ReturnHistoryTable({
                 <TableHead>รหัสอุปกรณ์</TableHead>
                 <TableHead>ชื่ออุปกรณ์</TableHead>
                 {/* <TableHead>HN</TableHead> */}
+                <TableHead>ผู้คืน</TableHead>
                 <TableHead className="text-center">จำนวนที่คืน</TableHead>
                 <TableHead>สาเหตุการคืน</TableHead>
                 <TableHead className="text-center">วันที่คืน</TableHead>
@@ -104,6 +105,7 @@ export default function ReturnHistoryTable({
                   {/* <TableCell className="font-mono">
                     {record.supply_item?.usage?.patient_hn || '-'}
                   </TableCell> */}
+                  <TableCell>{record.return_by_user_name || 'ไม่ระบุ'}</TableCell>
                   <TableCell className="text-center">
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                       {record.qty_returned}

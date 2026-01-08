@@ -10,6 +10,8 @@ export interface DispensedItem {
   RfidCode: string;
   StockID: number;
   Istatus_rfid?: number;
+  CabinetUserID?: number;
+  cabinetUserName?: string;
 }
 
 export interface FilterState {

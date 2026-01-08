@@ -365,9 +365,9 @@ export class MedicalSuppliesServiceController {
   }
 
   @MessagePattern({ cmd: 'medical_supply_item.returnItemsToCabinet' })
-  async returnItemsToCabinet(@Payload() data: { rowIds: number[] }) {
+  async returnItemsToCabinet(@Payload() data: { rowIds: number[]; userId: number }) {
     try {
-      const result = await this.medicalSuppliesService.returnItemsToCabinet(data.rowIds);
+      const result = await this.medicalSuppliesService.returnItemsToCabinet(data.rowIds, data.userId);
       return result;
     } catch (error) {
       return {
@@ -399,9 +399,9 @@ export class MedicalSuppliesServiceController {
   }
 
   @MessagePattern({ cmd: 'medical_supply_item.dispenseItemsFromCabinet' })
-  async dispenseItemsFromCabinet(@Payload() data: { rowIds: number[] }) {
+  async dispenseItemsFromCabinet(@Payload() data: { rowIds: number[]; userId: number }) {
     try {
-      const result = await this.medicalSuppliesService.dispenseItemsFromCabinet(data.rowIds);
+      const result = await this.medicalSuppliesService.dispenseItemsFromCabinet(data.rowIds, data.userId);
       return result;
     } catch (error) {
       return {

@@ -63,12 +63,12 @@ const mainMenuItems = [
         description: 'บันทึกใช้อุปกรณ์กับคนไข้ จากตู้ SmartCabinet',
         icon: History,
       },
-      // {
-      //   name: 'คืนเวชภัณฑ์',
-      //   href: '/medical-supplies/return',
-      //   description: 'คืนอุปกรณ์เข้าตู้ที่เบิกแล้วแต่ไม่ได้ใช้กลับเข้าตู้',
-      //   icon: RotateCcw,
-      // },
+      {
+        name: 'คืนเวชภัณฑ์',
+        href: '/medical-supplies/return',
+        description: 'คืนอุปกรณ์เข้าตู้ที่เบิกแล้วแต่ไม่ได้ใช้กลับเข้าตู้',
+        icon: RotateCcw,
+      },
 
       {
         name: 'เบิกอุปกรณ์จากตู้',

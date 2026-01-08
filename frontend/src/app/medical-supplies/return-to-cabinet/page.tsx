@@ -26,6 +26,8 @@ interface ItemStock {
   CreateDate: string;
   itemType: string;
   itemtypeID: number;
+  CabinetUserID?: number;
+  cabinetUserName?: string;
 }
 
 export default function ReturnToCabinetPage() {
@@ -259,6 +261,7 @@ export default function ReturnToCabinetPage() {
                           <TableHead>RowID</TableHead>
                           <TableHead>รหัสอุปกรณ์</TableHead>
                           <TableHead>ชื่ออุปกรณ์</TableHead>
+                          <TableHead>ผู้เบิก</TableHead>
                           <TableHead>RFID Code</TableHead>
                           <TableHead>จำนวน</TableHead>
                           <TableHead>StockID</TableHead>
@@ -285,6 +288,7 @@ export default function ReturnToCabinetPage() {
                               <Badge variant="outline">{item.ItemCode || item.itemcode}</Badge>
                             </TableCell>
                             <TableCell>{item.itemname}</TableCell>
+                            <TableCell>{item.cabinetUserName || 'ไม่ระบุ'}</TableCell>
                             <TableCell>
                               <code className="text-xs bg-muted px-2 py-1 rounded">
                                 {item.RfidCode}

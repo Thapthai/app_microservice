@@ -280,8 +280,8 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getItemStocksForReturnToCabinet' }, filters || {}).toPromise();
   }
 
-  async returnItemsToCabinet(rowIds: number[]) {
-    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.returnItemsToCabinet' }, { rowIds }).toPromise();
+  async returnItemsToCabinet(rowIds: number[], userId: number) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.returnItemsToCabinet' }, { rowIds, userId }).toPromise();
   }
 
   async getItemStocksForDispenseFromCabinet(filters?: {
@@ -296,8 +296,8 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getItemStocksForDispenseFromCabinet' }, filters || {}).toPromise();
   }
 
-  async dispenseItemsFromCabinet(rowIds: number[]) {
-    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.dispenseItemsFromCabinet' }, { rowIds }).toPromise();
+  async dispenseItemsFromCabinet(rowIds: number[], userId: number) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.dispenseItemsFromCabinet' }, { rowIds, userId }).toPromise();
   }
 
   async getReturnedItems(filters?: {

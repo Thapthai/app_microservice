@@ -1195,12 +1195,16 @@ export class GatewayApiController {
 
   @Post('medical-supply-items/return-to-cabinet')
   @UseGuards(FlexibleAuthGuard)
-  async returnItemsToCabinet(@Body() data: { rowIds: number[] }) {
+  async returnItemsToCabinet(@Body() data: { rowIds: number[] }, @Request() req: any) {
     try {
       if (!data.rowIds || !Array.isArray(data.rowIds) || data.rowIds.length === 0) {
         throw new HttpException('Row IDs are required', HttpStatus.BAD_REQUEST);
       }
-      const result = await this.gatewayApiService.returnItemsToCabinet(data.rowIds);
+      const userId = req.user?.user?.id || req.user?.id;
+      if (!userId) {
+        throw new HttpException('User ID is required', HttpStatus.UNAUTHORIZED);
+      }
+      const result = await this.gatewayApiService.returnItemsToCabinet(data.rowIds, userId);
       return result;
     } catch (error) {
       throw new HttpException(
@@ -1243,12 +1247,16 @@ export class GatewayApiController {
 
   @Post('medical-supply-items/dispense-from-cabinet')
   @UseGuards(FlexibleAuthGuard)
-  async dispenseItemsFromCabinet(@Body() data: { rowIds: number[] }) {
+  async dispenseItemsFromCabinet(@Body() data: { rowIds: number[] }, @Request() req: any) {
     try {
       if (!data.rowIds || !Array.isArray(data.rowIds) || data.rowIds.length === 0) {
         throw new HttpException('Row IDs are required', HttpStatus.BAD_REQUEST);
       }
-      const result = await this.gatewayApiService.dispenseItemsFromCabinet(data.rowIds);
+      const userId = req.user?.user?.id || req.user?.id;
+      if (!userId) {
+        throw new HttpException('User ID is required', HttpStatus.UNAUTHORIZED);
+      }
+      const result = await this.gatewayApiService.dispenseItemsFromCabinet(data.rowIds, userId);
       return result;
     } catch (error) {
       throw new HttpException(

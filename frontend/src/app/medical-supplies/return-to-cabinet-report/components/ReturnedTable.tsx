@@ -82,33 +82,25 @@ export default function ReturnedTable({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[120px]">รหัสเวชภัณฑ์</TableHead>
-                    <TableHead>ชื่อเวชภัณฑ์</TableHead>
-                    <TableHead>ประเภท</TableHead>
-                    <TableHead>RFID Code</TableHead>
-                    <TableHead className="text-right">จำนวน</TableHead>
-                    <TableHead>StockID</TableHead>
+                    <TableHead className="w-[60px]">ลำดับ</TableHead>
+                    <TableHead>ชื่ออุปกรณ์</TableHead>
+                    <TableHead>ผู้คืน</TableHead>
+                    <TableHead className="text-right">จำนวนคืน</TableHead>
                     <TableHead>วันที่คืน</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => (
+                  {items.map((item, index) => (
                     <TableRow
                       key={item.RowID}
                       className="hover:bg-green-50 transition-colors"
                     >
-                      <TableCell className="font-medium">{item.itemcode}</TableCell>
-                      <TableCell>{item.itemname || '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{item.itemType || '-'}</Badge>
+                      <TableCell className="text-center text-gray-500">
+                        {((currentPage - 1) * itemsPerPage) + index + 1}
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{item.RfidCode || '-'}</TableCell>
+                      <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
+                      <TableCell>{item.cabinetUserName || 'ไม่ระบุ'}</TableCell>
                       <TableCell className="text-right font-medium">{item.qty}</TableCell>
-                      <TableCell>
-                        <Badge variant={item.StockID === 1 ? 'default' : 'destructive'}>
-                          {item.StockID ?? '-'}
-                        </Badge>
-                      </TableCell>
                       <TableCell>
                         {item.modifyDate
                           ? new Date(item.modifyDate).toLocaleDateString('th-TH', {

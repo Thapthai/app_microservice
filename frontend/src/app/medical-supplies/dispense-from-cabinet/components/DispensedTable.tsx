@@ -82,26 +82,24 @@ export default function DispensedTable({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[120px]">รหัสเวชภัณฑ์</TableHead>
-                    <TableHead>ชื่อเวชภัณฑ์</TableHead>
-                    <TableHead>ประเภท</TableHead>
-                    <TableHead>RFID Code</TableHead>
+                    <TableHead className="w-[60px]">ลำดับ</TableHead>
+                    <TableHead>ชื่ออุปกรณ์</TableHead>
+                    <TableHead>ผู้เบิก</TableHead>
                     <TableHead className="text-right">จำนวนเบิก</TableHead>
                     <TableHead>วันที่เบิก</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => (
+                  {items.map((item, index) => (
                     <TableRow
                       key={item.RowID}
                       className="hover:bg-purple-50 transition-colors"
                     >
-                      <TableCell className="font-medium">{item.itemcode}</TableCell>
-                      <TableCell>{item.itemname || '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{item.itemType || '-'}</Badge>
+                      <TableCell className="text-center text-gray-500">
+                        {((currentPage - 1) * itemsPerPage) + index + 1}
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{item.RfidCode || '-'}</TableCell>
+                      <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
+                      <TableCell>{item.cabinetUserName || 'ไม่ระบุ'}</TableCell>
                       <TableCell className="text-right font-medium">{item.qty}</TableCell>
                       <TableCell>
                         {item.modifyDate
