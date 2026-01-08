@@ -19,6 +19,8 @@ import { ReturnReportExcelService } from './services/return-report-excel.service
 import { ReturnReportPdfService } from './services/return-report-pdf.service';
 import { CancelBillReportExcelService } from './services/cancel-bill-report-excel.service';
 import { CancelBillReportPdfService } from './services/cancel-bill-report-pdf.service';
+import { ReturnToCabinetReportExcelService } from './services/return-to-cabinet-report-excel.service';
+import { ReturnToCabinetReportPdfService } from './services/return-to-cabinet-report-pdf.service';
 
 @Module({
   imports: [
@@ -60,6 +62,8 @@ import { CancelBillReportPdfService } from './services/cancel-bill-report-pdf.se
     ReturnReportPdfService,
     CancelBillReportExcelService,
     CancelBillReportPdfService,
+    ReturnToCabinetReportExcelService,
+    ReturnToCabinetReportPdfService,
   ],
 })
 export class ReportServiceModule {}

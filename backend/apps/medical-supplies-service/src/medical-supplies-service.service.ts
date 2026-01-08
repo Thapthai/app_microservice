@@ -1997,6 +1997,121 @@ export class MedicalSuppliesServiceService {
     }
   }
 
+  /**
+   * Get Returned Items (StockID = 1) for report
+   * Same as getDispensedItems but with StockID = 1 instead of 0
+   */
+  async getReturnedItems(filters?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 20;
+      const offset = (page - 1) * limit;
+
+      // Build WHERE conditions for raw SQL - Same as getDispensedItems but StockID = 1
+      const sqlConditions: Prisma.Sql[] = [
+        Prisma.sql`ist.StockID = 1`,
+        Prisma.sql`ist.RfidCode <> ''`,
+      ];
+
+      if (filters?.itemCode) {
+        sqlConditions.push(Prisma.sql`ist.ItemCode = ${filters.itemCode}`);
+      }
+      if (filters?.itemTypeId) {
+        sqlConditions.push(Prisma.sql`i.itemtypeID = ${filters.itemTypeId}`);
+      }
+      if (filters?.startDate) {
+        sqlConditions.push(Prisma.sql`ist.LastCabinetModify >= ${new Date(filters.startDate)}`);
+      }
+      if (filters?.endDate) {
+        sqlConditions.push(Prisma.sql`ist.LastCabinetModify <= ${new Date(filters.endDate)}`);
+      }
+
+      // Combine WHERE conditions with AND
+      const whereClause = Prisma.join(sqlConditions, ' AND ');
+
+      // Get total count first - Same as getDispensedItems
+      const countResult: any[] = await this.prisma.$queryRaw`
+        SELECT COUNT(DISTINCT CONCAT(i.itemcode, '-', ist.LastCabinetModify)) as total
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
+        WHERE ${whereClause}
+      `;
+      const totalCount = Number(countResult[0]?.total || 0);
+
+      // Get data from itemstock with relations using raw query - Same as getDispensedItems
+      const returnedItems: any[] = await this.prisma.$queryRaw`
+        SELECT
+          ist.RowID,
+          i.itemcode,
+          i.itemname,
+          ist.LastCabinetModify AS modifyDate,
+          ist.Qty AS qty,
+          it.TypeName AS itemType,
+          'RFID' AS itemCategory,
+          i.itemtypeID,
+          ist.RfidCode,
+          ist.StockID,
+          ist.Istatus_rfid
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
+        WHERE ${whereClause}
+        ORDER BY ist.LastCabinetModify DESC
+        LIMIT ${limit}
+        OFFSET ${offset}
+      `;
+
+      // Convert BigInt to Number for JSON serialization
+      const result = returnedItems.map(item => ({
+        ...item,
+        RowID: item.RowID ? Number(item.RowID) : null,
+        qty: Number(item.qty),
+        itemtypeID: item.itemtypeID ? Number(item.itemtypeID) : null,
+        StockID: item.StockID ? Number(item.StockID) : null,
+      }));
+
+      const totalPages = Math.ceil(totalCount / limit);
+
+      // Create success log
+      await this.createLog(null, {
+        type: 'QUERY',
+        status: 'SUCCESS',
+        action: 'getReturnedItems',
+        filters: filters || {},
+        result_count: result.length,
+      });
+
+      return {
+        success: true,
+        data: result,
+        total: totalCount,
+        page,
+        limit,
+        totalPages,
+        filters: filters || {},
+      };
+    } catch (error) {
+      // Create error log
+      await this.createLog(null, {
+        type: 'QUERY',
+        status: 'ERROR',
+        action: 'getReturnedItems',
+        filters: filters || {},
+        error_message: error.message,
+        error_code: error.code,
+      });
+      throw error;
+    }
+  }
+
   // Get Usage Records by Item Code (Who used this item)
   async getUsageByItemCode(filters?: {
     itemCode?: string;
@@ -3028,6 +3143,338 @@ export class MedicalSuppliesServiceService {
         type: 'UPDATE',
         status: 'ERROR',
         action: 'cancel_bill',
+        error_message: error.message,
+        error_code: error.code,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get ItemStocks with StockID = 0 for returning to cabinet
+   */
+  async getItemStocksForReturnToCabinet(filters?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    rfidCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 20;
+      const offset = (page - 1) * limit;
+
+      // Build WHERE conditions for raw SQL
+      const sqlConditions: Prisma.Sql[] = [
+        Prisma.sql`ist.StockID = 0`,
+        Prisma.sql`ist.RfidCode <> ''`,
+      ];
+
+      if (filters?.itemCode) {
+        sqlConditions.push(Prisma.sql`ist.ItemCode = ${filters.itemCode}`);
+      }
+      if (filters?.itemTypeId) {
+        sqlConditions.push(Prisma.sql`i.itemtypeID = ${filters.itemTypeId}`);
+      }
+      if (filters?.rfidCode) {
+        sqlConditions.push(Prisma.sql`ist.RfidCode = ${filters.rfidCode}`);
+      }
+      if (filters?.startDate) {
+        sqlConditions.push(Prisma.sql`DATE(ist.LastCabinetModify) >= ${filters.startDate}`);
+      }
+      if (filters?.endDate) {
+        sqlConditions.push(Prisma.sql`DATE(ist.LastCabinetModify) <= ${filters.endDate}`);
+      }
+
+      // Combine WHERE conditions with AND
+      const whereClause = Prisma.join(sqlConditions, ' AND ');
+
+      // Get total count first
+      const countResult: any[] = await this.prisma.$queryRaw`
+        SELECT COUNT(*) as total
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
+        WHERE ${whereClause}
+      `;
+      const totalCount = Number(countResult[0]?.total || 0);
+
+      // Get data from itemstock with relations using raw query
+      const itemStocks: any[] = await this.prisma.$queryRaw`
+        SELECT
+          ist.RowID,
+          ist.ItemCode,
+          ist.RfidCode,
+          ist.Qty,
+          ist.StockID,
+          ist.LastCabinetModify,
+          ist.CreateDate,
+          i.itemcode,
+          i.itemname,
+          it.TypeName AS itemType,
+          i.itemtypeID
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
+        WHERE ${whereClause}
+        ORDER BY ist.LastCabinetModify DESC, ist.RowID DESC
+        LIMIT ${limit}
+        OFFSET ${offset}
+      `;
+
+      // Convert BigInt to Number for JSON serialization
+      const result = itemStocks.map(item => ({
+        ...item,
+        RowID: item.RowID ? Number(item.RowID) : null,
+        Qty: Number(item.Qty || 0),
+        StockID: item.StockID ? Number(item.StockID) : null,
+        itemtypeID: item.itemtypeID ? Number(item.itemtypeID) : null,
+      }));
+
+      const totalPages = Math.ceil(totalCount / limit);
+
+      // Create success log
+      await this.createLog(null, {
+        type: 'QUERY',
+        status: 'SUCCESS',
+        action: 'getItemStocksForReturnToCabinet',
+        filters: filters || {},
+        result_count: result.length,
+      });
+
+      return {
+        success: true,
+        data: result,
+        total: totalCount,
+        page,
+        limit,
+        totalPages,
+        filters: filters || {},
+      };
+    } catch (error) {
+      // Create error log
+      await this.createLog(null, {
+        type: 'QUERY',
+        status: 'ERROR',
+        action: 'getItemStocksForReturnToCabinet',
+        filters: filters || {},
+        error_message: error.message,
+        error_code: error.code,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Return items to cabinet by updating StockID from 0 to 1
+   */
+  async returnItemsToCabinet(rowIds: number[]) {
+    try {
+      if (!rowIds || rowIds.length === 0) {
+        throw new Error('Row IDs are required');
+      }
+
+      // Update StockID from 0 to 1 for selected rows
+      const updateResult = await this.prisma.$executeRaw`
+        UPDATE itemstock
+        SET StockID = 1,
+            LastCabinetModify = NOW()
+        WHERE RowID IN (${Prisma.join(rowIds.map(id => Prisma.sql`${id}`), ',')})
+          AND StockID = 0
+      `;
+
+      const updatedCount = Number(updateResult || 0);
+
+      // Create success log
+      await this.createLog(null, {
+        type: 'UPDATE',
+        status: 'SUCCESS',
+        action: 'returnItemsToCabinet',
+        row_ids: rowIds,
+        updated_count: updatedCount,
+      });
+
+      return {
+        success: true,
+        updatedCount,
+        message: `คืนอุปกรณ์เข้าตู้สำเร็จ ${updatedCount} รายการ`,
+      };
+    } catch (error) {
+      // Create error log
+      await this.createLog(null, {
+        type: 'UPDATE',
+        status: 'ERROR',
+        action: 'returnItemsToCabinet',
+        row_ids: rowIds,
+        error_message: error.message,
+        error_code: error.code,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get ItemStocks with StockID = 1 for dispensing from cabinet
+   */
+  async getItemStocksForDispenseFromCabinet(filters?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    rfidCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 20;
+      const offset = (page - 1) * limit;
+
+      // Build WHERE conditions for raw SQL
+      const sqlConditions: Prisma.Sql[] = [
+        Prisma.sql`ist.StockID = 1`,
+        Prisma.sql`ist.RfidCode <> ''`,
+      ];
+
+      if (filters?.itemCode) {
+        sqlConditions.push(Prisma.sql`ist.ItemCode = ${filters.itemCode}`);
+      }
+      if (filters?.itemTypeId) {
+        sqlConditions.push(Prisma.sql`i.itemtypeID = ${filters.itemTypeId}`);
+      }
+      if (filters?.rfidCode) {
+        sqlConditions.push(Prisma.sql`ist.RfidCode = ${filters.rfidCode}`);
+      }
+      if (filters?.startDate) {
+        sqlConditions.push(Prisma.sql`DATE(ist.LastCabinetModify) >= ${filters.startDate}`);
+      }
+      if (filters?.endDate) {
+        sqlConditions.push(Prisma.sql`DATE(ist.LastCabinetModify) <= ${filters.endDate}`);
+      }
+
+      // Combine WHERE conditions with AND
+      const whereClause = Prisma.join(sqlConditions, ' AND ');
+
+      // Get total count first
+      const countResult: any[] = await this.prisma.$queryRaw`
+        SELECT COUNT(*) as total
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
+        WHERE ${whereClause}
+      `;
+      const totalCount = Number(countResult[0]?.total || 0);
+
+      // Get data from itemstock with relations using raw query
+      const itemStocks: any[] = await this.prisma.$queryRaw`
+        SELECT
+          ist.RowID,
+          ist.ItemCode,
+          ist.RfidCode,
+          ist.Qty,
+          ist.StockID,
+          ist.LastCabinetModify,
+          ist.CreateDate,
+          i.itemcode,
+          i.itemname,
+          it.TypeName AS itemType,
+          i.itemtypeID
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
+        WHERE ${whereClause}
+        ORDER BY ist.LastCabinetModify DESC, ist.RowID DESC
+        LIMIT ${limit}
+        OFFSET ${offset}
+      `;
+
+      // Convert BigInt to Number for JSON serialization
+      const result = itemStocks.map(item => ({
+        ...item,
+        RowID: item.RowID ? Number(item.RowID) : null,
+        Qty: Number(item.Qty || 0),
+        StockID: item.StockID ? Number(item.StockID) : null,
+        itemtypeID: item.itemtypeID ? Number(item.itemtypeID) : null,
+      }));
+
+      const totalPages = Math.ceil(totalCount / limit);
+
+      // Create success log
+      await this.createLog(null, {
+        type: 'QUERY',
+        status: 'SUCCESS',
+        action: 'getItemStocksForDispenseFromCabinet',
+        filters: filters || {},
+        result_count: result.length,
+      });
+
+      return {
+        success: true,
+        data: result,
+        total: totalCount,
+        page,
+        limit,
+        totalPages,
+        filters: filters || {},
+      };
+    } catch (error) {
+      // Create error log
+      await this.createLog(null, {
+        type: 'QUERY',
+        status: 'ERROR',
+        action: 'getItemStocksForDispenseFromCabinet',
+        filters: filters || {},
+        error_message: error.message,
+        error_code: error.code,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Dispense items from cabinet by updating StockID from 1 to 0
+   */
+  async dispenseItemsFromCabinet(rowIds: number[]) {
+    try {
+      if (!rowIds || rowIds.length === 0) {
+        throw new Error('Row IDs are required');
+      }
+
+      // Update StockID from 1 to 0 for selected rows
+      const updateResult = await this.prisma.$executeRaw`
+        UPDATE itemstock
+        SET StockID = 0,
+            LastCabinetModify = NOW()
+        WHERE RowID IN (${Prisma.join(rowIds.map(id => Prisma.sql`${id}`), ',')})
+          AND StockID = 1
+      `;
+
+      const updatedCount = Number(updateResult || 0);
+
+      // Create success log
+      await this.createLog(null, {
+        type: 'UPDATE',
+        status: 'SUCCESS',
+        action: 'dispenseItemsFromCabinet',
+        row_ids: rowIds,
+        updated_count: updatedCount,
+      });
+
+      return {
+        success: true,
+        updatedCount,
+        message: `เบิกอุปกรณ์จากตู้สำเร็จ ${updatedCount} รายการ`,
+      };
+    } catch (error) {
+      // Create error log
+      await this.createLog(null, {
+        type: 'UPDATE',
+        status: 'ERROR',
+        action: 'dispenseItemsFromCabinet',
+        row_ids: rowIds,
         error_message: error.message,
         error_code: error.code,
       });

@@ -318,6 +318,70 @@ export const medicalSuppliesApi = {
     return response.data;
   },
 
+  getItemStocksForReturnToCabinet: async (filters?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    rfidCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (filters?.itemCode) queryParams.append('itemCode', filters.itemCode);
+    if (filters?.itemTypeId) queryParams.append('itemTypeId', filters.itemTypeId.toString());
+    if (filters?.rfidCode) queryParams.append('rfidCode', filters.rfidCode);
+    if (filters?.startDate) queryParams.append('startDate', filters.startDate);
+    if (filters?.endDate) queryParams.append('endDate', filters.endDate);
+    if (filters?.page) queryParams.append('page', filters.page.toString());
+    if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+    const response = await api.get(`/medical-supply-items/return-to-cabinet?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  returnItemsToCabinet: async (rowIds: number[]): Promise<ApiResponse<any>> => {
+    const response = await api.post('/medical-supply-items/return-to-cabinet', { rowIds });
+    return response.data;
+  },
+
+  getItemStocksForDispenseFromCabinet: async (filters?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    rfidCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (filters?.itemCode) queryParams.append('itemCode', filters.itemCode);
+    if (filters?.itemTypeId) queryParams.append('itemTypeId', filters.itemTypeId.toString());
+    if (filters?.rfidCode) queryParams.append('rfidCode', filters.rfidCode);
+    if (filters?.startDate) queryParams.append('startDate', filters.startDate);
+    if (filters?.endDate) queryParams.append('endDate', filters.endDate);
+    if (filters?.page) queryParams.append('page', filters.page.toString());
+    if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+    const response = await api.get(`/medical-supply-items/dispense-from-cabinet?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  dispenseItemsFromCabinet: async (rowIds: number[]): Promise<ApiResponse<any>> => {
+    const response = await api.post('/medical-supply-items/dispense-from-cabinet', { rowIds });
+    return response.data;
+  },
+
+  getReturnedItems: async (query?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.get('/medical-supply-items/returned-items', { params: query });
+    return response.data;
+  },
+
   getQuantityStatistics: async (departmentCode?: string): Promise<ApiResponse<any>> => {
     const params = departmentCode ? { department_code: departmentCode } : {};
     const response = await api.get('/medical-supply-items/statistics', { params });
@@ -582,6 +646,50 @@ export const vendingReportsApi = {
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', `cancel_bill_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  },
+  downloadReturnToCabinetReportExcel: async (params?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.itemCode) queryParams.append('itemCode', params.itemCode);
+    if (params?.itemTypeId) queryParams.append('itemTypeId', params.itemTypeId.toString());
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    const response = await api.get(`/reports/return-to-cabinet/excel?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `return_to_cabinet_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  },
+  downloadReturnToCabinetReportPdf: async (params?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.itemCode) queryParams.append('itemCode', params.itemCode);
+    if (params?.itemTypeId) queryParams.append('itemTypeId', params.itemTypeId.toString());
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    const response = await api.get(`/reports/return-to-cabinet/pdf?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `return_to_cabinet_report_${new Date().toISOString().split('T')[0]}.pdf`);
     document.body.appendChild(link);
     link.click();
     link.remove();

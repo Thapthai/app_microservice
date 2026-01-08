@@ -268,6 +268,49 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getReturnHistory' }, query).toPromise();
   }
 
+  async getItemStocksForReturnToCabinet(filters?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    rfidCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getItemStocksForReturnToCabinet' }, filters || {}).toPromise();
+  }
+
+  async returnItemsToCabinet(rowIds: number[]) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.returnItemsToCabinet' }, { rowIds }).toPromise();
+  }
+
+  async getItemStocksForDispenseFromCabinet(filters?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    rfidCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getItemStocksForDispenseFromCabinet' }, filters || {}).toPromise();
+  }
+
+  async dispenseItemsFromCabinet(rowIds: number[]) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.dispenseItemsFromCabinet' }, { rowIds }).toPromise();
+  }
+
+  async getReturnedItems(filters?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply.getReturnedItems' }, filters || {}).toPromise();
+  }
+
   async getQuantityStatistics(department_code?: string) {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getQuantityStatistics' }, { department_code }).toPromise();
   }
@@ -623,6 +666,28 @@ export class GatewayApiService {
   }): Promise<any> {
     return firstValueFrom(
       this.reportClient.send({ cmd: 'report.cancel_bill.pdf' }, params)
+    );
+  }
+
+  async generateReturnToCabinetReportExcel(params: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.return_to_cabinet.excel' }, params)
+    );
+  }
+
+  async generateReturnToCabinetReportPdf(params: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.return_to_cabinet.pdf' }, params)
     );
   }
 }

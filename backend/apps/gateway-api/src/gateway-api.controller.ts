@@ -1162,6 +1162,102 @@ export class GatewayApiController {
     }
   }
 
+  @Get('medical-supply-items/return-to-cabinet')
+  @UseGuards(FlexibleAuthGuard)
+  async getItemStocksForReturnToCabinet(
+    @Query('itemCode') itemCode?: string,
+    @Query('itemTypeId') itemTypeId?: number,
+    @Query('rfidCode') rfidCode?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    try {
+      const filters = {
+        itemCode,
+        itemTypeId: itemTypeId ? Number(itemTypeId) : undefined,
+        rfidCode,
+        startDate,
+        endDate,
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+      };
+      const result = await this.gatewayApiService.getItemStocksForReturnToCabinet(filters);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get item stocks for return to cabinet',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('medical-supply-items/return-to-cabinet')
+  @UseGuards(FlexibleAuthGuard)
+  async returnItemsToCabinet(@Body() data: { rowIds: number[] }) {
+    try {
+      if (!data.rowIds || !Array.isArray(data.rowIds) || data.rowIds.length === 0) {
+        throw new HttpException('Row IDs are required', HttpStatus.BAD_REQUEST);
+      }
+      const result = await this.gatewayApiService.returnItemsToCabinet(data.rowIds);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to return items to cabinet',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supply-items/dispense-from-cabinet')
+  @UseGuards(FlexibleAuthGuard)
+  async getItemStocksForDispenseFromCabinet(
+    @Query('itemCode') itemCode?: string,
+    @Query('itemTypeId') itemTypeId?: number,
+    @Query('rfidCode') rfidCode?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    try {
+      const filters = {
+        itemCode,
+        itemTypeId: itemTypeId ? Number(itemTypeId) : undefined,
+        rfidCode,
+        startDate,
+        endDate,
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+      };
+      const result = await this.gatewayApiService.getItemStocksForDispenseFromCabinet(filters);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get item stocks for dispense from cabinet',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('medical-supply-items/dispense-from-cabinet')
+  @UseGuards(FlexibleAuthGuard)
+  async dispenseItemsFromCabinet(@Body() data: { rowIds: number[] }) {
+    try {
+      if (!data.rowIds || !Array.isArray(data.rowIds) || data.rowIds.length === 0) {
+        throw new HttpException('Row IDs are required', HttpStatus.BAD_REQUEST);
+      }
+      const result = await this.gatewayApiService.dispenseItemsFromCabinet(data.rowIds);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to dispense items from cabinet',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get('medical-supply-items/statistics')
   @UseGuards(FlexibleAuthGuard)
   async getQuantityStatistics(@Query('department_code') department_code?: string) {
@@ -1231,6 +1327,35 @@ export class GatewayApiController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to handle cancel bill',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supply-items/returned-items')
+  @UseGuards(FlexibleAuthGuard)
+  async getReturnedItems(
+    @Query('itemCode') itemCode?: string,
+    @Query('itemTypeId') itemTypeId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    try {
+      const filters: any = {};
+      if (itemCode) filters.itemCode = itemCode;
+      if (itemTypeId) filters.itemTypeId = parseInt(itemTypeId, 10);
+      if (startDate) filters.startDate = startDate;
+      if (endDate) filters.endDate = endDate;
+      if (page) filters.page = parseInt(page, 10);
+      if (limit) filters.limit = parseInt(limit, 10);
+
+      const result = await this.gatewayApiService.getReturnedItems(filters);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get returned items',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -1952,6 +2077,84 @@ export class GatewayApiController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to generate Cancel Bill Report PDF',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/return-to-cabinet/excel')
+  @UseGuards(FlexibleAuthGuard)
+  async exportReturnToCabinetReportExcel(
+    @Res() res: any,
+    @Query('itemCode') itemCode?: string,
+    @Query('itemTypeId') itemTypeId?: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (itemCode) params.itemCode = itemCode;
+      if (itemTypeId) params.itemTypeId = Number(itemTypeId);
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const result = await this.gatewayApiService.generateReturnToCabinetReportExcel(params);
+
+      if (!result.success) {
+        throw new HttpException(
+          result.error || 'Failed to generate Return To Cabinet Report Excel',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      const buffer = Buffer.from(result.buffer, 'base64');
+      const filename = result.filename || `return_to_cabinet_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      res.setHeader('Content-Type', result.contentType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Return To Cabinet Report Excel',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/return-to-cabinet/pdf')
+  @UseGuards(FlexibleAuthGuard)
+  async exportReturnToCabinetReportPdf(
+    @Res() res: any,
+    @Query('itemCode') itemCode?: string,
+    @Query('itemTypeId') itemTypeId?: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (itemCode) params.itemCode = itemCode;
+      if (itemTypeId) params.itemTypeId = Number(itemTypeId);
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const result = await this.gatewayApiService.generateReturnToCabinetReportPdf(params);
+
+      if (!result.success) {
+        throw new HttpException(
+          result.error || 'Failed to generate Return To Cabinet Report PDF',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      const buffer = Buffer.from(result.buffer, 'base64');
+      const filename = result.filename || `return_to_cabinet_report_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      res.setHeader('Content-Type', result.contentType || 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Return To Cabinet Report PDF',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

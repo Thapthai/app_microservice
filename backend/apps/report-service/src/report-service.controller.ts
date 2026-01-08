@@ -476,4 +476,52 @@ export class ReportServiceController {
       };
     }
   }
+
+  // Generate Return To Cabinet Report Excel
+  @MessagePattern({ cmd: 'report.return_to_cabinet.excel' })
+  async generateReturnToCabinetReportExcel(@Payload() data: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      const buffer = await this.reportServiceService.generateReturnToCabinetReportExcel(data);
+      return {
+        success: true,
+        buffer: buffer.toString('base64'),
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        filename: `return_to_cabinet_report_${new Date().toISOString().split('T')[0]}.xlsx`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Generate Return To Cabinet Report PDF
+  @MessagePattern({ cmd: 'report.return_to_cabinet.pdf' })
+  async generateReturnToCabinetReportPdf(@Payload() data: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      const buffer = await this.reportServiceService.generateReturnToCabinetReportPdf(data);
+      return {
+        success: true,
+        buffer: buffer.toString('base64'),
+        contentType: 'application/pdf',
+        filename: `return_to_cabinet_report_${new Date().toISOString().split('T')[0]}.pdf`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

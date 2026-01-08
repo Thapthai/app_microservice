@@ -15,6 +15,15 @@ import ComparisonDetailsCard from './components/ComparisonDetailsCard';
 import UsageItemsTable from './components/UsageItemsTable';
 import type { ComparisonItem, UsageItem, FilterState, SummaryData } from './types';
 
+// Helper function to get today's date in YYYY-MM-DD format
+const getTodayDate = (): string => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function ItemComparisonPage() {
   const { user } = useAuth();
   const [loadingList, setLoadingList] = useState(true);
@@ -22,11 +31,11 @@ export default function ItemComparisonPage() {
   const [comparisonList, setComparisonList] = useState<ComparisonItem[]>([]);
   const [filteredList, setFilteredList] = useState<ComparisonItem[]>([]);
   
-  // Filters
+  // Filters - default to today's date
   const [filters, setFilters] = useState<FilterState>({
     searchItemCode: '',
-    startDate: '',
-    endDate: '',
+    startDate: getTodayDate(),
+    endDate: getTodayDate(),
     itemTypeFilter: 'all',
   });
 
@@ -112,8 +121,8 @@ export default function ItemComparisonPage() {
   const handleClearSearch = () => {
     setFilters({
       searchItemCode: '',
-      startDate: '',
-      endDate: '',
+      startDate: getTodayDate(),
+      endDate: getTodayDate(),
       itemTypeFilter: 'all',
     });
     setCurrentPage(1);

@@ -230,6 +230,8 @@ export class MedicalSuppliesServiceController {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
+    page?: number;
+    limit?: number;
   }) {
     try {
       const result = await this.medicalSuppliesService.getDispensedItems(data);
@@ -237,6 +239,9 @@ export class MedicalSuppliesServiceController {
         success: true,
         data: result.data,
         total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
         filters: result.filters,
       };
     } catch (error) {
@@ -335,6 +340,102 @@ export class MedicalSuppliesServiceController {
       return result;
     } catch (error) {
       return { success: false, message: error.message };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.getItemStocksForReturnToCabinet' })
+  async getItemStocksForReturnToCabinet(@Payload() data: {
+    itemCode?: string;
+    itemTypeId?: number;
+    rfidCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const result = await this.medicalSuppliesService.getItemStocksForReturnToCabinet(data);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.returnItemsToCabinet' })
+  async returnItemsToCabinet(@Payload() data: { rowIds: number[] }) {
+    try {
+      const result = await this.medicalSuppliesService.returnItemsToCabinet(data.rowIds);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.getItemStocksForDispenseFromCabinet' })
+  async getItemStocksForDispenseFromCabinet(@Payload() data: {
+    itemCode?: string;
+    itemTypeId?: number;
+    rfidCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const result = await this.medicalSuppliesService.getItemStocksForDispenseFromCabinet(data);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.dispenseItemsFromCabinet' })
+  async dispenseItemsFromCabinet(@Payload() data: { rowIds: number[] }) {
+    try {
+      const result = await this.medicalSuppliesService.dispenseItemsFromCabinet(data.rowIds);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply.getReturnedItems' })
+  async getReturnedItems(@Payload() data: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const result = await this.medicalSuppliesService.getReturnedItems(data);
+      return {
+        success: true,
+        data: result.data,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+        filters: result.filters,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
     }
   }
 }

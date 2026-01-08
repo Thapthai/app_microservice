@@ -17,6 +17,8 @@ import { ReturnReportExcelService, ReturnReportData } from './services/return-re
 import { ReturnReportPdfService } from './services/return-report-pdf.service';
 import { CancelBillReportExcelService, CancelBillReportData } from './services/cancel-bill-report-excel.service';
 import { CancelBillReportPdfService } from './services/cancel-bill-report-pdf.service';
+import { ReturnToCabinetReportExcelService, ReturnToCabinetReportData } from './services/return-to-cabinet-report-excel.service';
+import { ReturnToCabinetReportPdfService } from './services/return-to-cabinet-report-pdf.service';
 import { ComparisonReportData } from './types/comparison-report.types';
 import { EquipmentUsageReportData } from './types/equipment-usage-report.types';
 import { EquipmentDisbursementReportData } from './types/equipment-disbursement-report.types';
@@ -46,6 +48,8 @@ export class ReportServiceService {
     private readonly returnReportPdfService: ReturnReportPdfService,
     private readonly cancelBillReportExcelService: CancelBillReportExcelService,
     private readonly cancelBillReportPdfService: CancelBillReportPdfService,
+    private readonly returnToCabinetReportExcelService: ReturnToCabinetReportExcelService,
+    private readonly returnToCabinetReportPdfService: ReturnToCabinetReportPdfService,
   ) {
     this.prisma = new PrismaClient();
   }
@@ -1848,6 +1852,123 @@ export class ReportServiceService {
       console.error('[Report Service] Error generating Cancel Bill Report PDF:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
       throw new Error(`Failed to generate Cancel Bill Report PDF: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get Returned Items Data (StockID = 1) for report
+   */
+  async getReturnToCabinetReportData(params: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<any> {
+    try {
+      const response: any = await firstValueFrom(
+        this.medicalSuppliesClient.send(
+          { cmd: 'medical_supply_item.getReturnedItems' },
+          params
+        )
+      );
+
+      if (!response || !response.success) {
+        throw new Error('Failed to get returned items data');
+      }
+
+      return {
+        data: response.data || [],
+        total: response.total || 0,
+        page: response.page || 1,
+        limit: response.limit || 10,
+      };
+    } catch (error) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to get Return To Cabinet Report data: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Return To Cabinet Report in Excel format
+   */
+  async generateReturnToCabinetReportExcel(params: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Buffer> {
+    try {
+      const returnedData = await this.getReturnToCabinetReportData({
+        ...params,
+        page: 1,
+        limit: 10000,
+      });
+
+      const reportData: ReturnToCabinetReportData = {
+        filters: {
+          itemCode: params.itemCode,
+          itemTypeId: params.itemTypeId,
+          startDate: params.startDate,
+          endDate: params.endDate,
+        },
+        summary: {
+          total_records: returnedData.total || returnedData.data?.length || 0,
+          total_qty: returnedData.data?.reduce(
+            (sum: number, record: any) => sum + (record.qty || 0),
+            0
+          ) || 0,
+        },
+        data: returnedData.data || [],
+      };
+
+      const buffer = await this.returnToCabinetReportExcelService.generateReport(reportData);
+      return buffer;
+    } catch (error) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Return To Cabinet Report Excel: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Return To Cabinet Report in PDF format
+   */
+  async generateReturnToCabinetReportPdf(params: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Buffer> {
+    try {
+      const returnedData = await this.getReturnToCabinetReportData({
+        ...params,
+        page: 1,
+        limit: 10000,
+      });
+
+      const reportData: ReturnToCabinetReportData = {
+        filters: {
+          itemCode: params.itemCode,
+          itemTypeId: params.itemTypeId,
+          startDate: params.startDate,
+          endDate: params.endDate,
+        },
+        summary: {
+          total_records: returnedData.total || returnedData.data?.length || 0,
+          total_qty: returnedData.data?.reduce(
+            (sum: number, record: any) => sum + (record.qty || 0),
+            0
+          ) || 0,
+        },
+        data: returnedData.data || [],
+      };
+
+      const buffer = await this.returnToCabinetReportPdfService.generateReport(reportData);
+      return buffer;
+    } catch (error) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Return To Cabinet Report PDF: ${errorMessage}`);
     }
   }
 }

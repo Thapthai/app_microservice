@@ -248,10 +248,10 @@ export default function ReturnMedicalSuppliesPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                คืนเวชภัณฑ์
+                คืนอุปกรณ์เข้าตู้
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                คืนเวชภัณฑ์ที่เบิกแล้วแต่ยังไม่ได้ใช้กลับเข้าตู้ Vending
+                คืนอุปกรณ์เข้าตู้ Vending ที่เบิกแล้วแต่ยังไม่ได้ใช้กลับเข้าตู้ Vending
               </p>
             </div>
           </div>
@@ -261,7 +261,7 @@ export default function ReturnMedicalSuppliesPage() {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="return" className="flex items-center gap-2">
                 <RotateCcw className="h-4 w-4" />
-                คืนเวชภัณฑ์
+                คืนอุปกรณ์
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center gap-2">
                 <History className="h-4 w-4" />
