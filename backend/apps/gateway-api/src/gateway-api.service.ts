@@ -380,6 +380,32 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCode' }, filters || {}).toPromise();
   }
 
+  async getUsageByOrderItemCode(filters?: {
+    orderItemCode?: string;
+    startDate?: string;
+    endDate?: string;
+    first_name?: string;
+    lastname?: string;
+    assession_no?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByOrderItemCode' }, filters || {}).toPromise();
+  }
+
+  async getUsageByItemCodeFromItemTable(filters?: {
+    itemCode?: string;
+    startDate?: string;
+    endDate?: string;
+    first_name?: string;
+    lastname?: string;
+    assession_no?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCodeFromItemTable' }, filters || {}).toPromise();
+  }
+
   // Report Service Methods
   async generateItemComparisonExcelReport(params: {
     itemCode?: string;

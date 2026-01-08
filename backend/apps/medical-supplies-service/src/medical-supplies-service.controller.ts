@@ -275,4 +275,14 @@ export class MedicalSuppliesServiceController {
   async getUsageByItemCode(@Payload() data?: any) {
     return this.medicalSuppliesService.getUsageByItemCode(data);
   }
+
+  @MessagePattern({ cmd: 'medical_supply.getUsageByOrderItemCode' })
+  async getUsageByOrderItemCode(@Payload() data?: any) {
+    return this.medicalSuppliesService.getUsageByOrderItemCode(data);
+  }
+
+  @MessagePattern({ cmd: 'medical_supply.getUsageByItemCodeFromItemTable' })
+  async getUsageByItemCodeFromItemTable(@Payload() data?: any) {
+    return this.medicalSuppliesService.getUsageByItemCodeFromItemTable(data);
+  }
 }

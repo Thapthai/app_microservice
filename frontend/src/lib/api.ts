@@ -360,6 +360,34 @@ export const medicalSuppliesApi = {
     return response.data;
   },
 
+  getUsageByOrderItemCode: async (query?: {
+    orderItemCode?: string;
+    startDate?: string;
+    endDate?: string;
+    first_name?: string;
+    lastname?: string;
+    assession_no?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.get('/medical-supplies-usage-by-order-item', { params: query });
+    return response.data;
+  },
+
+  getUsageByItemCodeFromItemTable: async (query?: {
+    itemCode?: string;
+    startDate?: string;
+    endDate?: string;
+    first_name?: string;
+    lastname?: string;
+    assession_no?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.get('/medical-supplies-usage-by-item-code', { params: query });
+    return response.data;
+  },
+
   handleCrossDayCancelBill: async (data: {
     en: string;
     hn: string;

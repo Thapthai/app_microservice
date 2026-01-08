@@ -2022,13 +2022,20 @@ export class MedicalSuppliesServiceService {
         }
       };
 
+      // Filter by usage_datetime - use string comparison since it's String type
       if (filters?.startDate || filters?.endDate) {
-        whereConditions.usage_datetime = {};
-        if (filters?.startDate) {
-          whereConditions.usage_datetime.gte = new Date(filters.startDate);
-        }
-        if (filters?.endDate) {
-          whereConditions.usage_datetime.lte = new Date(filters.endDate);
+        whereConditions.usage_datetime = { not: null };
+        if (filters?.startDate && filters?.endDate) {
+          // Use string comparison for date range
+          whereConditions.usage_datetime.gte = filters.startDate;
+          whereConditions.usage_datetime.lte = filters.endDate + ' 23:59:59';
+        } else {
+          if (filters?.startDate) {
+            whereConditions.usage_datetime.gte = filters.startDate;
+          }
+          if (filters?.endDate) {
+            whereConditions.usage_datetime.lte = filters.endDate + ' 23:59:59';
+          }
         }
       }
 
@@ -2124,6 +2131,287 @@ export class MedicalSuppliesServiceService {
       throw error;
     }
   }
+
+  // Get Usage Records by Order Item Code (Who used this item by order_item_code)
+  async getUsageByOrderItemCode(filters?: {
+    orderItemCode?: string;
+    startDate?: string;
+    endDate?: string;
+    first_name?: string;
+    lastname?: string;
+    assession_no?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 20;
+      const offset = (page - 1) * limit;
+
+      // Build where conditions
+      // Support both order_item_code and supply_code for backward compatibility
+      const whereConditions: any = {
+        supply_items: {
+          some: {
+            OR: [
+              { order_item_code: filters?.orderItemCode },
+              { supply_code: filters?.orderItemCode },
+            ]
+          }
+        }
+      };
+
+      // Filter by usage_datetime - use string comparison since it's String type
+      if (filters?.startDate || filters?.endDate) {
+        whereConditions.usage_datetime = { not: null };
+        if (filters?.startDate && filters?.endDate) {
+          // Use string comparison for date range
+          whereConditions.usage_datetime.gte = filters.startDate;
+          whereConditions.usage_datetime.lte = filters.endDate + ' 23:59:59';
+        } else {
+          if (filters?.startDate) {
+            whereConditions.usage_datetime.gte = filters.startDate;
+          }
+          if (filters?.endDate) {
+            whereConditions.usage_datetime.lte = filters.endDate + ' 23:59:59';
+          }
+        }
+      }
+
+      // Filter by first_name
+      if (filters?.first_name) {
+        whereConditions.first_name = { contains: filters.first_name };
+      }
+
+      // Filter by lastname
+      if (filters?.lastname) {
+        whereConditions.lastname = { contains: filters.lastname };
+      }
+
+      // Filter by assession_no in SupplyUsageItem
+      if (filters?.assession_no) {
+        // If supply_items.some already exists, merge conditions
+        if (whereConditions.supply_items?.some) {
+          whereConditions.supply_items.some = {
+            AND: [
+              whereConditions.supply_items.some,
+              { assession_no: { contains: filters.assession_no } }
+            ]
+          };
+        } else {
+          whereConditions.supply_items = {
+            some: {
+              assession_no: { contains: filters.assession_no },
+            }
+          };
+        }
+      }
+
+      // Get total count
+      const totalCount = await this.prisma.medicalSupplyUsage.count({
+        where: whereConditions,
+      });
+
+      // Build supply_items where condition for include
+      // Support both order_item_code and supply_code for backward compatibility
+      const supplyItemsWhere: any = {};
+      if (filters?.orderItemCode) {
+        supplyItemsWhere.OR = [
+          { order_item_code: filters.orderItemCode },
+          { supply_code: filters.orderItemCode },
+        ];
+      }
+      if (filters?.assession_no) {
+        if (supplyItemsWhere.OR) {
+          supplyItemsWhere.AND = [
+            { OR: supplyItemsWhere.OR },
+            { assession_no: { contains: filters.assession_no } }
+          ];
+          delete supplyItemsWhere.OR;
+        } else {
+          supplyItemsWhere.assession_no = { contains: filters.assession_no };
+        }
+      }
+
+      // Get usage records
+      const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
+        where: whereConditions,
+        include: {
+          supply_items: {
+            where: Object.keys(supplyItemsWhere).length > 0 ? supplyItemsWhere : undefined,
+          },
+        },
+        orderBy: {
+          usage_datetime: 'desc',
+        },
+        skip: offset,
+        take: limit,
+      });
+
+      // Format result
+      const result = usageRecords.map(usage => {
+        const supplyItem = usage.supply_items[0]; // Get the first matching supply item
+        return {
+          usage_id: usage.id,
+          patient_hn: usage.patient_hn,
+          patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
+          patient_en: usage.en,
+          department_code: usage.department_code,
+          usage_datetime: usage.usage_datetime,
+          itemcode: supplyItem?.order_item_code || supplyItem?.supply_code,
+          itemname: supplyItem?.supply_name,
+          qty_used: supplyItem?.qty,
+          qty_returned: supplyItem?.qty_returned_to_cabinet,
+          created_at: usage.created_at,
+          updated_at: usage.updated_at,
+        };
+      });
+
+      const totalPages = Math.ceil(totalCount / limit);
+
+      return {
+        success: true,
+        data: result,
+        total: totalCount,
+        page,
+        limit,
+        totalPages,
+        filters: filters || {},
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Get Usage Records by Item Code from Item Table (Who used this item by itemcode from item table)
+  // Search in SupplyUsageItem using order_item_code to match itemcode from selected item
+  async getUsageByItemCodeFromItemTable(filters?: {
+    itemCode?: string;
+    startDate?: string;
+    endDate?: string;
+    first_name?: string;
+    lastname?: string;
+    assession_no?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 20;
+      const offset = (page - 1) * limit;
+
+      // Build where conditions - use itemCode from item table
+      // Match supply_items where order_item_code equals itemCode (from selected item)
+      const whereConditions: any = {
+        supply_items: {
+          some: {
+            order_item_code: filters?.itemCode,
+          }
+        }
+      };
+
+      // Filter by first_name
+      if (filters?.first_name) {
+        whereConditions.first_name = { contains: filters.first_name };
+      }
+
+      // Filter by lastname
+      if (filters?.lastname) {
+        whereConditions.lastname = { contains: filters.lastname };
+      }
+
+      // Filter by assession_no in SupplyUsageItem
+      if (filters?.assession_no) {
+        // If supply_items.some already exists, merge conditions
+        if (whereConditions.supply_items?.some) {
+          const existingCondition = whereConditions.supply_items.some;
+          whereConditions.supply_items.some = {
+            AND: [
+              existingCondition,
+              { assession_no: { contains: filters.assession_no } }
+            ]
+          };
+        } else {
+          whereConditions.supply_items = {
+            some: {
+              assession_no: { contains: filters.assession_no },
+            }
+          };
+        }
+      }
+
+      // Build supply_items where condition for include
+      // Use order_item_code to match itemCode from selected item
+      const supplyItemsWhere: any = {};
+      if (filters?.itemCode) {
+        supplyItemsWhere.order_item_code = filters.itemCode;
+      }
+      if (filters?.assession_no) {
+        if (supplyItemsWhere.order_item_code) {
+          supplyItemsWhere.AND = [
+            { order_item_code: supplyItemsWhere.order_item_code },
+            { assession_no: { contains: filters.assession_no } }
+          ];
+          delete supplyItemsWhere.order_item_code;
+        } else {
+          supplyItemsWhere.assession_no = { contains: filters.assession_no };
+        }
+      }
+
+      // Get total count
+      const totalCount = await this.prisma.medicalSupplyUsage.count({
+        where: whereConditions,
+      });
+
+      // Get usage records
+      const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
+        where: whereConditions,
+        include: {
+          supply_items: {
+            where: Object.keys(supplyItemsWhere).length > 0 ? supplyItemsWhere : undefined,
+          },
+        },
+        orderBy: {
+          usage_datetime: 'desc',
+        },
+        skip: offset,
+        take: limit,
+      });
+
+      // Format result
+      const result = usageRecords.map(usage => {
+        const supplyItem = usage.supply_items[0]; // Get the first matching supply item
+        return {
+          usage_id: usage.id,
+          patient_hn: usage.patient_hn,
+          patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
+          patient_en: usage.en,
+          department_code: usage.department_code,
+          usage_datetime: usage.usage_datetime,
+          itemcode: supplyItem?.order_item_code || supplyItem?.supply_code,
+          itemname: supplyItem?.supply_name,
+          qty_used: supplyItem?.qty,
+          qty_returned: supplyItem?.qty_returned_to_cabinet,
+          created_at: usage.created_at,
+          updated_at: usage.updated_at,
+        };
+      });
+
+      const totalPages = Math.ceil(totalCount / limit);
+
+      return {
+        success: true,
+        data: result,
+        total: totalCount,
+        page,
+        limit,
+        totalPages,
+        filters: filters || {},
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
   // ==============================================================
   // ============ Compare Dispensed vs Usage Records ==============
   // ============================================================
@@ -2149,11 +2437,16 @@ export class MedicalSuppliesServiceService {
       if (filters?.itemTypeId) {
         sqlConditionsDispensed.push(Prisma.sql`i.itemtypeID = ${filters.itemTypeId}`);
       }
-      if (filters?.startDate) {
-        sqlConditionsDispensed.push(Prisma.sql`ist.LastCabinetModify >= ${new Date(filters.startDate)}`);
-      }
-      if (filters?.endDate) {
-        sqlConditionsDispensed.push(Prisma.sql`ist.LastCabinetModify <= ${new Date(filters.endDate)}`);
+      // Date filters using BETWEEN for date range
+      if (filters?.startDate && filters?.endDate) {
+        sqlConditionsDispensed.push(Prisma.sql`DATE(ist.LastCabinetModify) BETWEEN ${filters.startDate} AND ${filters.endDate}`);
+      } else {
+        if (filters?.startDate) {
+          sqlConditionsDispensed.push(Prisma.sql`DATE(ist.LastCabinetModify) >= ${filters.startDate}`);
+        }
+        if (filters?.endDate) {
+          sqlConditionsDispensed.push(Prisma.sql`DATE(ist.LastCabinetModify) <= ${filters.endDate}`);
+        }
       }
 
       const whereClauseDispensed = Prisma.join(sqlConditionsDispensed, ' AND ');
@@ -2182,13 +2475,20 @@ export class MedicalSuppliesServiceService {
       if (filters?.departmentCode) {
         whereConditionsUsage.department_code = filters.departmentCode;
       }
+      // Filter by usage_datetime - use string comparison since it's String type
       if (filters?.startDate || filters?.endDate) {
-        whereConditionsUsage.usage_datetime = {};
-        if (filters.startDate) {
-          whereConditionsUsage.usage_datetime.gte = new Date(filters.startDate);
-        }
-        if (filters.endDate) {
-          whereConditionsUsage.usage_datetime.lte = new Date(filters.endDate);
+        whereConditionsUsage.usage_datetime = { not: null };
+        if (filters?.startDate && filters?.endDate) {
+          // Use string comparison for date range
+          whereConditionsUsage.usage_datetime.gte = filters.startDate;
+          whereConditionsUsage.usage_datetime.lte = filters.endDate + ' 23:59:59';
+        } else {
+          if (filters?.startDate) {
+            whereConditionsUsage.usage_datetime.gte = filters.startDate;
+          }
+          if (filters?.endDate) {
+            whereConditionsUsage.usage_datetime.lte = filters.endDate + ' 23:59:59';
+          }
         }
       }
 

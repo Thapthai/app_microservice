@@ -69,6 +69,12 @@ const mainMenuItems = [
         description: 'คืนเวชภัณฑ์ที่เบิกแล้วแต่ไม่ได้ใช้กลับเข้าตู้ Vending',
         icon: RotateCcw,
       },
+      {
+        name: 'เปรียบเทียบตามเวชภัณฑ์',
+        href: '/medical-supplies/item-comparison',
+        description: 'เปรียบเทียบการเบิกกับการใช้งานตามเวชภัณฑ์',
+        icon: FileBarChart,
+      },
       // {
       //   name: 'Cancel Bill ข้ามวัน',
       //   href: '/medical-supplies/cancel-bill',
@@ -101,12 +107,12 @@ const mainMenuItems = [
         description: 'เปรียบเทียบการเบิกกับการใช้งานตามผู้ป่วย',
         icon: FileBarChart,
       },
-      {
-        name: 'เปรียบเทียบตามเวชภัณฑ์',
-        href: '/medical-supplies/item-comparison',
-        description: 'เปรียบเทียบการเบิกกับการใช้งานตามเวชภัณฑ์',
-        icon: FileBarChart,
-      },
+      // {
+      //   name: 'เปรียบเทียบตามเวชภัณฑ์',
+      //   href: '/medical-supplies/item-comparison',
+      //   description: 'เปรียบเทียบการเบิกกับการใช้งานตามเวชภัณฑ์',
+      //   icon: FileBarChart,
+      // },
       {
         name: 'การใช้อุปกรณ์',
         href: '/medical-supplies/equipment-usage',

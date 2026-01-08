@@ -1020,6 +1020,72 @@ export class GatewayApiController {
     }
   }
 
+  @Get('medical-supplies-usage-by-order-item')
+  @UseGuards(FlexibleAuthGuard)
+  async getUsageByOrderItemCode(
+    @Query('orderItemCode') orderItemCode?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('first_name') first_name?: string,
+    @Query('lastname') lastname?: string,
+    @Query('assession_no') assession_no?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    try {
+      const filters: any = {};
+      if (orderItemCode) filters.orderItemCode = orderItemCode;
+      if (startDate) filters.startDate = startDate;
+      if (endDate) filters.endDate = endDate;
+      if (first_name) filters.first_name = first_name;
+      if (lastname) filters.lastname = lastname;
+      if (assession_no) filters.assession_no = assession_no;
+      if (page) filters.page = parseInt(page, 10);
+      if (limit) filters.limit = parseInt(limit, 10);
+
+      const result = await this.gatewayApiService.getUsageByOrderItemCode(filters);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get usage by order item code',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supplies-usage-by-item-code')
+  @UseGuards(FlexibleAuthGuard)
+  async getUsageByItemCodeFromItemTable(
+    @Query('itemCode') itemCode?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('first_name') first_name?: string,
+    @Query('lastname') lastname?: string,
+    @Query('assession_no') assession_no?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    try {
+      const filters: any = {};
+      if (itemCode) filters.itemCode = itemCode;
+      if (startDate) filters.startDate = startDate;
+      if (endDate) filters.endDate = endDate;
+      if (first_name) filters.first_name = first_name;
+      if (lastname) filters.lastname = lastname;
+      if (assession_no) filters.assession_no = assession_no;
+      if (page) filters.page = parseInt(page, 10);
+      if (limit) filters.limit = parseInt(limit, 10);
+
+      const result = await this.gatewayApiService.getUsageByItemCodeFromItemTable(filters);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get usage by item code from item table',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // ============================================================
   // MEDICAL SUPPLY ITEM - QUANTITY MANAGEMENT ENDPOINTS
   // ============================================================
