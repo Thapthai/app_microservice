@@ -397,7 +397,26 @@ export const medicalSuppliesApi = {
       assession_no: string;
       item_code: string;
       qty: number;
+      status?: string; // Status = Discontinue สำหรับรายการที่ยกเลิก
     }>;
+    newItems?: Array<{
+      item_code: string;
+      item_description: string;
+      assession_no: string;
+      qty: number;
+      uom: string;
+      item_status?: string; // Status = Verified สำหรับรายการใหม่
+    }>;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/medical-supplies/cancel-bill/cross-day', data);
+    return response.data;
+  },
+
+  handleCancelBill: async (data: {
+    usageId: number;
+    supplyItemIds: number[];
+    oldPrintDate: string;
+    newPrintDate: string;
     newItems?: Array<{
       item_code: string;
       item_description: string;
@@ -407,7 +426,7 @@ export const medicalSuppliesApi = {
       item_status?: string;
     }>;
   }): Promise<ApiResponse<any>> => {
-    const response = await api.post('/medical-supplies/cancel-bill/cross-day', data);
+    const response = await api.post('/medical-supplies/cancel-bill', data);
     return response.data;
   },
 };

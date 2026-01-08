@@ -82,9 +82,12 @@ export class ItemServiceService {
       const orderBy: any = {};
       orderBy[field] = order;
 
-      // Calculate low stock items (stock_balance < stock_min)
-      const allItems = await this.prisma.item.findMany({
-        //
+      // Get all items matching the filter criteria (including keyword search)
+      const allItemsQuery = await this.prisma.item.findMany({
+        where: {
+          ...where,
+          item_status: 0, // Only active items
+        },
         include: {
           itemStocks: {
             where: {
@@ -98,66 +101,63 @@ export class ItemServiceService {
             },
           },
         },
-        where: { item_status: 0 }, // Only active items where: { item_status: 0 }, // Only active items
-        // select: {
-        //   stock_balance: true,
-        //   stock_min: true,
-        // },
       });
 
-      const itemsWithQty = allItems.map((item) => {
-        const qty = item.itemStocks.reduce((sum, s) => sum + (s.Qty ?? 0), 0);
-
+      // Calculate stock_balance for each item and map to required fields
+      const itemsWithStockBalance = allItemsQuery.map((item) => {
+        const stockBalance = item.itemStocks.reduce((sum, s) => sum + (s.Qty ?? 0), 0);
         return {
           itemcode: item.itemcode,
-          qty,
+          itemname: item.itemname,
+          CostPrice: item.CostPrice,
+          SalePrice: item.SalePrice,
+          CreateDate: item.CreateDate,
+          stock_max: item.stock_max,
+          stock_min: item.stock_min,
+          item_status: item.item_status,
+          stock_balance: stockBalance,
         };
       });
 
-      const qtyMap = new Map<string, number>(
-        itemsWithQty.map(i => [i.itemcode, i.qty])
-      );
-
-
-      const lowStockItems = allItems.filter((item) => {
+      // Calculate low stock items (stock_balance < stock_min)
+      const lowStockItems = itemsWithStockBalance.filter((item) => {
         const stockBalance = item.stock_balance ?? 0;
         const minimum = item.stock_min ?? 0;
         return minimum > 0 && stockBalance < minimum;
       });
 
- 
+      // Sort: items with stock (stock_balance > 0) first, then items with 0 stock
+      // Within each group, maintain the original order (by itemcode)
+      itemsWithStockBalance.sort((a, b) => {
+        const stockA = a.stock_balance ?? 0;
+        const stockB = b.stock_balance ?? 0;
+        
+        // If both are 0 or both are > 0, maintain original order
+        if ((stockA === 0 && stockB === 0) || (stockA > 0 && stockB > 0)) {
+          return 0;
+        }
+        
+        // Items with stock > 0 come first
+        if (stockA > 0 && stockB === 0) {
+          return -1;
+        }
+        
+        // Items with stock = 0 come last
+        return 1;
+      });
 
-      const [data, total, activeItemsCount] = await Promise.all([
-        this.prisma.item.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy,
-          select: {
-            itemcode: true,
-            itemname: true,
-            CostPrice: true,
-            SalePrice: true,
-            CreateDate: true,
-            stock_max: true,
-            stock_min: true,
-            item_status: true,
-           
-          },
-          
-          }),
-        this.prisma.item.count({ where }),
+      // Apply pagination after sorting
+      const total = itemsWithStockBalance.length;
+      const startIndex = skip;
+      const endIndex = skip + limit;
+      const data = itemsWithStockBalance.slice(startIndex, endIndex);
+
+      const [activeItemsCount] = await Promise.all([
         this.prisma.item.count({ where: { item_status: 0 } }),
       ]);
 
-      const dataWithQty = data.map(item => ({
-        ...item,
-        stock_balance: qtyMap.get(item.itemcode) ?? 0,
-      }));
-
       return {
-        // data: allItemsWithQty,
-        data: dataWithQty,
+        data: data,
         total,
         page,
         lastPage: Math.ceil(total / limit),

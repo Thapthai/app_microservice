@@ -285,4 +285,56 @@ export class MedicalSuppliesServiceController {
   async getUsageByItemCodeFromItemTable(@Payload() data?: any) {
     return this.medicalSuppliesService.getUsageByItemCodeFromItemTable(data);
   }
+
+  @MessagePattern({ cmd: 'medical_supply.handleCrossDayCancelBill' })
+  async handleCrossDayCancelBill(@Payload() data: {
+    en: string;
+    hn: string;
+    oldPrintDate: string;
+    newPrintDate: string;
+    cancelItems: Array<{
+      assession_no: string;
+      item_code: string;
+      qty: number;
+      status?: string;
+    }>;
+    newItems?: Array<{
+      item_code: string;
+      item_description: string;
+      assession_no: string;
+      qty: number;
+      uom: string;
+      item_status?: string;
+    }>;
+  }) {
+    try {
+      const result = await this.medicalSuppliesService.handleCrossDayCancelBill(data);
+      return { success: true, ...result };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply.handleCancelBill' })
+  async handleCancelBill(data: {
+    usageId: number;
+    supplyItemIds: number[];
+    oldPrintDate: string;
+    newPrintDate: string;
+    newItems?: Array<{
+      item_code: string;
+      item_description: string;
+      assession_no: string;
+      qty: number;
+      uom: string;
+      item_status?: string;
+    }>;
+  }) {
+    try {
+      const result = await this.medicalSuppliesService.handleCancelBill(data);
+      return result;
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
 }

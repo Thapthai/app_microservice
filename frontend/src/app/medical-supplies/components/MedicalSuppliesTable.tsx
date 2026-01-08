@@ -219,9 +219,9 @@ export default function MedicalSuppliesTable({
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">ลำดับ</TableHead>
-                  <TableHead>HN</TableHead>
-                  <TableHead>ชื่อผู้ป่วย</TableHead>
-                  <TableHead>Assession No</TableHead>
+                  {/* <TableHead>HN</TableHead> */}
+                  {/* <TableHead>ชื่อผู้ป่วย</TableHead> */}
+                  {/* <TableHead>Assession No</TableHead> */}
                   <TableHead>ผู้เบิก</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
@@ -253,13 +253,13 @@ export default function MedicalSuppliesTable({
                       <TableCell className="text-center">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </TableCell>
-                      <TableCell className="font-mono font-medium">
+                      {/* <TableCell className="font-mono font-medium">
                         {supplyData.patient_hn || '-'}
-                      </TableCell>
-                      <TableCell>
+                      </TableCell> */}
+                      {/* <TableCell>
                         {patientName}
-                      </TableCell>
-                      <TableCell>
+                      </TableCell> */}
+                      {/* <TableCell>
                         {(() => {
                           const supplyItems = supplyData.supply_items || supply.supply_items || [];
                           const assessionNos = supplyItems
@@ -288,7 +288,7 @@ export default function MedicalSuppliesTable({
                             </Badge>
                           );
                         })()}
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell>
                         <span className="text-sm text-gray-700">{recordedByName}</span>
                       </TableCell>

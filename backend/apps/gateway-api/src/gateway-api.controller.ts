@@ -1176,6 +1176,66 @@ export class GatewayApiController {
     }
   }
 
+  @Post('medical-supplies/cancel-bill')
+  @UseGuards(FlexibleAuthGuard)
+  async handleCancelBill(@Body() data: {
+    usageId: number;
+    supplyItemIds: number[];
+    oldPrintDate: string;
+    newPrintDate: string;
+    newItems?: Array<{
+      item_code: string;
+      item_description: string;
+      assession_no: string;
+      qty: number;
+      uom: string;
+      item_status?: string;
+    }>;
+  }) {
+    try {
+      const result = await this.gatewayApiService.handleCancelBill(data);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to handle cancel bill',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('medical-supplies/cancel-bill/cross-day')
+  @UseGuards(FlexibleAuthGuard)
+  async handleCrossDayCancelBill(@Body() data: {
+    en: string;
+    hn: string;
+    oldPrintDate: string;
+    newPrintDate: string;
+    cancelItems: Array<{
+      assession_no: string;
+      item_code: string;
+      qty: number;
+      status?: string;
+    }>;
+    newItems?: Array<{
+      item_code: string;
+      item_description: string;
+      assession_no: string;
+      qty: number;
+      uom: string;
+      item_status?: string;
+    }>;
+  }) {
+    try {
+      const result = await this.gatewayApiService.handleCrossDayCancelBill(data);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to handle cancel bill',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get('medical-supply-items/:id')
   @UseGuards(FlexibleAuthGuard)
   async getSupplyItemById(@Param('id', ParseIntPipe) id: number) {

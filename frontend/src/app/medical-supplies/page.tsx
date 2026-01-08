@@ -58,12 +58,12 @@ export default function MedicalSuppliesPage() {
 
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
-      if (filters.patientHN) params.patient_hn = filters.patientHN;
-      if (filters.keyword) params.keyword = filters.keyword;
+      // if (filters.patientHN) params.patient_hn = filters.patientHN;
+      // if (filters.keyword) params.keyword = filters.keyword;
       if (filters.userName) params.user_name = filters.userName;
-      if (filters.firstName) params.first_name = filters.firstName;
-      if (filters.lastName) params.lastname = filters.lastName;
-      if (filters.assessionNo) params.assession_no = filters.assessionNo;
+      // if (filters.firstName) params.first_name = filters.firstName;
+      // if (filters.lastName) params.lastname = filters.lastName;
+      // if (filters.assessionNo) params.assession_no = filters.assessionNo;
 
       const response: any = await medicalSuppliesApi.getAll(params);
 
@@ -176,7 +176,7 @@ export default function MedicalSuppliesPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                  รายการเบิกอุปกรณ์
+                  รายการเบิกอุปกรณ์อุปกรณ์ใช้กับคนไข้
                 </h1>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   ประวัติการเบิกอุปกรณ์จากตู้ SmartCabinet
@@ -187,7 +187,7 @@ export default function MedicalSuppliesPage() {
 
           {/* Search Filters */}
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">วันที่เริ่มต้น</Label>
                 <Input
@@ -208,7 +208,7 @@ export default function MedicalSuppliesPage() {
                 />
               </div>
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="patientHN">HN ผู้ป่วย</Label>
                 <Input
                   id="patientHN"
@@ -217,9 +217,9 @@ export default function MedicalSuppliesPage() {
                   onChange={(e) => setFilters({ ...filters, patientHN: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
-              </div>
+              </div> */}
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="keyword">ค้นหา</Label>
                 <Input
                   id="keyword"
@@ -228,9 +228,9 @@ export default function MedicalSuppliesPage() {
                   onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
-              </div>
+              </div> */}
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="firstName">ชื่อ (Firstname)</Label>
                 <Input
                   id="firstName"
@@ -239,9 +239,9 @@ export default function MedicalSuppliesPage() {
                   onChange={(e) => setFilters({ ...filters, firstName: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
-              </div>
+              </div> */}
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="lastName">นามสกุล (Lastname)</Label>
                 <Input
                   id="lastName"
@@ -250,9 +250,9 @@ export default function MedicalSuppliesPage() {
                   onChange={(e) => setFilters({ ...filters, lastName: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
-              </div>
+              </div> */}
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="assessionNo">Assession No</Label>
                 <Input
                   id="assessionNo"
@@ -261,7 +261,7 @@ export default function MedicalSuppliesPage() {
                   onChange={(e) => setFilters({ ...filters, assessionNo: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
-              </div>
+              </div> */}
 
               <div className="space-y-2">
                 <Label htmlFor="userName">ผู้เพิ่มรายการ</Label>
@@ -493,7 +493,7 @@ export default function MedicalSuppliesPage() {
             </div>
           )}
         </div>
-
+      
         {/* Cancel Bill Dialog */}
         <CancelBillDialog
           open={cancelBillDialogOpen}

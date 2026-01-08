@@ -170,7 +170,7 @@ export default function ItemsPage() {
                 <Package className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">จัดการอุปกรณ์</h1>
+                <h1 className="text-2xl font-bold text-gray-900">จัดการสต๊อกอุปกรณ์ในตู้</h1>
                 <p className="text-sm text-gray-500">รายการอุปกรณ์ทั้งหมดในระบบ</p>
               </div>
             </div>
@@ -285,22 +285,32 @@ export default function ItemsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredItems.map((item, index) => (
-                          <TableRow key={item.itemcode}>
-                            <TableCell className="font-medium">
-                              {(currentPage - 1) * itemsPerPage + index + 1}
-                            </TableCell>
-                            <TableCell>
-                              <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                                {item.itemcode}
-                              </code>
-                            </TableCell>
-                            <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
-                            <TableCell className="text-center">
-                              <span className="font-semibold text-gray-900">
-                                {item.stock_balance?.toLocaleString() ?? 0}
-                              </span>
-                            </TableCell>
+                        {filteredItems.map((item, index) => {
+                          const stockBalance = item.stock_balance ?? 0;
+                          const stockMin = item.stock_min ?? 0;
+                          const isLowStock = stockMin > 0 && stockBalance < stockMin;
+                          
+                          return (
+                            <TableRow 
+                              key={item.itemcode}
+                              className={isLowStock ? 'bg-red-50 hover:bg-red-100' : ''}
+                            >
+                              <TableCell className="font-medium">
+                                {(currentPage - 1) * itemsPerPage + index + 1}
+                              </TableCell>
+                              <TableCell>
+                                <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                  {item.itemcode}
+                                </code>
+                              </TableCell>
+                              <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
+                              <TableCell className="text-center">
+                                <span className={`font-semibold ${
+                                  isLowStock ? 'text-red-600' : 'text-gray-900'
+                                }`}>
+                                  {stockBalance.toLocaleString()}
+                                </span>
+                              </TableCell>
                             <TableCell className="text-center">
                               <div className="flex items-center justify-center space-x-1 text-xs">
                                 <span className="text-gray-600">{item.stock_min ?? 0}</span>
@@ -341,7 +351,8 @@ export default function ItemsPage() {
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>

@@ -280,6 +280,50 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getByUsageId' }, { usage_id: usageId }).toPromise();
   }
 
+  async handleCrossDayCancelBill(data: {
+    en: string;
+    hn: string;
+    oldPrintDate: string;
+    newPrintDate: string;
+    cancelItems: Array<{
+      assession_no: string;
+      item_code: string;
+      qty: number;
+      status?: string;
+    }>;
+    newItems?: Array<{
+      item_code: string;
+      item_description: string;
+      assession_no: string;
+      qty: number;
+      uom: string;
+      item_status?: string;
+    }>;
+  }) {
+    return firstValueFrom(
+      this.medicalSuppliesClient.send({ cmd: 'medical_supply.handleCrossDayCancelBill' }, data)
+    );
+  }
+
+  async handleCancelBill(data: {
+    usageId: number;
+    supplyItemIds: number[];
+    oldPrintDate: string;
+    newPrintDate: string;
+    newItems?: Array<{
+      item_code: string;
+      item_description: string;
+      assession_no: string;
+      qty: number;
+      uom: string;
+      item_status?: string;
+    }>;
+  }) {
+    return firstValueFrom(
+      this.medicalSuppliesClient.send({ cmd: 'medical_supply.handleCancelBill' }, data)
+    );
+  }
+
   // ================================ Client Credential Methods ================================
 
   async createClientCredential(user_id: number, clientCredentialDto: any) {
