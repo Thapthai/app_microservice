@@ -21,7 +21,7 @@ interface ItemStock {
   itemname: string;
   RfidCode: string;
   Qty: number;
-  StockID: number;
+  StockID?: number; // Optional - ไม่แสดงในตาราง แต่ยังคงส่งจาก backend
   LastCabinetModify: string;
   CreateDate: string;
   itemType: string;
@@ -132,7 +132,7 @@ export default function DispenseFromCabinetStockPage() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">เบิกอุปกรณ์จากตู้</h1>
               <p className="text-muted-foreground mt-2">
-                เลือกรายการอุปกรณ์ที่ StockID = 1 เพื่อเบิกจากตู้ (เปลี่ยน StockID เป็น 0)
+                เลือกรายการอุปกรณ์ เพื่อเบิกจากตู้ (เปลี่ยน StockID เป็น 0)
               </p>
             </div>
             <div className="flex gap-2">
@@ -152,7 +152,7 @@ export default function DispenseFromCabinetStockPage() {
           <Card>
             <CardHeader>
               <CardTitle>ค้นหาและกรองข้อมูล</CardTitle>
-              <CardDescription>กรองรายการอุปกรณ์ที่ StockID = 1</CardDescription>
+              <CardDescription>กรองรายการอุปกรณ์</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -209,7 +209,7 @@ export default function DispenseFromCabinetStockPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>รายการอุปกรณ์ที่ StockID = 1</CardTitle>
+                  <CardTitle>รายการอุปกรณ์ที่ </CardTitle>
                   <CardDescription>
                     ทั้งหมด {total} รายการ (หน้า {page} จาก {totalPages})
                   </CardDescription>
@@ -256,7 +256,8 @@ export default function DispenseFromCabinetStockPage() {
                               className="rounded border-gray-300"
                             />
                           </TableHead>
-                          <TableHead>RowID</TableHead>
+                          <TableHead>ลำดับ</TableHead>
+                          {/* <TableHead>RowID</TableHead> */}
                           <TableHead>รหัสอุปกรณ์</TableHead>
                           <TableHead>ชื่ออุปกรณ์</TableHead>
                           <TableHead>RFID Code</TableHead>
@@ -266,7 +267,7 @@ export default function DispenseFromCabinetStockPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {itemStocks.map((item) => (
+                        {itemStocks.map((item, index) => (
                           <TableRow
                             key={item.RowID}
                             className={selectedRowIds.includes(item.RowID) ? 'bg-muted' : ''}
@@ -279,7 +280,10 @@ export default function DispenseFromCabinetStockPage() {
                                 className="rounded border-gray-300"
                               />
                             </TableCell>
-                            <TableCell>{item.RowID}</TableCell>
+                            <TableCell className="text-center text-gray-500">
+                              {((page - 1) * limit) + index + 1}
+                            </TableCell>
+                            {/* <TableCell>{item.RowID}</TableCell> */}
                             <TableCell>
                               <Badge variant="outline">{item.ItemCode || item.itemcode}</Badge>
                             </TableCell>

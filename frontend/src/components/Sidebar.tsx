@@ -73,7 +73,7 @@ const mainMenuItems = [
       {
         name: 'เบิกอุปกรณ์จากตู้',
         href: '/medical-supplies/dispense-from-cabinet-stock',
-        description: 'เลือก itemstock ที่ StockID = 1 แล้วเปลี่ยนเป็น 0',
+        description: 'เลือก itemstock ที่เบิกจากตู้',
         icon: Package,
       },
       {
@@ -85,7 +85,7 @@ const mainMenuItems = [
       {
         name: 'คืนอุปกรณ์เข้าตู้',
         href: '/medical-supplies/return-to-cabinet',
-        description: 'เลือก itemstock ที่ StockID = 0 แล้วเปลี่ยนเป็น 1',
+        description: 'เลือก itemstock ที่คืนอุปกรณ์เข้าตู้',
         icon: Package,
       },
       {

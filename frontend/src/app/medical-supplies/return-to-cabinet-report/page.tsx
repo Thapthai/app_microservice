@@ -165,7 +165,7 @@ export default function ReturnToCabinetReportPage() {
                 รายงานคืนอุปกรณ์เข้าตู้
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                รายการอุปกรณ์ทั้งหมดที่คืนเข้าตู้ SmartCabinet (StockID = 1)
+                รายการอุปกรณ์ทั้งหมดที่คืนเข้าตู้ SmartCabinet
               </p>
             </div>
           </div>

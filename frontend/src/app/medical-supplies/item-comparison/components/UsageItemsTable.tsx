@@ -125,6 +125,7 @@ export default function UsageItemsTable({
                     <TableHead>EN</TableHead>
                     <TableHead>แผนก</TableHead>
                     <TableHead>วันที่ใช้</TableHead>
+                    <TableHead>สถานะ</TableHead>
                     <TableHead className="text-right">จำนวนใช้</TableHead>
                     <TableHead className="text-right">จำนวนคืน</TableHead>
                   </TableRow>
@@ -159,6 +160,37 @@ export default function UsageItemsTable({
                               })
                             : '-'
                           }
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const status = item.order_item_status || '-';
+                            const statusLower = status.toLowerCase();
+                            
+                            if (statusLower === 'discontinue') {
+                              return (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>
+                                  ยกเลิก
+                                </Badge>
+                              );
+                            } else if (statusLower === 'verified') {
+                              return (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-green-500"></span>
+                                  ยืนยันแล้ว
+                                </Badge>
+                              );
+                            } else if (status === '-') {
+                              return <span className="text-gray-400">-</span>;
+                            } else {
+                              return (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
+                                  {status}
+                                </Badge>
+                              );
+                            }
+                          })()}
                         </TableCell>
                         <TableCell className="text-right font-medium text-green-600">{item.qty_used || 0}</TableCell>
                         <TableCell className="text-right font-medium text-orange-600">{item.qty_returned || 0}</TableCell>

@@ -40,7 +40,7 @@ export default function ReturnedTable({
           <div>
             <CardTitle>รายการคืนอุปกรณ์เข้าตู้</CardTitle>
             <CardDescription>
-              รายการอุปกรณ์ทั้งหมดที่คืนเข้าตู้ SmartCabinet (StockID = 1)
+              รายการอุปกรณ์ทั้งหมดที่คืนเข้าตู้ SmartCabinet
               {(searchItemCode || itemTypeFilter !== 'all') && ' (กรองแล้ว)'}
             </CardDescription>
           </div>

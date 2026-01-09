@@ -21,7 +21,7 @@ interface ItemStock {
   itemname: string;
   RfidCode: string;
   Qty: number;
-  StockID: number;
+  StockID?: number; // Optional - ไม่แสดงในตาราง แต่ยังคงส่งจาก backend
   LastCabinetModify: string;
   CreateDate: string;
   itemType: string;
@@ -154,7 +154,7 @@ export default function ReturnToCabinetPage() {
           <Card>
             <CardHeader>
               <CardTitle>ค้นหาและกรองข้อมูล</CardTitle>
-              <CardDescription>กรองรายการอุปกรณ์ที่ StockID = 0</CardDescription>
+              <CardDescription>กรองรายการอุปกรณ์</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -211,7 +211,7 @@ export default function ReturnToCabinetPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>รายการอุปกรณ์ที่ StockID = 0</CardTitle>
+                  <CardTitle>รายการอุปกรณ์</CardTitle>
                   <CardDescription>
                     ทั้งหมด {total} รายการ (หน้า {page} จาก {totalPages})
                   </CardDescription>
@@ -258,7 +258,8 @@ export default function ReturnToCabinetPage() {
                               className="rounded border-gray-300"
                             />
                           </TableHead>
-                          <TableHead>RowID</TableHead>
+                          <TableHead>ลำดับ</TableHead>
+                          {/* <TableHead>RowID</TableHead> */}
                           <TableHead>รหัสอุปกรณ์</TableHead>
                           <TableHead>ชื่ออุปกรณ์</TableHead>
                           <TableHead>ผู้เบิก</TableHead>
@@ -282,7 +283,10 @@ export default function ReturnToCabinetPage() {
                                 className="rounded border-gray-300"
                               />
                             </TableCell>
-                            <TableCell>{item.RowID}</TableCell>
+                            <TableCell className="text-center text-gray-500">
+                              {((page - 1) * limit) + itemStocks.indexOf(item) + 1}
+                            </TableCell>
+                            {/* <TableCell>{item.RowID}</TableCell> */}
                             <TableCell>
                               <Badge variant="outline">{item.ItemCode || item.itemcode}</Badge>
                             </TableCell>

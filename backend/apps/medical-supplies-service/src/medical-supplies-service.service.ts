@@ -220,7 +220,7 @@ export class MedicalSuppliesServiceService {
               await this.prisma.supplyUsageItem.update({
                 where: { id: existingItem.id },
                 data: {
-                  order_item_status: 'Discontinue',
+                  order_item_status: 'Discontinue', // Always use 'Discontinue' (not 'Discontinued')
                   // Set qty_used_with_patient to 0 to reflect cancellation
                   qty_used_with_patient: 0,
                 },
@@ -856,7 +856,7 @@ export class MedicalSuppliesServiceService {
               await this.prisma.supplyUsageItem.update({
                 where: { id: item.id },
                 data: {
-                  order_item_status: 'Discontinue',
+                  order_item_status: 'Discontinue', // Always use 'Discontinue' (not 'Discontinued')
                   qty_used_with_patient: 0,
                 },
               });
@@ -880,7 +880,7 @@ export class MedicalSuppliesServiceService {
                 await this.prisma.supplyUsageItem.update({
                   where: { id: item.id },
                   data: {
-                    order_item_status: 'Discontinue',
+                    order_item_status: 'Discontinue', // Always use 'Discontinue' (not 'Discontinued')
                     qty_used_with_patient: 0,
                   },
                 });
@@ -2678,11 +2678,27 @@ export class MedicalSuppliesServiceService {
       //   }
       // }
 
+      // Build supply_items where condition - exclude Discontinue items
+      const supplyItemsWhere: any = {};
+      if (filters?.itemCode) {
+        supplyItemsWhere.supply_code = filters.itemCode;
+      }
+      // Exclude Discontinue items from comparison
+      // Exclude both 'Discontinue' and 'Discontinued' variants (case-insensitive)
+      supplyItemsWhere.AND = [
+        {
+          OR: [
+            { order_item_status: null },
+            { order_item_status: { notIn: ['Discontinue', 'discontinue', 'Discontinued', 'discontinued'] } },
+          ],
+        },
+      ];
+
       const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
         where: whereConditionsUsage,
         include: {
           supply_items: {
-            where: filters?.itemCode ? { supply_code: filters.itemCode } : {},
+            where: supplyItemsWhere,
           },
         },
       });
@@ -2974,10 +2990,11 @@ export class MedicalSuppliesServiceService {
 
           for (const item of matchingItems) {
             // อัปเดต status เป็น Discontinue และ set qty_used_with_patient เป็น 0
+            // Normalize: Always use 'Discontinue' (not 'Discontinued')
             await this.prisma.supplyUsageItem.update({
               where: { id: item.id },
               data: {
-                order_item_status: 'Discontinue',
+                order_item_status: 'Discontinue', // Always use 'Discontinue' (not 'Discontinued')
                 qty_used_with_patient: 0,
               },
             });
@@ -3115,11 +3132,12 @@ export class MedicalSuppliesServiceService {
       const updatedItemIds: number[] = [];
       for (const itemId of supplyItemIds) {
         const item = usage.supply_items.find(si => si.id === itemId);
+        // Normalize status: Always use 'Discontinue' (not 'Discontinued')
         if (item && item.order_item_status?.toLowerCase() !== 'discontinue') {
           await this.prisma.supplyUsageItem.update({
             where: { id: itemId },
             data: {
-              order_item_status: 'Discontinue',
+              order_item_status: 'Discontinue', // Always use 'Discontinue' (not 'Discontinued')
               qty_used_with_patient: 0,
             },
           });
