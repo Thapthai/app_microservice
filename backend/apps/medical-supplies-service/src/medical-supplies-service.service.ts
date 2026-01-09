@@ -2539,12 +2539,7 @@ export class MedicalSuppliesServiceService {
         }
       }
 
-      // Get total count
-      const totalCount = await this.prisma.medicalSupplyUsage.count({
-        where: whereConditions,
-      });
-
-      // Get usage records
+      // Get usage records (without pagination first to get all matching supply_items)
       const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
         where: whereConditions,
         include: {
@@ -2555,28 +2550,37 @@ export class MedicalSuppliesServiceService {
         orderBy: {
           usage_datetime: 'desc',
         },
-        skip: offset,
-        take: limit,
       });
 
-      // Format result
-      const result = usageRecords.map(usage => {
-        const supplyItem = usage.supply_items[0]; // Get the first matching supply item
-        return {
-          usage_id: usage.id,
-          patient_hn: usage.patient_hn,
-          patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
-          patient_en: usage.en,
-          department_code: usage.department_code,
-          usage_datetime: usage.usage_datetime,
-          itemcode: supplyItem?.order_item_code || supplyItem?.supply_code,
-          itemname: supplyItem?.supply_name,
-          qty_used: supplyItem?.qty,
-          qty_returned: supplyItem?.qty_returned_to_cabinet,
-          created_at: usage.created_at,
-          updated_at: usage.updated_at,
-        };
-      });
+      // Format result - create a row for each supply_item that matches
+      const allResults: any[] = [];
+      for (const usage of usageRecords) {
+        // Loop through all matching supply_items, not just the first one
+        for (const supplyItem of usage.supply_items) {
+          allResults.push({
+            usage_id: usage.id,
+            supply_item_id: supplyItem?.id, // Add supply_item_id for unique key
+            patient_hn: usage.patient_hn,
+            patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
+            patient_en: usage.en,
+            department_code: usage.department_code,
+            usage_datetime: usage.usage_datetime,
+            itemcode: supplyItem?.order_item_code || supplyItem?.supply_code,
+            itemname: supplyItem?.supply_name,
+            qty_used: supplyItem?.qty,
+            qty_returned: supplyItem?.qty_returned_to_cabinet,
+            order_item_status: supplyItem?.order_item_status || '',
+            created_at: usage.created_at,
+            updated_at: usage.updated_at,
+          });
+        }
+      }
+
+      // Get total count of supply_items (not usage records)
+      const totalCount = allResults.length;
+
+      // Apply pagination to the results
+      const result = allResults.slice(offset, offset + limit);
 
       const totalPages = Math.ceil(totalCount / limit);
 
@@ -2657,21 +2661,22 @@ export class MedicalSuppliesServiceService {
         whereConditionsUsage.department_code = filters.departmentCode;
       }
       // Filter by usage_datetime - use string comparison since it's String type
-      if (filters?.startDate || filters?.endDate) {
-        whereConditionsUsage.usage_datetime = { not: null };
-        if (filters?.startDate && filters?.endDate) {
-          // Use string comparison for date range
-          whereConditionsUsage.usage_datetime.gte = filters.startDate;
-          whereConditionsUsage.usage_datetime.lte = filters.endDate + ' 23:59:59';
-        } else {
-          if (filters?.startDate) {
-            whereConditionsUsage.usage_datetime.gte = filters.startDate;
-          }
-          if (filters?.endDate) {
-            whereConditionsUsage.usage_datetime.lte = filters.endDate + ' 23:59:59';
-          }
-        }
-      }
+      // Commented out - ไม่จำเป็นต้อง filter วันที่
+      // if (filters?.startDate || filters?.endDate) {
+      //   whereConditionsUsage.usage_datetime = { not: null };
+      //   if (filters?.startDate && filters?.endDate) {
+      //     // Use string comparison for date range
+      //     whereConditionsUsage.usage_datetime.gte = filters.startDate;
+      //     whereConditionsUsage.usage_datetime.lte = filters.endDate + ' 23:59:59';
+      //   } else {
+      //     if (filters?.startDate) {
+      //       whereConditionsUsage.usage_datetime.gte = filters.startDate;
+      //     }
+      //     if (filters?.endDate) {
+      //       whereConditionsUsage.usage_datetime.lte = filters.endDate + ' 23:59:59';
+      //     }
+      //   }
+      // }
 
       const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
         where: whereConditionsUsage,

@@ -11,6 +11,7 @@ export interface ComparisonItem {
 
 export interface UsageItem {
   usage_id: number;
+  supply_item_id?: number; // Add supply_item_id for unique key
   patient_hn: string;
   patient_name: string;
   patient_en?: string;
@@ -20,6 +21,7 @@ export interface UsageItem {
   itemname: string;
   qty_used: number;
   qty_returned?: number;
+  order_item_status?: string;
   created_at: string;
   updated_at: string;
 }

@@ -130,31 +130,41 @@ export default function UsageItemsTable({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item, index) => (
-                    <TableRow key={item.usage_id}>
-                      <TableCell>{((currentPage - 1) * itemsPerPage) + index + 1}</TableCell>
-                      <TableCell className="font-medium text-blue-600">{item.patient_hn}</TableCell>
-                      <TableCell>{item.patient_name || '-'}</TableCell>
-                      <TableCell>{item.patient_en || '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{item.department_code || '-'}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {item.usage_datetime 
-                          ? new Date(item.usage_datetime).toLocaleDateString('th-TH', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })
-                          : '-'
-                        }
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-green-600">{item.qty_used || 0}</TableCell>
-                      <TableCell className="text-right font-medium text-orange-600">{item.qty_returned || 0}</TableCell>
-                    </TableRow>
-                  ))}
+                  {items.map((item, index) => {
+                    const isDiscontinued = item.order_item_status?.toLowerCase() === 'discontinue';
+                    // Use combination of usage_id and supply_item_id for unique key
+                    const uniqueKey = item.supply_item_id 
+                      ? `${item.usage_id}-${item.supply_item_id}` 
+                      : `${item.usage_id}-${index}`;
+                    return (
+                      <TableRow 
+                        key={uniqueKey}
+                        className={isDiscontinued ? 'bg-red-50' : ''}
+                      >
+                        <TableCell>{((currentPage - 1) * itemsPerPage) + index + 1}</TableCell>
+                        <TableCell className="font-medium text-blue-600">{item.patient_hn}</TableCell>
+                        <TableCell>{item.patient_name || '-'}</TableCell>
+                        <TableCell>{item.patient_en || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{item.department_code || '-'}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {item.usage_datetime 
+                            ? new Date(item.usage_datetime).toLocaleDateString('th-TH', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : '-'
+                          }
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-green-600">{item.qty_used || 0}</TableCell>
+                        <TableCell className="text-right font-medium text-orange-600">{item.qty_returned || 0}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

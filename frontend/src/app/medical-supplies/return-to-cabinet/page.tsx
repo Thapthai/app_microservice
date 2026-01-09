@@ -264,7 +264,6 @@ export default function ReturnToCabinetPage() {
                           <TableHead>ผู้เบิก</TableHead>
                           <TableHead>RFID Code</TableHead>
                           <TableHead>จำนวน</TableHead>
-                          <TableHead>StockID</TableHead>
                           <TableHead>ประเภท</TableHead>
                           <TableHead>วันที่แก้ไขล่าสุด</TableHead>
                         </TableRow>
@@ -295,9 +294,6 @@ export default function ReturnToCabinetPage() {
                               </code>
                             </TableCell>
                             <TableCell>{item.Qty}</TableCell>
-                            <TableCell>
-                              <Badge variant="destructive">{item.StockID}</Badge>
-                            </TableCell>
                             <TableCell>{item.itemType || '-'}</TableCell>
                             <TableCell>
                               {item.LastCabinetModify

@@ -261,7 +261,6 @@ export default function DispenseFromCabinetStockPage() {
                           <TableHead>ชื่ออุปกรณ์</TableHead>
                           <TableHead>RFID Code</TableHead>
                           <TableHead>จำนวน</TableHead>
-                          <TableHead>StockID</TableHead>
                           <TableHead>ประเภท</TableHead>
                           <TableHead>วันที่แก้ไขล่าสุด</TableHead>
                         </TableRow>
@@ -291,9 +290,6 @@ export default function DispenseFromCabinetStockPage() {
                               </code>
                             </TableCell>
                             <TableCell>{item.Qty}</TableCell>
-                            <TableCell>
-                              <Badge variant="default">{item.StockID}</Badge>
-                            </TableCell>
                             <TableCell>{item.itemType || '-'}</TableCell>
                             <TableCell>
                               {item.LastCabinetModify
