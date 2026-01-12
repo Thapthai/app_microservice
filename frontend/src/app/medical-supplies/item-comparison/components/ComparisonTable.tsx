@@ -61,8 +61,28 @@ export default function ComparisonTable({
   }, new Map());
 
   const fetchUsageData = async (itemCode: string, page: number = 1) => {
+    // Prevent duplicate requests
+    if (loadingUsage.has(itemCode)) {
+      return;
+    }
+
     try {
       setLoadingUsage(prev => new Set(prev).add(itemCode));
+      
+      // If fetching page 1, clear existing data first to prevent accumulation
+      if (page === 1) {
+        setUsageData(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(itemCode);
+          return newMap;
+        });
+        setUsagePagination(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(itemCode);
+          return newMap;
+        });
+      }
+
       const params = {
         itemCode: itemCode,
         page: page,
@@ -110,17 +130,46 @@ export default function ComparisonTable({
 
   const toggleItemExpanded = (itemCode: string) => {
     const newExpanded = new Set(expandedItems);
+    
     if (newExpanded.has(itemCode)) {
+      // Collapsing - remove from expanded set
       newExpanded.delete(itemCode);
     } else {
+      // Expanding - add to expanded set
       newExpanded.add(itemCode);
-      // Fetch usage data if not already loaded
-      if (!usageData.has(itemCode)) {
-        fetchUsageData(itemCode);
-      }
     }
+    
+    // Update expanded items first (this controls visibility)
     setExpandedItems(newExpanded);
+    
+    // If collapsing, clean up all associated data
+    if (newExpanded.has(itemCode) === false) {
+      // Clear usage data
+      setUsageData(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(itemCode);
+        return newMap;
+      });
+      // Clear pagination data
+      setUsagePagination(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(itemCode);
+        return newMap;
+      });
+      // Clear loading state
+      setLoadingUsage(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemCode);
+        return newSet;
+      });
+    } else {
+      // If expanding, fetch fresh data
+      fetchUsageData(itemCode);
+    }
   };
+
+
+
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -292,13 +341,18 @@ export default function ComparisonTable({
                         const currentPage = pagination?.page || 1;
                         const hasMorePages = itemUsageData.length < currentTotal;
 
-                        itemUsageData.forEach((usage: UsageItem) => {
+                        itemUsageData.forEach((usage: UsageItem, usageIndex: number) => {
+                          const isDiscontinued = usage.order_item_status?.toLowerCase() === 'discontinue';
+                          // Use combination of usage_id and supply_item_id for unique key (same as UsageItemsTable)
+                          const uniqueKey = usage.supply_item_id
+                            ? `${item.itemcode}-usage-${usage.usage_id}-${usage.supply_item_id}`
+                            : `${item.itemcode}-usage-${usage.usage_id}-${usageIndex}`;
                           rows.push(
                             <TableRow
-                              key={`${item.itemcode}-usage-${usage.usage_id}`}
-                              className="bg-blue-50 hover:bg-blue-100 border-l-4 border-l-blue-400"
+                              key={uniqueKey}
+                              className={isDiscontinued ? 'bg-red-50 hover:bg-red-100 border-l-4 border-l-red-400' : 'bg-blue-50 hover:bg-blue-100 border-l-4 border-l-blue-400'}
                             >
-                              <TableCell className="pl-12 text-blue-500 font-semibold">
+                              <TableCell className={`pl-12 font-semibold ${isDiscontinued ? 'text-red-500' : 'text-blue-500'}`}>
                                 └
                               </TableCell>
                               <TableCell className="text-sm font-medium text-gray-700">
@@ -331,9 +385,35 @@ export default function ComparisonTable({
                                 )}
                               </TableCell>
                               <TableCell className="text-center text-sm">
-                                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-300 text-xs">
-                                  {usage.order_item_status || 'ใช้งาน'}
-                                </Badge>
+                                {(() => {
+                                  const status = usage.order_item_status || '-';
+                                  const statusLower = status.toLowerCase();
+                                  
+                                  if (statusLower === 'discontinue') {
+                                    return (
+                                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
+                                        <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>
+                                        ยกเลิก
+                                      </Badge>
+                                    );
+                                  } else if (statusLower === 'verified') {
+                                    return (
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                                        <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-green-500"></span>
+                                        ยืนยันแล้ว
+                                      </Badge>
+                                    );
+                                  } else if (status === '-') {
+                                    return <span className="text-gray-400">-</span>;
+                                  } else {
+                                    return (
+                                      <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-300">
+                                        <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-indigo-500"></span>
+                                        {status}
+                                      </Badge>
+                                    );
+                                  }
+                                })()}
                               </TableCell>
                             </TableRow>
                           );
