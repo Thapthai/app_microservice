@@ -25,6 +25,7 @@ export interface ComparisonItem {
   total_used: number;
   difference: number;
   status: 'MATCHED' | 'DISPENSED_NOT_USED' | 'USED_WITHOUT_DISPENSE' | 'DISPENSE_EXCEEDS_USAGE' | 'USAGE_EXCEEDS_DISPENSE';
+  usageItems?: UsageDetail[];
 }
 
 export interface UsageDetail {

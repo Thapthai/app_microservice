@@ -153,6 +153,7 @@ export class ItemComparisonExcelService {
       if (isMatch) matchCount++;
       else notMatchCount++;
 
+      // Main item row
       const row = worksheet.addRow([
         index + 1,
         item.itemcode || '-',
@@ -169,7 +170,7 @@ export class ItemComparisonExcelService {
       // Apply styles to each cell
       for (let col = 1; col <= 8; col++) {
         const cell = row.getCell(col);
-        cell.font = { name: 'Tahoma', size: 13 };
+        cell.font = { name: 'Tahoma', size: 13, bold: true };
         cell.border = {
           top: { style: 'thin', color: { argb: 'FFDDDDDD' } },
           left: { style: 'thin', color: { argb: 'FFDDDDDD' } },
@@ -177,9 +178,8 @@ export class ItemComparisonExcelService {
           right: { style: 'thin', color: { argb: 'FFDDDDDD' } },
         };
 
-        // Base color (zebra striping)
-        const baseColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA';
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: baseColor } };
+        // Base color for main items (highlight)
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
 
         // Alignment
         if (col === 1 || col >= 4) {
@@ -204,6 +204,46 @@ export class ItemComparisonExcelService {
       } else {
         matchCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
         matchCell.font = { name: 'Tahoma', size: 13, bold: true, color: { argb: 'FF721C24' } };
+      }
+
+      // Sub rows for usage items (if available)
+      if (item.usageItems && Array.isArray(item.usageItems) && item.usageItems.length > 0) {
+        item.usageItems.forEach((usage: any) => {
+          const subRow = worksheet.addRow([
+            '└ ' + (usage.patient_hn || '-'),
+            usage.patient_name || '-',
+            usage.department_code || '-',
+            '-',
+            usage.qty_used || 0,
+            usage.qty_returned || '-',
+            usage.order_item_status || 'ใช้งาน',
+            '-',
+          ]);
+
+          subRow.height = 24;
+
+          // Apply styles to sub-row cells
+          for (let col = 1; col <= 8; col++) {
+            const cell = subRow.getCell(col);
+            cell.font = { name: 'Tahoma', size: 12 };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFEEEEEE' } },
+              left: { style: 'thin', color: { argb: 'FFEEEEEE' } },
+              bottom: { style: 'thin', color: { argb: 'FFEEEEEE' } },
+              right: { style: 'thin', color: { argb: 'FFEEEEEE' } },
+            };
+
+            // Light blue background for sub-rows
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F8FF' } };
+
+            // Alignment
+            if (col >= 4 && col !== 8) {
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            } else {
+              cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            }
+          }
+        });
       }
     });
 
@@ -325,11 +365,11 @@ export class ItemComparisonExcelService {
     worksheet.addRow([]); // Empty row
     
     const footerRow = worksheet.addRow([
-      `สร้างรายงานเมื่อ: ${new Date().toLocaleString('th-TH', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric', 
-        hour: '2-digit', 
+      `สร้างรายงานเมื่อ: ${new Date().toLocaleString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
       })}`

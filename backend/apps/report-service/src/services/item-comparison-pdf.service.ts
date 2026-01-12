@@ -242,27 +242,6 @@ export class ItemComparisonPdfService {
           let notMatchCount = 0;
 
           comparisonData.forEach((item, index) => {
-            // Check if we need a new page
-            if (yPos > doc.page.height - 120) {
-              doc.addPage({ layout: 'portrait', margin: 35 });
-              
-              // Redraw header on new page
-              doc.fontSize(9).font(finalFontBoldName);
-              let xPosHeader = 35;
-              headers.forEach((header, i) => {
-                doc.rect(xPosHeader, 35, colWidths[i], itemHeight)
-                   .fillAndStroke('#E8E8E8', '#CCCCCC');
-                doc.fillColor('#2C3E50')
-                   .text(header, xPosHeader + cellPadding, 35 + 6, { 
-                     width: colWidths[i] - cellPadding * 2, 
-                     align: 'center' 
-                   });
-                xPosHeader += colWidths[i];
-              });
-              doc.fillColor('#000000');
-              yPos = 35 + itemHeight;
-            }
-
             const isMatch = item.status === 'MATCHED';
             if (isMatch) matchCount++;
             else notMatchCount++;
@@ -283,6 +262,29 @@ export class ItemComparisonPdfService {
               displayStatus,
               isMatch ? 'Match' : 'Not Match',
             ];
+
+            // Check if we need a new page (considering potential sub-rows)
+            const hasUsageItems = item.usageItems && Array.isArray(item.usageItems) && item.usageItems.length > 0;
+            const rowsNeeded = 1 + (hasUsageItems && item.usageItems ? Math.min(item.usageItems.length, 5) : 0);
+            if (yPos + (rowsNeeded * itemHeight) > doc.page.height - 120) {
+              doc.addPage({ layout: 'portrait', margin: 35 });
+              
+              // Redraw header on new page
+              doc.fontSize(9).font(finalFontBoldName);
+              let xPosHeader = 35;
+              headers.forEach((header, i) => {
+                doc.rect(xPosHeader, 35, colWidths[i], itemHeight)
+                   .fillAndStroke('#E8E8E8', '#CCCCCC');
+                doc.fillColor('#2C3E50')
+                   .text(header, xPosHeader + cellPadding, 35 + 6, { 
+                     width: colWidths[i] - cellPadding * 2, 
+                     align: 'center' 
+                   });
+                xPosHeader += colWidths[i];
+              });
+              doc.fillColor('#000000');
+              yPos = 35 + itemHeight;
+            }
 
             // Alternate row background
             const isEvenRow = index % 2 === 0;
@@ -319,6 +321,87 @@ export class ItemComparisonPdfService {
             });
             doc.fillColor('#000000');
             yPos += itemHeight;
+
+            // Draw usage sub-rows (if available)
+            if (hasUsageItems && item.usageItems) {
+              item.usageItems.slice(0, 5).forEach((usage: any, usageIndex: number) => {
+                // Check if we need a new page
+                if (yPos > doc.page.height - 120) {
+                  doc.addPage({ layout: 'portrait', margin: 35 });
+                  
+                  // Redraw header on new page
+                  doc.fontSize(9).font(finalFontBoldName);
+                  let xPosHeader = 35;
+                  headers.forEach((header, i) => {
+                    doc.rect(xPosHeader, 35, colWidths[i], itemHeight)
+                       .fillAndStroke('#E8E8E8', '#CCCCCC');
+                    doc.fillColor('#2C3E50')
+                       .text(header, xPosHeader + cellPadding, 35 + 6, { 
+                         width: colWidths[i] - cellPadding * 2, 
+                         align: 'center' 
+                       });
+                    xPosHeader += colWidths[i];
+                  });
+                  doc.fillColor('#000000');
+                  yPos = 35 + itemHeight;
+                }
+
+                // Light blue background for usage sub-rows
+                doc.rect(35, yPos, pageWidth, itemHeight).fill('#F0F8FF');
+
+                const patientHN = '└ ' + (usage.patient_hn || '-');
+                const patientName = usage.patient_name || '-';
+                const department = usage.department_code || '-';
+                const qtyUsed = (usage.qty_used || 0).toString();
+                const qtyReturned = (usage.qty_returned || '-').toString();
+
+                doc.fontSize(8).font(finalFontName);
+                xPos = 35;
+                
+                // Column 1: Empty (No. not shown for sub-rows)
+                doc.rect(xPos, yPos, colWidths[0], itemHeight).stroke('#E0E0E0');
+                xPos += colWidths[0];
+                
+                // Column 2: Patient HN
+                doc.rect(xPos, yPos, colWidths[1], itemHeight).stroke('#E0E0E0');
+                doc.fillColor('#333333')
+                   .text(patientHN, xPos + cellPadding, yPos + 6, {
+                     width: colWidths[1] - cellPadding * 2,
+                     align: 'left',
+                     lineBreak: false,
+                     ellipsis: true,
+                   });
+                xPos += colWidths[1];
+                
+                // Column 3: Patient Name
+                doc.rect(xPos, yPos, colWidths[2], itemHeight).stroke('#E0E0E0');
+                doc.fillColor('#333333')
+                   .text(patientName, xPos + cellPadding, yPos + 6, {
+                     width: colWidths[2] - cellPadding * 2,
+                     align: 'left',
+                     lineBreak: false,
+                     ellipsis: true,
+                   });
+                xPos += colWidths[2];
+                
+                // Remaining columns: Department, Qty Used, Qty Returned, Status, Match
+                const subRowCells = [department, qtyUsed, qtyReturned, '-', '-'];
+                subRowCells.forEach((dataText, i) => {
+                  doc.rect(xPos, yPos, colWidths[i + 3], itemHeight).stroke('#E0E0E0');
+                  doc.fillColor('#333333')
+                     .text(dataText, xPos + cellPadding, yPos + 6, {
+                       width: colWidths[i + 3] - cellPadding * 2,
+                       align: i > 0 ? 'center' : 'left',
+                       lineBreak: false,
+                       ellipsis: true,
+                     });
+                  xPos += colWidths[i + 3];
+                });
+                
+                doc.fillColor('#000000');
+                yPos += itemHeight;
+              });
+            }
           });
 
           // Summary Box

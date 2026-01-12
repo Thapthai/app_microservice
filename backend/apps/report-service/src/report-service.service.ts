@@ -641,29 +641,41 @@ export class ReportServiceService {
           matched_count: 0,
           discrepancy_count: 0,
         },
-        comparison: comparisonResponse.comparison || [],
+        comparison: (comparisonResponse.comparison || []).map((item: any) => ({
+          ...item,
+          usageItems: [],
+        })),
       };
 
-      // If include usage details and itemCode is specified, fetch usage details
-      if (params.includeUsageDetails && params.itemCode) {
-        try {
-          const usageResponse: any = await firstValueFrom(
-            this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCode' }, {
-              itemCode: params.itemCode,
-              startDate: params.startDate,
-              endDate: params.endDate,
-              departmentCode: params.departmentCode,
-            })
-          );
+      // Fetch usage details for each item to include in excel
+      const comparisonWithUsage = await Promise.all(
+        (comparisonResponse.comparison || []).map(async (item: any) => {
+          try {
+            const usageResponse: any = await firstValueFrom(
+              this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCodeFromItemTable' }, {
+                itemCode: item.itemcode,
+                startDate: params.startDate,
+                endDate: params.endDate,
+                page: 1,
+                limit: 100,
+              })
+            );
 
-          if (usageResponse && usageResponse.success && usageResponse.data) {
-            reportData.usageDetails = usageResponse.data;
+            if (usageResponse && usageResponse.success && usageResponse.data) {
+              return {
+                ...item,
+                usageItems: usageResponse.data,
+              };
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch usage details for ${item.itemcode}:`, error);
           }
-        } catch (error) {
-          console.warn('Failed to fetch usage details:', error);
-          // Continue without usage details
-        }
-      }
+          
+          return item;
+        })
+      );
+
+      reportData.comparison = comparisonWithUsage;
 
       // Generate Excel
       const buffer = await this.itemComparisonExcelService.generateReport(reportData);
@@ -722,29 +734,41 @@ export class ReportServiceService {
           matched_count: 0,
           discrepancy_count: 0,
         },
-        comparison: comparisonResponse.comparison || [],
+        comparison: (comparisonResponse.comparison || []).map((item: any) => ({
+          ...item,
+          usageItems: [],
+        })),
       };
 
-      // If include usage details and itemCode is specified, fetch usage details
-      if (params.includeUsageDetails && params.itemCode) {
-        try {
-          const usageResponse: any = await firstValueFrom(
-            this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCode' }, {
-              itemCode: params.itemCode,
-              startDate: params.startDate,
-              endDate: params.endDate,
-              departmentCode: params.departmentCode,
-            })
-          );
+      // Fetch usage details for each item to include in PDF
+      const comparisonWithUsage = await Promise.all(
+        (comparisonResponse.comparison || []).map(async (item: any) => {
+          try {
+            const usageResponse: any = await firstValueFrom(
+              this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCodeFromItemTable' }, {
+                itemCode: item.itemcode,
+                startDate: params.startDate,
+                endDate: params.endDate,
+                page: 1,
+                limit: 100,
+              })
+            );
 
-          if (usageResponse && usageResponse.success && usageResponse.data) {
-            reportData.usageDetails = usageResponse.data;
+            if (usageResponse && usageResponse.success && usageResponse.data) {
+              return {
+                ...item,
+                usageItems: usageResponse.data,
+              };
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch usage details for ${item.itemcode}:`, error);
           }
-        } catch (error) {
-          console.warn('Failed to fetch usage details:', error);
-          // Continue without usage details
-        }
-      }
+
+          return item;
+        })
+      );
+
+      reportData.comparison = comparisonWithUsage;
 
       // Generate PDF
       const buffer = await this.itemComparisonPdfService.generateReport(reportData);
