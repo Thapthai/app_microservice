@@ -63,31 +63,31 @@ const mainMenuItems = [
         description: 'บันทึกใช้อุปกรณ์กับคนไข้ จากตู้ SmartCabinet',
         icon: History,
       },
-      {
-        name: 'คืนเวชภัณฑ์',
-        href: '/medical-supplies/return',
-        description: 'คืนอุปกรณ์เข้าตู้ที่เบิกแล้วแต่ไม่ได้ใช้กลับเข้าตู้',
-        icon: RotateCcw,
-      },
+      // {
+      //   name: 'คืนเวชภัณฑ์',
+      //   href: '/medical-supplies/return',
+      //   description: 'คืนอุปกรณ์เข้าตู้ที่เบิกแล้วแต่ไม่ได้ใช้กลับเข้าตู้',
+      //   icon: RotateCcw,
+      // },
 
-      {
-        name: 'เบิกอุปกรณ์จากตู้',
-        href: '/medical-supplies/dispense-from-cabinet-stock',
-        description: 'เลือก itemstock ที่เบิกจากตู้',
-        icon: Package,
-      },
+      // {
+      //   name: 'เบิกอุปกรณ์จากตู้',
+      //   href: '/medical-supplies/dispense-from-cabinet-stock',
+      //   description: 'เลือก itemstock ที่เบิกจากตู้',
+      //   icon: Package,
+      // },
       {
         name: 'รายงานเบิกอุปกรณ์จากตู้',
         href: '/medical-supplies/dispense-from-cabinet',
         description: 'รายงานการเบิกอุปกรณ์จากตู้ SmartCabinet',
         icon: FileBarChart,
       },
-      {
-        name: 'คืนอุปกรณ์เข้าตู้',
-        href: '/medical-supplies/return-to-cabinet',
-        description: 'เลือก itemstock ที่คืนอุปกรณ์เข้าตู้',
-        icon: Package,
-      },
+      // {
+      //   name: 'คืนอุปกรณ์เข้าตู้',
+      //   href: '/medical-supplies/return-to-cabinet',
+      //   description: 'เลือก itemstock ที่คืนอุปกรณ์เข้าตู้',
+      //   icon: Package,
+      // },
       {
         name: 'รายงานคืนอุปกรณ์เข้าตู้',
         href: '/medical-supplies/return-to-cabinet-report',

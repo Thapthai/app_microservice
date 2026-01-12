@@ -223,6 +223,7 @@ export default function ItemComparisonPage() {
             onRefresh={() => fetchComparisonList(currentPage)}
             itemTypes={getItemTypes()}
             loading={loadingList}
+            items={comparisonList}
           />
 
           {/* Comparison List Table */}
