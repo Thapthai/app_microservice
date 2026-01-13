@@ -7,6 +7,10 @@ export interface ComparisonItem {
   total_used: number;
   difference: number;
   status: string;
+  first_dispensed?: string | null;
+  last_dispensed?: string | null;
+  first_used?: string | null;
+  last_used?: string | null;
 }
 
 export interface UsageItem {

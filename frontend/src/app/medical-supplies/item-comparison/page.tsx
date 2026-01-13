@@ -7,12 +7,14 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import { toast } from 'sonner';
 import { Package } from 'lucide-react';
-import FilterSection from './components/FilterSection';
-import ComparisonTable from './components/ComparisonTable';
-import ItemInfoCard from './components/ItemInfoCard';
-import SummaryCards from './components/SummaryCards';
-import ComparisonDetailsCard from './components/ComparisonDetailsCard';
-import UsageItemsTable from './components/UsageItemsTable';
+import {
+  FilterSection,
+  ComparisonTable,
+  ItemInfoCard,
+  SummaryCards,
+  ComparisonDetailsCard,
+  UsageItemsTable,
+} from './components';
 import type { ComparisonItem, UsageItem, FilterState, SummaryData } from './types';
 
 // Helper function to get today's date in YYYY-MM-DD format
@@ -237,6 +239,8 @@ export default function ItemComparisonPage() {
             itemsPerPage={itemsPerPage}
             searchItemCode={filters.searchItemCode}
             itemTypeFilter={filters.itemTypeFilter}
+            startDate={filters.startDate}
+            endDate={filters.endDate}
             onSelectItem={handleSelectItem}
             onPageChange={handlePageChange}
             onExportExcel={() => handleExportReport('excel')}
@@ -268,6 +272,8 @@ export default function ItemComparisonPage() {
               <UsageItemsTable
                 itemCode={selectedItemCode}
                 itemName={selectedItem.itemname}
+                startDate={filters.startDate}
+                endDate={filters.endDate}
               />
             </>
           )}

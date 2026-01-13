@@ -3,12 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import StatusBadge from './StatusBadge';
-import ComparisonPagination from './ComparisonPagination';
+import { StatusBadge } from '../common/StatusBadge';
+import { ComparisonPagination } from './ComparisonPagination';
 import { useState, useRef, useEffect } from 'react';
 import { medicalSuppliesApi } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ComparisonItem, UsageItem } from '../types';
+import type { ComparisonItem, UsageItem } from '../../types';
 
 interface ComparisonTableProps {
   loading: boolean;
@@ -43,7 +43,7 @@ const formatDate = (dateString: string | undefined): string => {
   }
 };
 
-export default function ComparisonTable({
+export function ComparisonTable({
   loading,
   items,
   selectedItemCode,
@@ -102,11 +102,15 @@ export default function ComparisonTable({
         });
       }
 
-      const params = {
+      const params: any = {
         itemCode: itemCode,
         page: page,
         limit: ITEMS_PER_PAGE,
       };
+
+      // Add date filters if provided
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
 
       const response = await medicalSuppliesApi.getUsageByItemCodeFromItemTable(params) as any;
 
@@ -187,8 +191,19 @@ export default function ComparisonTable({
     }
   };
 
-
-
+  // Refresh sub data when date filter changes
+  useEffect(() => {
+    // Clear all usage data and pagination when filters change
+    setUsageData(new Map());
+    setUsagePagination(new Map());
+    
+    // If there are expanded items, refetch their data with new filters
+    if (expandedItems.size > 0) {
+      expandedItems.forEach(itemCode => {
+        fetchUsageData(itemCode, 1);
+      });
+    }
+  }, [startDate, endDate]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -201,6 +216,7 @@ export default function ComparisonTable({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+  
   return (
     <Card>
       <CardHeader>
@@ -393,14 +409,12 @@ export default function ComparisonTable({
                                   <div className="text-xs text-gray-600">{usage.patient_en}</div>
                                 )}
                               </TableCell>
-                              <TableCell className="text-sm">
-                                <Badge variant="outline" className="bg-gray-100 text-gray-700">
-                                  {usage.department_code || '-'}
-                                </Badge>
+                              <TableCell className="text-sm text-gray-600">
+                                {formatDate(usage.created_at) || '-'}
                               </TableCell>
-                              <TableCell className="text-right text-sm text-gray-400">
+                              {/* <TableCell className="text-right text-sm text-gray-400">
                                 -
-                              </TableCell>
+                              </TableCell> */}
                               <TableCell className="text-right font-semibold text-sm text-indigo-700">
                                 {usage.qty_used}
                               </TableCell>

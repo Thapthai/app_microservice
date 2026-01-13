@@ -4,8 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useRef, useEffect } from 'react';
-import type { FilterState } from '../types';
-import type { ComparisonItem } from '../types';
+import type { FilterState } from '../../types';
+import type { ComparisonItem } from '../../types';
 
 interface FilterSectionProps {
   filters: FilterState;
@@ -18,7 +18,7 @@ interface FilterSectionProps {
   items?: ComparisonItem[];
 }
 
-export default function FilterSection({
+export function FilterSection({
   filters,
   onFilterChange,
   onSearch,
@@ -76,6 +76,7 @@ export default function FilterSection({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+  
   return (
     <Card>
       <CardHeader>

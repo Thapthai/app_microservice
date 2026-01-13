@@ -12,6 +12,7 @@ import {
   ItemStatus,
   ReturnReason,
 } from './dto';
+import { log } from 'console';
 
 @Injectable()
 export class MedicalSuppliesServiceService {
@@ -178,7 +179,7 @@ export class MedicalSuppliesServiceService {
       const legacySupplies = data.supplies || [];
 
       // Handle Discontinue items: Update existing items with same assession_no in the same episode
-      const discontinueItems = orderItems.filter(item => 
+      const discontinueItems = orderItems.filter(item =>
         item.ItemStatus && item.ItemStatus.toLowerCase() === 'discontinue' && item.AssessionNo
       );
 
@@ -206,7 +207,7 @@ export class MedicalSuppliesServiceService {
         for (const discontinueItem of discontinueItems) {
           // Find existing items with the same assession_no in the same episode
           for (const usage of episodeUsages) {
-            const existingItems = usage.supply_items.filter(item => 
+            const existingItems = usage.supply_items.filter(item =>
               item.assession_no === discontinueItem.AssessionNo &&
               item.order_item_status?.toLowerCase() !== 'discontinue'
             );
@@ -261,7 +262,7 @@ export class MedicalSuppliesServiceService {
       }
 
       // Filter out Discontinue items from creation (they are only used to cancel existing items)
-      const itemsToCreate = orderItems.filter(item => 
+      const itemsToCreate = orderItems.filter(item =>
         !item.ItemStatus || item.ItemStatus.toLowerCase() !== 'discontinue'
       );
 
@@ -674,7 +675,7 @@ export class MedicalSuppliesServiceService {
         // Create result object with all usage data and add resolved user fields
         // Convert Prisma object to plain object first to ensure all properties are included
         const usagePlain = JSON.parse(JSON.stringify(usage));
-        
+
         // Convert supply_items to plain objects as well
         const supplyItemsPlain = usage.supply_items.map(item => {
           const itemPlain = JSON.parse(JSON.stringify(item));
@@ -683,7 +684,7 @@ export class MedicalSuppliesServiceService {
             qty_pending: (item.qty || 0) - (item.qty_used_with_patient || 0) - (item.qty_returned_to_cabinet || 0),
           };
         });
-        
+
         const result: any = {
           ...usagePlain,
           recorded_by_user_id: recordedByUserId,
@@ -691,7 +692,7 @@ export class MedicalSuppliesServiceService {
           recorded_by_display: recordedByDisplay,
           supply_items: supplyItemsPlain,
         };
- 
+
         return result;
       }));
 
@@ -837,7 +838,7 @@ export class MedicalSuppliesServiceService {
 
       // Handle Discontinue items if provided
       const orderItems = data.Order || [];
-      const discontinueItems = orderItems.filter(item => 
+      const discontinueItems = orderItems.filter(item =>
         item.ItemStatus && item.ItemStatus.toLowerCase() === 'discontinue'
       );
 
@@ -846,7 +847,7 @@ export class MedicalSuppliesServiceService {
         for (const discontinueItem of discontinueItems) {
           if (discontinueItem.AssessionNo) {
             // Find items with the same assession_no
-            const itemsToDiscontinue = existing.supply_items.filter(item => 
+            const itemsToDiscontinue = existing.supply_items.filter(item =>
               item.assession_no === discontinueItem.AssessionNo &&
               item.order_item_status?.toLowerCase() !== 'discontinue'
             );
@@ -1759,15 +1760,15 @@ export class MedicalSuppliesServiceService {
       // Resolve return_by_user_name for each record
       const data = await Promise.all(records.map(async (record) => {
         let returnByName = 'ไม่ระบุ';
-        
+
         if (record.return_by_user_id) {
           const userId = record.return_by_user_id;
-          
+
           // Check if it's in format "user:123" or "staff:456"
           if (userId.includes(':')) {
             const [userType, id] = userId.split(':');
             const userIdNum = parseInt(id, 10);
-            
+
             if (userType === 'user' && !isNaN(userIdNum)) {
               const adminUser = await this.prisma.user.findUnique({
                 where: { id: userIdNum },
@@ -1807,7 +1808,7 @@ export class MedicalSuppliesServiceService {
             }
           }
         }
-        
+
         return {
           ...record,
           return_by_user_name: returnByName,
@@ -2539,6 +2540,22 @@ export class MedicalSuppliesServiceService {
         }
       }
 
+      // Add date range filter on supply_items.created_at
+      if (filters?.startDate && filters?.endDate) {
+        supplyItemsWhere.created_at = {
+          gte: new Date(filters.startDate),
+          lte: new Date(filters.endDate + 'T23:59:59.999Z'),
+        };
+      } else if (filters?.startDate) {
+        supplyItemsWhere.created_at = {
+          gte: new Date(filters.startDate),
+        };
+      } else if (filters?.endDate) {
+        supplyItemsWhere.created_at = {
+          lte: new Date(filters.endDate + 'T23:59:59.999Z'),
+        };
+      }
+
       // Get usage records (without pagination first to get all matching supply_items)
       const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
         where: whereConditions,
@@ -2622,17 +2639,18 @@ export class MedicalSuppliesServiceService {
       if (filters?.itemTypeId) {
         sqlConditionsDispensed.push(Prisma.sql`i.itemtypeID = ${filters.itemTypeId}`);
       }
-      // Date filters using BETWEEN for date range
-      if (filters?.startDate && filters?.endDate) {
-        sqlConditionsDispensed.push(Prisma.sql`DATE(ist.LastCabinetModify) BETWEEN ${filters.startDate} AND ${filters.endDate}`);
-      } else {
-        if (filters?.startDate) {
-          sqlConditionsDispensed.push(Prisma.sql`DATE(ist.LastCabinetModify) >= ${filters.startDate}`);
-        }
-        if (filters?.endDate) {
-          sqlConditionsDispensed.push(Prisma.sql`DATE(ist.LastCabinetModify) <= ${filters.endDate}`);
-        }
-      }
+
+      // // Date filters using BETWEEN for date range
+      // if (filters?.startDate && filters?.endDate) {
+      //   sqlConditionsDispensed.push(Prisma.sql`DATE(ist.LastCabinetModify) BETWEEN ${filters.startDate} AND ${filters.endDate}`);
+      // } else {
+      //   if (filters?.startDate) {
+      //     sqlConditionsDispensed.push(Prisma.sql`DATE(ist.LastCabinetModify) >= ${filters.startDate}`);
+      //   }
+      //   if (filters?.endDate) {
+      //     sqlConditionsDispensed.push(Prisma.sql`DATE(ist.LastCabinetModify) <= ${filters.endDate}`);
+      //   }
+      // }
 
       const whereClauseDispensed = Prisma.join(sqlConditionsDispensed, ' AND ');
 
@@ -2685,6 +2703,17 @@ export class MedicalSuppliesServiceService {
       }
       // Exclude Discontinue items from comparison
       // Exclude both 'Discontinue' and 'Discontinued' variants (case-insensitive)
+
+      // Date range filter on supply_items.created_at
+      if (filters?.startDate && filters?.endDate) {
+
+        supplyItemsWhere.created_at = {
+          gte: new Date(filters.startDate),
+          lte: new Date(new Date(filters.endDate).setHours(23, 59, 59, 999)),
+        };
+
+      }
+
       supplyItemsWhere.AND = [
         {
           OR: [
