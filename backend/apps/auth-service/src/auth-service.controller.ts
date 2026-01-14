@@ -244,4 +244,68 @@ export class AuthServiceController {
   async staffUserLogin(@Payload() payload: { email: string; password: string }) {
     return this.authServiceService.staffUserLogin(payload.email, payload.password);
   }
+
+  @MessagePattern('auth.staff.getProfile')
+  async getStaffUserProfile(@Payload() id: number) {
+    return this.authServiceService.getStaffUserProfile(id);
+  }
+
+  @MessagePattern('auth.staff.updateProfile')
+  async updateStaffUserProfile(@Payload() payload: { id: number; data: any }) {
+    return this.authServiceService.updateStaffUserProfile(payload.id, payload.data);
+  }
+
+  // ==================== Staff Role Permissions ====================
+
+  @MessagePattern('auth.staff.rolePermissions.getAll')
+  async getAllRolePermissions() {
+    return this.authServiceService.getAllRolePermissions();
+  }
+
+  @MessagePattern('auth.staff.rolePermissions.getByRole')
+  async getRolePermissionsByRole(@Payload() role: string) {
+    return this.authServiceService.getRolePermissionsByRole(role);
+  }
+
+  @MessagePattern('auth.staff.rolePermissions.upsert')
+  async upsertRolePermission(@Payload() data: { role_code?: string; role_id?: number; menu_href: string; can_access: boolean }) {
+    return this.authServiceService.upsertRolePermission(data);
+  }
+
+  @MessagePattern('auth.staff.rolePermissions.bulkUpdate')
+  async bulkUpdateRolePermissions(@Payload() permissions: Array<{ role_code?: string; role_id?: number; menu_href: string; can_access: boolean }>) {
+    return this.authServiceService.bulkUpdateRolePermissions(permissions);
+  }
+
+  @MessagePattern('auth.staff.rolePermissions.delete')
+  async deleteRolePermission(@Payload() id: number) {
+    return this.authServiceService.deleteRolePermission(id);
+  }
+
+  // ==================== Staff Roles Management ====================
+
+  @MessagePattern('auth.staff.roles.getAll')
+  async getAllStaffRoles() {
+    return this.authServiceService.getAllStaffRoles();
+  }
+
+  @MessagePattern('auth.staff.roles.getById')
+  async getStaffRoleById(@Payload() id: number) {
+    return this.authServiceService.getStaffRoleById(id);
+  }
+
+  @MessagePattern('auth.staff.roles.create')
+  async createStaffRole(@Payload() data: { code: string; name: string; description?: string; is_active?: boolean }) {
+    return this.authServiceService.createStaffRole(data);
+  }
+
+  @MessagePattern('auth.staff.roles.update')
+  async updateStaffRole(@Payload() payload: { id: number; data: { name?: string; description?: string; is_active?: boolean } }) {
+    return this.authServiceService.updateStaffRole(payload.id, payload.data);
+  }
+
+  @MessagePattern('auth.staff.roles.delete')
+  async deleteStaffRole(@Payload() id: number) {
+    return this.authServiceService.deleteStaffRole(id);
+  }
 }

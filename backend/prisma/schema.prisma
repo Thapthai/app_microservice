@@ -43,11 +43,30 @@ model User {
   @@map("app_microservice_users")
 }
 
+model StaffRole {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique // 'it1', 'it2', 'it3', 'warehouse1', 'warehouse2', 'warehouse3'
+  name        String   // 'IT 1', 'IT 2', 'Warehouse 1', etc.
+  description String?  @db.Text // Description of the role
+  is_active   Boolean  @default(true) @map("is_active")
+  created_at  DateTime @default(now()) @map("created_at")
+  updated_at  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  staffUsers         StaffUser[]
+  rolePermissions    StaffRolePermission[]
+
+  @@index([code], name: "idx_code")
+  @@index([is_active], name: "idx_is_active")
+  @@map("app_microservice_staff_roles")
+}
+
 model StaffUser {
   id            Int       @id @default(autoincrement())
   email         String    @unique
   fname         String // First name
   lname         String // Last name
+  role_id       Int       @map("role_id") // Foreign key to StaffRole
   password      String // Hashed password, default: password123
   client_id     String    @unique @map("client_id") // For API access
   client_secret String    @map("client_secret") // Hashed secret
@@ -56,7 +75,30 @@ model StaffUser {
   created_at    DateTime  @default(now()) @map("created_at")
   updated_at    DateTime  @updatedAt @map("updated_at")
 
+  // Relations
+  role StaffRole @relation(fields: [role_id], references: [id])
+
+  @@index([role_id], name: "idx_role_id")
+  @@index([email], name: "idx_email")
+  @@index([is_active], name: "idx_is_active")
   @@map("app_microservice_staff_users")
+}
+
+model StaffRolePermission {
+  id         Int      @id @default(autoincrement())
+  role_id    Int      @map("role_id") // Foreign key to StaffRole
+  menu_href  String   @map("menu_href") // Menu href path, e.g., '/staff/dashboard'
+  can_access Boolean  @default(true) @map("can_access")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  role StaffRole @relation(fields: [role_id], references: [id])
+
+  @@unique([role_id, menu_href], name: "role_menu_href")
+  @@index([role_id], name: "idx_role_id")
+  @@index([menu_href], name: "idx_menu_href")
+  @@map("app_microservice_staff_role_permissions")
 }
 
 model OAuthAccount {

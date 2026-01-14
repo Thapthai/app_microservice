@@ -13,6 +13,14 @@ export class CreateStaffUserDto {
   lname: string;
 
   @IsString()
+  @IsOptional()
+  role_code?: string; // 'it1', 'it2', 'it3', 'warehouse1', 'warehouse2', 'warehouse3' (for backward compatibility)
+
+  @IsString()
+  @IsOptional()
+  role_id?: number; // ID of StaffRole (preferred)
+
+  @IsString()
   @MinLength(8)
   @IsOptional()
   password?: string; // Optional, will default to 'password123'
@@ -38,6 +46,14 @@ export class UpdateStaffUserDto {
   lname?: string;
 
   @IsString()
+  @IsOptional()
+  role_code?: string; // 'it1', 'it2', 'it3', 'warehouse1', 'warehouse2', 'warehouse3' (for backward compatibility)
+
+  @IsString()
+  @IsOptional()
+  role_id?: number; // ID of StaffRole (preferred)
+
+  @IsString()
   @MinLength(8)
   @IsOptional()
   password?: string;
@@ -56,6 +72,13 @@ export class StaffUserResponseDto {
   email: string;
   fname: string;
   lname: string;
+  role_id: number;
+  role?: {
+    id: number;
+    code: string;
+    name: string;
+    description: string | null;
+  };
   client_id: string;
   expires_at: Date | null;
   is_active: boolean;

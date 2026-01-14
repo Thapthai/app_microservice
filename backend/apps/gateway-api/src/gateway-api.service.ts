@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { RegisterDto, LoginDto } from './dto';
 
 @Injectable()
@@ -548,6 +549,155 @@ export class GatewayApiService {
 
   async staffUserLogin(email: string, password: string) {
     return this.authClient.send('auth.staff.login', { email, password }).toPromise();
+  }
+
+  async getStaffUserProfile(id: number) {
+    return this.authClient.send('auth.staff.getProfile', id).toPromise();
+  }
+
+  async updateStaffUserProfile(id: number, data: any) {
+    return this.authClient.send('auth.staff.updateProfile', { id, data }).toPromise();
+  }
+
+  // ==================== Staff Role Permissions ====================
+
+  async getAllRolePermissions() {
+    return this.authClient.send('auth.staff.rolePermissions.getAll', {}).toPromise();
+  }
+
+  async getRolePermissionsByRole(role: string) {
+    return this.authClient.send('auth.staff.rolePermissions.getByRole', role).toPromise();
+  }
+
+  async upsertRolePermission(data: { role: string; menu_href: string; can_access: boolean }) {
+    return this.authClient.send('auth.staff.rolePermissions.upsert', data).toPromise();
+  }
+
+  async bulkUpdateRolePermissions(permissions: Array<{ role: string; menu_href: string; can_access: boolean }>) {
+    return this.authClient.send('auth.staff.rolePermissions.bulkUpdate', permissions).toPromise();
+  }
+
+  async deleteRolePermission(id: number) {
+    return this.authClient.send('auth.staff.rolePermissions.delete', id).toPromise();
+  }
+
+  // ==================== Staff Roles Management ====================
+
+  async getAllStaffRoles() {
+    try {
+      return await firstValueFrom(
+        this.authClient.send('auth.staff.roles.getAll', {}).pipe(
+          // Add timeout and error handling
+          catchError((error) => {
+            console.error('❌ Error calling auth service (getAllStaffRoles):', error);
+            throw error;
+          })
+        )
+      );
+    } catch (error) {
+      console.error('❌ Failed to get all staff roles:', error);
+      // Check if it's a connection error
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        return {
+          success: false,
+          message: 'ไม่สามารถเชื่อมต่อกับ Auth Service ได้ กรุณาตรวจสอบว่า Auth Service ทำงานอยู่',
+          error: 'Service connection error'
+        };
+      }
+      throw error;
+    }
+  }
+
+  async getStaffRoleById(id: number) {
+    try {
+      return await firstValueFrom(
+        this.authClient.send('auth.staff.roles.getById', id).pipe(
+          catchError((error) => {
+            console.error('❌ Error calling auth service (getStaffRoleById):', error);
+            throw error;
+          })
+        )
+      );
+    } catch (error) {
+      console.error('❌ Failed to get staff role by ID:', error);
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        return {
+          success: false,
+          message: 'ไม่สามารถเชื่อมต่อกับ Auth Service ได้',
+          error: 'Service connection error'
+        };
+      }
+      throw error;
+    }
+  }
+
+  async createStaffRole(data: { code: string; name: string; description?: string; is_active?: boolean }) {
+    try {
+      return await firstValueFrom(
+        this.authClient.send('auth.staff.roles.create', data).pipe(
+          catchError((error) => {
+            console.error('❌ Error calling auth service (createStaffRole):', error);
+            throw error;
+          })
+        )
+      );
+    } catch (error) {
+      console.error('❌ Failed to create staff role:', error);
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        return {
+          success: false,
+          message: 'ไม่สามารถเชื่อมต่อกับ Auth Service ได้',
+          error: 'Service connection error'
+        };
+      }
+      throw error;
+    }
+  }
+
+  async updateStaffRole(id: number, data: { name?: string; description?: string; is_active?: boolean }) {
+    try {
+      return await firstValueFrom(
+        this.authClient.send('auth.staff.roles.update', { id, data }).pipe(
+          catchError((error) => {
+            console.error('❌ Error calling auth service (updateStaffRole):', error);
+            throw error;
+          })
+        )
+      );
+    } catch (error) {
+      console.error('❌ Failed to update staff role:', error);
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        return {
+          success: false,
+          message: 'ไม่สามารถเชื่อมต่อกับ Auth Service ได้',
+          error: 'Service connection error'
+        };
+      }
+      throw error;
+    }
+  }
+
+  async deleteStaffRole(id: number) {
+    try {
+      return await firstValueFrom(
+        this.authClient.send('auth.staff.roles.delete', id).pipe(
+          catchError((error) => {
+            console.error('❌ Error calling auth service (deleteStaffRole):', error);
+            throw error;
+          })
+        )
+      );
+    } catch (error) {
+      console.error('❌ Failed to delete staff role:', error);
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        return {
+          success: false,
+          message: 'ไม่สามารถเชื่อมต่อกับ Auth Service ได้',
+          error: 'Service connection error'
+        };
+      }
+      throw error;
+    }
   }
 
   // ==================== Vending Reports ====================

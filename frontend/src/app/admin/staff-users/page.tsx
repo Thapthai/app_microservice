@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { staffUserApi } from '@/lib/api';
+import { staffUserApi, staffRoleApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pencil, Trash2, Key, UserPlus, Copy, Eye, EyeOff } from 'lucide-react';
 
 interface StaffUser {
@@ -18,6 +19,7 @@ interface StaffUser {
   email: string;
   fname: string;
   lname: string;
+  role: string;
   client_id: string;
   expires_at: string | null;
   is_active: boolean;
@@ -27,6 +29,7 @@ interface StaffUser {
 
 export default function StaffUsersPage() {
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+  const [staffRoles, setStaffRoles] = useState<Array<{ id: number; code: string; name: string; description: string | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -49,13 +52,30 @@ export default function StaffUsersPage() {
     email: '',
     fname: '',
     lname: '',
+    role: '',
     password: 'password123',
     expires_at: '',
   });
 
   useEffect(() => {
     fetchStaffUsers();
+    fetchStaffRoles();
   }, []);
+
+  const fetchStaffRoles = async () => {
+    try {
+      const response = await staffRoleApi.getAll();
+      if (response.success) {
+        setStaffRoles(response.data || []);
+      } else {
+        console.error('Failed to fetch staff roles:', response.message || 'Unknown error');
+        showNotification('ไม่สามารถโหลดบทบาทได้', response.message || 'กรุณาลองใหม่อีกครั้ง', 'error');
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch staff roles:', error);
+      showNotification('ไม่สามารถโหลดบทบาทได้', error.message || 'กรุณาตรวจสอบการเชื่อมต่อ', 'error');
+    }
+  };
 
   const fetchStaffUsers = async () => {
     try {
@@ -84,7 +104,7 @@ export default function StaffUsersPage() {
           client_secret: response.data.client_secret,
         });
         fetchStaffUsers();
-        setFormData({ email: '', fname: '', lname: '', password: 'password123', expires_at: '' });
+        setFormData({ email: '', fname: '', lname: '', role: '', password: 'password123', expires_at: '' });
         // Don't close dialog yet - show credentials
       } else {
         showNotification('เกิดข้อผิดพลาด', response.message || 'ไม่สามารถสร้าง Staff User ได้', 'error');
@@ -104,6 +124,10 @@ export default function StaffUsersPage() {
         fname: formData.fname,
         lname: formData.lname,
       };
+
+      if (formData.role) {
+        updateData.role_code = formData.role; // Use role_code instead of role
+      }
 
       if (formData.password && formData.password !== 'password123') {
         updateData.password = formData.password;
@@ -168,6 +192,7 @@ export default function StaffUsersPage() {
       email: staff.email,
       fname: staff.fname,
       lname: staff.lname,
+      role: staff.role || '',
       password: '',
       expires_at: staff.expires_at || '',
     });
@@ -188,7 +213,7 @@ export default function StaffUsersPage() {
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => {
-                setFormData({ email: '', fname: '', lname: '', password: 'password123', expires_at: '' });
+                setFormData({ email: '', fname: '', lname: '', role: '', password: 'password123', expires_at: '' });
                 setClientCredentials(null);
                 setIsCreateDialogOpen(true);
               }}>
@@ -230,6 +255,26 @@ export default function StaffUsersPage() {
                       onChange={(e) => setFormData({ ...formData, lname: e.target.value })}
                       required
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="role">บทบาท (Role) *</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) => setFormData({ ...formData, role: value })}
+                      required
+                      disabled={staffRoles.length === 0}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={staffRoles.length === 0 ? "กำลังโหลด..." : "เลือกบทบาท"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {staffRoles.map((role: { id: number; code: string; name: string; description: string | null }) => (
+                          <SelectItem key={role.id} value={role.code}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="password">รหัสผ่าน (ค่าเริ่มต้น: password123)</Label>
@@ -330,6 +375,7 @@ export default function StaffUsersPage() {
                   <TableHead>ID</TableHead>
                   <TableHead>ชื่อ-นามสกุล</TableHead>
                   <TableHead>อีเมล</TableHead>
+                  <TableHead>บทบาท</TableHead>
                   <TableHead>Client ID</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead>วันสร้าง</TableHead>
@@ -342,6 +388,9 @@ export default function StaffUsersPage() {
                     <TableCell>{staff.id}</TableCell>
                     <TableCell>{staff.fname} {staff.lname}</TableCell>
                     <TableCell>{staff.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{staff.role || '-'}</Badge>
+                    </TableCell>
                     <TableCell className="font-mono text-sm">{staff.client_id.substring(0, 20)}...</TableCell>
                     <TableCell>
                       <Badge variant={staff.is_active ? 'default' : 'secondary'}>
@@ -416,6 +465,25 @@ export default function StaffUsersPage() {
                 onChange={(e) => setFormData({ ...formData, lname: e.target.value })}
                 required
               />
+            </div>
+            <div>
+              <Label htmlFor="edit-role">บทบาท (Role) *</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value) => setFormData({ ...formData, role: value })}
+                required
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="เลือกบทบาท" />
+                </SelectTrigger>
+                <SelectContent>
+                  {staffRoles.map((role: { id: number; code: string; name: string; description: string | null }) => (
+                    <SelectItem key={role.id} value={role.code}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="edit-password">รหัสผ่านใหม่ (ถ้าต้องการเปลี่ยน)</Label>

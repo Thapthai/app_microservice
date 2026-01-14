@@ -88,13 +88,13 @@ export default function HomePage() {
                     </Link>
                   </div>
                   
-                  <div className="flex justify-center">
+                  {/* <div className="flex justify-center">
                     <Link href="/auth/register">
                       <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
                         ยังไม่มีบัญชี? สมัครเลย →
                       </Button>
                     </Link>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Stats */}

@@ -1720,6 +1720,188 @@ export class GatewayApiController {
     return this.gatewayApiService.staffUserLogin(loginDto.email, loginDto.password);
   }
 
+  @Get('staff/profile')
+  @UseGuards(JwtAuthGuard)
+  async getStaffProfile(@Request() req: any) {
+    try {
+      // Extract staff user ID from JWT token
+      // JWT payload has sub field with staff user id
+      const staffUserId = req.user?.sub;
+      if (!staffUserId) {
+        throw new HttpException('Staff user ID not found in token', HttpStatus.UNAUTHORIZED);
+      }
+      return this.gatewayApiService.getStaffUserProfile(staffUserId);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get staff profile',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Put('staff/profile')
+  @UseGuards(JwtAuthGuard)
+  async updateStaffProfile(@Body() updateProfileDto: { fname?: string; lname?: string; email?: string; currentPassword?: string; newPassword?: string }, @Request() req: any) {
+    try {
+      // Extract staff user ID from JWT token
+      // JWT payload has sub field with staff user id
+      const staffUserId = req.user?.sub;
+      if (!staffUserId) {
+        throw new HttpException('Staff user ID not found in token', HttpStatus.UNAUTHORIZED);
+      }
+      return this.gatewayApiService.updateStaffUserProfile(staffUserId, updateProfileDto);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update staff profile',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ==================== Staff Role Permissions ====================
+
+  @Get('staff-role-permissions')
+  async getAllRolePermissions() {
+    return this.gatewayApiService.getAllRolePermissions();
+  }
+
+  @Get('staff-role-permissions/:role')
+  async getRolePermissionsByRole(@Param('role') role: string) {
+    return this.gatewayApiService.getRolePermissionsByRole(role);
+  }
+
+  @Post('staff-role-permissions')
+  async upsertRolePermission(@Body() data: { role: string; menu_href: string; can_access: boolean }) {
+    return this.gatewayApiService.upsertRolePermission(data);
+  }
+
+  @Put('staff-role-permissions/bulk')
+  async bulkUpdateRolePermissions(@Body() body: { permissions: Array<{ role: string; menu_href: string; can_access: boolean }> }) {
+    return this.gatewayApiService.bulkUpdateRolePermissions(body.permissions);
+  }
+
+  @Delete('staff-role-permissions/:id')
+  async deleteRolePermission(@Param('id') id: string) {
+    return this.gatewayApiService.deleteRolePermission(parseInt(id));
+  }
+
+  // ==================== Staff Roles Management ====================
+
+  @Get('staff-roles')
+  async getAllStaffRoles() {
+    try {
+      const result = await this.gatewayApiService.getAllStaffRoles();
+      if (!result || !result.success) {
+        throw new HttpException(
+          result?.message || 'Failed to get staff roles',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return result;
+    } catch (error) {
+      console.error('❌ Get all staff roles error:', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        error.message || 'Failed to get staff roles',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('staff-roles/:id')
+  async getStaffRoleById(@Param('id') id: string) {
+    try {
+      const result = await this.gatewayApiService.getStaffRoleById(parseInt(id));
+      if (!result || !result.success) {
+        throw new HttpException(
+          result?.message || 'Failed to get staff role',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return result;
+    } catch (error) {
+      console.error('❌ Get staff role by ID error:', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        error.message || 'Failed to get staff role',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('staff-roles')
+  async createStaffRole(@Body() data: { code: string; name: string; description?: string; is_active?: boolean }) {
+    try {
+      const result = await this.gatewayApiService.createStaffRole(data);
+      if (!result || !result.success) {
+        throw new HttpException(
+          result?.message || 'Failed to create staff role',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return result;
+    } catch (error) {
+      console.error('❌ Create staff role error:', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        error.message || 'Failed to create staff role',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Put('staff-roles/:id')
+  async updateStaffRole(@Param('id') id: string, @Body() data: { name?: string; description?: string; is_active?: boolean }) {
+    try {
+      const result = await this.gatewayApiService.updateStaffRole(parseInt(id), data);
+      if (!result || !result.success) {
+        throw new HttpException(
+          result?.message || 'Failed to update staff role',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return result;
+    } catch (error) {
+      console.error('❌ Update staff role error:', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        error.message || 'Failed to update staff role',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete('staff-roles/:id')
+  async deleteStaffRole(@Param('id') id: string) {
+    try {
+      const result = await this.gatewayApiService.deleteStaffRole(parseInt(id));
+      if (!result || !result.success) {
+        throw new HttpException(
+          result?.message || 'Failed to delete staff role',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return result;
+    } catch (error) {
+      console.error('❌ Delete staff role error:', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        error.message || 'Failed to delete staff role',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // ==================== Vending Reports Endpoints ====================
 
   @Get('reports/vending-mapping/excel')

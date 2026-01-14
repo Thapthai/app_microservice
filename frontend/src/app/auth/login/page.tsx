@@ -374,7 +374,7 @@ export default function LoginPage() {
                 )}
               </Button>
 
-              <div className="text-center text-sm pt-4">
+              {/* <div className="text-center text-sm pt-4">
                 <span className="text-gray-600">ยังไม่มีบัญชี? </span>
                 <Link
                   href="/auth/register"
@@ -382,7 +382,7 @@ export default function LoginPage() {
                 >
                   สมัครสมาชิก
                 </Link>
-              </div>
+              </div> */}
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">

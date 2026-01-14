@@ -1,0 +1,179 @@
+'use client';
+
+import React, { ReactNode, useState, useEffect } from 'react';
+import StaffSidebar from './StaffSidebar';
+import { useRouter, usePathname } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
+
+interface StaffLayoutProps {
+  children: ReactNode;
+}
+
+export default function StaffLayout({ children }: StaffLayoutProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [staffUser, setStaffUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Get page title from pathname
+  const getPageTitle = () => {
+    // Next.js automatically strips basePath from pathname, so we can use it directly
+    const pathMap: Record<string, string> = {
+      '/staff/dashboard': 'Dashboard',
+      '/staff/equipment': 'จัดการอุปกรณ์',
+      '/staff/equipment/stock': 'สต๊อกอุปกรณ์',
+      '/staff/equipment/dispense': 'เบิกอุปกรณ์',
+      '/staff/equipment/return': 'คืนอุปกรณ์',
+      '/staff/usage': 'บันทึกการใช้งาน',
+      '/staff/reports': 'รายงาน',
+      '/staff/reports/dispense': 'รายงานเบิกอุปกรณ์',
+      '/staff/reports/return': 'รายงานคืนอุปกรณ์',
+      '/staff/reports/usage': 'รายงานการใช้งาน',
+      '/staff/comparison': 'เปรียบเทียบข้อมูล',
+      '/staff/settings': 'ตั้งค่า',
+      '/staff/permissions/users': 'จัดการสิทธิ์',
+      '/staff/permissions/roles': 'กำหนดสิทธิ์',
+    };
+    return pathMap[pathname] || 'Staff Portal';
+  };
+
+  useEffect(() => {
+    // Check if staff is logged in
+    const token = localStorage.getItem('staff_token');
+    const user = localStorage.getItem('staff_user');
+
+    if (!token || !user) {
+      // Next.js automatically handles basePath, so we don't need to include it
+      router.push('/auth/staff/login');
+      return;
+    }
+
+    try {
+      setStaffUser(JSON.parse(user));
+    } catch (error) {
+      console.error('Error parsing staff user:', error);
+      // Next.js automatically handles basePath, so we don't need to include it
+      router.push('/auth/staff/login');
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('staff_token');
+    localStorage.removeItem('staff_user');
+    // Next.js automatically handles basePath, so we don't need to include it
+    router.push('/auth/staff/login');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">กำลังโหลด...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!staffUser) {
+    return null;
+  }
+
+  return (
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <StaffSidebar staffUser={staffUser} onLogout={handleLogout} />
+      
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+        {/* Top Bar */}
+        <header className="sticky top-0 z-20 bg-white border-b border-gray-200">
+          <div className="h-14 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center flex-1 min-w-0">
+              <div className="lg:hidden w-14 flex-shrink-0"></div>
+              <h1 className="text-lg font-semibold text-gray-900">
+                {getPageTitle()}
+              </h1>
+            </div>
+            
+            {/* User Menu */}
+            {staffUser && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="flex items-center space-x-2 h-9 px-2 sm:px-3 hover:bg-gray-100"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs shadow-md ring-2 ring-white flex-shrink-0">
+                      {staffUser.fname.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="hidden sm:block text-left">
+                      <div className="text-sm font-medium text-gray-900">
+                        {staffUser.fname} {staffUser.lname}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate max-w-[120px]">
+                        {staffUser.email}
+                      </div>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-gray-500 hidden sm:block" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {staffUser.fname} {staffUser.lname}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {staffUser.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <button
+                      onClick={() => {
+                        // Next.js automatically handles basePath, so we don't need to include it
+                        router.push('/staff/settings');
+                      }}
+                      className="w-full flex items-center cursor-pointer"
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>ตั้งค่าบัญชี</span>
+                    </button>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    variant="destructive"
+                    className="cursor-pointer"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>ออกจากระบบ</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </header>
+        
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

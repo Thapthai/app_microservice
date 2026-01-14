@@ -12,17 +12,27 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token from NextAuth session
+// Request interceptor to add auth token from NextAuth session or staff token
 api.interceptors.request.use(async (config) => {
   if (typeof window !== 'undefined') {
-    const session = await getSession();
-
-
-    if (session && (session as any).accessToken) {
-      const token = (session as any).accessToken;
-      config.headers.Authorization = `Bearer ${token}`;
+    // Check if this is a staff API endpoint
+    const isStaffEndpoint = config.url?.startsWith('/staff') || config.url?.startsWith('/staff-users');
+    
+    if (isStaffEndpoint) {
+      // Use staff token from localStorage for staff endpoints
+      const staffToken = localStorage.getItem('staff_token');
+      if (staffToken) {
+        config.headers.Authorization = `Bearer ${staffToken}`;
+      }
     } else {
-      console.warn('⚠️ No access token found in session');
+      // Use NextAuth session token for regular endpoints
+      const session = await getSession();
+      if (session && (session as any).accessToken) {
+        const token = (session as any).accessToken;
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        console.warn('⚠️ No access token found in session');
+      }
     }
   }
   return config;
@@ -33,9 +43,23 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      // Redirect to staff login page on unauthorized
-      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-      window.location.href = `${basePath}/auth/staff/login`;
+      // Check if this is a staff API endpoint
+      const isStaffEndpoint = error.config?.url?.startsWith('/staff') || error.config?.url?.startsWith('/staff-users');
+      
+      if (isStaffEndpoint) {
+        // Only redirect staff routes to staff login
+        // Clear staff tokens
+        localStorage.removeItem('staff_token');
+        localStorage.removeItem('staff_user');
+        
+        // Use Next.js router if available, otherwise use window.location
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/staff/')) {
+          // Next.js automatically handles basePath
+          window.location.href = '/auth/staff/login';
+        }
+      }
+      // For non-staff endpoints, let the app handle the redirect
     }
     return Promise.reject(error);
   }
@@ -801,10 +825,18 @@ export const staffUserApi = {
     email: string;
     fname: string;
     lname: string;
+    role: string; // Keep for backward compatibility, will be converted to role_code
     password?: string;
     expires_at?: string;
   }): Promise<ApiResponse<any>> => {
-    const response = await api.post('/staff-users', data);
+    // Convert role to role_code for API
+    const requestData = {
+      ...data,
+      role_code: data.role,
+      role: undefined, // Remove role field
+    };
+    delete requestData.role;
+    const response = await api.post('/staff-users', requestData);
     return response.data;
   },
 
@@ -824,6 +856,7 @@ export const staffUserApi = {
       email?: string;
       fname?: string;
       lname?: string;
+      role?: string;
       password?: string;
       is_active?: boolean;
       expires_at?: string;
@@ -851,6 +884,100 @@ export const staffUserApi = {
     password: string;
   }): Promise<ApiResponse<any>> => {
     const response = await api.post('/staff-users/login', data);
+    return response.data;
+  },
+
+  getStaffProfile: async (): Promise<ApiResponse<any>> => {
+    const response = await api.get('/staff/profile');
+    return response.data;
+  },
+
+  updateStaffProfile: async (data: {
+    fname?: string;
+    lname?: string;
+    email?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.put('/staff/profile', data);
+    return response.data;
+  },
+};
+
+// Staff Role Permissions API
+export const staffRolePermissionApi = {
+  getAll: async (): Promise<ApiResponse<any[]>> => {
+    const response = await api.get('/staff-role-permissions');
+    return response.data;
+  },
+
+  getByRole: async (role: string): Promise<ApiResponse<any[]>> => {
+    const response = await api.get(`/staff-role-permissions/${role}`);
+    return response.data;
+  },
+
+  upsert: async (data: {
+    role_code?: string;
+    role_id?: number;
+    menu_href: string;
+    can_access: boolean;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/staff-role-permissions', data);
+    return response.data;
+  },
+
+  bulkUpdate: async (permissions: Array<{
+    role_code?: string;
+    role_id?: number;
+    menu_href: string;
+    can_access: boolean;
+  }>): Promise<ApiResponse<any>> => {
+    const response = await api.put('/staff-role-permissions/bulk', { permissions });
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/staff-role-permissions/${id}`);
+    return response.data;
+  },
+};
+
+// Staff Roles API
+export const staffRoleApi = {
+  getAll: async (): Promise<ApiResponse<any[]>> => {
+    const response = await api.get('/staff-roles');
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/staff-roles/${id}`);
+    return response.data;
+  },
+
+  create: async (data: {
+    code: string;
+    name: string;
+    description?: string;
+    is_active?: boolean;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/staff-roles', data);
+    return response.data;
+  },
+
+  update: async (
+    id: number,
+    data: {
+      name?: string;
+      description?: string;
+      is_active?: boolean;
+    }
+  ): Promise<ApiResponse<any>> => {
+    const response = await api.put(`/staff-roles/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/staff-roles/${id}`);
     return response.data;
   },
 };

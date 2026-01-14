@@ -11,6 +11,9 @@ DROP TABLE IF EXISTS `app_microservice_refresh_tokens`;
 DROP TABLE IF EXISTS `app_microservice_client_credentials`;
 DROP TABLE IF EXISTS `app_microservice_api_keys`;
 DROP TABLE IF EXISTS `app_microservice_oauth_accounts`;
+DROP TABLE IF EXISTS `app_microservice_staff_role_permissions`;
+DROP TABLE IF EXISTS `app_microservice_staff_users`;
+DROP TABLE IF EXISTS `app_microservice_staff_roles`;
 DROP TABLE IF EXISTS `app_microservice_users`;
 DROP TABLE IF EXISTS `app_microservice_categories`;
 DROP TABLE IF EXISTS `app_microservice_medical_supply_usages_logs`;
@@ -131,6 +134,49 @@ CREATE TABLE IF NOT EXISTS `app_microservice_two_factor_tokens` (
   INDEX `app_microservice_two_factor_tokens_expires_at_idx` (`expires_at`),
   INDEX `app_microservice_two_factor_tokens_user_id_type_idx` (`user_id`, `type`),
   FOREIGN KEY (`user_id`) REFERENCES `app_microservice_users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Staff Roles table
+CREATE TABLE IF NOT EXISTS `app_microservice_staff_roles` (
+  `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `code` VARCHAR(191) NOT NULL UNIQUE,
+  `name` VARCHAR(191) NOT NULL,
+  `description` TEXT,
+  `is_active` BOOLEAN NOT NULL DEFAULT true,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL,
+  INDEX `idx_code` (`code`),
+  INDEX `idx_is_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert default roles
+INSERT INTO `app_microservice_staff_roles` (`code`, `name`, `description`, `is_active`) VALUES
+('it1', 'IT 1', 'สิทธิ์เต็ม - เห็นทุกเมนู', true),
+('it2', 'IT 2', 'เห็นทุกเมนู (ยกเว้นเมนูจัดการสิทธิ์)', true),
+('it3', 'IT 3', 'เห็นทุกเมนู (ยกเว้นเมนูจัดการสิทธิ์)', true),
+('warehouse1', 'Warehouse 1', 'เห็นทุกเมนู (ยกเว้นเมนูจัดการสิทธิ์)', true),
+('warehouse2', 'Warehouse 2', 'เห็นทุกเมนู (ยกเว้นเมนูจัดการสิทธิ์)', true),
+('warehouse3', 'Warehouse 3', 'เห็นทุกเมนู (ยกเว้นเมนูจัดการสิทธิ์)', true)
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
+
+-- Staff Users table
+CREATE TABLE IF NOT EXISTS `app_microservice_staff_users` (
+  `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `email` VARCHAR(191) NOT NULL UNIQUE,
+  `fname` VARCHAR(191) NOT NULL,
+  `lname` VARCHAR(191) NOT NULL,
+  `role_id` INTEGER NOT NULL,
+  `password` VARCHAR(191) NOT NULL,
+  `client_id` VARCHAR(191) NOT NULL UNIQUE,
+  `client_secret` VARCHAR(191) NOT NULL,
+  `expires_at` DATETIME(3),
+  `is_active` BOOLEAN NOT NULL DEFAULT true,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL,
+  INDEX `idx_role_id` (`role_id`),
+  INDEX `idx_email` (`email`),
+  INDEX `idx_is_active` (`is_active`),
+  FOREIGN KEY (`role_id`) REFERENCES `app_microservice_staff_roles`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Categories table
@@ -449,6 +495,22 @@ CREATE TABLE IF NOT EXISTS `app_microservice_medical_supply_usages_logs` (
   INDEX `app_microservice_medical_supply_usages_logs_created_at_idx` (`created_at`),
   FOREIGN KEY (`usage_id`) REFERENCES `app_microservice_medical_supply_usages`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Staff Role Permissions table
+CREATE TABLE IF NOT EXISTS `app_microservice_staff_role_permissions` (
+  `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `role_id` INTEGER NOT NULL,
+  `menu_href` VARCHAR(191) NOT NULL,
+  `can_access` BOOLEAN NOT NULL DEFAULT true,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL,
+  UNIQUE KEY `role_menu_href` (`role_id`, `menu_href`),
+  INDEX `idx_role_id` (`role_id`),
+  INDEX `idx_menu_href` (`menu_href`),
+  FOREIGN KEY (`role_id`) REFERENCES `app_microservice_staff_roles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- ===================================
 -- VERIFICATION QUERIES

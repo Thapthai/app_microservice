@@ -172,6 +172,30 @@ export class AuthServiceService {
   async validateToken(token: string) {
     try {
       const payload = this.jwtService.verify(token);
+      
+      // Check if this is a staff user token
+      if (payload.type === 'staff') {
+        const staffUser = await this.prisma.staffUser.findUnique({
+          where: { id: payload.sub },
+        });
+
+        if (!staffUser || !staffUser.is_active) {
+          return { success: false, message: 'Staff user not found or inactive' };
+        }
+
+        return {
+          success: true,
+          data: {
+            sub: staffUser.id,
+            email: staffUser.email,
+            fname: staffUser.fname,
+            lname: staffUser.lname,
+            type: 'staff',
+          },
+        };
+      }
+
+      // Regular user token
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
       });
@@ -1314,13 +1338,22 @@ export class AuthServiceService {
    */
   async createStaffUser(data: CreateStaffUserDto) {
     try {
-      // Check if email already exists
+      // Check if email already exists in StaffUser
       const existingStaff = await this.prisma.staffUser.findUnique({
         where: { email: data.email },
       });
 
       if (existingStaff) {
-        return { success: false, message: 'Staff user with this email already exists' };
+        return { success: false, message: 'อีเมลนี้ถูกใช้งานแล้วในระบบ Staff User' };
+      }
+
+      // Check if email already exists in User table (for ClientCredential FK)
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: data.email },
+      });
+
+      if (existingUser) {
+        return { success: false, message: 'อีเมลนี้ถูกใช้งานแล้วในระบบ กรุณาใช้อีเมลอื่น' };
       }
 
       // Default password if not provided
@@ -1354,16 +1387,37 @@ export class AuthServiceService {
         },
       });
 
+      // Get role_id from role_code or use provided role_id
+      let roleId: number;
+      if (data.role_id) {
+        roleId = data.role_id;
+      } else if (data.role_code) {
+        // Find role by code
+        const role = await this.prisma.staffRole.findUnique({
+          where: { code: data.role_code },
+        });
+        if (!role) {
+          return { success: false, message: `Role with code '${data.role_code}' not found` };
+        }
+        roleId = role.id;
+      } else {
+        return { success: false, message: 'Either role_code or role_id must be provided' };
+      }
+
       // Create staff user
       const staffUser = await this.prisma.staffUser.create({
         data: {
           email: data.email,
           fname: data.fname,
           lname: data.lname,
+          role_id: roleId,
           password: hashedPassword,
           client_id: clientId,
           client_secret: clientSecret, // Store plain text (not hashed)
           expires_at: data.expires_at ? new Date(data.expires_at) : null,
+        },
+        include: {
+          role: true,
         },
       });
 
@@ -1375,6 +1429,12 @@ export class AuthServiceService {
           email: staffUser.email,
           fname: staffUser.fname,
           lname: staffUser.lname,
+          role_id: staffUser.role_id,
+          role: staffUser.role ? {
+            id: staffUser.role.id,
+            code: staffUser.role.code,
+            name: staffUser.role.name,
+          } : null,
           client_id: clientId,
           client_secret: clientSecret, // Return plain text secret
           expires_at: staffUser.expires_at,
@@ -1386,7 +1446,38 @@ export class AuthServiceService {
       };
     } catch (error) {
       console.error('Create staff user error:', error);
-      return { success: false, message: 'Failed to create staff user', error: error.message };
+      
+      // Handle Prisma unique constraint errors
+      if (error.code === 'P2002') {
+        const target = error.meta?.target;
+        if (Array.isArray(target) && target.includes('email')) {
+          return { 
+            success: false, 
+            message: 'อีเมลนี้ถูกใช้งานแล้วในระบบ กรุณาใช้อีเมลอื่น',
+            error: 'Email already exists'
+          };
+        }
+        return { 
+          success: false, 
+          message: `ข้อมูลซ้ำกัน: ${target?.join(', ') || 'unknown field'}`,
+          error: error.message 
+        };
+      }
+      
+      // Handle other Prisma errors
+      if (error.code && error.code.startsWith('P')) {
+        return { 
+          success: false, 
+          message: 'เกิดข้อผิดพลาดในการสร้าง Staff User กรุณาตรวจสอบข้อมูล',
+          error: error.message 
+        };
+      }
+      
+      return { 
+        success: false, 
+        message: error.message || 'ไม่สามารถสร้าง Staff User ได้',
+        error: error.message 
+      };
     }
   }
 
@@ -1396,24 +1487,30 @@ export class AuthServiceService {
   async getAllStaffUsers() {
     try {
       const staffUsers = await this.prisma.staffUser.findMany({
-        orderBy: { created_at: 'desc' },
-        select: {
-          id: true,
-          email: true,
-          fname: true,
-          lname: true,
-          client_id: true,
-          expires_at: true,
-          is_active: true,
-          created_at: true,
-          updated_at: true,
-          // Don't return password or client_secret
+        include: {
+          role: true,
+        },
+        orderBy: {
+          created_at: 'desc',
         },
       });
 
       return {
         success: true,
-        data: staffUsers,
+        data: staffUsers.map((user) => ({
+          id: user.id,
+          email: user.email,
+          fname: user.fname,
+          lname: user.lname,
+          role_id: user.role_id,
+          role: user.role ? user.role.code : null, // Return role code for backward compatibility
+          role_name: user.role ? user.role.name : null,
+          client_id: user.client_id,
+          expires_at: user.expires_at,
+          is_active: user.is_active,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+        })),
       };
     } catch (error) {
       console.error('Get all staff users error:', error);
@@ -1428,16 +1525,8 @@ export class AuthServiceService {
     try {
       const staffUser = await this.prisma.staffUser.findUnique({
         where: { id },
-        select: {
-          id: true,
-          email: true,
-          fname: true,
-          lname: true,
-          client_id: true,
-          expires_at: true,
-          is_active: true,
-          created_at: true,
-          updated_at: true,
+        include: {
+          role: true,
         },
       });
 
@@ -1447,7 +1536,20 @@ export class AuthServiceService {
 
       return {
         success: true,
-        data: staffUser,
+        data: {
+          id: staffUser.id,
+          email: staffUser.email,
+          fname: staffUser.fname,
+          lname: staffUser.lname,
+          role_id: staffUser.role_id,
+          role: staffUser.role ? staffUser.role.code : null, // Return role code for backward compatibility
+          role_name: staffUser.role ? staffUser.role.name : null,
+          client_id: staffUser.client_id,
+          expires_at: staffUser.expires_at,
+          is_active: staffUser.is_active,
+          created_at: staffUser.created_at,
+          updated_at: staffUser.updated_at,
+        },
       };
     } catch (error) {
       console.error('Get staff user error:', error);
@@ -1479,11 +1581,27 @@ export class AuthServiceService {
         }
       }
 
+      // Get role_id from role_code or use provided role_id
+      let roleId: number | undefined;
+      if (data.role_id) {
+        roleId = data.role_id;
+      } else if (data.role_code) {
+        // Find role by code
+        const role = await this.prisma.staffRole.findUnique({
+          where: { code: data.role_code },
+        });
+        if (!role) {
+          return { success: false, message: `Role with code '${data.role_code}' not found` };
+        }
+        roleId = role.id;
+      }
+
       // Prepare update data
       const updateData: any = {
         ...(data.email && { email: data.email }),
         ...(data.fname && { fname: data.fname }),
         ...(data.lname && { lname: data.lname }),
+        ...(roleId !== undefined && { role_id: roleId }),
         ...(data.is_active !== undefined && { is_active: data.is_active }),
         ...(data.expires_at && { expires_at: new Date(data.expires_at) }),
       };
@@ -1496,23 +1614,28 @@ export class AuthServiceService {
       const updatedStaff = await this.prisma.staffUser.update({
         where: { id },
         data: updateData,
-        select: {
-          id: true,
-          email: true,
-          fname: true,
-          lname: true,
-          client_id: true,
-          expires_at: true,
-          is_active: true,
-          created_at: true,
-          updated_at: true,
+        include: {
+          role: true,
         },
       });
 
       return {
         success: true,
         message: 'Staff user updated successfully',
-        data: updatedStaff,
+        data: {
+          id: updatedStaff.id,
+          email: updatedStaff.email,
+          fname: updatedStaff.fname,
+          lname: updatedStaff.lname,
+          role_id: updatedStaff.role_id,
+          role: updatedStaff.role ? updatedStaff.role.code : null, // Return role code for backward compatibility
+          role_name: updatedStaff.role ? updatedStaff.role.name : null,
+          client_id: updatedStaff.client_id,
+          expires_at: updatedStaff.expires_at,
+          is_active: updatedStaff.is_active,
+          created_at: updatedStaff.created_at,
+          updated_at: updatedStaff.updated_at,
+        },
       };
     } catch (error) {
       console.error('Update staff user error:', error);
@@ -1593,12 +1716,125 @@ export class AuthServiceService {
   }
 
   /**
+   * Get staff user profile by ID (for self profile)
+   */
+  async getStaffUserProfile(id: number) {
+    try {
+      const staffUser = await this.prisma.staffUser.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          fname: true,
+          lname: true,
+          role: true,
+          client_id: true,
+          expires_at: true,
+          is_active: true,
+          created_at: true,
+          updated_at: true,
+        },
+      });
+
+      if (!staffUser) {
+        return { success: false, message: 'Staff user not found' };
+      }
+
+      return {
+        success: true,
+        data: staffUser,
+      };
+    } catch (error) {
+      console.error('Get staff user profile error:', error);
+      return { success: false, message: 'Failed to retrieve staff user profile', error: error.message };
+    }
+  }
+
+  /**
+   * Update staff user profile (for self update)
+   */
+  async updateStaffUserProfile(id: number, data: { fname?: string; lname?: string; email?: string; currentPassword?: string; newPassword?: string }) {
+    try {
+      const staffUser = await this.prisma.staffUser.findUnique({
+        where: { id },
+      });
+
+      if (!staffUser) {
+        return { success: false, message: 'Staff user not found' };
+      }
+
+      // Validate current password if changing password
+      if (data.newPassword) {
+        if (!data.currentPassword) {
+          return { success: false, message: 'Current password is required to change password' };
+        }
+        const isValidPassword = await bcrypt.compare(data.currentPassword, staffUser.password);
+        if (!isValidPassword) {
+          return { success: false, message: 'Current password is incorrect' };
+        }
+      }
+
+      // Check email uniqueness if updating email
+      if (data.email && data.email !== staffUser.email) {
+        const existingStaff = await this.prisma.staffUser.findUnique({
+          where: { email: data.email },
+        });
+
+        if (existingStaff) {
+          return { success: false, message: 'Email already in use by another staff user' };
+        }
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        ...(data.email && { email: data.email }),
+        ...(data.fname && { fname: data.fname }),
+        ...(data.lname && { lname: data.lname }),
+      };
+
+      // Hash new password if provided
+      if (data.newPassword) {
+        updateData.password = await bcrypt.hash(data.newPassword, 10);
+      }
+
+      const updatedStaff = await this.prisma.staffUser.update({
+        where: { id },
+        data: updateData,
+        select: {
+          id: true,
+          email: true,
+          fname: true,
+          lname: true,
+          role: true,
+          client_id: true,
+          expires_at: true,
+          is_active: true,
+          created_at: true,
+          updated_at: true,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Profile updated successfully',
+        data: updatedStaff,
+      };
+    } catch (error) {
+      console.error('Update staff user profile error:', error);
+      return { success: false, message: 'Failed to update profile', error: error.message };
+    }
+  }
+
+  /**
    * Staff user login with email and password
    */
   async staffUserLogin(email: string, password: string) {
     try {
       const staffUser = await this.prisma.staffUser.findUnique({
         where: { email },
+        include: {
+          role: true,
+        },
       });
 
       if (!staffUser || !staffUser.is_active) {
@@ -1631,6 +1867,8 @@ export class AuthServiceService {
             email: staffUser.email,
             fname: staffUser.fname,
             lname: staffUser.lname,
+            role: staffUser.role ? staffUser.role.code : null, // Return role code for backward compatibility
+            role_id: staffUser.role_id,
             client_id: staffUser.client_id,
             is_active: staffUser.is_active,
           },
@@ -1641,6 +1879,359 @@ export class AuthServiceService {
     } catch (error) {
       console.error('Staff user login error:', error);
       return { success: false, message: 'Login failed', error: error.message };
+    }
+  }
+
+  /**
+   * Get all role permissions
+   */
+  async getAllRolePermissions() {
+    try {
+      const permissions = await this.prisma.staffRolePermission.findMany({
+        include: {
+          role: true,
+        },
+        orderBy: [
+          { role: { code: 'asc' } },
+          { menu_href: 'asc' },
+        ],
+      });
+
+      return {
+        success: true,
+        data: permissions,
+      };
+    } catch (error) {
+      console.error('Get all role permissions error:', error);
+      return { success: false, message: 'Failed to get role permissions', error: error.message };
+    }
+  }
+
+  /**
+   * Get permissions by role (accepts role code)
+   */
+  async getRolePermissionsByRole(role: string) {
+    try {
+      // Find role by code
+      const roleRecord = await this.prisma.staffRole.findUnique({
+        where: { code: role },
+      });
+
+      if (!roleRecord) {
+        return { success: false, message: `Role with code '${role}' not found` };
+      }
+
+      const permissions = await this.prisma.staffRolePermission.findMany({
+        where: { role_id: roleRecord.id },
+        include: {
+          role: true,
+        },
+        orderBy: { menu_href: 'asc' },
+      });
+
+      return {
+        success: true,
+        data: permissions,
+      };
+    } catch (error) {
+      console.error('Get role permissions error:', error);
+      return { success: false, message: 'Failed to get role permissions', error: error.message };
+    }
+  }
+
+  /**
+   * Create or update role permission
+   */
+  async upsertRolePermission(data: { role_code?: string; role_id?: number; menu_href: string; can_access: boolean }) {
+    try {
+      // Get role_id from role_code or use provided role_id
+      let roleId: number;
+      if (data.role_id) {
+        roleId = data.role_id;
+      } else if (data.role_code) {
+        const role = await this.prisma.staffRole.findUnique({
+          where: { code: data.role_code },
+        });
+        if (!role) {
+          return { success: false, message: `Role with code '${data.role_code}' not found` };
+        }
+        roleId = role.id;
+      } else {
+        return { success: false, message: 'Either role_code or role_id must be provided' };
+      }
+
+      const permission = await this.prisma.staffRolePermission.upsert({
+        where: {
+          role_menu_href: {
+            role_id: roleId,
+            menu_href: data.menu_href,
+          },
+        },
+        update: {
+          can_access: data.can_access,
+        },
+        create: {
+          role_id: roleId,
+          menu_href: data.menu_href,
+          can_access: data.can_access,
+        },
+        include: {
+          role: true,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Role permission saved successfully',
+        data: permission,
+      };
+    } catch (error) {
+      console.error('Upsert role permission error:', error);
+      return { success: false, message: 'Failed to save role permission', error: error.message };
+    }
+  }
+
+  /**
+   * Bulk update role permissions
+   */
+  async bulkUpdateRolePermissions(permissions: Array<{ role_code?: string; role_id?: number; menu_href: string; can_access: boolean }>) {
+    try {
+      // Get all unique role codes and fetch role_ids
+      const roleCodeToIdMap = new Map<string, number>();
+      
+      for (const perm of permissions) {
+        if (perm.role_code && !roleCodeToIdMap.has(perm.role_code)) {
+          const role = await this.prisma.staffRole.findUnique({
+            where: { code: perm.role_code },
+          });
+          if (role) {
+            roleCodeToIdMap.set(perm.role_code, role.id);
+          }
+        }
+      }
+
+      const results = await Promise.all(
+        permissions.map(async (perm) => {
+          let roleId: number;
+          if (perm.role_id) {
+            roleId = perm.role_id;
+          } else if (perm.role_code) {
+            const mappedRoleId = roleCodeToIdMap.get(perm.role_code);
+            if (!mappedRoleId) {
+              throw new Error(`Role with code '${perm.role_code}' not found`);
+            }
+            roleId = mappedRoleId;
+          } else {
+            throw new Error('Either role_code or role_id must be provided');
+          }
+
+          return this.prisma.staffRolePermission.upsert({
+            where: {
+              role_menu_href: {
+                role_id: roleId,
+                menu_href: perm.menu_href,
+              },
+            },
+            update: {
+              can_access: perm.can_access,
+            },
+            create: {
+              role_id: roleId,
+              menu_href: perm.menu_href,
+              can_access: perm.can_access,
+            },
+            include: {
+              role: true,
+            },
+          });
+        })
+      );
+
+      return {
+        success: true,
+        message: 'Role permissions updated successfully',
+        data: results,
+      };
+    } catch (error) {
+      console.error('Bulk update role permissions error:', error);
+      return { success: false, message: 'Failed to update role permissions', error: error.message };
+    }
+  }
+
+  /**
+   * Delete role permission
+   */
+  async deleteRolePermission(id: number) {
+    try {
+      await this.prisma.staffRolePermission.delete({
+        where: { id },
+      });
+
+      return {
+        success: true,
+        message: 'Role permission deleted successfully',
+      };
+    } catch (error) {
+      console.error('Delete role permission error:', error);
+      return { success: false, message: 'Failed to delete role permission', error: error.message };
+    }
+  }
+
+  // ==================== Staff Roles Management ====================
+
+  /**
+   * Get all staff roles
+   */
+  async getAllStaffRoles() {
+    try {
+      const roles = await this.prisma.staffRole.findMany({
+        where: {
+          is_active: true,
+        },
+        orderBy: {
+          code: 'asc',
+        },
+      });
+
+      return {
+        success: true,
+        data: roles,
+      };
+    } catch (error) {
+      console.error('Get all staff roles error:', error);
+      
+      // Check if it's a database connection error
+      if (error.code === 'P1001') {
+        return { 
+          success: false, 
+          message: 'ไม่สามารถเชื่อมต่อกับฐานข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ', 
+          error: 'Database connection error' 
+        };
+      }
+      
+      return { 
+        success: false, 
+        message: error.message || 'ไม่สามารถโหลดข้อมูลบทบาทได้', 
+        error: error.message 
+      };
+    }
+  }
+
+  /**
+   * Get staff role by ID
+   */
+  async getStaffRoleById(id: number) {
+    try {
+      const role = await this.prisma.staffRole.findUnique({
+        where: { id },
+      });
+
+      if (!role) {
+        return { success: false, message: 'Staff role not found' };
+      }
+
+      return {
+        success: true,
+        data: role,
+      };
+    } catch (error) {
+      console.error('Get staff role by ID error:', error);
+      return { success: false, message: 'Failed to get staff role', error: error.message };
+    }
+  }
+
+  /**
+   * Create staff role
+   */
+  async createStaffRole(data: { code: string; name: string; description?: string; is_active?: boolean }) {
+    try {
+      // Check if code already exists
+      const existingRole = await this.prisma.staffRole.findUnique({
+        where: { code: data.code },
+      });
+
+      if (existingRole) {
+        return { success: false, message: 'Role with this code already exists' };
+      }
+
+      const role = await this.prisma.staffRole.create({
+        data: {
+          code: data.code,
+          name: data.name,
+          description: data.description,
+          is_active: data.is_active !== undefined ? data.is_active : true,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Staff role created successfully',
+        data: role,
+      };
+    } catch (error) {
+      console.error('Create staff role error:', error);
+      return { success: false, message: 'Failed to create staff role', error: error.message };
+    }
+  }
+
+  /**
+   * Update staff role
+   */
+  async updateStaffRole(id: number, data: { name?: string; description?: string; is_active?: boolean }) {
+    try {
+      const role = await this.prisma.staffRole.findUnique({
+        where: { id },
+      });
+
+      if (!role) {
+        return { success: false, message: 'Staff role not found' };
+      }
+
+      const updatedRole = await this.prisma.staffRole.update({
+        where: { id },
+        data: {
+          ...(data.name && { name: data.name }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.is_active !== undefined && { is_active: data.is_active }),
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Staff role updated successfully',
+        data: updatedRole,
+      };
+    } catch (error) {
+      console.error('Update staff role error:', error);
+      return { success: false, message: 'Failed to update staff role', error: error.message };
+    }
+  }
+
+  /**
+   * Delete staff role
+   */
+  async deleteStaffRole(id: number) {
+    try {
+      // Check if role is being used by any staff users
+      const staffUsersCount = await this.prisma.staffUser.count({
+        where: { role_id: id },
+      });
+
+      if (staffUsersCount > 0) {
+        return { success: false, message: `Cannot delete role. It is being used by ${staffUsersCount} staff user(s)` };
+      }
+
+      await this.prisma.staffRole.delete({
+        where: { id },
+      });
+
+      return {
+        success: true,
+        message: 'Staff role deleted successfully',
+      };
+    } catch (error) {
+      console.error('Delete staff role error:', error);
+      return { success: false, message: 'Failed to delete staff role', error: error.message };
     }
   }
 }
