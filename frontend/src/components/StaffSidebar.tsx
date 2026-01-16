@@ -7,25 +7,13 @@ import { cn } from '@/lib/utils';
 import { staffRolePermissionApi } from '@/lib/api';
 import {
   LayoutDashboard,
-  Package,
-  FileText,
-  BarChart3,
-  Settings,
-  User,
   Menu,
   X,
   ChevronLeft,
   ChevronRight,
   LogOut,
-  ClipboardList,
-  History,
-  Box,
-  FileBarChart,
-  TrendingUp,
-  Shield,
-  Key,
-  Users,
 } from 'lucide-react';
+import { staffMenuItems, filterMenuByPermissions } from '@/app/staff/menus';
 import { Button } from '@/components/ui/button';
 
 interface StaffSidebarProps {
@@ -38,92 +26,6 @@ interface StaffSidebarProps {
   onLogout?: () => void;
 }
 
-const staffMenuItems = [
-  {
-    name: 'Dashboard',
-    href: '/staff/dashboard',
-    icon: LayoutDashboard,
-    description: 'ภาพรวมระบบ',
-  },
-  {
-    name: 'จัดการอุปกรณ์',
-    href: '/staff/equipment',
-    icon: Box,
-    description: 'จัดการอุปกรณ์และสต๊อก',
-    submenu: [
-      {
-        name: 'สต๊อกอุปกรณ์',
-        href: '/staff/equipment/stock',
-        icon: Package,
-      },
-      {
-        name: 'เบิกอุปกรณ์',
-        href: '/staff/equipment/dispense',
-        icon: Package,
-      },
-      {
-        name: 'คืนอุปกรณ์',
-        href: '/staff/equipment/return',
-        icon: History,
-      },
-    ],
-  },
-  {
-    name: 'บันทึกการใช้งาน',
-    href: '/staff/usage',
-    icon: ClipboardList,
-    description: 'บันทึกการใช้อุปกรณ์กับผู้ป่วย',
-  },
-  {
-    name: 'รายงาน',
-    href: '/staff/reports',
-    icon: FileBarChart,
-    description: 'รายงานการใช้งาน',
-    submenu: [
-      {
-        name: 'รายงานเบิกอุปกรณ์',
-        href: '/staff/reports/dispense',
-        icon: FileBarChart,
-      },
-      {
-        name: 'รายงานคืนอุปกรณ์',
-        href: '/staff/reports/return',
-        icon: FileBarChart,
-      },
-      {
-        name: 'รายงานการใช้งาน',
-        href: '/staff/reports/usage',
-        icon: TrendingUp,
-      },
-    ],
-  },
-  {
-    name: 'เปรียบเทียบข้อมูล',
-    href: '/staff/comparison',
-    icon: BarChart3,
-    description: 'เปรียบเทียบการเบิกกับการใช้งาน',
-  },
-  {
-    name: 'ตั้งค่า',
-    href: '/staff/settings',
-    icon: Settings,
-    description: 'ตั้งค่าระบบ',
-  },
-  {
-    name: 'จัดการสิทธิ์',
-    href: '/staff/permissions/users',
-    icon: Users,
-    description: 'จัดการ User',
-    roles: ['it1'], // เฉพาะ it1 เท่านั้น
-  },
-  {
-    name: 'กำหนดสิทธิ์',
-    href: '/staff/permissions/roles',
-    icon: Shield,
-    description: 'กำหนดสิทธิ์การเข้าถึงเมนู',
-    roles: ['it1'], // เฉพาะ it1 เท่านั้น
-  },
-];
 
 export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps) {
   const pathname = usePathname();
@@ -147,7 +49,7 @@ export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps)
 
   const loadPermissions = async () => {
     if (!staffUser?.role) return;
-    
+
     try {
       const response = await staffRolePermissionApi.getByRole(staffUser.role);
       if (response.success && response.data) {
@@ -265,7 +167,7 @@ export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps)
               </div>
             </div>
           )}
-          
+
           {/* User Avatar when collapsed */}
           {staffUser && isCollapsed && (
             <div className="px-2 py-4 border-b border-slate-700/50 flex justify-center">
@@ -277,33 +179,7 @@ export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps)
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50 hover:scrollbar-thumb-slate-500">
-            {staffMenuItems
-              .filter((item) => {
-                // Check permissions from API first
-                if (Object.keys(permissions).length > 0) {
-                  // If we have permissions loaded, use them
-                  const hasPermission = permissions[item.href] !== false; // Default to true if not explicitly set
-                  if (!hasPermission) {
-                    return false;
-                  }
-                } else {
-                  // Fallback to old logic if permissions not loaded yet
-                  // ถ้ามี roles กำหนดไว้ (เช่น roles: ['it1']) ให้เช็คว่า role ของ user อยู่ใน roles หรือไม่
-                  if (item.roles && staffUser?.role) {
-                    return item.roles.includes(staffUser.role);
-                  }
-                  // ถ้าไม่มี roles กำหนดไว้ แสดงให้ทุก role
-                  // แต่ it2, it3, warehouse1, warehouse2, warehouse3 จะไม่เห็นเมนูจัดการสิทธิ์และกำหนดสิทธิ์
-                  if (!item.roles && staffUser?.role) {
-                    const restrictedRoles = ['it2', 'it3', 'warehouse1', 'warehouse2', 'warehouse3'];
-                    const restrictedMenuHrefs = ['/staff/permissions/users', '/staff/permissions/roles'];
-                    if (restrictedRoles.includes(staffUser.role) && restrictedMenuHrefs.includes(item.href)) {
-                      return false;
-                    }
-                  }
-                }
-                return true;
-              })
+            {filterMenuByPermissions(staffMenuItems, permissions)
               .map((item) => {
                 const Icon = item.icon;
                 // Next.js automatically strips basePath from pathname, so we can use it directly
@@ -311,77 +187,75 @@ export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps)
                 const hasSubmenu = item.submenu && item.submenu.length > 0;
                 const isSubmenuOpen = openSubmenus[item.href];
 
-              return (
-                <div key={item.href}>
-                  <Link
-                    href={hasSubmenu ? '#' : item.href}
-                    onClick={(e) => {
-                      if (hasSubmenu) {
-                        e.preventDefault();
-                        toggleSubmenu(item.href);
-                      } else {
-                        setIsMobileOpen(false);
-                      }
-                    }}
-                    className={cn(
-                      'group relative flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200',
-                      isActive
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
-                        : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
-                      isCollapsed && 'lg:justify-center lg:px-2'
-                    )}
-                    title={isCollapsed ? item.name : undefined}
-                  >
-                    {isActive && !isCollapsed && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full"></div>
-                    )}
-                    <Icon className={cn('h-5 w-5 flex-shrink-0', isCollapsed ? 'lg:mx-auto' : 'mr-3')} />
-                    {!isCollapsed && (
-                      <>
-                        <span className="flex-1">{item.name}</span>
-                        {hasSubmenu && (
-                          <ChevronRight
-                            className={cn(
-                              'h-4 w-4 transition-transform duration-200',
-                              isSubmenuOpen && 'rotate-90'
-                            )}
-                          />
-                        )}
-                      </>
-                    )}
-                  </Link>
+                return (
+                  <div key={item.href}>
+                    <Link
+                      href={hasSubmenu ? '#' : item.href}
+                      onClick={(e) => {
+                        if (hasSubmenu) {
+                          e.preventDefault();
+                          toggleSubmenu(item.href);
+                        } else {
+                          setIsMobileOpen(false);
+                        }
+                      }}
+                      className={cn(
+                        'group relative flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200',
+                        isActive
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
+                          : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
+                        isCollapsed && 'lg:justify-center lg:px-2'
+                      )}
+                      title={isCollapsed ? item.name : undefined}
+                    >
+                      {isActive && !isCollapsed && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full"></div>
+                      )}
+                      <Icon className={cn('h-5 w-5 flex-shrink-0', isCollapsed ? 'lg:mx-auto' : 'mr-3')} />
+                      {!isCollapsed && (
+                        <>
+                          <span className="flex-1">{item.name}</span>
+                          {hasSubmenu && (
+                            <ChevronRight
+                              className={cn(
+                                'h-4 w-4 transition-transform duration-200',
+                                isSubmenuOpen && 'rotate-90'
+                              )}
+                            />
+                          )}
+                        </>
+                      )}
+                    </Link>
 
-                  {/* Submenu */}
-                  {hasSubmenu && isSubmenuOpen && !isCollapsed && (
-                    <div className="ml-4 mt-2 space-y-1 border-l-2 border-slate-700/50 pl-4">
-                      {item.submenu.map((subItem) => {
-                        const SubIcon = subItem.icon;
-                        // Next.js automatically strips basePath from pathname, so we can use it directly
-                        const isSubActive =
-                          pathname === subItem.href || pathname.startsWith(subItem.href + '/');
-
-                        return (
-                          <Link
-                            key={subItem.href}
-                            href={subItem.href}
-                            onClick={() => setIsMobileOpen(false)}
-                            className={cn(
-                              'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200',
-                              isSubActive
-                                ? 'bg-blue-500/20 text-blue-300 border-l-2 border-blue-500'
-                                : 'text-slate-400 hover:bg-slate-700/30 hover:text-slate-200'
-                            )}
-                          >
-                            <SubIcon className="h-4 w-4 mr-2" />
-                            <span>{subItem.name}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    {/* Submenu */}
+                    {hasSubmenu && isSubmenuOpen && !isCollapsed && (
+                      <div className="ml-4 mt-2 space-y-1 border-l-2 border-slate-700/50 pl-4">
+                        {item.submenu && item.submenu.length > 0 && item.submenu.map((subItem) => {
+                          const SubIcon = subItem.icon;
+                          const isSubActive =
+                            pathname === subItem.href || pathname.startsWith(subItem.href + '/');
+                          return (
+                            <Link
+                              key={subItem.href}
+                              href={subItem.href}
+                              onClick={() => setIsMobileOpen(false)}
+                              className={cn(
+                                'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200',
+                                isSubActive
+                                  ? 'bg-blue-500/20 text-blue-300 border-l-2 border-blue-500'
+                                  : 'text-slate-400 hover:bg-slate-700/30 hover:text-slate-200'
+                              )}
+                            >
+                              <SubIcon className="h-4 w-4 mr-2" />
+                              <span>{subItem.name}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
           </nav>
 
           {/* Footer */}

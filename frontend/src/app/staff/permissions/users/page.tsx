@@ -426,3 +426,12 @@ export default function ManageUsersPage() {
     </>
   );
 }
+
+export function PermissionsUsersPage() {
+  return (
+    <main className="p-8">
+      <h1 className="text-2xl font-bold mb-2">จัดการสิทธิ์</h1>
+      <p className="text-gray-600">หน้านี้สำหรับจัดการ User และสิทธิ์</p>
+    </main>
+  );
+}

@@ -168,7 +168,12 @@ export default function SettingsPage() {
   }
 
   if (!staffUser) {
-    return null;
+    return (
+      <main className="p-8">
+        <h1 className="text-2xl font-bold mb-2">ตั้งค่า</h1>
+        <p className="text-gray-600">หน้านี้สำหรับตั้งค่าระบบ</p>
+      </main>
+    );
   }
 
   return (
@@ -246,7 +251,7 @@ export default function SettingsPage() {
                 <Label>บทบาท (Role)</Label>
                 <div className="mt-1">
                   <Badge variant="outline" className="text-sm">
-                    {getRoleLabel(staffUser.role)}
+                    {typeof staffUser.role === 'object' ? (staffUser.role.name || '-') : getRoleLabel(staffUser.role || '')}
                   </Badge>
                 </div>
               </div>

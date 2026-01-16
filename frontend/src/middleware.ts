@@ -4,6 +4,18 @@ import type { NextRequest } from "next/server";
 
 export default withAuth(
   function middleware(req: NextRequest & { nextauth: { token: any } }) {
+    const pathname = req.nextUrl.pathname;
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+    const token = req.nextauth?.token;
+
+    // Block staff from accessing /admin
+    if (pathname.startsWith(`${basePath}/admin`)) {
+      // If user is staff (role === 'staff' or role object with code 'staff')
+      const role = token?.role;
+      if (role === 'staff' || (typeof role === 'object' && (role.code === 'staff' || role.name === 'staff'))) {
+        return NextResponse.redirect(new URL(basePath + '/403', req.url));
+      }
+    }
     return NextResponse.next();
   },
   {

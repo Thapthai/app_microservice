@@ -1,0 +1,444 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { medicalSuppliesApi } from '@/lib/api';
+
+import { toast } from 'sonner';
+import { History, Search, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import MedicalSuppliesTable from './components/MedicalSuppliesTable';
+import CancelBillDialog from './components/CancelBillDialog';
+
+export default function MedicalSuppliesPage() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [supplies, setSupplies] = useState<any[]>([]);
+  const [selectedSupply, setSelectedSupply] = useState<any>(null);
+  const [selectedSupplyId, setSelectedSupplyId] = useState<number | null>(null);
+  const [cancelBillDialogOpen, setCancelBillDialogOpen] = useState(false);
+  const [selectedSupplyForCancel, setSelectedSupplyForCancel] = useState<any>(null);
+
+  const [filters, setFilters] = useState({
+    startDate: '',
+    endDate: '',
+    patientHN: '',
+    keyword: '',
+    userName: '',
+    firstName: '',
+    lastName: '',
+    assessionNo: '',
+  });
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchSupplies();
+    }
+  }, [user?.id, currentPage]);
+
+  const fetchSupplies = async () => {
+    try {
+      setLoading(true);
+      const params: any = {
+        page: currentPage,
+        limit: itemsPerPage,
+      };
+
+      if (filters.startDate) params.startDate = filters.startDate;
+      if (filters.endDate) params.endDate = filters.endDate;
+      if (filters.userName) params.user_name = filters.userName;
+
+
+      const response: any = await medicalSuppliesApi.getAll(params);
+
+      if (response && response.data) {
+        let dataArray: any[] = [];
+
+        if (Array.isArray(response.data)) {
+          dataArray = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          dataArray = response.data.data;
+        } else if (response.data && typeof response.data === 'object') {
+          dataArray = [response.data];
+        }
+
+        setSupplies(dataArray);
+
+        const totalItems = response.total || dataArray.length;
+        const calculatedPages = Math.ceil(totalItems / itemsPerPage);
+
+        setTotalPages(calculatedPages || 1);
+        setTotalItems(totalItems);
+      } else {
+        setSupplies([]);
+        setTotalPages(1);
+        setTotalItems(0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch medical supplies:', error);
+      toast.error('ไม่สามารถโหลดข้อมูลได้');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchSupplies();
+  };
+
+  const handleReset = () => {
+    setFilters({
+      startDate: '',
+      endDate: '',
+      patientHN: '',
+      keyword: '',
+      userName: '',
+      firstName: '',
+      lastName: '',
+      assessionNo: '',
+    });
+    setCurrentPage(1);
+    setSelectedSupply(null);
+    setSelectedSupplyId(null);
+    fetchSupplies();
+  };
+
+  const handleSelectSupply = (supply: any) => {
+    const supplyData = supply.data || supply;
+    const id = supply.id || supplyData.id;
+    setSelectedSupply(supply);
+    setSelectedSupplyId(id);
+    setTimeout(() => {
+      const detailSection = document.getElementById('supply-details');
+      if (detailSection) {
+        detailSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  const handleCancelBill = (supply: any) => {
+    setSelectedSupplyForCancel(supply);
+    setCancelBillDialogOpen(true);
+  };
+
+  const handleCancelBillSuccess = () => {
+    fetchSupplies();
+    setSelectedSupply(null);
+    setSelectedSupplyId(null);
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  return (
+    <>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <History className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                รายการเบิกอุปกรณ์อุปกรณ์ใช้กับคนไข้
+              </h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                ประวัติการเบิกอุปกรณ์จากตู้ SmartCabinet
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Filters */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="startDate">วันที่เริ่มต้น</Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={filters.startDate}
+                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="endDate">วันที่สิ้นสุด</Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={filters.endDate}
+                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="userName">ผู้เพิ่มรายการ</Label>
+              <Input
+                id="userName"
+                placeholder="ชื่อผู้เพิ่มรายการ..."
+                value={filters.userName}
+                onChange={(e) => setFilters({ ...filters, userName: e.target.value })}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-4">
+            <Button onClick={handleSearch} disabled={loading}>
+              <Search className="h-4 w-4 mr-2" />
+              ค้นหา
+            </Button>
+            <Button onClick={handleReset} variant="outline" disabled={loading}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              รีเซ็ต
+            </Button>
+            <Button onClick={fetchSupplies} variant="outline" disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              โหลดใหม่
+            </Button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <MedicalSuppliesTable
+          loading={loading}
+          supplies={supplies}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onSelectSupply={handleSelectSupply}
+          selectedSupplyId={selectedSupplyId}
+          onCancelBill={handleCancelBill}
+          filters={filters}
+        />
+
+        {/* Detail Section */}
+        {selectedSupply && selectedSupplyId && (
+          <div id="supply-details" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>รายละเอียดการเบิกอุปกรณ์</CardTitle>
+                <CardDescription>
+                  HN: {selectedSupply.data?.patient_hn || selectedSupply.patient_hn || '-'} |
+                  Assession No: {(() => {
+                    const supplyItems = selectedSupply.data?.supply_items || selectedSupply.supply_items || [];
+                    const assessionNos = supplyItems
+                      .map((item: any) => item.assession_no)
+                      .filter((no: string) => no && no.trim() !== '');
+                    return assessionNos.length > 0 ? assessionNos.join(', ') : '-';
+                  })()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">ชื่อผู้ป่วย</p>
+                    <p className="font-semibold">
+                      {selectedSupply.data?.first_name || selectedSupply.first_name || ''} {selectedSupply.data?.lastname || selectedSupply.lastname || ''}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">ผู้เบิก</p>
+                    <p className="font-semibold">
+                      {selectedSupply.data?.recorded_by_display ||
+                        selectedSupply.recorded_by_display ||
+                        selectedSupply.recorded_by_name ||
+                        selectedSupply.data?.recorded_by_name || '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">เวลาที่เบิก</p>
+                    <p className="font-semibold">
+                      {formatDate(selectedSupply.created_at || selectedSupply.data?.created_at || selectedSupply.data?.usage_datetime)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">จำนวนรายการ</p>
+                    <p className="font-semibold">
+                      {selectedSupply.supplies_count || selectedSupply.data?.supplies_count || (selectedSupply.data?.supply_items || selectedSupply.supply_items || []).length || 0} รายการ
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">สถานะใบเสร็จ</p>
+                    <div className="mt-1">
+                      {(() => {
+                        const status = selectedSupply.data?.billing_status || selectedSupply.billing_status;
+                        if (!status) {
+                          return (
+                            <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-gray-500"></span>
+                              ไม่ระบุ
+                            </Badge>
+                          );
+                        }
+                        const statusLower = status.toLowerCase();
+                        if (statusLower === 'cancelled') {
+                          return (
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>
+                              ยกเลิก
+                            </Badge>
+                          );
+                        } else if (statusLower === 'paid') {
+                          return (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-green-500"></span>
+                              ชำระแล้ว
+                            </Badge>
+                          );
+                        } else if (statusLower === 'pending') {
+                          return (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-yellow-500"></span>
+                              รอชำระ
+                            </Badge>
+                          );
+                        } else {
+                          return (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
+                              {status}
+                            </Badge>
+                          );
+                        }
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>รายการอุปกรณ์ที่เบิก</CardTitle>
+                <CardDescription>รายละเอียดอุปกรณ์ทั้งหมดที่เบิกในครั้งนี้</CardDescription>
+              </CardHeader>
+              <CardContent className="px-4 py-4">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[80px]">ลำดับ</TableHead>
+                        <TableHead>รหัสอุปกรณ์</TableHead>
+                        <TableHead>ชื่ออุปกรณ์</TableHead>
+                        <TableHead className="text-center">จำนวน</TableHead>
+                        <TableHead>หน่วย</TableHead>
+                        <TableHead>Assession No</TableHead>
+                        <TableHead>สถานะ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(() => {
+                        const supplyItems = selectedSupply.data?.supply_items || selectedSupply.supply_items || [];
+
+                        if (supplyItems.length === 0) {
+                          return (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                ไม่มีรายการอุปกรณ์
+                              </TableCell>
+                            </TableRow>
+                          );
+                        }
+
+                        return supplyItems.map((item: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell className="text-center">{index + 1}</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {item.order_item_code || item.supply_code || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {item.order_item_description || item.supply_name || '-'}
+                            </TableCell>
+                            <TableCell className="text-center font-semibold">
+                              {item.qty || item.quantity || 0}
+                            </TableCell>
+                            <TableCell>{item.uom || item.unit || '-'}</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {item.assession_no || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {(() => {
+                                const status = item.order_item_status || '-';
+                                const statusLower = status.toLowerCase();
+
+                                if (statusLower === 'discontinue') {
+                                  return (
+                                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                      <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>
+                                      ยกเลิก
+                                    </Badge>
+                                  );
+                                } else if (statusLower === 'verified') {
+                                  return (
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                      <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-green-500"></span>
+                                      ยืนยันแล้ว
+                                    </Badge>
+                                  );
+                                } else if (status === '-') {
+                                  return <span className="text-gray-400">-</span>;
+                                } else {
+                                  return (
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                      <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
+                                      {status}
+                                    </Badge>
+                                  );
+                                }
+                              })()}
+                            </TableCell>
+                          </TableRow>
+                        ));
+                      })()}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* Cancel Bill Dialog */}
+      <CancelBillDialog
+        open={cancelBillDialogOpen}
+        onOpenChange={setCancelBillDialogOpen}
+        supply={selectedSupplyForCancel}
+        onSuccess={handleCancelBillSuccess}
+      />
+    </>
+  );
+}

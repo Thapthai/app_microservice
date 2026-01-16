@@ -27,7 +27,7 @@ export default function StaffLoginPage() {
     setLoading(true);
 
     try {
-      const response = await staffUserApi.staffUserLogin(formData);
+      const response = await staffUserApi.staffUserLogin({ ...formData, roleType: 'staff' }); // ระบุชัดเจนว่าเป็น staff login
       
       if (response.success) {
         // Store staff token and user info in localStorage

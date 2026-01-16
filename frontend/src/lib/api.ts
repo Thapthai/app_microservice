@@ -882,6 +882,7 @@ export const staffUserApi = {
   staffUserLogin: async (data: {
     email: string;
     password: string;
+    roleType?: string;
   }): Promise<ApiResponse<any>> => {
     const response = await api.post('/staff-users/login', data);
     return response.data;

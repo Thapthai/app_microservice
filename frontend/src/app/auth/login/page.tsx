@@ -49,6 +49,7 @@ export default function LoginPage() {
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
+        roleType: 'admin', // ระบุชัดเจนว่าเป็น admin login
         redirect: false,
       });
 
