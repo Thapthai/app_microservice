@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shield, Save, Loader2, CornerDownRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { staffMenuItems } from '@/app/staff/menus';
+import { staffMenuItems, StaffMenuSubItem } from '@/app/staff/menus';
 
 
 // Flatten staffMenuItems (and submenus) from menus.ts for permission table
@@ -19,7 +19,7 @@ const getMenuItems = () => {
   staffMenuItems.forEach((menu) => {
     menuItems.push({ value: menu.href, label: menu.name });
     if (menu.submenu) {
-      menu.submenu.forEach((submenu: any) => {
+      menu.submenu.forEach((submenu: StaffMenuSubItem) => {
         menuItems.push({ value: submenu.href, label: submenu.name });
       });
     }
@@ -309,11 +309,3 @@ export default function ManageRolesPage() {
   );
 }
 
-export function PermissionsRolesPage() {
-  return (
-    <main className="p-8">
-      <h1 className="text-2xl font-bold mb-2">กำหนดสิทธิ์</h1>
-      <p className="text-gray-600">หน้านี้สำหรับกำหนดสิทธิ์การเข้าถึงเมนู</p>
-    </main>
-  );
-}
