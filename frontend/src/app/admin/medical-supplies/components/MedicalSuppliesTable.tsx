@@ -26,6 +26,7 @@ interface MedicalSuppliesTableProps {
     firstName: string;
     lastName: string;
     assessionNo: string;
+    itemName?: string;
   };
 }
 
@@ -222,6 +223,7 @@ export default function MedicalSuppliesTable({
                   {/* <TableHead>HN</TableHead> */}
                   {/* <TableHead>ชื่อผู้ป่วย</TableHead> */}
                   {/* <TableHead>Assession No</TableHead> */}
+                  <TableHead>ชื่ออุปกรณ์</TableHead>
                   <TableHead>ผู้เบิก</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
@@ -239,6 +241,16 @@ export default function MedicalSuppliesTable({
                                         supply.recorded_by_display ||
                                         supply.recorded_by_name || 
                                         supplyData.recorded_by_name || '-';
+                  
+                  // Get unique item names for display
+                  const supplyItems = supplyData.supply_items || supply.supply_items || [];
+                  const itemNames: string[] = Array.from(
+                    new Set(
+                      supplyItems
+                        .map((item: any) => item.order_item_description || item.supply_name || '')
+                        .filter((name: string) => name && name.trim() !== '')
+                    )
+                  ) as string[];
                   
                   const isSelected = selectedSupplyId === id;
                   
@@ -289,6 +301,20 @@ export default function MedicalSuppliesTable({
                           );
                         })()}
                       </TableCell> */}
+                      <TableCell>
+                        {itemNames.length > 0 ? (
+                          <div className="space-y-1">
+                            {itemNames.map((name: string, idx: number) => (
+                              <div key={idx} className="text-sm text-gray-700 flex items-start">
+                                <span className="mr-2 text-gray-400">-</span>
+                                <span>{name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <span className="text-sm text-gray-700">{recordedByName}</span>
                       </TableCell>

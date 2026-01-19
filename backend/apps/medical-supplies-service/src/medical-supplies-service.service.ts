@@ -178,10 +178,202 @@ export class MedicalSuppliesServiceService {
       const orderItems = data.Order || [];
       const legacySupplies = data.supplies || [];
 
+      // Check if there's an existing usage with same EN, HN, FirstName, Lastname
+      let existingUsage: (Prisma.MedicalSupplyUsageGetPayload<{
+        include: { supply_items: true }
+      }> | null) = null;
+      
+      if (episodeNumber && patientHn && firstName && lastname) {
+        existingUsage = await this.prisma.medicalSupplyUsage.findFirst({
+          where: {
+            en: episodeNumber,
+            patient_hn: patientHn,
+            first_name: firstName,
+            lastname: lastname,
+          },
+          include: {
+            supply_items: true,
+          },
+          orderBy: {
+            created_at: 'desc',
+          },
+        });
+      }
+
+      // If existing usage found, process items based on AssessionNo
+      if (existingUsage && orderItems.length > 0) {
+        const itemsToUpdate: Array<{ item: any; newStatus: string }> = [];
+        const itemsToCreate: typeof orderItems = [];
+        const discontinueItemsInOrder: typeof orderItems = [];
+
+        for (const orderItem of orderItems) {
+          // Check if this is a discontinue item (both "discontinue" and "discontinued" are valid)
+          const itemStatusLower = orderItem.ItemStatus?.toLowerCase() || '';
+          const isDiscontinue = itemStatusLower === 'discontinue' || itemStatusLower === 'discontinued';
+          
+          if (isDiscontinue && orderItem.AssessionNo) {
+            // Handle discontinue items separately - find and update existing item with same AssessionNo
+            const existingItem = existingUsage.supply_items.find(
+              (item) => item.assession_no === orderItem.AssessionNo &&
+                       item.order_item_status?.toLowerCase() !== 'discontinue'
+            );
+
+            if (existingItem) {
+              // Update existing item to discontinue status
+              await this.prisma.supplyUsageItem.update({
+                where: { id: existingItem.id },
+                data: {
+                  order_item_status: 'Discontinue', // Always use 'Discontinue' (not 'Discontinued')
+                  qty_used_with_patient: 0, // Set to 0 to reflect cancellation
+                },
+              });
+
+              await this.createLog(existingUsage.id, {
+                type: 'UPDATE',
+                status: 'SUCCESS',
+                action: 'discontinue_item',
+                assession_no: orderItem.AssessionNo,
+                item_code: existingItem.order_item_code,
+                old_status: existingItem.order_item_status,
+                new_status: 'Discontinue',
+                reason: 'ItemStatus updated to Discontinue based on AssessionNo match',
+              });
+            }
+            // Store for later processing in discontinue section if needed
+            discontinueItemsInOrder.push(orderItem);
+            continue;
+          }
+
+          // Find existing item with same AssessionNo
+          const existingItem = existingUsage.supply_items.find(
+            (item) => item.assession_no === orderItem.AssessionNo
+          );
+
+          if (existingItem) {
+            // If AssessionNo matches, update ItemStatus
+            itemsToUpdate.push({
+              item: existingItem,
+              newStatus: orderItem.ItemStatus || existingItem.order_item_status || 'Verified',
+            });
+          } else {
+            // If AssessionNo doesn't match, add new item
+            itemsToCreate.push(orderItem);
+          }
+        }
+
+        // Update existing items' status
+        for (const { item, newStatus } of itemsToUpdate) {
+          await this.prisma.supplyUsageItem.update({
+            where: { id: item.id },
+            data: {
+              order_item_status: newStatus,
+            },
+          });
+
+          await this.createLog(existingUsage.id, {
+            type: 'UPDATE',
+            status: 'SUCCESS',
+            action: 'update_item_status',
+            assession_no: item.assession_no,
+            item_code: item.order_item_code,
+            old_status: item.order_item_status,
+            new_status: newStatus,
+            reason: 'ItemStatus updated based on AssessionNo match',
+          });
+        }
+
+        // Add new items if any
+        if (itemsToCreate.length > 0) {
+          // Validate ItemCodes for new items
+          const newItemCodes = itemsToCreate.map((item) => item.ItemCode).filter((code) => code);
+          if (newItemCodes.length > 0) {
+            const validation = await this.validateItemCodes(newItemCodes);
+            if (validation.invalid.length > 0) {
+              await this.createLog(null, {
+                type: 'CREATE',
+                status: 'ERROR',
+                action: 'create_medical_supply_usage',
+                error_message: `Invalid ItemCodes found: ${validation.invalid.join(', ')}`,
+                invalid_item_codes: validation.invalid,
+                input_data: data,
+              });
+
+              throw new BadRequestException({
+                message: 'Invalid ItemCodes found',
+                invalidCodes: validation.invalid,
+                validCodes: validation.valid,
+              });
+            }
+          }
+
+          // Create new supply items
+          await this.prisma.supplyUsageItem.createMany({
+            data: itemsToCreate.map((item): Prisma.SupplyUsageItemCreateManyInput => ({
+              medical_supply_usage_id: existingUsage.id,
+              order_item_code: item.ItemCode,
+              order_item_description: item.ItemDescription,
+              assession_no: item.AssessionNo,
+              order_item_status: item.ItemStatus || 'Verified',
+              qty: typeof item.QTY === 'string' ? parseInt(item.QTY) || 0 : item.QTY,
+              uom: item.UOM,
+              supply_code: item.ItemCode,
+              supply_name: item.ItemDescription,
+              supply_category: null,
+              unit: item.UOM,
+              quantity: typeof item.QTY === 'string' ? parseInt(item.QTY) || 0 : item.QTY,
+              unit_price: null,
+              total_price: null,
+              expiry_date: null,
+            })),
+          });
+
+          await this.createLog(existingUsage.id, {
+            type: 'UPDATE',
+            status: 'SUCCESS',
+            action: 'add_new_items',
+            hospital: hospital,
+            en: episodeNumber,
+            patient_hn: patientHn,
+            first_name: firstName,
+            lastname: lastname,
+            new_items_count: itemsToCreate.length,
+            reason: 'New items added based on new AssessionNo',
+          });
+        }
+
+        // Update usage metadata if provided
+        if (data.billing_status || data.billing_total !== undefined) {
+          await this.prisma.medicalSupplyUsage.update({
+            where: { id: existingUsage.id },
+            data: {
+              billing_status: data.billing_status || existingUsage.billing_status,
+              billing_subtotal: data.billing_subtotal ?? existingUsage.billing_subtotal,
+              billing_tax: data.billing_tax ?? existingUsage.billing_tax,
+              billing_total: data.billing_total ?? existingUsage.billing_total,
+              billing_currency: data.billing_currency || existingUsage.billing_currency || 'THB',
+            },
+          });
+        }
+
+        // Return updated usage
+        const updatedUsage = await this.prisma.medicalSupplyUsage.findUnique({
+          where: { id: existingUsage.id },
+          include: {
+            supply_items: true,
+          },
+        });
+
+        return updatedUsage as unknown as MedicalSupplyUsageResponse;
+      }
+
       // Handle Discontinue items: Update existing items with same assession_no in the same episode
-      const discontinueItems = orderItems.filter(item =>
-        item.ItemStatus && item.ItemStatus.toLowerCase() === 'discontinue' && item.AssessionNo
-      );
+      // Only process discontinue items if we haven't already processed them above (when existingUsage was found)
+      const discontinueItems = existingUsage 
+        ? [] // Already processed above, skip here
+        : orderItems.filter(item => {
+            const itemStatusLower = item.ItemStatus?.toLowerCase() || '';
+            return (itemStatusLower === 'discontinue' || itemStatusLower === 'discontinued') && item.AssessionNo;
+          });
 
       if (discontinueItems.length > 0 && episodeNumber) {
         // First, find all medical supply usages for this episode
@@ -484,7 +676,7 @@ export class MedicalSuppliesServiceService {
         }
       }
 
-      // Keyword filter (search in patient name, EN)
+      // Keyword filter (search in patient name, EN, and item names)
       const keywordConditions: any[] = [];
       if (query.keyword) {
         const keyword = query.keyword.trim();
@@ -493,7 +685,19 @@ export class MedicalSuppliesServiceService {
           { lastname: { contains: keyword } },
           { patient_name_th: { contains: keyword } },
           { patient_name_en: { contains: keyword } },
-          { en: { contains: keyword } }
+          { en: { contains: keyword } },
+          // Search in item names/descriptions
+          {
+            supply_items: {
+              some: {
+                OR: [
+                  { order_item_description: { contains: keyword } },
+                  { supply_name: { contains: keyword } },
+                  { order_item_code: { contains: keyword } }
+                ]
+              }
+            }
+          }
         );
       }
 

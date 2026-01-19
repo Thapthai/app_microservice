@@ -25,15 +25,39 @@ export default function MedicalSuppliesPage() {
   const [cancelBillDialogOpen, setCancelBillDialogOpen] = useState(false);
   const [selectedSupplyForCancel, setSelectedSupplyForCancel] = useState<any>(null);
 
-  const [filters, setFilters] = useState({
-    startDate: '',
-    endDate: '',
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Form filters (for display in form, doesn't trigger search)
+  const [formFilters, setFormFilters] = useState({
+    startDate: getTodayDate(),
+    endDate: getTodayDate(),
     patientHN: '',
     keyword: '',
     userName: '',
     firstName: '',
     lastName: '',
     assessionNo: '',
+    itemName: '', // ช่องค้นหาชื่ออุปกรณ์
+  });
+
+  // Active filters (for actual search, triggers fetchSupplies)
+  const [activeFilters, setActiveFilters] = useState({
+    startDate: getTodayDate(),
+    endDate: getTodayDate(),
+    patientHN: '',
+    keyword: '',
+    userName: '',
+    firstName: '',
+    lastName: '',
+    assessionNo: '',
+    itemName: '',
   });
   
   // Pagination
@@ -42,28 +66,27 @@ export default function MedicalSuppliesPage() {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchSupplies();
-    }
-  }, [user?.id, currentPage]);
 
-  const fetchSupplies = async () => {
+  const fetchSupplies = async (customFilters?: typeof activeFilters, customPage?: number) => {
     try {
       setLoading(true);
+      const filtersToUse = customFilters || activeFilters;
+      const activePage = customPage !== undefined ? customPage : currentPage;
+      
       const params: any = {
-        page: currentPage,
+        page: activePage,
         limit: itemsPerPage,
       };
 
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
-      // if (filters.patientHN) params.patient_hn = filters.patientHN;
-      // if (filters.keyword) params.keyword = filters.keyword;
-      if (filters.userName) params.user_name = filters.userName;
-      // if (filters.firstName) params.first_name = filters.firstName;
-      // if (filters.lastName) params.lastname = filters.lastName;
-      // if (filters.assessionNo) params.assession_no = filters.assessionNo;
+      if (filtersToUse.startDate) params.startDate = filtersToUse.startDate;
+      if (filtersToUse.endDate) params.endDate = filtersToUse.endDate;
+      // if (filtersToUse.patientHN) params.patient_hn = filtersToUse.patientHN;
+      // if (filtersToUse.keyword) params.keyword = filtersToUse.keyword;
+      if (filtersToUse.userName) params.user_name = filtersToUse.userName;
+      if (filtersToUse.itemName) params.keyword = filtersToUse.itemName; // ใช้ keyword สำหรับค้นหาชื่ออุปกรณ์
+      // if (filtersToUse.firstName) params.first_name = filtersToUse.firstName;
+      // if (filtersToUse.lastName) params.lastname = filtersToUse.lastName;
+      // if (filtersToUse.assessionNo) params.assession_no = filtersToUse.assessionNo;
 
       const response: any = await medicalSuppliesApi.getAll(params);
 
@@ -98,31 +121,44 @@ export default function MedicalSuppliesPage() {
     }
   };
 
+  // Update fetchSupplies when activeFilters or currentPage change
+  useEffect(() => {
+    if (user?.id) {
+      fetchSupplies(activeFilters, currentPage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, activeFilters, currentPage]);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSearch = () => {
+    // Copy formFilters to activeFilters to trigger search
+    setActiveFilters(formFilters);
     setCurrentPage(1);
-    fetchSupplies();
+    // useEffect will trigger fetchSupplies when activeFilters and currentPage change
   };
 
   const handleReset = () => {
-    setFilters({
-      startDate: '',
-      endDate: '',
+    const resetFilters = {
+      startDate: getTodayDate(),
+      endDate: getTodayDate(),
       patientHN: '',
       keyword: '',
       userName: '',
       firstName: '',
       lastName: '',
       assessionNo: '',
-    });
+      itemName: '',
+    };
+    setFormFilters(resetFilters);
+    setActiveFilters(resetFilters);
     setCurrentPage(1);
     setSelectedSupply(null);
     setSelectedSupplyId(null);
-    fetchSupplies();
+    // useEffect will trigger fetchSupplies when activeFilters and currentPage change
   };
 
   const handleSelectSupply = (supply: any) => {
@@ -193,8 +229,8 @@ export default function MedicalSuppliesPage() {
                 <Input
                   id="startDate"
                   type="date"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                  value={formFilters.startDate}
+                  onChange={(e) => setFormFilters({ ...formFilters, startDate: e.target.value })}
                 />
               </div>
 
@@ -203,8 +239,8 @@ export default function MedicalSuppliesPage() {
                 <Input
                   id="endDate"
                   type="date"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                  value={formFilters.endDate}
+                  onChange={(e) => setFormFilters({ ...formFilters, endDate: e.target.value })}
                 />
               </div>
 
@@ -263,13 +299,24 @@ export default function MedicalSuppliesPage() {
                 />
               </div> */}
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="userName">ผู้เพิ่มรายการ</Label>
                 <Input
                   id="userName"
                   placeholder="ชื่อผู้เพิ่มรายการ..."
-                  value={filters.userName}
-                  onChange={(e) => setFilters({ ...filters, userName: e.target.value })}
+                  value={formFilters.userName}
+                  onChange={(e) => setFormFilters({ ...formFilters, userName: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div> */}
+
+              <div className="space-y-2">
+                <Label htmlFor="itemName">ค้นหารายการ (ชื่ออุปกรณ์)</Label>
+                <Input
+                  id="itemName"
+                  placeholder="กรอกชื่ออุปกรณ์..."
+                  value={formFilters.itemName}
+                  onChange={(e) => setFormFilters({ ...formFilters, itemName: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
@@ -284,7 +331,7 @@ export default function MedicalSuppliesPage() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 รีเซ็ต
               </Button>
-              <Button onClick={fetchSupplies} variant="outline" disabled={loading}>
+              <Button onClick={() => fetchSupplies()} variant="outline" disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 โหลดใหม่
               </Button>
@@ -303,7 +350,7 @@ export default function MedicalSuppliesPage() {
             onSelectSupply={handleSelectSupply}
             selectedSupplyId={selectedSupplyId}
             onCancelBill={handleCancelBill}
-            filters={filters}
+            filters={activeFilters}
           />
 
           {/* Detail Section */}
