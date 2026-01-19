@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { reportsApi, medicalSuppliesApi } from '@/lib/api';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import AppLayout from '@/components/AppLayout';
+import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
 import { toast } from 'sonner';
 import { FileText, Download, Search, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { staffReportApi } from '@/lib/staffApi/reportApi';
 
 interface DisbursementRecord {
   code: string;
@@ -42,10 +42,8 @@ export default function EquipmentDisbursementReportPage() {
   });
 
   useEffect(() => {
-    if (user?.id) {
       fetchData();
-    }
-  }, [user?.id]);
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -69,7 +67,7 @@ export default function EquipmentDisbursementReportPage() {
 
         for (const usage of usagesArray) {
           const usageData = usage.data || usage;
-          const itemsResponse = await medicalSuppliesApi.getSupplyItemsByUsageId(usageData.id || usage.id);
+          const itemsResponse = await staffMedicalSuppliesApi.getSupplyItemsByUsageId(usageData.id || usage.id);
 
           if (itemsResponse && itemsResponse.success && itemsResponse.data) {
             itemsResponse.data.forEach((item: any) => {
@@ -134,7 +132,7 @@ export default function EquipmentDisbursementReportPage() {
   const handleExportExcel = async () => {
     try {
       setLoading(true);
-      const blob = await reportsApi.exportEquipmentDisbursementExcel(filters);
+      const blob = await staffReportApi.exportEquipmentDisbursementExcel(filters);
       
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -158,7 +156,7 @@ export default function EquipmentDisbursementReportPage() {
   const handleExportPDF = async () => {
     try {
       setLoading(true);
-      const blob = await reportsApi.exportEquipmentDisbursementPDF(filters);
+      const blob = await staffReportApi.exportEquipmentDisbursementPDF(filters);
       
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');

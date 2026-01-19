@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { medicalSuppliesApi } from '@/lib/api';
+import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
 import { toast } from 'sonner';
 import { ComparisonPagination } from '../comparison/ComparisonPagination';
 import type { UsageItem } from '../../types';
@@ -50,7 +50,7 @@ export function UsageItemsTable({
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
       
-      const response = await medicalSuppliesApi.getUsageByItemCodeFromItemTable(params) as any;
+      const response = await staffMedicalSuppliesApi.getUsageByItemCodeFromItemTable(params) as any;
       
       if (response && (response.success || response.data)) {
         const responseItems = Array.isArray(response.data) ? response.data : [];

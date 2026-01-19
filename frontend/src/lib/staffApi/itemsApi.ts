@@ -1,0 +1,72 @@
+import staffApi from './index';
+import type { Item, CreateItemDto, UpdateItemDto, GetItemsQuery } from '@/types/item';
+import type { ApiResponse, PaginatedResponse } from '@/types/common';
+
+export const staffItemsApi = {
+    create: async (data: CreateItemDto): Promise<ApiResponse<Item>> => {
+        const { picture, ...restData } = data;
+        if (picture && picture instanceof File) {
+            const formData = new FormData();
+            Object.keys(restData).forEach((key) => {
+                const value = restData[key as keyof typeof restData];
+                if (value !== undefined && value !== null && value !== '') {
+                    formData.append(key, String(value));
+                }
+            });
+            formData.append('picture', picture);
+            const response = await staffApi.post('/items/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            return response.data;
+        }
+        const response = await staffApi.post('/items', restData, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        return response.data;
+    },
+
+    getAll: async (query?: GetItemsQuery): Promise<PaginatedResponse<Item>> => {
+        const response = await staffApi.get('/items', { params: query });
+        return response.data;
+    },
+
+    getById: async (itemcode: string): Promise<ApiResponse<Item>> => {
+        const response = await staffApi.get(`/items/${itemcode}`);
+        return response.data;
+    },
+
+    update: async (itemcode: string, data: UpdateItemDto): Promise<ApiResponse<Item>> => {
+        const { picture, ...restData } = data;
+        if (picture && picture instanceof File) {
+            const formData = new FormData();
+            Object.keys(restData).forEach((key) => {
+                const value = restData[key as keyof typeof restData];
+                if (value !== undefined && value !== null && value !== '') {
+                    formData.append(key, String(value));
+                }
+            });
+            formData.append('picture', picture);
+            const response = await staffApi.put(`/items/upload/${itemcode}`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            return response.data;
+        }
+        const response = await staffApi.put(`/items/${itemcode}`, restData, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        return response.data;
+    },
+
+    delete: async (itemcode: string): Promise<ApiResponse<Item>> => {
+        const response = await staffApi.delete(`/items/${itemcode}`);
+        return response.data;
+    },
+};

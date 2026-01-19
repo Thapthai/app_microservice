@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { medicalSuppliesApi } from '@/lib/api';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import AppLayout from '@/components/AppLayout';
+import { itemComparisonApi } from '@/lib/staffApi/itemComparisonApi';
 import { toast } from 'sonner';
 import { Package } from 'lucide-react';
 import {
@@ -47,11 +45,15 @@ export default function ItemComparisonPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
+  // useEffect(() => {
+  //   if (user?.id) {
+  //     fetchComparisonList();
+  //   }
+  // }, [user?.id]);
   useEffect(() => {
-    if (user?.id) {
-      fetchComparisonList();
-    }
-  }, [user?.id]);
+    fetchComparisonList();
+  }, []);
+
 
   const fetchComparisonList = async (page: number = 1) => {
     try {
@@ -67,7 +69,7 @@ export default function ItemComparisonPage() {
         params.itemTypeId = parseInt(filters.itemTypeFilter);
       }
 
-      const response = await medicalSuppliesApi.compareDispensedVsUsage(params);
+      const response = await itemComparisonApi.compareDispensedVsUsage(params);
 
       if (response.success || response.data) {
         const responseData: any = response.data || response;

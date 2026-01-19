@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { itemsApi } from '@/lib/api';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import AppLayout from '@/components/AppLayout';
+import { staffItemsApi } from '@/lib/staffApi/itemsApi';
 import type { Item } from '@/types/item';
 import { toast } from 'sonner';
 import { Package, Search, Plus, RefreshCw, Pencil, Trash2, Filter, Gauge } from 'lucide-react';
@@ -47,29 +45,22 @@ export default function ItemsPage() {
 
   const fetchItems = async () => {
     try {
-      if (user?.id) {
-        setLoading(true);
-        const response = await itemsApi.getAll({
-          page: currentPage,
-          limit: itemsPerPage,
-          keyword: searchTerm || undefined
-        });
-        if (response.data) {
-          // Debug: ตรวจสอบข้อมูล Min/Max
-          console.log('📦 Items data:', response.data.slice(0, 2).map(item => ({
-            itemcode: item.itemcode,
-            itemname: item.itemname,
-            Minimum: item.Minimum,
-            Maximum: item.Maximum
-          })));
 
-          setItems(response.data);
-          setTotalItems(response.total);
-          setTotalPages(response.lastPage);
-        }
+      setLoading(true);
+      const response = await staffItemsApi.getAll({
+        page: currentPage,
+        limit: itemsPerPage,
+        keyword: searchTerm || undefined
+      });
+
+      if (response.data) {
+        setItems(response.data);
+        setTotalItems(response.total);
+        setTotalPages(response.lastPage);
       }
+ 
     } catch (error) {
-      console.error('Failed to fetch items:', error);
+      console.error('Failed to fetch staff items:', error);
       toast.error('ไม่สามารถโหลดข้อมูลสินค้าได้');
     } finally {
       setLoading(false);
@@ -337,7 +328,7 @@ export default function ItemsPage() {
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
-                                <Button
+                                {/* <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleDelete(item)}
@@ -345,7 +336,7 @@ export default function ItemsPage() {
                                   className="text-red-600 hover:text-red-700 hover:border-red-600"
                                 >
                                   <Trash2 className="h-4 w-4" />
-                                </Button>
+                                </Button> */}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -433,12 +424,12 @@ export default function ItemsPage() {
         onSuccess={fetchItems}
       />
 
-      <DeleteItemDialog
+      {/* <DeleteItemDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         item={selectedItem}
         onSuccess={fetchItems}
-      />
+      /> */}
 
       <UpdateMinMaxDialog
         open={showMinMaxDialog}

@@ -187,7 +187,7 @@ const managementMenuItems = [
       },
       {
         name: "Staff Premission Role",
-        href: "/staff-users/premission-role",
+        href: "/admin/staff-users/premission-role",
         icon: Users,
         description: "จัดการ Staff Premission Role",
       },

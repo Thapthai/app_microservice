@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import AppLayout from '@/components/AppLayout';
 import { RotateCcw, Search, RefreshCw, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,11 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { medicalSuppliesApi, vendingReportsApi } from '@/lib/api';
 import { toast } from 'sonner';
+import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
+import { staffVendingReportsApi } from '@/lib/staffApi/vendingReportsApi';
+
 
 export default function ReturnReportPage() {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [returnHistoryDateFrom, setReturnHistoryDateFrom] = useState('');
   const [returnHistoryDateTo, setReturnHistoryDateTo] = useState('');
@@ -36,7 +35,7 @@ export default function ReturnReportPage() {
       if (returnHistoryDateTo) params.date_to = returnHistoryDateTo;
       if (returnHistoryReason && returnHistoryReason !== 'ALL') params.return_reason = returnHistoryReason;
 
-      const result = await medicalSuppliesApi.getReturnHistory(params);
+      const result = await staffMedicalSuppliesApi.getReturnHistory(params);
       // Backend returns: { success: true, data: [...], total: ..., page: ..., limit: ... }
       if (result.success && result.data) {
         setReturnHistoryData(result);
@@ -185,7 +184,7 @@ export default function ReturnReportPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          vendingReportsApi.downloadReturnReportExcel({
+                          staffVendingReportsApi.downloadReturnReportExcel({
                             date_from: returnHistoryDateFrom || undefined,
                             date_to: returnHistoryDateTo || undefined,
                             return_reason: returnHistoryReason !== 'ALL' ? returnHistoryReason : undefined,
@@ -201,7 +200,7 @@ export default function ReturnReportPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          vendingReportsApi.downloadReturnReportPdf({
+                          staffVendingReportsApi.downloadReturnReportPdf({
                             date_from: returnHistoryDateFrom || undefined,
                             date_to: returnHistoryDateTo || undefined,
                             return_reason: returnHistoryReason !== 'ALL' ? returnHistoryReason : undefined,

@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { StatusBadge } from '../common/StatusBadge';
 import { ComparisonPagination } from './ComparisonPagination';
 import { useState, useRef, useEffect } from 'react';
-import { medicalSuppliesApi } from '@/lib/api';
+import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
 import { toast } from 'sonner';
 import type { ComparisonItem, UsageItem } from '../../types';
 
@@ -112,7 +112,7 @@ export function ComparisonTable({
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
-      const response = await medicalSuppliesApi.getUsageByItemCodeFromItemTable(params) as any;
+      const response = await staffMedicalSuppliesApi.getUsageByItemCodeFromItemTable(params) as any;
 
       if (response && (response.success || response.data)) {
         const responseItems = Array.isArray(response.data) ? response.data : [];

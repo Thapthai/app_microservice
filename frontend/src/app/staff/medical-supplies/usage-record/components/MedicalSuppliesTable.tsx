@@ -226,7 +226,7 @@ export default function MedicalSuppliesTable({
                   <TableHead>เวลาที่เบิก</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
                   <TableHead>สถานะ</TableHead>
-                  <TableHead className="text-center">จัดการ</TableHead>
+                  {/* <TableHead className="text-center">จัดการ</TableHead> */}
                 </TableRow>
               </TableHeader>
               <TableBody>

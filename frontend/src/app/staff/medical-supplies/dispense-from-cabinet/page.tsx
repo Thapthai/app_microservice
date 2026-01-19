@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { medicalSuppliesApi } from '@/lib/api';
+import { DispensedItemsApi } from '@/lib/staffApi/dispensedItemsApi';
 import { toast } from 'sonner';
 import { Package } from 'lucide-react';
 import FilterSection from './components/FilterSection';
@@ -29,10 +29,10 @@ export default function DispenseFromCabinetPage() {
   const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
-    if (user?.id) {
+    // if (user?.id) {
       fetchDispensedList();
-    }
-  }, [user?.id]);
+    // }
+  }, []);
 
   const fetchDispensedList = async (page: number = 1) => {
     try {
@@ -48,7 +48,7 @@ export default function DispenseFromCabinetPage() {
         params.itemTypeId = parseInt(filters.itemTypeFilter);
       }
 
-      const response = await medicalSuppliesApi.getDispensedItems(params);
+      const response = await DispensedItemsApi.getDispensedItems(params);
 
       if (response.success || response.data) {
         const responseData: any = response.data || response;

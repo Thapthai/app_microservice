@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { medicalSuppliesApi } from '@/lib/api';
-
+import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
 import { toast } from 'sonner';
 import { History, Search, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,12 +41,11 @@ export default function MedicalSuppliesPage() {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    if (user?.id) {
-      fetchSupplies();
-    }
-  }, [user?.id, currentPage]);
+    fetchSupplies();
+  }, [currentPage]);
 
   const fetchSupplies = async () => {
+
     try {
       setLoading(true);
       const params: any = {
@@ -60,7 +58,7 @@ export default function MedicalSuppliesPage() {
       if (filters.userName) params.user_name = filters.userName;
 
 
-      const response: any = await medicalSuppliesApi.getAll(params);
+      const response: any = await staffMedicalSuppliesApi.getAll(params);
 
       if (response && response.data) {
         let dataArray: any[] = [];
