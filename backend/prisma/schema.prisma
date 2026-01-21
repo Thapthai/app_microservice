@@ -46,15 +46,15 @@ model User {
 model StaffRole {
   id          Int      @id @default(autoincrement())
   code        String   @unique // 'it1', 'it2', 'it3', 'warehouse1', 'warehouse2', 'warehouse3'
-  name        String   // 'IT 1', 'IT 2', 'Warehouse 1', etc.
+  name        String // 'IT 1', 'IT 2', 'Warehouse 1', etc.
   description String?  @db.Text // Description of the role
   is_active   Boolean  @default(true) @map("is_active")
   created_at  DateTime @default(now()) @map("created_at")
   updated_at  DateTime @updatedAt @map("updated_at")
 
   // Relations
-  staffUsers         StaffUser[]
-  rolePermissions    StaffRolePermission[]
+  staffUsers      StaffUser[]
+  rolePermissions StaffRolePermission[]
 
   @@index([code], name: "idx_code")
   @@index([is_active], name: "idx_is_active")
@@ -501,7 +501,6 @@ model ItemStock {
   LastReceiveInDeptDate DateTime? @map("LastReceiveInDeptDate")
   LastDispatchModify    DateTime? @map("LastDispatchModify")
   IsHN                  Int?      @default(0) @map("IsHN")
-  CancellDate           DateTime? @map("CancellDate")
   IsStock               Boolean?  @default(true) @map("IsStock")
   IsBorrow              Boolean?  @default(false) @map("IsBorrow")
   PreviousStatus        Int?      @default(0) @map("PreviousStatus")
@@ -533,7 +532,6 @@ model ItemStock {
   IsCross               Int?      @map("IsCross")
   departmentroomId      Int?      @map("departmentroomId")
   IsDamage              Int?      @map("IsDamage")
-  serialNo              String?   @map("serialNo") @db.VarChar(50)
   lotNo                 String?   @map("lotNo") @db.VarChar(50)
   expDate               DateTime? @map("expDate")
   IsTracking            Boolean?  @default(false) @map("IsTracking")
@@ -542,7 +540,8 @@ model ItemStock {
   IsSell                Int?      @default(0) @map("IsSell")
 
   // Relations
-  item Item? @relation(fields: [ItemCode], references: [itemcode], onDelete: SetNull)
+  item    Item?    @relation(fields: [ItemCode], references: [itemcode], onDelete: SetNull)
+  cabinet cabinet? @relation(fields: [StockID], references: [id])
 
   @@map("itemstock")
 }
@@ -558,4 +557,71 @@ model ItemType {
   items Item[]
 
   @@map("itemtype")
+}
+
+// Department
+model Department {
+  ID                Int     @id @default(autoincrement()) @map("ID")
+  DepName           String? @map("DepName") @db.VarChar(200)
+  DepName2          String? @map("DepName2") @db.VarChar(200)
+  IsCancel          Int?    @default(0) @map("IsCancel")
+  DivID             Int?    @map("DivID")
+  PriorityNo        Int?    @map("PriorityNo")
+  IsRepeat          Int?    @default(0) @map("IsRepeat")
+  IsAutomaticPayout Int?    @default(0) @map("IsAutomaticPayout")
+  Is_Bnew           Int?    @default(0) @map("Is_Bnew")
+  Floor             String? @map("Floor") @db.VarChar(50)
+  package           Int?    @map("package")
+  Tel               String? @map("Tel") @db.VarChar(50)
+  IsReceiveManual   Int?    @default(0) @map("IsReceiveManual")
+  IsNoCopyPayout    Int?    @default(0) @map("IsNoCopyPayout")
+  sort              Int?    @map("sort")
+  B_IDimed          Int?    @map("B_IDimed")
+  DepNameimed       String? @map("DepNameimed") @db.VarChar(200)
+  LendingLimitDay   Int?    @map("LendingLimitDay")
+  IsMainDep         Int?    @default(0) @map("IsMainDep")
+  ItemPrefix        String? @map("ItemPrefix") @db.VarChar(20)
+  B_ID              Int?    @map("B_ID")
+  IsAutoStock       Int?    @default(0) @map("IsAutoStock")
+  IsGroupHoldFromHN Int?    @default(0) @map("IsGroupHoldFromHN")
+  ExpiringSoonDay   Int?    @map("ExpiringSoonDay")
+  IsToStock         Int?    @default(0) @map("IsToStock")
+  IsLaundy          Int?    @default(0) @map("IsLaundy")
+  IsLoaner          Int?    @default(0) @map("IsLoaner")
+  IsStock           Int?    @default(0) @map("IsStock")
+  RefDepID          String? @map("RefDepID") @db.VarChar(50)
+
+  cabinetDepartments cabinetDepartment[]
+
+  @@map("department")
+}
+
+model cabinet {
+  id                 Int                 @id @default(autoincrement())
+  cabinet_name       String?             @map("cabinet_name") @db.VarChar(255)
+  cabinet_code       String?             @map("cabinet_code") @db.VarChar(255)
+  cabinet_type       String?             @map("cabinet_type") @db.VarChar(255)
+  cabinet_status     String?             @default("ACTIVE") @map("cabinet_status") @db.VarChar(255)
+  created_at         DateTime            @default(now()) @map("created_at")
+  updated_at         DateTime            @updatedAt @map("updated_at")
+  cabinetDepartments cabinetDepartment[]
+  itemStocks         ItemStock[]
+
+  @@map("app_microservice_cabinets")
+}
+
+model cabinetDepartment {
+  id            Int     @id @default(autoincrement())
+  cabinet_id    Int?    @map("cabinet_id")
+  department_id Int?    @map("department_id")
+  status        String  @default("ACTIVE") @map("status") // ACTIVE, INACTIVE
+  description   String? @map("description") @db.Text
+
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
+
+  cabinet    cabinet?    @relation(fields: [cabinet_id], references: [id])
+  department Department? @relation(fields: [department_id], references: [ID])
+
+  @@map("app_microservice_cabinet_departments")
 }

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { itemsApi } from '@/lib/api';
+import { staffItemsApi } from '@/lib/staffApi/itemsApi';
 import { itemSchema, type ItemFormData } from '@/lib/validations';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 
@@ -49,7 +50,7 @@ export default function CreateItemDialog({
   const onSubmit = async (data: ItemFormData) => {
     try {
       setLoading(true);
-      const response = await itemsApi.create({
+      const response = await staffItemsApi.create({
         ...data,
         IsNormal: '1',
         IsStock: true,

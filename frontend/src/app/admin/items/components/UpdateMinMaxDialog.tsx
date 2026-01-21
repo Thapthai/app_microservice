@@ -39,14 +39,6 @@ export default function UpdateMinMaxDialog({
 
   useEffect(() => {
     if (item && open) {
-      console.log('🔍 Item data for MinMax:', {
-        itemcode: item.itemcode,
-        itemname: item.itemname,
-        stock_balance: item.stock_balance,
-        stock_min: item.stock_min,
-        stock_max: item.stock_max,
-      });
-      
       setFormData({
         stock_min: item.stock_min ?? 0,
         stock_max: item.stock_max ?? 0,

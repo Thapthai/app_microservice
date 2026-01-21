@@ -3,6 +3,7 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import StaffSidebar from './StaffSidebar';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -21,8 +22,10 @@ interface StaffLayoutProps {
 export default function StaffLayout({ children }: StaffLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user: adminUser, isAuthenticated: isAdminAuth, loading: adminLoading } = useAuth();
   const [staffUser, setStaffUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Get page title from pathname
   const getPageTitle = () => {
@@ -47,7 +50,27 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
   };
 
   useEffect(() => {
-    // Check if staff is logged in
+    // Wait for admin auth check to complete
+    if (adminLoading) {
+      setLoading(true);
+      return;
+    }
+
+    // Check if admin is logged in (next-auth session)
+    if (isAdminAuth && adminUser) {
+      const role = adminUser?.role;
+      const isAdminRole = role === 'admin' || (typeof role === 'object' && (role.code === 'admin' || role.name === 'admin'));
+      
+      if (isAdminRole) {
+        // Admin can access staff pages
+        setIsAdmin(true);
+        setStaffUser(adminUser); // Use admin user data
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Check if staff is logged in (localStorage)
     const token = localStorage.getItem('staff_token');
     const user = localStorage.getItem('staff_user');
 
@@ -58,6 +81,7 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
     }
 
     try {
+      setIsAdmin(false);
       setStaffUser(JSON.parse(user));
     } catch (error) {
       console.error('Error parsing staff user:', error);
@@ -66,13 +90,18 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, isAdminAuth, adminUser, adminLoading]);
 
   const handleLogout = () => {
-    localStorage.removeItem('staff_token');
-    localStorage.removeItem('staff_user');
-    // Next.js automatically handles basePath, so we don't need to include it
-    router.push('/auth/staff/login');
+    if (isAdmin) {
+      // Admin logout - redirect to admin login
+      router.push('/auth/logout');
+    } else {
+      // Staff logout
+      localStorage.removeItem('staff_token');
+      localStorage.removeItem('staff_user');
+      router.push('/auth/staff/login');
+    }
   };
 
   if (loading) {
@@ -92,7 +121,7 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <StaffSidebar staffUser={staffUser} onLogout={handleLogout} />
+      <StaffSidebar staffUser={staffUser} onLogout={handleLogout} isAdmin={isAdmin} />
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
@@ -115,11 +144,18 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
                     className="flex items-center space-x-2 h-9 px-2 sm:px-3 hover:bg-gray-100"
                   >
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs shadow-md ring-2 ring-white flex-shrink-0">
-                      {staffUser.fname.charAt(0).toUpperCase()}
+                      {isAdmin 
+                        ? (staffUser.name?.charAt(0) || staffUser.email?.charAt(0) || 'A').toUpperCase()
+                        : staffUser.fname?.charAt(0).toUpperCase()
+                      }
                     </div>
                     <div className="hidden sm:block text-left">
                       <div className="text-sm font-medium text-gray-900">
-                        {staffUser.fname} {staffUser.lname}
+                        {isAdmin 
+                          ? staffUser.name || staffUser.email
+                          : `${staffUser.fname} ${staffUser.lname}`
+                        }
+                        {isAdmin && <span className="ml-2 text-xs text-blue-600 font-bold">(Admin)</span>}
                       </div>
                       <div className="text-xs text-gray-500 truncate max-w-[120px]">
                         {staffUser.email}
@@ -132,7 +168,11 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {staffUser.fname} {staffUser.lname}
+                        {isAdmin 
+                          ? staffUser.name || staffUser.email
+                          : `${staffUser.fname} ${staffUser.lname}`
+                        }
+                        {isAdmin && <span className="ml-2 text-xs text-blue-600 font-bold">(Admin)</span>}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {staffUser.email}

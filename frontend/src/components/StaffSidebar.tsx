@@ -12,22 +12,26 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  ArrowLeft,
+  Shield,
 } from 'lucide-react';
 import { staffMenuItems, filterMenuByPermissions } from '@/app/staff/menus';
 import { Button } from '@/components/ui/button';
 
 interface StaffSidebarProps {
   staffUser?: {
-    fname: string;
-    lname: string;
+    fname?: string;
+    lname?: string;
+    name?: string;
     email: string;
-    role?: string;
+    role?: string | { code?: string; name?: string };
   };
   onLogout?: () => void;
+  isAdmin?: boolean;
 }
 
 
-export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps) {
+export default function StaffSidebar({ staffUser, onLogout, isAdmin = false }: StaffSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -42,16 +46,31 @@ export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps)
 
   // Load permissions for current user's role
   useEffect(() => {
-    if (staffUser?.role) {
+    if (isAdmin) {
+      // Admin has access to all menus
+      const allPermissions: Record<string, boolean> = {};
+      staffMenuItems.forEach((item) => {
+        allPermissions[item.href] = true;
+        if (item.submenu) {
+          item.submenu.forEach((subItem) => {
+            allPermissions[subItem.href] = true;
+          });
+        }
+      });
+      setPermissions(allPermissions);
+    } else if (staffUser?.role) {
       loadPermissions();
     }
-  }, [staffUser?.role]);
+  }, [staffUser?.role, isAdmin]);
 
   const loadPermissions = async () => {
-    if (!staffUser?.role) return;
+    if (!staffUser?.role || isAdmin) return;
 
     try {
-      const response = await staffRolePermissionApi.getByRole(staffUser.role);
+      const roleCode = typeof staffUser.role === 'string' ? staffUser.role : staffUser.role?.code;
+      if (!roleCode) return;
+
+      const response = await staffRolePermissionApi.getByRole(roleCode);
       if (response.success && response.data) {
         const permissionsMap: Record<string, boolean> = {};
         (response.data as Array<{ menu_href: string; can_access: boolean }>).forEach((perm) => {
@@ -72,7 +91,10 @@ export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps)
     }));
   };
 
-  const getRoleLabel = (role?: string) => {
+  const getRoleLabel = (role?: string | { code?: string; name?: string }) => {
+    if (isAdmin) return 'Admin';
+    
+    const roleCode = typeof role === 'string' ? role : role?.code || '';
     const roleMap: Record<string, string> = {
       it1: 'IT 1',
       it2: 'IT 2',
@@ -81,7 +103,7 @@ export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps)
       warehouse2: 'Warehouse 2',
       warehouse3: 'Warehouse 3',
     };
-    return roleMap[role || ''] || role || 'Staff';
+    return roleMap[roleCode] || roleCode || 'Staff';
   };
 
   return (
@@ -151,14 +173,20 @@ export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps)
             <div className="px-4 py-4 border-b border-slate-700/50 bg-slate-800/40">
               <div className="flex items-center space-x-3">
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-slate-700/50 flex-shrink-0">
-                  {staffUser.fname.charAt(0).toUpperCase()}
+                  {isAdmin 
+                    ? (staffUser.name?.charAt(0) || staffUser.email?.charAt(0) || 'A').toUpperCase()
+                    : (staffUser.fname?.charAt(0) || 'S').toUpperCase()
+                  }
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">
-                    {staffUser.fname} {staffUser.lname}
+                    {isAdmin 
+                      ? staffUser.name || staffUser.email
+                      : `${staffUser.fname || ''} ${staffUser.lname || ''}`
+                    }
                   </p>
                   <p className="text-xs text-slate-400 truncate mt-0.5">{staffUser.email}</p>
-                  {staffUser.role && (
+                  {(staffUser.role || isAdmin) && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-500/20 text-blue-300 mt-1.5">
                       {getRoleLabel(staffUser.role)}
                     </span>
@@ -172,13 +200,35 @@ export default function StaffSidebar({ staffUser, onLogout }: StaffSidebarProps)
           {staffUser && isCollapsed && (
             <div className="px-2 py-4 border-b border-slate-700/50 flex justify-center">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-slate-700/50">
-                {staffUser.fname.charAt(0).toUpperCase()}
+                {isAdmin 
+                  ? (staffUser.name?.charAt(0) || staffUser.email?.charAt(0) || 'A').toUpperCase()
+                  : (staffUser.fname?.charAt(0) || 'S').toUpperCase()
+                }
               </div>
             </div>
           )}
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50 hover:scrollbar-thumb-slate-500">
+            {/* Admin - Back to Admin Panel Link */}
+            {isAdmin && (
+              <Link
+                href="/admin/items"
+                onClick={() => setIsMobileOpen(false)}
+                className={cn(
+                  'group relative flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 mb-4',
+                  'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/30 hover:from-amber-600 hover:to-orange-700',
+                  isCollapsed && 'lg:justify-center lg:px-2'
+                )}
+                title={isCollapsed ? 'กลับไปหน้า Admin' : undefined}
+              >
+                <Shield className={cn('h-5 w-5 flex-shrink-0', isCollapsed ? 'lg:mx-auto' : 'mr-3')} />
+                {!isCollapsed && (
+                  <span className="flex-1 font-semibold">กลับไปหน้า Admin</span>
+                )}
+              </Link>
+            )}
+
             {filterMenuByPermissions(staffMenuItems, permissions)
               .map((item) => {
                 const Icon = item.icon;

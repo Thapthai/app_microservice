@@ -13,6 +13,7 @@ export class GatewayApiService {
     @Inject('CATEGORY_SERVICE') private readonly categoryClient: ClientProxy,
     @Inject('MEDICAL_SUPPLIES_SERVICE') private readonly medicalSuppliesClient: ClientProxy,
     @Inject('REPORT_SERVICE') private readonly reportClient: ClientProxy,
+    @Inject('DEPARTMENT_SERVICE') private readonly departmentClient: ClientProxy,
   ) { }
 
   getHello(): string {
@@ -40,8 +41,8 @@ export class GatewayApiService {
     return this.itemClient.send('item.create', createItemDto).toPromise();
   }
 
-  async findAllItems(page: number, limit: number, keyword?: string, sortBy?: string, sortOrder?: string) {
-    const query = { page, limit, keyword, sort_by: sortBy, sort_order: sortOrder };
+  async findAllItems(page: number, limit: number, keyword?: string, sortBy?: string, sortOrder?: string, cabinet_id?: number, department_id?: number) {
+    const query = { page, limit, keyword, sort_by: sortBy, sort_order: sortOrder, cabinet_id: cabinet_id, department_id: department_id };
     return this.itemClient.send('item.findAll', query).toPromise();
   }
 
@@ -63,6 +64,11 @@ export class GatewayApiService {
 
   async updateItemMinMax(itemcode: string, updateMinMaxDto: any) {
     return this.itemClient.send('item.updateMinMax', { itemcode, updateMinMaxDto }).toPromise();
+  }
+
+  async findAllItemStock(page: number, limit: number, keyword?: string, sortBy?: string, sortOrder?: string) {
+    const query = { page, limit, keyword, sort_by: sortBy, sort_order: sortOrder };
+    return this.itemClient.send('itemStock.findAll', query).toPromise();
   }
 
   // ==================================== Email Service Methods ====================================
@@ -211,7 +217,7 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply.checkStaffUser' }, { client_id }).toPromise();
   }
 
-  async createMedicalSupplyUsage(data: any, userContext?: { user: any; userType: string }) {   
+  async createMedicalSupplyUsage(data: any, userContext?: { user: any; userType: string }) {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.create' }, { ...data, _userContext: userContext }).toPromise();
   }
 
@@ -840,4 +846,222 @@ export class GatewayApiService {
       this.reportClient.send({ cmd: 'report.return_to_cabinet.pdf' }, params)
     );
   }
+
+  // ==================================== Department Service Methods ====================================
+  // async createDepartment(data: any) {
+  //   try {
+  //     return await firstValueFrom(
+  //       this.departmentClient.send('department.create', data).pipe(
+  //         catchError((error) => {
+  //           throw new Error(error?.message || 'Failed to create department');
+  //         })
+  //       )
+  //     );
+  //   } catch (error) {
+  //     throw new Error(error?.message || 'Department service unavailable');
+  //   }
+  // }
+
+  async getAllDepartments(params?: { page?: number; limit?: number; keyword?: string }) {
+    try {
+      return await firstValueFrom(
+        this.departmentClient.send('department.findAll', params || {}).pipe(
+          catchError((error) => {
+            console.error('Department service error:', error);
+            throw new Error(error?.message || 'Failed to fetch departments');
+          })
+        )
+      );
+    } catch (error) {
+      console.error('Department service connection error:', error);
+      throw new Error(error?.message || 'Department service unavailable');
+    }
+  }
+
+  // async getDepartmentById(id: number) {
+  //   try {
+  //     return await firstValueFrom(
+  //       this.departmentClient.send('department.findOne', id).pipe(
+  //         catchError((error) => {
+  //           throw new Error(error?.message || 'Failed to fetch department');
+  //         })
+  //       )
+  //     );
+  //   } catch (error) {
+  //     throw new Error(error?.message || 'Department service unavailable');
+  //   }
+  // }
+
+  // async updateDepartment(id: number, data: any) {
+  //   try {
+  //     return await firstValueFrom(
+  //       this.departmentClient.send('department.update', { id, data }).pipe(
+  //         catchError((error) => {
+  //           throw new Error(error?.message || 'Failed to update department');
+  //         })
+  //       )
+  //     );
+  //   } catch (error) {
+  //     throw new Error(error?.message || 'Department service unavailable');
+  //   }
+  // }
+
+  // async deleteDepartment(id: number) {
+  //   try {
+  //     return await firstValueFrom(
+  //       this.departmentClient.send('department.delete', id).pipe(
+  //         catchError((error) => {
+  //           throw new Error(error?.message || 'Failed to delete department');
+  //         })
+  //       )
+  //     );
+  //   } catch (error) {
+  //     throw new Error(error?.message || 'Department service unavailable');
+  //   }
+  // }
+
+
+  // =========================== Cabinet CRUD operations ===========================
+  async createCabinet(data: any) {
+    try {
+      return await firstValueFrom(
+        this.departmentClient.send('cabinet.create', data).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to create cabinet');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Department service unavailable');
+    }
+  }
+  async getAllCabinets(params?: { page?: number; limit?: number; keyword?: string }) {
+    try {
+      return await firstValueFrom(
+        this.departmentClient.send('cabinet.findAll', params || {}).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to fetch cabinets');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Department service unavailable');
+    }
+  }
+
+  async getCabinetById(id: number) {
+    try {
+      return await firstValueFrom(
+        this.departmentClient.send('cabinet.findOne', id).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to fetch cabinet');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Department service unavailable');
+    }
+  }
+
+  async updateCabinet(id: number, data: any) {
+    try {
+      return await firstValueFrom(
+        this.departmentClient.send('cabinet.update', { id, data }).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to update cabinet');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Department service unavailable');
+    }
+  }
+
+  async deleteCabinet(id: number) {
+    try {
+      return await firstValueFrom(
+        this.departmentClient.send('cabinet.delete', id).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to delete cabinet');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Department service unavailable');
+    }
+  }
+
+  // =========================== Cabinet Department CRUD operations ===========================
+  async createCabinetDepartment(data: any) {
+    try {
+      return await firstValueFrom(
+        this.departmentClient.send('cabinetDepartment.create', data).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to create cabinet department mapping');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Department service unavailable');
+    }
+  }
+
+  async getCabinetDepartments(query?: { cabinetId?: number; departmentId?: number; status?: string }) {
+    try {
+      return await firstValueFrom(
+        this.departmentClient.send('cabinetDepartment.findAll', query || {}).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to fetch cabinet departments');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Department service unavailable');
+    }
+  }
+
+  async updateCabinetDepartment(id: number, data: any) {
+    try {
+      return await firstValueFrom(
+        this.departmentClient.send('cabinetDepartment.update', { id, data }).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to update cabinet department');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Department service unavailable');
+    }
+  }
+
+  async deleteCabinetDepartment(id: number) {
+    try {
+      return await firstValueFrom(
+        this.departmentClient.send('cabinetDepartment.delete', id).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to delete cabinet department');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Department service unavailable');
+    }
+  }
+
+
+  // =========================== Item Stock In Cabinet API ===========================
+  async findAllItemStockInCabinet(params?: { page?: number; limit?: number; keyword?: string; cabinet_id?: number }) {
+    try {
+      return await firstValueFrom(
+        this.itemClient.send('itemStock.findAllInCabinet', params || {}).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to fetch item stocks in cabinet');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Item service unavailable');
+    }
+  }
+
 }

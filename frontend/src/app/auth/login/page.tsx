@@ -107,24 +107,18 @@ export default function LoginPage() {
     try {
       setTwoFactorLoading(true);
 
-      console.log('🔑 Verifying 2FA code...');
       const response = await authApi.loginWith2FA(tempToken, code);
-      console.log('✅ 2FA verification response:', response);
 
       if (response.success && response.data) {
         const { user, token } = response.data;
-        console.log('👤 User:', user);
-        console.log('🎫 Token:', token.substring(0, 20) + '...');
 
         // Store the token and user data in localStorage
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(user));
-          console.log('💾 Saved to localStorage');
         }
 
         // Create NextAuth session and WAIT for it to complete
-        console.log('🔐 Creating NextAuth session...');
         const result = await signIn('credentials', {
           email: user.email,
           password: 'bypass-2fa-verified',
@@ -132,23 +126,17 @@ export default function LoginPage() {
           redirect: false,
         });
 
-        console.log('📋 NextAuth signIn result:', result);
-
         if (result?.ok) {
-          console.log('✅ Session created successfully, redirecting...');
           setShow2FAModal(false);
           toast.success('เข้าสู่ระบบสำเร็จ');
           router.push('/dashboard');
         } else if (result?.error) {
-          console.error('❌ NextAuth error:', result.error);
           throw new Error(result.error);
         } else {
-          console.warn('⚠️ Unexpected result:', result);
           throw new Error('Failed to create session');
         }
       }
     } catch (err: any) {
-      console.error('💥 2FA verification error:', err);
       throw new Error(err.response?.data?.message || err.message || 'รหัสไม่ถูกต้อง');
     } finally {
       setTwoFactorLoading(false);

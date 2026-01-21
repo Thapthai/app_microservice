@@ -32,6 +32,7 @@ SERVICES=(
     ["auth-service"]="docker/Dockerfile.auth"
     ["category-service"]="docker/Dockerfile.category"
     ["email-service"]="docker/Dockerfile.email"
+    ["department-service"]="docker/Dockerfile.department"
 )
 
 TOTAL_SERVICES=${#SERVICES[@]}

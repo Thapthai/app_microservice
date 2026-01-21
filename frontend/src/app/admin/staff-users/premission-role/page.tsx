@@ -23,103 +23,22 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, Save, Loader2 } from "lucide-react";
+import { Shield, Save, Loader2, CornerDownRight } from "lucide-react";
 import { toast } from "sonner";
+import { staffMenuItems, StaffMenuSubItem } from '@/app/staff/menus';
 
-// Menu items from StaffSidebar (flattened with submenus)
+
+// Flatten staffMenuItems (and submenus) from menus.ts for permission table
 const getMenuItems = () => {
-  const staffMenuItems = [
-    // {
-    //   name: 'Dashboard',
-    //   href: '/staff/dashboard',
-    //   description: 'ภาพรวมระบบ',
-    // },
-    {
-      name: "จัดการอุปกรณ์",
-      href: "/staff/equipment",
-      description: "จัดการอุปกรณ์และสต๊อก",
-      submenu: [
-        {
-          name: "สต๊อกอุปกรณ์",
-          href: "/staff/equipment/stock",
-        },
-        {
-          name: "เบิกอุปกรณ์",
-          href: "/staff/equipment/dispense",
-        },
-        {
-          name: "คืนอุปกรณ์",
-          href: "/staff/equipment/return",
-        },
-      ],
-    },
-    {
-      name: "บันทึกการใช้งาน",
-      href: "/staff/usage",
-      description: "บันทึกการใช้อุปกรณ์กับผู้ป่วย",
-    },
-    {
-      name: "รายงาน",
-      href: "/staff/reports",
-      description: "รายงานการใช้งาน",
-      submenu: [
-        {
-          name: "รายงานเบิกอุปกรณ์",
-          href: "/staff/reports/dispense",
-        },
-        {
-          name: "รายงานคืนอุปกรณ์",
-          href: "/staff/reports/return",
-        },
-        {
-          name: "รายงานการใช้งาน",
-          href: "/staff/reports/usage",
-        },
-      ],
-    },
-    {
-      name: "เปรียบเทียบข้อมูล",
-      href: "/staff/comparison",
-      description: "เปรียบเทียบการเบิกกับการใช้งาน",
-    },
-    {
-      name: "ตั้งค่า",
-      href: "/staff/settings",
-      description: "ตั้งค่าระบบ",
-    },
-    {
-      name: "จัดการสิทธิ์",
-      href: "/staff/permissions/users",
-      description: "จัดการ User",
-    },
-    {
-      name: "กำหนดสิทธิ์",
-      href: "/staff/permissions/roles",
-      description: "กำหนดสิทธิ์การเข้าถึงเมนู",
-    },
-  ];
-
-  // Flatten menu items including submenus
   const menuItems: Array<{ value: string; label: string }> = [];
-
   staffMenuItems.forEach((menu) => {
-    // Add main menu item
-    menuItems.push({
-      value: menu.href,
-      label: menu.name,
-    });
-
-    // Add submenu items if exists
+    menuItems.push({ value: menu.href, label: menu.name });
     if (menu.submenu) {
-      menu.submenu.forEach((submenu) => {
-        menuItems.push({
-          value: submenu.href,
-          label: submenu.name,
-        });
+      menu.submenu.forEach((submenu: StaffMenuSubItem) => {
+        menuItems.push({ value: submenu.href, label: submenu.name });
       });
     }
   });
-
   return menuItems;
 };
 
@@ -281,9 +200,9 @@ export default function ManageStaffRolesPage() {
       if (response.success) {
         toast.success("บันทึกการกำหนดสิทธิ์เรียบร้อยแล้ว");
         // Refresh the entire page to update sidemenu with new permissions
-        // setTimeout(() => {
-        //   window.location.reload();
-        // }, 500); // Small delay to show success message
+        setTimeout(() => {
+          window.location.reload();
+        }, 500); // Small delay to show success message
       } else {
         toast.error(response.message || "ไม่สามารถบันทึกข้อมูลได้");
       }
@@ -302,6 +221,21 @@ export default function ManageStaffRolesPage() {
     }
     return "outline";
   };
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <AppLayout>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+              <p className="mt-4 text-gray-600">กำลังโหลด...</p>
+            </div>
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -367,29 +301,34 @@ export default function ManageStaffRolesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {menuItems.map((menu) => (
-                    <TableRow key={menu.value}>
-                      <TableCell className="font-medium">
-                        {menu.label}
-                      </TableCell>
-                      {roles.map((role) => (
-                        <TableCell key={role.code} className="text-center">
-                          <Checkbox
-                            checked={
-                              permissions[role.code]?.[menu.value] || false
-                            }
-                            onCheckedChange={(checked: boolean) =>
-                              handlePermissionChange(
-                                role.code,
-                                menu.value,
-                                checked
-                              )
-                            }
-                          />
+                  {menuItems.map((menu) => {
+                    // Detect submenu by checking if its value exists in any submenu of staffMenuItems
+                    const isSubmenu = staffMenuItems.some((main) =>
+                      main.submenu && main.submenu.some((sub) => sub.href === menu.value)
+                    );
+                    return (
+                      <TableRow key={menu.value}>
+                        <TableCell className={isSubmenu ? 'font-medium pl-8 flex items-center gap-2' : 'font-medium'}>
+                          {isSubmenu && <CornerDownRight className="inline-block w-4 h-4 text-gray-400 mr-1" />}
+                          {menu.label}
                         </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
+                        {roles.map((role) => {
+                          const isDashboard = menu.value === '/staff/dashboard';
+                          return (
+                            <TableCell key={role.code} className="text-center">
+                              <Checkbox
+                                checked={permissions[role.code]?.[menu.value] || false}
+                                onCheckedChange={isDashboard ? undefined : (checked: boolean) =>
+                                  handlePermissionChange(role.code, menu.value, checked)
+                                }
+                                disabled={isDashboard}
+                              />
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

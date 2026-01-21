@@ -147,6 +147,27 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: department-service
+  namespace: pose-microservices
+  labels:
+    app: department-service
+spec:
+  selector:
+    app: department-service
+  ports:
+  - name: tcp
+    port: 3009
+    targetPort: 3009
+    protocol: TCP
+  - name: metrics
+    port: 9109
+    targetPort: 9109
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: gateway-service
   namespace: pose-microservices
   labels:

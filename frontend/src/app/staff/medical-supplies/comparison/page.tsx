@@ -61,9 +61,6 @@ export default function ComparisonReportPage() {
     try {
       setLoadingDetail(true);
 
-      console.log('dasdsadas');
-      
-
       // ดึงข้อมูล usage และ supply items
       const [usageResponse, itemsResponse] = await Promise.all([
         staffMedicalSuppliesApi.getById(usageId),

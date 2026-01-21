@@ -16,6 +16,7 @@ services:
       - item-service
       - email-service
       - category-service
+      - department-service
     networks:
       - pose-network
     healthcheck:
@@ -106,6 +107,19 @@ services:
     volumes:
       - ./logs:/app/logs
 
+  # Department Service
+  department-service:
+    image: YOUR_USERNAME/pose-department:latest  # เปลี่ยน YOUR_USERNAME
+    container_name: pose-department-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - pose-network
+    volumes:
+      - ./logs:/app/logs
+
   # Gateway API
   gateway-api:
     image: YOUR_USERNAME/pose-gateway:latest  # เปลี่ยน YOUR_USERNAME
@@ -123,12 +137,15 @@ services:
       - EMAIL_SERVICE_PORT=3003
       - CATEGORY_SERVICE_HOST=category-service
       - CATEGORY_SERVICE_PORT=3004
+      - DEPARTMENT_SERVICE_HOST=department-service
+      - DEPARTMENT_SERVICE_PORT=3009
       - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       - auth-service
       - item-service
       - email-service
       - category-service
+      - department-service
       - redis
     networks:
       - pose-network

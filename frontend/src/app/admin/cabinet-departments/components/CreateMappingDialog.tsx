@@ -1,0 +1,172 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+import SearchableSelect from "./SearchableSelect";
+import { cabinetApi, departmentApi, itemStockApi } from "@/lib/api";
+
+interface Department {
+  ID: number;
+  DepName?: string;
+  DepName2?: string;
+}
+
+interface Cabinet {
+  id: number;
+  cabinet_name?: string;
+  cabinet_code?: string;
+}
+
+interface FormData {
+  cabinet_id: string;
+  department_id: string;
+  status: string;
+  description: string;
+}
+
+interface CreateMappingDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  formData: FormData;
+  setFormData: (data: FormData) => void;
+  onSubmit: () => void;
+  saving: boolean;
+}
+
+export default function CreateMappingDialog({
+  open,
+  onOpenChange,
+  formData,
+  setFormData,
+  onSubmit,
+  saving,
+}: CreateMappingDialogProps) {
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [cabinets, setCabinets] = useState<Cabinet[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [loadingCabinets, setLoadingCabinets] = useState(false);
+
+  // Load departments with search
+  const loadDepartments = async (keyword?: string) => {
+    try {
+      setLoadingDepartments(true);
+      const response = await departmentApi.getAll({ limit: 10, keyword });
+      if (response.success && response.data) {
+        setDepartments(response.data as Department[]);
+      }
+    } catch (error) {
+      console.error("Failed to load departments:", error);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
+  // Load item stocks with search
+  const loadCabinets = async (keyword?: string) => {
+    try {
+      setLoadingCabinets(true);
+      const response = await cabinetApi.getAll({ page: 1, limit: 10, keyword });
+      if (response.success && response.data) {
+        setCabinets(response.data as Cabinet[]);
+      }
+    } catch (error) {
+      console.error("Failed to load cabinets:", error);
+    } finally {
+      setLoadingCabinets(false);
+    }
+  };
+
+  // Removed - SearchableSelect now handles initial data loading when opened
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>เพิ่มการเชื่อมโยงใหม่</DialogTitle>
+          <DialogDescription>เชื่อมโยงตู้ Cabinets กับแผนก</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <SearchableSelect
+            label="ตู้ Cabinets"
+            placeholder="เลือกตู้"
+            value={formData.cabinet_id}
+            onValueChange={(value) => setFormData({ ...formData, cabinet_id: value })}
+            options={cabinets.map((cabinet) => ({
+              value: cabinet.id.toString(),
+              label: cabinet.cabinet_name || "",
+              subLabel: cabinet.cabinet_code || "",
+            }))}
+            loading={loadingCabinets}
+            required
+            onSearch={loadCabinets}
+            searchPlaceholder="ค้นหารหัสหรือชื่อตู้..."
+          />
+
+          <SearchableSelect
+            label="แผนก"
+            placeholder="เลือกแผนก"
+            value={formData.department_id}
+            onValueChange={(value) => setFormData({ ...formData, department_id: value })}
+            options={departments.map((dept) => ({
+              value: dept.ID.toString(),
+              label: dept.DepName || "",
+              subLabel: dept.DepName2 || "",
+            }))}
+            loading={loadingDepartments}
+            required
+            onSearch={loadDepartments}
+            searchPlaceholder="ค้นหาชื่อแผนก..."
+          />
+
+          <div>
+            <Label>สถานะ</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => setFormData({ ...formData, status: value })}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>หมายเหตุ</Label>
+            <Textarea
+              placeholder="หมายเหตุ..."
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            ยกเลิก
+          </Button>
+          <Button onClick={onSubmit} disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                กำลังบันทึก...
+              </>
+            ) : (
+              "บันทึก"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

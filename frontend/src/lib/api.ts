@@ -17,7 +17,7 @@ api.interceptors.request.use(async (config) => {
   if (typeof window !== 'undefined') {
     // Check if this is a staff API endpoint
     const isStaffEndpoint = config.url?.startsWith('/staff') || config.url?.startsWith('/staff-users');
-    
+
     if (isStaffEndpoint) {
       // Use staff token from localStorage for staff endpoints
       const staffToken = localStorage.getItem('staff_token');
@@ -45,13 +45,13 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       // Check if this is a staff API endpoint
       const isStaffEndpoint = error.config?.url?.startsWith('/staff') || error.config?.url?.startsWith('/staff-users');
-      
+
       if (isStaffEndpoint) {
         // Only redirect staff routes to staff login
         // Clear staff tokens
         localStorage.removeItem('staff_token');
         localStorage.removeItem('staff_user');
-        
+
         // Use Next.js router if available, otherwise use window.location
         const currentPath = window.location.pathname;
         if (currentPath.includes('/staff/')) {
@@ -140,15 +140,15 @@ export const authApi = {
   },
 };
 
-// Items API
+// =========================================== Items API ===========================================
 export const itemsApi = {
   create: async (data: CreateItemDto): Promise<ApiResponse<Item>> => {
     const { picture, ...restData } = data;
-    
+
     // If has file, use multipart/form-data with /items/upload endpoint
     if (picture && picture instanceof File) {
       const formData = new FormData();
-      
+
       // Append all fields to FormData
       Object.keys(restData).forEach((key) => {
         const value = restData[key as keyof typeof restData];
@@ -156,9 +156,9 @@ export const itemsApi = {
           formData.append(key, String(value));
         }
       });
-      
+
       formData.append('picture', picture);
-      
+
       const response = await api.post('/items/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -166,7 +166,7 @@ export const itemsApi = {
       });
       return response.data;
     }
-    
+
     // Otherwise, send as JSON to /items endpoint
     const response = await api.post('/items', restData, {
       headers: {
@@ -188,11 +188,11 @@ export const itemsApi = {
 
   update: async (itemcode: string, data: UpdateItemDto): Promise<ApiResponse<Item>> => {
     const { picture, ...restData } = data;
-    
+
     // If has file, use multipart/form-data with /items/upload endpoint
     if (picture && picture instanceof File) {
       const formData = new FormData();
-      
+
       // Append all fields to FormData
       Object.keys(restData).forEach((key) => {
         const value = restData[key as keyof typeof restData];
@@ -200,9 +200,9 @@ export const itemsApi = {
           formData.append(key, String(value));
         }
       });
-      
+
       formData.append('picture', picture);
-      
+
       const response = await api.put(`/items/${itemcode}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -210,7 +210,7 @@ export const itemsApi = {
       });
       return response.data;
     }
-    
+
     // Otherwise, send as JSON
     const response = await api.put(`/items/${itemcode}`, restData, {
       headers: {
@@ -231,7 +231,7 @@ export const itemsApi = {
   },
 };
 
-// Medical Supplies API
+// =========================================== Medical Supplies API ===========================================
 export const medicalSuppliesApi = {
   create: async (data: any): Promise<ApiResponse<any>> => {
     const response = await api.post('/medical-supplies', data);
@@ -819,7 +819,7 @@ export const reportsApi = {
   },
 };
 
-// Staff User API
+// =========================== Staff User API ===========================
 export const staffUserApi = {
   createStaffUser: async (data: {
     email: string;
@@ -905,7 +905,7 @@ export const staffUserApi = {
   },
 };
 
-// Staff Role Permissions API
+// =========================== Staff Role Permissions API ===========================
 export const staffRolePermissionApi = {
   getAll: async (): Promise<ApiResponse<any[]>> => {
     const response = await api.get('/staff-role-permissions');
@@ -943,7 +943,7 @@ export const staffRolePermissionApi = {
   },
 };
 
-// Staff Roles API
+// =========================== Staff Roles API ===========================
 export const staffRoleApi = {
   getAll: async (): Promise<ApiResponse<any[]>> => {
     const response = await api.get('/staff-roles');
@@ -983,7 +983,7 @@ export const staffRoleApi = {
   },
 };
 
-// Categories API
+// =========================== Categories API ===========================
 export const categoriesApi = {
   getAll: async (params?: { page?: number; limit?: number; parentId?: string }): Promise<ApiResponse<any[]>> => {
     const response = await api.get('/categories', { params });
@@ -1020,6 +1020,80 @@ export const categoriesApi = {
 
   delete: async (id: number | string): Promise<ApiResponse<void>> => {
     const response = await api.delete(`/categories/${id}`);
+    return response.data;
+  },
+};
+
+// Department API
+export const departmentApi = {
+  getAll: async (params?: { page?: number; limit?: number; keyword?: string; isCancel?: boolean }): Promise<ApiResponse<any[]>> => {
+    const response = await api.get('/departments', { params });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/departments/${id}`);
+    return response.data;
+  },
+
+  create: async (data: any): Promise<ApiResponse<any>> => {
+    const response = await api.post('/departments', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: any): Promise<ApiResponse<any>> => {
+    const response = await api.put(`/departments/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/departments/${id}`);
+    return response.data;
+  },
+};
+
+// =========================== ItemStock API ===========================
+export const itemStockApi = {
+  getAll: async (params?: { page?: number; limit?: number; keyword?: string; sort_by?: string; sort_order?: string }): Promise<ApiResponse<any[]>> => {
+    const response = await api.get('/item-stocks', { params });
+    return response.data;
+  },
+};
+
+// =========================== Cabinet API ===========================
+export const cabinetApi = {
+  getAll: async (params?: { page?: number; limit?: number; keyword?: string; sort_by?: string; sort_order?: string }): Promise<ApiResponse<any[]>> => {
+    const response = await api.get('/cabinets', { params });
+    return response.data;
+  },
+};
+
+// =========================== Cabinet Department Mapping API ===========================
+export const cabinetDepartmentApi = {
+  getAll: async (params?: { cabinetId?: number; departmentId?: number; status?: string }): Promise<ApiResponse<any[]>> => {
+    const response = await api.get('/cabinet-departments', { params });
+    return response.data;
+  },
+
+  create: async (data: any): Promise<ApiResponse<any>> => {
+    const response = await api.post('/cabinet-departments', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: any): Promise<ApiResponse<any>> => {
+    const response = await api.put(`/cabinet-departments/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/cabinet-departments/${id}`);
+    return response.data;
+  },
+
+  getItemStocksByCabinet: async (cabinetId: number, params?: { page?: number; limit?: number; keyword?: string }): Promise<ApiResponse<any>> => {
+    const response = await api.get('/item-stocks/in-cabinet', { 
+      params: { ...params, cabinet_id: cabinetId } 
+    });
     return response.data;
   },
 };

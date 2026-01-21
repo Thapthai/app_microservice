@@ -81,6 +81,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/report-service/tsconfig.app.json"
       }
+    },
+    "department-service": {
+      "type": "application",
+      "root": "apps/department-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/department-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/department-service/tsconfig.app.json"
+      }
     }
   }
 }

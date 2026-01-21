@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { itemsApi } from '@/lib/api';
+import { staffItemsApi } from '@/lib/staffApi/itemsApi';
 import {
   Dialog,
   DialogContent,
@@ -36,7 +36,7 @@ export default function DeleteItemDialog({
 
     try {
       setLoading(true);
-      const response = await itemsApi.delete(item.itemcode);
+      const response = await staffItemsApi.delete(item.itemcode);
 
       if (response.success) {
         toast.success('ลบสินค้าสำเร็จ');

@@ -14,6 +14,7 @@ resources:
   - gateway-deployment.yaml
   - medical-supplies-deployment.yaml
   - report-service-deployment.yaml
+  - department-deployment.yaml
   - services.yaml
   - ingress.yaml
 

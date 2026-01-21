@@ -3,10 +3,11 @@ import { PrismaService } from './prisma.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { UpdateItemMinMaxDto } from './dto/update-item-minmax.dto';
+import { ItemStockDto } from './dto/item-stock.dto';
 
 @Injectable()
 export class ItemServiceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async createItem(createItemDto: CreateItemDto) {
     try {
@@ -50,6 +51,8 @@ export class ItemServiceService {
     keyword?: string,
     sort_by: string = 'itemcode',
     sort_order: string = 'asc',
+    cabinet_id?: number,
+    department_id?: number,
   ) {
     try {
       const where: any = {};
@@ -82,93 +85,113 @@ export class ItemServiceService {
       const orderBy: any = {};
       orderBy[field] = order;
 
+      // Build itemStocks where clause
+      const itemStocksWhere: any = {
+        RfidCode: {
+          not: '',
+        },
+      };
+
+      // Filter by cabinet_id if provided
+      if (cabinet_id) {
+        itemStocksWhere.StockID = cabinet_id;
+      }
+
       // Get all items matching the filter criteria (including keyword search)
       const allItemsQuery = await this.prisma.item.findMany({
         where: {
           ...where,
           item_status: 0, // Only active items
         },
-        include: {
+        select: {
+          itemcode: true,
+          itemname: true,
+          CostPrice: true,
+          SalePrice: true,
+          CreateDate: true,
+          stock_max: true,
+          stock_min: true,
           itemStocks: {
-            where: {
-              StockID: 1,
-              RfidCode: {
-                not: '',
-              },
-            },
+            where: itemStocksWhere,
             select: {
+              RowID: true,
+              StockID: true,
               Qty: true,
+              RfidCode: true,
+              cabinet: {
+                select: {
+                  id: true,
+                  cabinet_name: true,
+                  cabinet_code: true,
+                  cabinetDepartments: {
+                    where: {
+                      department_id: department_id,
+                    },
+                    select: {
+                      id: true,
+                      department_id: true,
+                      status: true,
+                      department: {
+                        select: {
+                          ID: true,
+                          DepName: true,
+                          DepName2: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
       });
 
-      // Calculate stock_balance for each item and map to required fields
-      const itemsWithStockBalance = allItemsQuery.map((item) => {
-        const stockBalance = item.itemStocks.reduce((sum, s) => sum + (s.Qty ?? 0), 0);
+      // Filter items that have itemStocks matching the criteria
+      const filteredItems = allItemsQuery.filter((item: any) => {
+        // Must have at least one itemStock
+        if (!item.itemStocks || item.itemStocks.length === 0) {
+          return false;
+        }
+
+        // If department_id is provided, check if at least one itemStock has cabinet with that department
+        if (department_id) {
+          return item.itemStocks.some((stock: any) =>
+            stock.cabinet?.cabinetDepartments &&
+            stock.cabinet.cabinetDepartments.length > 0
+          );
+        }
+
+        return true;
+      });
+
+      // Add count_itemstock to each item (only count matching itemStocks)
+      const itemsWithCount = filteredItems.map((item: any) => {
+        // If department_id is provided, only count itemStocks that have cabinet with that department
+        let matchingItemStocks = item.itemStocks;
+        if (department_id) {
+          matchingItemStocks = item.itemStocks.filter((stock: any) =>
+            stock.cabinet?.cabinetDepartments &&
+            stock.cabinet.cabinetDepartments.length > 0
+          );
+        }
+
         return {
-          itemcode: item.itemcode,
-          itemname: item.itemname,
-          CostPrice: item.CostPrice,
-          SalePrice: item.SalePrice,
-          CreateDate: item.CreateDate,
-          stock_max: item.stock_max,
-          stock_min: item.stock_min,
-          item_status: item.item_status,
-          stock_balance: stockBalance,
+          ...item,
+          itemStocks: matchingItemStocks, // Replace with filtered itemStocks
+          count_itemstock: matchingItemStocks.length,
         };
       });
 
-      // Calculate low stock items (stock_balance < stock_min)
-      const lowStockItems = itemsWithStockBalance.filter((item) => {
-        const stockBalance = item.stock_balance ?? 0;
-        const minimum = item.stock_min ?? 0;
-        return minimum > 0 && stockBalance < minimum;
-      });
-
-      // Sort: items with stock (stock_balance > 0) first, then items with 0 stock
-      // Within each group, maintain the original order (by itemcode)
-      itemsWithStockBalance.sort((a, b) => {
-        const stockA = a.stock_balance ?? 0;
-        const stockB = b.stock_balance ?? 0;
-        
-        // If both are 0 or both are > 0, maintain original order
-        if ((stockA === 0 && stockB === 0) || (stockA > 0 && stockB > 0)) {
-          return 0;
-        }
-        
-        // Items with stock > 0 come first
-        if (stockA > 0 && stockB === 0) {
-          return -1;
-        }
-        
-        // Items with stock = 0 come last
-        return 1;
-      });
-
-      // Apply pagination after sorting
-      const total = itemsWithStockBalance.length;
-      const startIndex = skip;
-      const endIndex = skip + limit;
-      const data = itemsWithStockBalance.slice(startIndex, endIndex);
-
-      const [activeItemsCount] = await Promise.all([
-        this.prisma.item.count({ where: { item_status: 0 } }),
-      ]);
-
       return {
-        data: data,
-        total,
+        success: true,
+        data: itemsWithCount,
+        total: itemsWithCount.length,
         page,
-        lastPage: Math.ceil(total / limit),
-        stats: {
-          low_stock_items: lowStockItems.length,
-          total_items: total,
-          active_items: activeItemsCount,
-          inactive_items: total - activeItemsCount,
-           
-        },
+        limit,
+        lastPage: Math.ceil(itemsWithCount.length / limit),
       };
+
     } catch (error) {
       return {
         success: false,
@@ -349,4 +372,174 @@ export class ItemServiceService {
       };
     }
   }
+
+
+  // ====================================== Item Stock API ======================================
+  async findAllItemStock(
+    page: number = 1,
+    limit: number = 10,
+    keyword?: string,
+    sort_by: string = 'ItemCode',
+    sort_order: string = 'asc',
+  ) {
+    try {
+      const where: any = {};
+      const skip = (page - 1) * limit;
+
+      // Search in item relation (itemcode and itemname)
+      if (keyword) {
+        where.item = {
+          OR: [
+            { itemcode: { contains: keyword } },
+            { itemname: { contains: keyword } },
+          ],
+        };
+      }
+
+      // Count total matching records
+      const total = await this.prisma.itemStock.count({
+        where,
+      });
+
+      // Get paginated data
+      const itemStocks = await this.prisma.itemStock.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          [sort_by]: sort_order === 'asc' ? 'asc' : 'desc',
+        },
+        include: {
+          item: {
+            select: {
+              itemcode: true,
+              itemname: true,
+            },
+          },
+        },
+      });
+
+      return {
+        success: true,
+        data: itemStocks,
+        total,
+        page,
+        limit,
+        lastPage: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch item stocks',
+        error: error.message,
+      };
+    }
+  }
+
+
+
+  // ====================================== Item Stock IN Cabinet API ======================================
+
+  async findAllItemStockInCabinet(
+    page: number = 1,
+    limit: number = 10,
+    keyword?: string,
+    cabinet_id?: number,
+  ) {
+    try {
+      const where: any = {};
+      const skip = (page - 1) * limit;
+
+      if (cabinet_id) {
+        where.StockID = cabinet_id;
+      }
+
+      if (keyword) {
+        where.item = {
+          OR: [
+            { itemcode: { contains: keyword } },
+            { itemname: { contains: keyword } },
+          ],
+        };
+      }
+      const total = await this.prisma.itemStock.count({
+        where,
+      });
+
+      const itemStocks = await this.prisma.itemStock.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          LastCabinetModify: 'desc',
+        },
+        select: {
+          StockID: true,
+          RfidCode: true,
+          LastCabinetModify: true,
+          Qty: true,
+          ItemCode: true,
+          CabinetUserID: true,
+          CreateDate: true,
+          ReturnDate: true,
+          InsertDate: true,
+          cabinet: {
+            select: {
+              cabinet_name: true,
+              cabinet_code: true,
+            },
+          },
+          item: {
+            select: {
+              itemcode: true,
+              itemname: true,
+            },
+          },
+        },
+
+      });
+
+      return {
+        success: true,
+        data: itemStocks,
+        total,
+        page,
+        limit,
+        lastPage: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch item stocks in cabinet',
+        error: error.message,
+      };
+    }
+  }
+
+  // async findItemStockByCabinetId(cabinet_id: number) {
+  //   try {
+  //     const itemStocks = await this.prisma.itemStock.findMany({
+  //       where: { StockID: cabinet_id },
+  //       include: {
+  //         item: {
+  //           select: {
+  //             itemcode: true,
+  //             itemname: true,
+  //           },
+  //         },
+  //       },
+  //     });
+  //     return {
+  //       success: true,
+  //       data: itemStocks,
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       message: 'Failed to fetch item stocks by cabinet id',
+  //       error: error.message,
+  //     };
+  //   }
+  // }
+
 }

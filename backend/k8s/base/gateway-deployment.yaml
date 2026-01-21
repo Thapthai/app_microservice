@@ -86,6 +86,16 @@ spec:
             configMapKeyRef:
               name: pose-config
               key: REPORT_SERVICE_PORT
+        - name: DEPARTMENT_SERVICE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pose-config
+              key: DEPARTMENT_SERVICE_HOST
+        - name: DEPARTMENT_SERVICE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pose-config
+              key: DEPARTMENT_SERVICE_PORT
         - name: ITEM_SERVICE_URL
           value: "http://item-service.pose-microservices:3009"
         - name: JWT_SECRET

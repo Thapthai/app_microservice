@@ -43,12 +43,9 @@ export default function ComparisonReportPage() {
         limit: 100,
       });
 
-      console.log('📋 Fetched usage list:', response);
-
       if (response.data) {
         // Handle both single object and array response
         const dataArray = Array.isArray(response.data) ? response.data : [response];
-        console.log('✅ Normalized data:', dataArray);
         
         setUsageList(dataArray);
         setFilteredUsageList(dataArray);
@@ -104,7 +101,6 @@ export default function ComparisonReportPage() {
 
     try {
       setLoadingList(true);
-      console.log('🔍 Searching with filters:', { searchPatientHN, searchFirstName, searchLastName, searchAssessionNo });
       
       const params: any = {
         page: 1,
@@ -118,7 +114,6 @@ export default function ComparisonReportPage() {
       
       const response = await medicalSuppliesApi.getAll(params);
 
-      console.log('📊 Search response (raw):', response);
 
       if (response.data || response.success) {
         // Handle both single object and array response
@@ -135,7 +130,6 @@ export default function ComparisonReportPage() {
           dataArray = [response];
         }
 
-        console.log('✅ Normalized search results:', dataArray);
 
         if (dataArray.length > 0) {
           setFilteredUsageList(dataArray);
@@ -149,7 +143,6 @@ export default function ComparisonReportPage() {
         toast.error('ไม่พบข้อมูลการเบิกของผู้ป่วยนี้');
       }
     } catch (error: any) {
-      console.error('❌ Error searching patient:', error);
       toast.error('เกิดข้อผิดพลาดในการค้นหา');
     } finally {
       setLoadingList(false);
@@ -455,16 +448,8 @@ export default function ComparisonReportPage() {
                         const id = usage.id || usage.usage_id || usageData.id;
                         const isSelected = selectedUsageId === id;
                         
-                        console.log('📝 Usage row:', { 
-                          id, 
-                          hn: usageData.patient_hn, 
-                          name: `${usageData.first_name} ${usageData.lastname}`,
-                          isSelected 
-                        });
-                        
                         // If no ID, skip this row
                         if (!id) {
-                          console.warn('⚠️ No ID found for usage at index', index, usage);
                           return null;
                         }
                         

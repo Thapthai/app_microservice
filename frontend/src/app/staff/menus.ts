@@ -43,6 +43,7 @@ import {
     Settings,
     Users,
     Shield,
+    Link as LinkIcon,
 } from 'lucide-react';
 
 export const staffMenuItems = [
@@ -63,6 +64,18 @@ export const staffMenuItems = [
                 href: '/staff/items',
                 description: 'เมนูสต๊อกอุปกรณ์ที่มีในตู้ SmartCabinet',
                 icon: Package,
+            },
+            // {
+            //     name: 'ItemStock - Department',
+            //     href: '/staff/item-stock-departments',
+            //     icon: LinkIcon,
+            //     description: 'เชื่อมโยงอุปกรณ์กับแผนก',
+            // },
+            {
+                name: 'จัดการตู้ Cabinet - แผนก',
+                href: '/staff/cabinet-departments',
+                icon: LinkIcon,
+                description: 'จัดการตู้ Cabinet และเชื่อมโยงกับแผนก',
             },
             {
                 name: 'บันทึกใช้อุปกรณ์กับคนไข้',
@@ -160,4 +173,5 @@ export const staffMenuItems = [
         description: 'กำหนดสิทธิ์การเข้าถึงเมนู',
         roles: ['it1'],
     },
+
 ];

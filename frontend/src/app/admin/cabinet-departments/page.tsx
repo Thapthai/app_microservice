@@ -1,0 +1,290 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import AppLayout from "@/components/AppLayout";
+import { Button } from "@/components/ui/button";
+import { cabinetDepartmentApi } from "@/lib/api";
+import { Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
+import FilterSection from "./components/FilterSection";
+import MappingTable from "./components/MappingTable";
+import CreateMappingDialog from "./components/CreateMappingDialog";
+import EditMappingDialog from "./components/EditMappingDialog";
+import DeleteMappingDialog from "./components/DeleteMappingDialog";
+
+interface CabinetDepartment {
+  id: number;
+  cabinet_id: number;
+  department_id: number;
+  status: string;
+  description?: string;
+  cabinet?: {
+    id: number;
+    cabinet_name?: string;
+    cabinet_code?: string;
+  };
+  department?: {
+    ID: number;
+    DepName?: string;
+  };
+}
+
+export default function ItemStockDepartmentsPage() {
+  const router = useRouter();
+  const [mappings, setMappings] = useState<CabinetDepartment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedMapping, setSelectedMapping] = useState<CabinetDepartment | null>(null);
+
+  // Active filters (applied after search button click)
+  const [activeFilters, setActiveFilters] = useState({
+    cabinetId: "",
+    departmentId: "",
+    status: "ALL",
+  });
+
+  // Form state
+  const [formData, setFormData] = useState({
+    cabinet_id: "",
+    department_id: "",
+    status: "ACTIVE",
+    description: "",
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const mappingsRes = await cabinetDepartmentApi.getAll();
+
+      if (mappingsRes.success && mappingsRes.data) {
+        setMappings(mappingsRes.data as CabinetDepartment[]);
+      }
+    } catch (error: any) {
+      console.error("Load data error:", error);
+      toast.error(error.message || "ไม่สามารถโหลดข้อมูลได้");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (filters: { cabinetId: string; departmentId: string; status: string }) => {
+    setActiveFilters(filters);
+  };
+
+  const resetFilters = () => {
+    setActiveFilters({
+      cabinetId: "",
+      departmentId: "",
+      status: "ALL",
+    });
+  };
+
+  const handleCreate = () => {
+    setFormData({
+      cabinet_id: "",
+      department_id: "",
+      status: "ACTIVE",
+      description: "",
+    });
+    setShowCreateDialog(true);
+  };
+
+  const handleEdit = (mapping: CabinetDepartment) => {
+    setSelectedMapping(mapping);
+    setFormData({
+      cabinet_id: mapping.cabinet_id.toString(),
+      department_id: mapping.department_id.toString(),
+      status: mapping.status,
+      description: mapping.description || "",
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleDelete = (mapping: CabinetDepartment) => {
+    setSelectedMapping(mapping);
+    setShowDeleteDialog(true);
+  };
+
+  const submitCreate = async () => {
+    if (!formData.cabinet_id || !formData.department_id) {
+      toast.error("กรุณาเลือกอุปกรณ์และแผนก");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const response = await cabinetDepartmentApi.create({
+        cabinet_id: parseInt(formData.cabinet_id),
+        department_id: parseInt(formData.department_id),
+        status: formData.status,
+        description: formData.description,
+      });
+
+      if (response.success) {
+        toast.success("สร้างการเชื่อมโยงเรียบร้อยแล้ว");
+        setShowCreateDialog(false);
+        loadData();
+      } else {
+        toast.error(response.message || "ไม่สามารถสร้างการเชื่อมโยงได้");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "เกิดข้อผิดพลาด");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const submitEdit = async () => {
+    if (!selectedMapping) return;
+
+    if (!formData.cabinet_id || !formData.department_id) {
+      toast.error("กรุณาเลือกตู้และแผนก");
+      return;
+    }
+
+    // Ensure status is not empty string
+    const status = formData.status && formData.status.trim() !== "" ? formData.status : "ACTIVE";
+
+    try {
+      setSaving(true);
+      const response = await cabinetDepartmentApi.update(selectedMapping.id, {
+        cabinet_id: parseInt(formData.cabinet_id),
+        department_id: parseInt(formData.department_id),
+        status: status,
+        description: formData.description,
+      });
+
+      console.log("Update response:", response);
+
+      if (response.success) {
+        toast.success("อัพเดทการเชื่อมโยงเรียบร้อยแล้ว");
+        setShowEditDialog(false);
+        resetFilters(); // ล้างค่าการค้นหาและกรอง
+        loadData();
+      } else {
+        toast.error(response.message || "ไม่สามารถอัพเดทการเชื่อมโยงได้");
+      }
+    } catch (error: any) {
+      console.error("Update error:", error);
+      toast.error(error.message || "เกิดข้อผิดพลาด");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const submitDelete = async () => {
+    if (!selectedMapping) return;
+
+    try {
+      setSaving(true);
+      const response = await cabinetDepartmentApi.delete(selectedMapping.id);
+
+      if (response.success) {
+        toast.success("ลบการเชื่อมโยงเรียบร้อยแล้ว");
+        setShowDeleteDialog(false);
+        loadData();
+      } else {
+        toast.error(response.message || "ไม่สามารถลบการเชื่อมโยงได้");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "เกิดข้อผิดพลาด");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Filter mappings based on active filters
+  const filteredMappings = mappings.filter((mapping) => {
+    // Filter by cabinet ID (exact match)
+    const matchesCabinet = activeFilters.cabinetId === "" || 
+      mapping.cabinet_id.toString() === activeFilters.cabinetId;
+
+    // Filter by department ID (exact match)
+    const matchesDepartment = activeFilters.departmentId === "" || 
+      mapping.department_id.toString() === activeFilters.departmentId;
+
+    // Filter by status
+    const matchesStatus = activeFilters.status === "ALL" || mapping.status === activeFilters.status;
+
+    return matchesCabinet && matchesDepartment && matchesStatus;
+  });
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <AppLayout>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+              <p className="mt-4 text-gray-600">กำลังโหลด...</p>
+            </div>
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <AppLayout>
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              จัดการตู้ Cabinet - แผนก
+            </h2>
+            <p className="text-gray-600 mt-1">
+              จัดการตู้ Cabinet และเชื่อมโยงกับแผนก
+            </p>
+          </div>
+          <Button onClick={handleCreate} size="lg">
+            <Plus className="mr-2 h-5 w-5" />
+            เพิ่มการเชื่อมโยง
+          </Button>
+        </div>
+
+        <FilterSection onSearch={handleSearch} key={`filter-${activeFilters.cabinetId}-${activeFilters.departmentId}-${activeFilters.status}`} />
+
+        <MappingTable
+          mappings={filteredMappings}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+
+        <CreateMappingDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          formData={formData}
+          setFormData={setFormData}
+          onSubmit={submitCreate}
+          saving={saving}
+        />
+
+        <EditMappingDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          formData={formData}
+          setFormData={setFormData}
+          onSubmit={submitEdit}
+          saving={saving}
+          selectedMapping={selectedMapping}
+        />
+
+        <DeleteMappingDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          onConfirm={submitDelete}
+          saving={saving}
+        />
+      </AppLayout>
+    </ProtectedRoute>
+  );
+}

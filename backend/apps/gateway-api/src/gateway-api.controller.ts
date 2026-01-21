@@ -295,9 +295,8 @@ export class GatewayApiController {
     }
   }
 
-  // ==================================== Item Endpoints ====================================
 
-  // JSON endpoint (no file)
+  // ==================================== Item Endpoints ====================================
   @Post('items')
   @UseGuards(FlexibleAuthGuard)
   async createItem(@Body() body: any) {
@@ -379,20 +378,12 @@ export class GatewayApiController {
     @Query('keyword') keyword?: string,
     @Query('sort_by') sort_by?: string,
     @Query('sort_order') sort_order?: string,
+    @Query('cabinet_id') cabinet_id?: number,
+    @Query('department_id') department_id?: number,
   ) {
     try {
-      const axios = require('axios');
-      const itemServiceUrl = process.env.ITEM_SERVICE_URL || 'http://localhost:3009';
-
-      const params = new URLSearchParams();
-      params.append('page', page.toString());
-      params.append('limit', limit.toString());
-      if (keyword) params.append('keyword', keyword);
-      if (sort_by) params.append('sort_by', sort_by);
-      if (sort_order) params.append('sort_order', sort_order);
-
-      const response = await axios.get(`${itemServiceUrl}/items?${params.toString()}`);
-      return response.data;
+      const result = await this.gatewayApiService.findAllItems(page, limit, keyword, sort_by, sort_order, cabinet_id, department_id);
+      return result;
 
     } catch (error) {
       throw new HttpException(
@@ -415,6 +406,26 @@ export class GatewayApiController {
       throw new HttpException(
         error.response?.data?.message || error.message || 'Failed to fetch item',
         error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('item-stocks')
+  @UseGuards(FlexibleAuthGuard)
+  async findAllItemStock(
+    @Request() req: any,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('keyword') keyword?: string,
+    @Query('sort_by') sort_by?: string,
+    @Query('sort_order') sort_order?: string,
+  ) {
+    try {
+      return await this.gatewayApiService.findAllItemStock(page, limit, keyword, sort_by, sort_order);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch item stocks',
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -801,7 +812,7 @@ export class GatewayApiController {
       // Return data from service directly, only filter by visit_date if needed
       if (result.success && result.data) {
         let filteredData = result.data;
-        
+
         // Filter by visit_date if provided (use created_at instead of usage_datetime)
         if (visit_date && result.data.length > 0) {
           filteredData = result.data.filter((item: any) => {
@@ -2345,6 +2356,233 @@ export class GatewayApiController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to generate Return To Cabinet Report PDF',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ==================================== Department REST API Endpoints ====================================
+  // @Post('departments')
+  // @UseGuards(FlexibleAuthGuard)
+  // async createDepartment(@Body() data: any) {
+  //   try {
+  //     return await this.gatewayApiService.createDepartment(data);
+  //   } catch (error) {
+  //     throw new HttpException(
+  //       error.message || 'Failed to create department',
+  //       HttpStatus.INTERNAL_SERVER_ERROR,
+  //     );
+  //   }
+  // }
+
+  @Get('departments')
+  @UseGuards(FlexibleAuthGuard)
+  async getAllDepartments(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('keyword') keyword?: string,
+
+  ) {
+    try {
+      const query: any = {};
+      if (page) query.page = Number(page);
+      if (limit) query.limit = Number(limit);
+      if (keyword) query.keyword = keyword;
+
+
+      return await this.gatewayApiService.getAllDepartments(query);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch departments',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // @Get('departments/:id')
+  // @UseGuards(FlexibleAuthGuard)
+  // async getDepartmentById(@Param('id', ParseIntPipe) id: number) {
+  //   try {
+  //     return await this.gatewayApiService.getDepartmentById(id);
+  //   } catch (error) {
+  //     throw new HttpException(
+  //       error.message || 'Failed to fetch department',
+  //       HttpStatus.INTERNAL_SERVER_ERROR,
+  //     );
+  //   }
+  // }
+
+  // @Put('departments/:id')
+  // @UseGuards(FlexibleAuthGuard)
+  // async updateDepartment(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
+  //   try {
+  //     return await this.gatewayApiService.updateDepartment(id, data);
+  //   } catch (error) {
+  //     throw new HttpException(
+  //       error.message || 'Failed to update department',
+  //       HttpStatus.INTERNAL_SERVER_ERROR,
+  //     );
+  //   }
+  // }
+
+  // @Delete('departments/:id')
+  // @UseGuards(FlexibleAuthGuard)
+  // async deleteDepartment(@Param('id', ParseIntPipe) id: number) {
+  //   try {
+  //     return await this.gatewayApiService.deleteDepartment(id);
+  //   } catch (error) {
+  //     throw new HttpException(
+  //       error.message || 'Failed to delete department',
+  //       HttpStatus.INTERNAL_SERVER_ERROR,
+  //     );
+  //   }
+  // }
+
+
+  // ==================================== Cabinet REST API Endpoints ====================================
+  @Post('cabinets')
+  @UseGuards(FlexibleAuthGuard)
+  async createCabinet(@Body() data: any) {
+    try {
+      return await this.gatewayApiService.createCabinet(data);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to create cabinet',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  @Get('cabinets')
+  @UseGuards(FlexibleAuthGuard)
+  async getAllCabinets(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('keyword') keyword?: string,
+  ) {
+    try {
+      return await this.gatewayApiService.getAllCabinets({ page, limit, keyword });
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch cabinets',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('cabinets/:id')
+  @UseGuards(FlexibleAuthGuard)
+  async getCabinetById(@Param('id', ParseIntPipe) id: number) {
+    try {
+      return await this.gatewayApiService.getCabinetById(id);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch cabinet',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Put('cabinets/:id')
+  @UseGuards(FlexibleAuthGuard)
+  async updateCabinet(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
+    try {
+      return await this.gatewayApiService.updateCabinet(id, data);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update cabinet',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  @Delete('cabinets/:id')
+  @UseGuards(FlexibleAuthGuard)
+  async deleteCabinet(@Param('id', ParseIntPipe) id: number) {
+    try {
+      return await this.gatewayApiService.deleteCabinet(id);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to delete cabinet',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ==================================== Cabinet Department REST API Endpoints ====================================
+  @Post('cabinet-departments')
+  @UseGuards(FlexibleAuthGuard)
+  async createCabinetDepartment(@Body() data: any) {
+    try {
+      return await this.gatewayApiService.createCabinetDepartment(data);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to create cabinet-department mapping',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('cabinet-departments')
+  @UseGuards(FlexibleAuthGuard)
+  async getCabinetDepartments(
+    @Query('cabinet_id') cabinet_id?: number,
+    @Query('department_id') department_id?: number,
+    @Query('status') status?: string,
+  ) {
+    try {
+      const query: any = {};
+      if (cabinet_id) query.cabinet_id = Number(cabinet_id);
+      if (department_id) query.department_id = Number(department_id);
+      if (status) query.status = status;
+
+      return await this.gatewayApiService.getCabinetDepartments(query);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch cabinet-department mappings',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Put('cabinet-departments/:id')
+  @UseGuards(FlexibleAuthGuard)
+  async updateCabinetDepartment(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
+    try {
+      return await this.gatewayApiService.updateCabinetDepartment(id, data);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update cabinet-department mapping',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete('cabinet-departments/:id')
+  @UseGuards(FlexibleAuthGuard)
+  async deleteCabinetDepartment(@Param('id', ParseIntPipe) id: number) {
+    try {
+      return await this.gatewayApiService.deleteCabinetDepartment(id);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to delete cabinet-department mapping',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // =========================== Item Stock In Cabinet API ===========================
+  @Get('item-stocks/in-cabinet')
+  @UseGuards(FlexibleAuthGuard)
+  async findAllItemStockInCabinet(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('keyword') keyword?: string,
+    @Query('cabinet_id') cabinet_id?: number,
+  ) {
+    try {
+      return await this.gatewayApiService.findAllItemStockInCabinet({ page, limit, keyword, cabinet_id });
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch item stocks in cabinet',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

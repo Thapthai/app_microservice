@@ -156,7 +156,7 @@ export default function StaffLoginPage() {
                 </div>
               ) : (
                 <div className="flex items-center justify-center space-x-2">
-                  <Sparkles className="h-5 w-5" />
+              
                   <span>เข้าสู่ระบบ</span>
                 </div>
               )}

@@ -116,9 +116,22 @@ docker build --target production -f docker/Dockerfile.email -t backend-email-ser
 docker build --target production -f docker/Dockerfile.category -t backend-category-service:latest .
 docker build --target production -f docker/Dockerfile.medical-supplies -t backend-medical-supplies-service:latest .
 docker build --target production -f docker/Dockerfile.report -t backend-report-service:latest .
+docker build --target production -f docker/Dockerfile.department -t backend-department-service:latest .
+
 
 # 3. Import images เข้า K3s
 docker save \
+  backend-gateway-api:latest \
+  backend-auth-service:latest \
+  backend-item-service:latest \
+  backend-email-service:latest \
+  backend-category-service:latest \
+  backend-medical-supplies-service:latest \
+  backend-report-service:latest \
+  backend-department-service:latest \
+  | sudo k3s ctr images import -
+
+  docker save \
   backend-gateway-api:latest \
   backend-auth-service:latest \
   backend-item-service:latest \

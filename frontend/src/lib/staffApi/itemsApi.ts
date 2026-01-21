@@ -69,4 +69,9 @@ export const staffItemsApi = {
         const response = await staffApi.delete(`/items/${itemcode}`);
         return response.data;
     },
+
+    updateMinMax: async (itemcode: string, data: { stock_min?: number; stock_max?: number }): Promise<ApiResponse<Item>> => {
+        const response = await staffApi.patch(`/items/${itemcode}/minmax`, data);
+        return response.data;
+    },
 };

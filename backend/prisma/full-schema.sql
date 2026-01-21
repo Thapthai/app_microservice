@@ -512,6 +512,32 @@ CREATE TABLE IF NOT EXISTS `app_microservice_staff_role_permissions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+-- Cabinet Department table
+CREATE TABLE IF NOT EXISTS `app_microservice_cabinet_departments` (
+  `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `cabinet_id` INTEGER NOT NULL,
+  `department_id` INTEGER NOT NULL,
+  `status` VARCHAR(191) NOT NULL DEFAULT 'ACTIVE',
+  `description` TEXT,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL,
+  INDEX `app_microservice_cabinet_department` (`cabinet_id`),
+  INDEX `app_microservice_cabinet_department_id` (`department_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Cabinet table
+CREATE TABLE IF NOT EXISTS `app_microservice_cabinets` (
+  `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `cabinet_name` VARCHAR(191) NOT NULL,
+  `cabinet_code` VARCHAR(191) NOT NULL,
+  `cabinet_type` VARCHAR(191) NOT NULL,
+  `cabinet_status` VARCHAR(191) NOT NULL DEFAULT 'ACTIVE',
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 -- ===================================
 -- VERIFICATION QUERIES
 -- ===================================

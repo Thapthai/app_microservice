@@ -161,7 +161,6 @@ async function updatePrintInfo(usageId: number, printData: any) {
     const result = await response.json();
     
     if (result.status === 'success') {
-      console.log('Print info updated:', result.data);
       return result.data;
     } else {
       console.error('Failed to update:', result.message);

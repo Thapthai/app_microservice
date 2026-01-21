@@ -17,13 +17,30 @@ export class ItemServiceController {
   }
 
   @MessagePattern('item.findAll')
-  findAll(@Payload() query: { page: number; limit: number; keyword?: string; sort_by?: string; sort_order?: string }) {
+  findAll(@Payload() query: {
+    page: number;
+    limit: number;
+    keyword?: string;
+    sort_by?: string;
+    sort_order?: string;
+    cabinet_id?: number;
+    department_id?: number;
+  }) {
     const page = query.page || 1;
     const limit = query.limit || 10;
     const keyword = query.keyword;
     const sortBy = query.sort_by || 'created_at';
     const sortOrder = query.sort_order || 'desc';
-    return this.itemServiceService.findAllItems(page, limit, keyword, sortBy, sortOrder);
+    const cabinet_id = query.cabinet_id;
+    const department_id = query.department_id;
+    return this.itemServiceService.findAllItems
+      (page,
+        limit,
+        keyword,
+        sortBy,
+        sortOrder,
+        cabinet_id,
+        department_id);
   }
 
 
@@ -50,5 +67,24 @@ export class ItemServiceController {
   @MessagePattern('item.updateMinMax')
   async updateItemMinMax(@Payload() data: { itemcode: string; updateMinMaxDto: UpdateItemMinMaxDto }) {
     return this.itemServiceService.updateItemMinMax(data.itemcode, data.updateMinMaxDto);
+  }
+
+  @MessagePattern('itemStock.findAll')
+  findAllItemStock(@Payload() query: { page?: number; limit?: number; keyword?: string; sort_by?: string; sort_order?: string }) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const keyword = query.keyword;
+    const sortBy = query.sort_by || 'ItemCode';
+    const sortOrder = query.sort_order || 'asc';
+    return this.itemServiceService.findAllItemStock(page, limit, keyword, sortBy, sortOrder);
+  }
+
+  @MessagePattern('itemStock.findAllInCabinet')
+  findAllItemStockInCabinet(@Payload() query: { page?: number; limit?: number; keyword?: string; sort_by?: string; sort_order?: string; cabinet_id?: number }) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const keyword = query.keyword;
+    const cabinet_id = query.cabinet_id;
+    return this.itemServiceService.findAllItemStockInCabinet(page, limit, keyword, cabinet_id);
   }
 }

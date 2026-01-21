@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { itemsApi } from '@/lib/api';
+import { staffItemsApi } from '@/lib/staffApi/itemsApi';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,7 +55,7 @@ export default function EditItemDialog({
     try {
       setLoading(true);
       setError('');
-      const response = await itemsApi.update(item.itemcode, { itemname: itemname.trim() });
+      const response = await staffItemsApi.update(item.itemcode, { itemname: itemname.trim() });
 
       if (response.success) {
         toast.success('แก้ไขชื่อสินค้าเรียบร้อยแล้ว');

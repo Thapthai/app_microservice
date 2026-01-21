@@ -21,7 +21,6 @@ const authOptions: NextAuthOptions = {
           if ((credentials as any)['2fa_token']) {
             const token = (credentials as any)['2fa_token'];
             
-            console.log('🔐 Validating 2FA token...');
             
             // Validate the token by calling the profile endpoint
             const validateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/auth/profile`, {
@@ -37,11 +36,9 @@ const authOptions: NextAuthOptions = {
             }
 
             const profileData = await validateResponse.json();
-            console.log('✅ Token validation response:', profileData);
             
             if (profileData.success && profileData.data && profileData.data.user) {
               const userData = profileData.data.user;
-              console.log('✅ 2FA token validated successfully, user:', userData);
               
               return {
                 id: userData.id.toString(),

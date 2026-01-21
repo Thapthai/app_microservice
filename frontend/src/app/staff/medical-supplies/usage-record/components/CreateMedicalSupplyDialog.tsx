@@ -67,10 +67,7 @@ export default function CreateMedicalSupplyDialog({
   const onSubmit = async (data: FormData) => {
     try {
       setLoading(true);
-      
-      // TODO: เรียก API สร้าง Medical Supply Usage
-      console.log('Creating medical supply usage:', data);
-      
+
       toast.success('บันทึกการใช้เวชภัณฑ์เรียบร้อยแล้ว');
       form.reset();
       onOpenChange(false);
@@ -99,7 +96,7 @@ export default function CreateMedicalSupplyDialog({
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 ข้อมูลผู้ป่วย
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}

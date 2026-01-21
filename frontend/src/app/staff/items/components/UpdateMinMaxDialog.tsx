@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { itemsApi } from '@/lib/api';
+import { staffItemsApi } from '@/lib/staffApi/itemsApi';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -39,14 +39,6 @@ export default function UpdateMinMaxDialog({
 
   useEffect(() => {
     if (item && open) {
-      console.log('🔍 Item data for MinMax:', {
-        itemcode: item.itemcode,
-        itemname: item.itemname,
-        stock_balance: item.stock_balance,
-        stock_min: item.stock_min,
-        stock_max: item.stock_max,
-      });
-      
       setFormData({
         stock_min: item.stock_min ?? 0,
         stock_max: item.stock_max ?? 0,
@@ -88,7 +80,7 @@ export default function UpdateMinMaxDialog({
 
     try {
       setLoading(true);
-      const response = await itemsApi.updateMinMax(item.itemcode, formData);
+      const response = await staffItemsApi.updateMinMax(item.itemcode, formData);
 
       if (response.success) {
         toast.success('อัปเดต Min/Max สำเร็จ');
