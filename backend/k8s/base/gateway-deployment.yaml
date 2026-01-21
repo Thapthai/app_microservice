@@ -97,7 +97,9 @@ spec:
               name: pose-config
               key: DEPARTMENT_SERVICE_PORT
         - name: ITEM_SERVICE_URL
-          value: "http://item-service.pose-microservices:3009"
+          value: "http://item-service.pose-microservices:3002"
+        - name: DEPARTMENT_SERVICE_URL
+          value: "http://department-service.pose-microservices:3011"
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:

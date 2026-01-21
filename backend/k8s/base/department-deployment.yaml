@@ -19,8 +19,8 @@ spec:
       - name: department-service
         image: backend-department-service:latest
         ports:
-        - containerPort: 3009
-        - containerPort: 9109
+        - containerPort: 3011
+        - containerPort: 9111
           name: metrics
         env:
         - name: NODE_ENV
@@ -42,12 +42,12 @@ spec:
             cpu: "200m"
         livenessProbe:
           tcpSocket:
-            port: 3009
+            port: 3011
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           tcpSocket:
-            port: 3009
+            port: 3011
           initialDelaySeconds: 10
           periodSeconds: 5
         imagePullPolicy: Never  # Use local image
