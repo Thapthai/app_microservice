@@ -1006,7 +1006,7 @@ export class GatewayApiService {
     }
   }
 
-  async getCabinetDepartments(query?: { cabinetId?: number; departmentId?: number; status?: string }) {
+  async getCabinetDepartments(query?: { cabinetId?: number; departmentId?: number; status?: string; keyword?: string }) {
     try {
       return await firstValueFrom(
         this.departmentClient.send('cabinetDepartment.findAll', query || {}).pipe(

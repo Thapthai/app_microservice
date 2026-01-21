@@ -33,6 +33,7 @@ export default function ItemsPage() {
     departmentId: '',
     cabinetId: '',
     statusFilter: 'all',
+    keyword: '',
   });
   
   // Pagination states
@@ -56,7 +57,7 @@ export default function ItemsPage() {
         const params: any = {
           page: currentPage, 
           limit: itemsPerPage,
-          keyword: activeFilters.searchTerm || undefined,
+          keyword: activeFilters.keyword || activeFilters.searchTerm || undefined,
         };
         
         if (activeFilters.departmentId) {
@@ -105,6 +106,7 @@ export default function ItemsPage() {
     departmentId: string;
     cabinetId: string;
     statusFilter: string;
+    keyword: string;
   }) => {
     setActiveFilters(filters);
     setCurrentPage(1); // Reset to first page on search
@@ -141,7 +143,7 @@ export default function ItemsPage() {
                 <p className="text-sm text-gray-500">รายการอุปกรณ์ทั้งหมดในระบบ</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            {/* <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -158,7 +160,7 @@ export default function ItemsPage() {
                 <Plus className="h-4 w-4 mr-2" />
                 เพิ่มอุปกรณ์
               </Button>
-            </div>
+            </div> */}
           </div>
 
           {/* Filter Section */}

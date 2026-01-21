@@ -12,8 +12,15 @@ export const staffCabinetApi = {
   
   // =========================== Cabinet Department Mapping API ===========================
   export const staffCabinetDepartmentApi = {
-    getAll: async (params?: { cabinetId?: number; departmentId?: number; status?: string }): Promise<ApiResponse<any[]>> => {
-      const response = await staffApi.get('/cabinet-departments', { params });
+    getAll: async (params?: { cabinetId?: number; departmentId?: number; status?: string; keyword?: string }): Promise<ApiResponse<any[]>> => {
+      // แปลง camelCase -> snake_case ให้ตรงกับ backend
+      const apiParams: any = {};
+      if (params?.cabinetId !== undefined) apiParams.cabinet_id = params.cabinetId;
+      if (params?.departmentId !== undefined) apiParams.department_id = params.departmentId;
+      if (params?.status !== undefined) apiParams.status = params.status;
+      if (params?.keyword !== undefined && params.keyword !== "") apiParams.keyword = params.keyword;
+
+      const response = await staffApi.get('/cabinet-departments', { params: apiParams });
       return response.data;
     },
 

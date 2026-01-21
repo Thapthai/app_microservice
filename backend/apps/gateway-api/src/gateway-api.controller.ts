@@ -2458,6 +2458,7 @@ export class GatewayApiController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('keyword') keyword?: string,
+    
   ) {
     try {
       return await this.gatewayApiService.getAllCabinets({ page, limit, keyword });
@@ -2527,12 +2528,14 @@ export class GatewayApiController {
     @Query('cabinet_id') cabinet_id?: number,
     @Query('department_id') department_id?: number,
     @Query('status') status?: string,
+    @Query('keyword') keyword?: string,
   ) {
     try {
       const query: any = {};
       if (cabinet_id) query.cabinet_id = Number(cabinet_id);
       if (department_id) query.department_id = Number(department_id);
       if (status) query.status = status;
+      if (keyword) query.keyword = keyword;
 
       return await this.gatewayApiService.getCabinetDepartments(query);
     } catch (error) {

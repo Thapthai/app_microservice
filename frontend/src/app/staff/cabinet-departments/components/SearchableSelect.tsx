@@ -24,6 +24,7 @@ interface SearchableSelectProps {
   onSearch?: (keyword: string) => void;
   searchPlaceholder?: string;
   initialDisplay?: { label: string; subLabel?: string }; // For showing current value before options load
+  disabled?: boolean;
 }
 
 export default function SearchableSelect({
@@ -37,6 +38,7 @@ export default function SearchableSelect({
   onSearch,
   searchPlaceholder = "ค้นหา...",
   initialDisplay,
+  disabled = false,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -106,14 +108,19 @@ export default function SearchableSelect({
         <button
           type="button"
           onClick={() => {
+            if (disabled) return;
             setIsOpen(!isOpen);
             if (!isOpen) {
               setSearchTerm(""); // Reset search when opening
             }
           }}
+          disabled={disabled}
           className={cn(
-            "w-full flex items-center justify-between px-3 py-2 text-sm border rounded-md bg-white hover:bg-gray-50 transition-colors",
-            !displayValue && "text-gray-500"
+            "w-full flex items-center justify-between px-3 py-2 text-sm border rounded-md bg-white transition-colors",
+            disabled
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "hover:bg-gray-50",
+            !displayValue && !disabled && "text-gray-500"
           )}
         >
           <span className="truncate">

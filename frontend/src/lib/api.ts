@@ -1070,8 +1070,15 @@ export const cabinetApi = {
 
 // =========================== Cabinet Department Mapping API ===========================
 export const cabinetDepartmentApi = {
-  getAll: async (params?: { cabinetId?: number; departmentId?: number; status?: string }): Promise<ApiResponse<any[]>> => {
-    const response = await api.get('/cabinet-departments', { params });
+  getAll: async (params?: { cabinetId?: number; departmentId?: number; status?: string; keyword?: string }): Promise<ApiResponse<any[]>> => {
+    // Convert camelCase to snake_case for API
+    const apiParams: any = {};
+    if (params?.cabinetId !== undefined) apiParams.cabinet_id = params.cabinetId;
+    if (params?.departmentId !== undefined) apiParams.department_id = params.departmentId;
+    if (params?.status !== undefined) apiParams.status = params.status;
+    if (params?.keyword !== undefined && params.keyword !== "") apiParams.keyword = params.keyword;
+    
+    const response = await api.get('/cabinet-departments', { params: apiParams });
     return response.data;
   },
 

@@ -162,7 +162,7 @@ export default function ItemsTable({
                             >
                               <Gauge className="h-4 w-4" />
                             </Button>
-                            <Button
+                            {/* <Button
                               size="sm"
                               variant="outline"
                               onClick={() => onEdit(item)}
@@ -179,7 +179,7 @@ export default function ItemsTable({
                               className="text-red-600 hover:text-red-700 hover:border-red-600"
                             >
                               <Trash2 className="h-4 w-4" />
-                            </Button>
+                            </Button> */}
                           </div>
                         </TableCell>
                       </TableRow>

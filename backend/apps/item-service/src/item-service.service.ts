@@ -111,6 +111,7 @@ export class ItemServiceService {
           CreateDate: true,
           stock_max: true,
           stock_min: true,
+          item_status: true,
           itemStocks: {
             where: itemStocksWhere,
             select: {

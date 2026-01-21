@@ -162,24 +162,7 @@ export default function ItemsTable({
                             >
                               <Gauge className="h-4 w-4" />
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => onEdit(item)}
-                              title="แก้ไขชื่อ"
-                              className="text-blue-600 hover:text-blue-700 hover:border-blue-600"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => onDelete(item)}
-                              title="ลบอุปกรณ์"
-                              className="text-red-600 hover:text-red-700 hover:border-red-600"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                           
                           </div>
                         </TableCell>
                       </TableRow>

@@ -68,7 +68,7 @@ export class DepartmentServiceController {
   }
 
   @MessagePattern('cabinetDepartment.findAll')
-  getCabinetDepartments(@Payload() query?: { cabinet_id?: number; department_id?: number; status?: string }) {
+  getCabinetDepartments(@Payload() query?: { cabinet_id?: number; department_id?: number; status?: string; keyword?: string }) {
     return this.departmentService.getCabinetDepartments(query);
   }
 

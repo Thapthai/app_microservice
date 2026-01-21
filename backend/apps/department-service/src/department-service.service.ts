@@ -289,34 +289,33 @@ export class DepartmentServiceService {
       }
 
       // Check if the mapping already exists
-      const existingMapping = await this.prisma.cabinetDepartment.findFirst({
+      const existingCabinetUsed = await this.prisma.cabinetDepartment.findFirst({
         where: {
           cabinet_id: data.cabinet_id,
-          department_id: data.department_id,
         },
       });
 
-      if (existingMapping) {
+      if (existingCabinetUsed) {
         return {
           success: false,
-          message: 'Cabinet-Department mapping already exists'
+          message: 'Cabinet already used'
         };
       }
 
 
       // Check if the cabinet already exists
-      const existingCabinet = await this.prisma.cabinet.findUnique({
-        where: {
-          id: data.cabinet_id,
-        },
-      });
+      // const existingCabinet = await this.prisma.cabinet.findUnique({
+      //   where: {
+      //     id: data.cabinet_id,
+      //   },
+      // });
 
-      if (existingCabinet) {
-        return {
-          success: false,
-          message: 'Cabinet already exists'
-        };
-      }
+      // if (existingCabinet) {
+      //   return {
+      //     success: false,
+      //     message: 'Cabinet already exists'
+      //   };
+      // }
 
 
       // Both found, create mapping
@@ -327,6 +326,12 @@ export class DepartmentServiceService {
           status: data.status || 'ACTIVE',
           description: data.description,
         }
+      });
+
+      // Change cabinet status to USED
+      await this.prisma.cabinet.update({
+        where: { id: data.cabinet_id },
+        data: { cabinet_status: 'USED' },
       });
 
       return {
@@ -351,16 +356,71 @@ export class DepartmentServiceService {
     // return { 'test': 'test', message: 'ItemStockDepartment service is working!', receivedParams: data };
   }
 
-  async getCabinetDepartments(query?: { cabinet_id?: number; department_id?: number; status?: string }) {
+  async getCabinetDepartments(query?: { cabinet_id?: number; department_id?: number; status?: string; keyword?: string }) {
     try {
       const where: any = {};
 
-      if (query?.cabinet_id) {
-        where.cabinet_id = query.cabinet_id;
-      }
-
       if (query?.department_id) {
         where.department_id = query.department_id;
+      }
+
+      if (query?.status) {
+        where.status = query.status;
+      }
+
+      // Handle cabinet_id and keyword filtering
+      if (query?.keyword && query.keyword.trim() !== '') {
+        // If keyword is provided, find cabinets that match the keyword
+        const matchingCabinets = await this.prisma.cabinet.findMany({
+          where: {
+            OR: [
+              { cabinet_name: { contains: query.keyword } },
+              { cabinet_code: { contains: query.keyword } }
+            ]
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        const matchingCabinetIds = matchingCabinets.map(cab => cab.id);
+
+        // If no cabinets match, return empty result
+        if (matchingCabinetIds.length === 0) {
+          return {
+            success: true,
+            data: [],
+            total: 0,
+            page: 1,
+            limit: 10,
+            lastPage: 0,
+          };
+        }
+
+        // If cabinet_id is also provided, intersect with matching cabinets
+        if (query?.cabinet_id) {
+          if (matchingCabinetIds.includes(query.cabinet_id)) {
+            where.cabinet_id = query.cabinet_id;
+          } else {
+            // cabinet_id doesn't match keyword, return empty
+            return {
+              success: true,
+              data: [],
+              total: 0,
+              page: 1,
+              limit: 10,
+              lastPage: 0,
+            };
+          }
+        } else {
+          // Filter mappings by matching cabinet IDs
+          where.cabinet_id = {
+            in: matchingCabinetIds,
+          };
+        }
+      } else if (query?.cabinet_id) {
+        // Only cabinet_id provided, no keyword
+        where.cabinet_id = query.cabinet_id;
       }
 
       const mappings = await this.prisma.cabinetDepartment.findMany({
@@ -470,7 +530,8 @@ export class DepartmentServiceService {
           data: mapping,
         };
       } else {
-        // Case 2: cabinet_id changed - check if new cabinet_id is already in use
+        // Case 2: cabinet_id changed
+        // 2.1 ตรวจว่าตู้ใหม่ถูกใช้กับ mapping อื่นอยู่แล้วหรือไม่
         const existingMapping = await this.prisma.cabinetDepartment.findFirst({
           where: {
             cabinet_id: data.cabinet_id,
@@ -481,15 +542,18 @@ export class DepartmentServiceService {
         if (existingMapping) {
           return {
             success: false,
-            message: 'New cabinet is already mapped to another department'
+            message: 'New cabinet is already mapped to another department',
           };
         }
 
-        // New cabinet not used, can update all fields
+        const oldCabinetId = currentMapping.cabinet_id;
+        const newCabinetId = data.cabinet_id;
+
+        // 2.2 อัปเดต mapping ไปยัง cabinet ใหม่
         const mapping = await this.prisma.cabinetDepartment.update({
           where: { id },
           data: {
-            cabinet_id: data.cabinet_id,
+            cabinet_id: newCabinetId,
             department_id: data.department_id,
             status: data.status,
             description: data.description,
@@ -500,11 +564,33 @@ export class DepartmentServiceService {
               select: {
                 ID: true,
                 DepName: true,
-                DepName2: true
+                DepName2: true,
               },
             },
           },
         });
+
+        // 2.3 ตั้งสถานะตู้ใหม่ให้เป็น USED (มี mapping อย่างน้อย 1 รายการแล้ว)
+        if (newCabinetId) {
+          await this.prisma.cabinet.update({
+            where: { id: newCabinetId },
+            data: { cabinet_status: 'USED' },
+          });
+        }
+
+        // 2.4 เช็คว่าตู้เก่ายังมีการใช้งานอยู่ไหม ถ้าไม่มีก็เซ็ตเป็น AVAILIABLE
+        if (oldCabinetId) {
+          const remainingMappingsForOldCabinet = await this.prisma.cabinetDepartment.count({
+            where: { cabinet_id: oldCabinetId },
+          });
+
+          if (remainingMappingsForOldCabinet === 0) {
+            await this.prisma.cabinet.update({
+              where: { id: oldCabinetId },
+              data: { cabinet_status: 'AVAILIABLE' },
+            });
+          }
+        }
 
         return {
           success: true,
@@ -526,9 +612,38 @@ export class DepartmentServiceService {
 
   async deleteCabinetDepartment(id: number) {
     try {
+      // หา mapping ก่อนลบ เพื่อดึง cabinet_id เดิม
+      const mapping = await this.prisma.cabinetDepartment.findUnique({
+        where: { id },
+      });
+
+      if (!mapping) {
+        return {
+          success: false,
+          message: 'Cabinet-Department mapping not found',
+        };
+      }
+
+      const cabinetId = mapping.cabinet_id;
+
+      // ลบ mapping
       await this.prisma.cabinetDepartment.delete({
         where: { id },
       });
+
+      // ถ้าไม่มี mapping อื่นใช้ตู้ใบนี้แล้ว → เซ็ตสถานะเป็น AVAILIABLE
+      if (cabinetId) {
+        const remainingMappings = await this.prisma.cabinetDepartment.count({
+          where: { cabinet_id: cabinetId },
+        });
+
+        if (remainingMappings === 0) {
+          await this.prisma.cabinet.update({
+            where: { id: cabinetId },
+            data: { cabinet_status: 'AVAILIABLE' },
+          });
+        }
+      }
 
       return {
         success: true,

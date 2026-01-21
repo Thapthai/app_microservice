@@ -22,6 +22,7 @@ interface Cabinet {
   id: number;
   cabinet_name?: string;
   cabinet_code?: string;
+  cabinet_status?: string;
 }
 
 interface FormData {
@@ -98,11 +99,14 @@ export default function CreateMappingDialog({
             placeholder="เลือกตู้"
             value={formData.cabinet_id}
             onValueChange={(value) => setFormData({ ...formData, cabinet_id: value })}
-            options={cabinets.map((cabinet) => ({
-              value: cabinet.id.toString(),
-              label: cabinet.cabinet_name || "",
-              subLabel: cabinet.cabinet_code || "",
-            }))}
+            options={cabinets
+              // ไม่ให้เลือกตู้ที่สถานะเป็น USED
+              .filter((cabinet) => cabinet.cabinet_status !== "USED")
+              .map((cabinet) => ({
+                value: cabinet.id.toString(),
+                label: cabinet.cabinet_name || "",
+                subLabel: cabinet.cabinet_code || "",
+              }))}
             loading={loadingCabinets}
             required
             onSearch={loadCabinets}
