@@ -90,6 +90,12 @@ const mainMenuItems = [
       //   icon: Package,
       // },
       {
+        name: "รายการเบิกอุปกรณ์อุปกรณ์ใช้กับคนไข้",
+        href: "/admin/medical-supplies",
+        description: "รายการเบิกอุปกรณ์อุปกรณ์ใช้กับคนไข้",
+        icon: ClipboardList,
+      },
+      {
         name: "รายงานคืนอุปกรณ์เข้าตู้",
         href: "/admin/medical-supplies/return-to-cabinet-report",
         description: "รายงานการคืนอุปกรณ์เข้าตู้ SmartCabinet",

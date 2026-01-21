@@ -223,7 +223,7 @@ export default function MedicalSuppliesTable({
                   {/* <TableHead>HN</TableHead> */}
                   {/* <TableHead>ชื่อผู้ป่วย</TableHead> */}
                   {/* <TableHead>Assession No</TableHead> */}
-                  <TableHead>ชื่ออุปกรณ์</TableHead>
+                  {/* <TableHead>ชื่ออุปกรณ์</TableHead> */}
                   <TableHead>ผู้เบิก</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
@@ -268,7 +268,7 @@ export default function MedicalSuppliesTable({
                       {/* <TableCell className="font-mono font-medium">
                         {supplyData.patient_hn || '-'}
                       </TableCell> */}
-                      <TableCell>
+                      {/* <TableCell>
                         {itemNames.length > 0 ? (
                           <div className="space-y-1">
                             {itemNames.map((name: string, idx: number) => (
@@ -281,7 +281,7 @@ export default function MedicalSuppliesTable({
                         ) : (
                           <span className="text-sm text-gray-400">-</span>
                         )}
-                      </TableCell>
+                      </TableCell> */}
                       {/* <TableCell>
                         {patientName}
                       </TableCell> */}
