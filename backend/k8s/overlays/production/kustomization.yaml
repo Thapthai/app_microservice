@@ -49,4 +49,11 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+  - target:
+      kind: Deployment
+      name: department-service
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
 

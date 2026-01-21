@@ -131,16 +131,6 @@ docker save \
   backend-department-service:latest \
   | sudo k3s ctr images import -
 
-  docker save \
-  backend-gateway-api:latest \
-  backend-auth-service:latest \
-  backend-item-service:latest \
-  backend-email-service:latest \
-  backend-category-service:latest \
-  backend-medical-supplies-service:latest \
-  backend-report-service:latest \
-  | sudo k3s ctr images import -
-
 # 4. Pull Redis image
 docker pull redis:7-alpine
 docker save redis:7-alpine | sudo k3s ctr images import -
