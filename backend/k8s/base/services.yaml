@@ -156,12 +156,12 @@ spec:
     app: department-service
   ports:
   - name: tcp
-    port: 3009
-    targetPort: 3009
+    port: 3011
+    targetPort: 3011
     protocol: TCP
   - name: metrics
-    port: 9109
-    targetPort: 9109
+    port: 9111
+    targetPort: 9111
     protocol: TCP
   type: ClusterIP
 ---
