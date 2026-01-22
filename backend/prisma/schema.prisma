@@ -541,7 +541,7 @@ model ItemStock {
 
   // Relations
   item    Item?    @relation(fields: [ItemCode], references: [itemcode], onDelete: SetNull)
-  cabinet cabinet? @relation(fields: [StockID], references: [id])
+  cabinet cabinet? @relation(fields: [StockID], references: [stock_id])
 
   @@map("itemstock")
 }
@@ -602,6 +602,7 @@ model cabinet {
   cabinet_code       String?             @map("cabinet_code") @db.VarChar(255)
   cabinet_type       String?             @map("cabinet_type") @db.VarChar(255)
   cabinet_status     String?             @default("ACTIVE") @map("cabinet_status") @db.VarChar(255)
+  stock_id           Int?                @map("stock_id") @unique()
   created_at         DateTime            @default(now()) @map("created_at")
   updated_at         DateTime            @updatedAt @map("updated_at")
   cabinetDepartments cabinetDepartment[]

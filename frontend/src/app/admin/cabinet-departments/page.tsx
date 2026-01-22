@@ -246,7 +246,7 @@ export default function ItemStockDepartmentsPage() {
               จัดการตู้ Cabinet และเชื่อมโยงกับแผนก
             </p>
           </div>
-          <Button onClick={handleCreate} size="lg">
+          <Button onClick={handleCreate} size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
             <Plus className="mr-2 h-5 w-5" />
             เพิ่มการเชื่อมโยง
           </Button>

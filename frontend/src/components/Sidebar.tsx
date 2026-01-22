@@ -53,10 +53,10 @@ const mainMenuItems = [
     description: "จัดการอุปกรณ์และสต๊อก",
     submenu: [
       {
-        name: "สต๊อกอุปกรณ์ในตู้",
-        href: "/admin/items",
-        description: "เมนูสต๊อกอุปกรณ์ที่มีในตู้ SmartCabinet",
+        name: "จัดการตู้ Cabinet",
+        href: "/admin/cabinets",
         icon: Package,
+        description: "จัดการตู้ Cabinet",
       },
       {
         name: "จัดการตู้ Cabinet - แผนก",
@@ -64,6 +64,13 @@ const mainMenuItems = [
         icon: LinkIcon,
         description: "จัดการตู้ Cabinet และเชื่อมโยงกับแผนก",
       },
+      {
+        name: "สต๊อกอุปกรณ์ในตู้",
+        href: "/admin/items",
+        description: "เมนูสต๊อกอุปกรณ์ที่มีในตู้ SmartCabinet",
+        icon: Package,
+      },
+   
       // {
       //   name: 'คืนเวชภัณฑ์',
       //   href: '/medical-supplies/return',

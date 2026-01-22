@@ -533,6 +533,7 @@ CREATE TABLE IF NOT EXISTS `app_microservice_cabinets` (
   `cabinet_code` VARCHAR(191) NOT NULL,
   `cabinet_type` VARCHAR(191) NOT NULL,
   `cabinet_status` VARCHAR(191) NOT NULL DEFAULT 'ACTIVE',
+  `stock_id` INTEGER,
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updated_at` DATETIME(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

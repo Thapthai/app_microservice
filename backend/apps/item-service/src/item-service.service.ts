@@ -124,6 +124,7 @@ export class ItemServiceService {
                   id: true,
                   cabinet_name: true,
                   cabinet_code: true,
+                  stock_id: true,
                   cabinetDepartments: {
                     where: {
                       department_id: department_id,

@@ -13,6 +13,10 @@ export class CreateCabinetDto {
     @IsOptional()
     cabinet_type?   : string;
 
+    @IsInt()
+    @IsOptional()
+    stock_id?   : number;
+
     @IsString()
     @IsOptional()
     cabinet_status?: string;
@@ -30,6 +34,10 @@ export class UpdateCabinetDto {
     @IsString()
     @IsOptional()
     cabinet_type?: string;
+
+    @IsInt()
+    @IsOptional()
+    stock_id?   : number;
 
     @IsString()
     @IsOptional()

@@ -1062,8 +1062,28 @@ export const itemStockApi = {
 
 // =========================== Cabinet API ===========================
 export const cabinetApi = {
-  getAll: async (params?: { page?: number; limit?: number; keyword?: string; sort_by?: string; sort_order?: string }): Promise<ApiResponse<any[]>> => {
+  getAll: async (params?: { page?: number; limit?: number; keyword?: string; sort_by?: string; sort_order?: string }): Promise<PaginatedResponse<any>> => {
     const response = await api.get('/cabinets', { params });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/cabinets/${id}`);
+    return response.data;
+  },
+
+  create: async (data: { cabinet_name?: string; cabinet_code?: string; cabinet_type?: string; stock_id?: number; cabinet_status?: string }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/cabinets', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: { cabinet_name?: string; cabinet_code?: string; cabinet_type?: string; stock_id?: number; cabinet_status?: string }): Promise<ApiResponse<any>> => {
+    const response = await api.put(`/cabinets/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/cabinets/${id}`);
     return response.data;
   },
 };

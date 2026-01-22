@@ -16,8 +16,8 @@ export interface StaffMenuItem {
 }
 // Utility to filter menu and submenu by permissions
 export function filterMenuByPermissions(
-  menuItems: StaffMenuItem[],
-  permissions: Record<string, boolean>
+    menuItems: StaffMenuItem[],
+    permissions: Record<string, boolean>
 ): StaffMenuItem[] {
     return menuItems
         .filter((item) => permissions[item.href] !== false)
@@ -60,22 +60,22 @@ export const staffMenuItems = [
         description: 'จัดการอุปกรณ์และสต๊อก',
         submenu: [
             {
-                name: 'สต๊อกอุปกรณ์ในตู้',
-                href: '/staff/items',
-                description: 'เมนูสต๊อกอุปกรณ์ที่มีในตู้ SmartCabinet',
+                name: 'จัดการตู้ Cabinet',
+                href: '/staff/cabinets',
                 icon: Package,
+                description: 'จัดการตู้ Cabinet',
             },
-            // {
-            //     name: 'ItemStock - Department',
-            //     href: '/staff/item-stock-departments',
-            //     icon: LinkIcon,
-            //     description: 'เชื่อมโยงอุปกรณ์กับแผนก',
-            // },
             {
                 name: 'จัดการตู้ Cabinet - แผนก',
                 href: '/staff/cabinet-departments',
                 icon: LinkIcon,
                 description: 'จัดการตู้ Cabinet และเชื่อมโยงกับแผนก',
+            },
+            {
+                name: 'สต๊อกอุปกรณ์ในตู้',
+                href: '/staff/items',
+                description: 'เมนูสต๊อกอุปกรณ์ที่มีในตู้ SmartCabinet',
+                icon: Package,
             },
             {
                 name: 'บันทึกใช้อุปกรณ์กับคนไข้',
