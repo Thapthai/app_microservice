@@ -90,9 +90,9 @@ export const staffMenuItems = [
                 icon: FileBarChart,
             },
             {
-                name: 'รายงานคืนอุปกรณ์เข้าตู้',
+                name: 'รายงานเติมอุปกรณ์จากตู้',
                 href: '/staff/medical-supplies/return-to-cabinet-report',
-                description: 'รายงานการคืนอุปกรณ์เข้าตู้ SmartCabinet',
+                description: 'รายงานการเติมอุปกรณ์จากตู้ SmartCabinet',
                 icon: FileBarChart,
             },
             {

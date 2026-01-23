@@ -2,15 +2,23 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { returnedItemsApi } from '@/lib/staffApi/returnedItemsApi';
-import { vendingReportsApi } from '@/lib/api';
+import { medicalSuppliesApi, vendingReportsApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import { toast } from 'sonner';
 import { RotateCcw } from 'lucide-react';
-import FilterSection from '../dispense-from-cabinet/components/FilterSection';
+import FilterSection from './components/FilterSection';
 import ReturnedTable from './components/ReturnedTable';
 import type { DispensedItem, FilterState, SummaryData } from '../dispense-from-cabinet/types';
+
+// Helper function to get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export default function ReturnToCabinetReportPage() {
   const { user } = useAuth();
@@ -20,22 +28,22 @@ export default function ReturnToCabinetReportPage() {
   // Filters
   const [filters, setFilters] = useState<FilterState>({
     searchItemCode: '',
-    startDate: '',
-    endDate: '',
+    startDate: getTodayDate(),
+    endDate: getTodayDate(),
     itemTypeFilter: 'all',
   });
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20);
+  const [itemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
-    // if (user?.id) {
-    fetchReturnedList();
-    // }
-  }, []);
+    if (user?.id) {
+      fetchReturnedList();
+    }
+  }, [user?.id]);
 
   const fetchReturnedList = async (page: number = 1) => {
     try {
@@ -46,26 +54,28 @@ export default function ReturnToCabinetReportPage() {
       };
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
-      if (filters.searchItemCode) params.itemCode = filters.searchItemCode;
+      if (filters.searchItemCode) params.keyword = filters.searchItemCode;
       if (filters.itemTypeFilter && filters.itemTypeFilter !== 'all') {
         params.itemTypeId = parseInt(filters.itemTypeFilter);
       }
 
-      const response = await returnedItemsApi.getReturnedItems(params);
+      const response = await medicalSuppliesApi.getReturnedItems(params) as any;
 
       if (response.success || response.data) {
-        const responseData: any = response.data || response;
+        // Backend returns: { success: true, data: [...], total, page, limit, totalPages }
+        const returnedData = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data?.data || response.data || []);
 
-        const returnedData = Array.isArray(responseData) ? responseData : (responseData.data || []);
-
-        const total = responseData.total || returnedData.length;
-        const limit = responseData.limit || itemsPerPage;
-        const totalPagesNum = responseData.totalPages || Math.ceil(total / limit);
+        const total = response.total ?? 0;
+        const limit = response.limit || itemsPerPage;
+        const totalPagesNum = response.totalPages ?? (total > 0 ? Math.ceil(total / limit) : 1);
+        const currentPageNum = response.page || page;
 
         setReturnedList(returnedData);
         setTotalItems(total);
         setTotalPages(totalPagesNum);
-        setCurrentPage(responseData.page || page);
+        setCurrentPage(currentPageNum);
 
         if (returnedData.length === 0) {
           toast.info('ไม่พบข้อมูลการคืนอุปกรณ์เข้าตู้ กรุณาตรวจสอบว่ามีข้อมูลในระบบ');
@@ -90,8 +100,8 @@ export default function ReturnToCabinetReportPage() {
   const handleClearSearch = () => {
     setFilters({
       searchItemCode: '',
-      startDate: '',
-      endDate: '',
+      startDate: getTodayDate(),
+      endDate: getTodayDate(),
       itemTypeFilter: 'all',
     });
     setCurrentPage(1);
@@ -105,7 +115,7 @@ export default function ReturnToCabinetReportPage() {
   const handleExportReport = async (format: 'excel' | 'pdf') => {
     try {
       const params: any = {};
-      if (filters.searchItemCode) params.itemCode = filters.searchItemCode;
+      if (filters.searchItemCode) params.keyword = filters.searchItemCode;
       if (filters.itemTypeFilter && filters.itemTypeFilter !== 'all') {
         params.itemTypeId = parseInt(filters.itemTypeFilter);
       }
@@ -154,21 +164,21 @@ export default function ReturnToCabinetReportPage() {
 
   return (
     <>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-100 rounded-lg">
-            <RotateCcw className="h-6 w-6 text-green-600" />
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <RotateCcw className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                รายงานคืนอุปกรณ์เข้าตู้
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                รายการอุปกรณ์ทั้งหมดที่คืนเข้าตู้ SmartCabinet
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              รายงานคืนอุปกรณ์เข้าตู้
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              รายการอุปกรณ์ทั้งหมดที่คืนเข้าตู้ SmartCabinet
-            </p>
-          </div>
-        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
