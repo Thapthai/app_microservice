@@ -2150,8 +2150,7 @@ export class MedicalSuppliesServiceService {
 
   // Get Dispensed Items (RFID Stock)
   async getDispensedItems(filters?: {
-    itemCode?: string;
-    itemTypeId?: number;
+    keyword?: string;
     startDate?: string;
     endDate?: string;
     page?: number;
@@ -2168,11 +2167,13 @@ export class MedicalSuppliesServiceService {
         Prisma.sql`ist.RfidCode <> ''`,
       ];
 
-      if (filters?.itemCode) {
-        sqlConditions.push(Prisma.sql`ist.ItemCode = ${filters.itemCode}`);
-      }
-      if (filters?.itemTypeId) {
-        sqlConditions.push(Prisma.sql`i.itemtypeID = ${filters.itemTypeId}`);
+      if (filters?.keyword) {
+        // Escape single quotes to prevent SQL injection
+        const escapedKeyword = filters.keyword.replace(/'/g, "''");
+        const keywordPattern = `%${escapedKeyword}%`;
+        sqlConditions.push(
+          Prisma.raw(`(i.itemcode LIKE '${keywordPattern}' OR i.itemname LIKE '${keywordPattern}')`)
+        );
       }
       if (filters?.startDate) {
         sqlConditions.push(Prisma.sql`ist.LastCabinetModify >= ${new Date(filters.startDate)}`);
@@ -2202,19 +2203,18 @@ export class MedicalSuppliesServiceService {
           i.itemname,
           ist.LastCabinetModify AS modifyDate,
           ist.Qty AS qty,
-          it.TypeName AS itemType,
           'RFID' AS itemCategory,
           i.itemtypeID,
           ist.RfidCode,
           ist.StockID,
           ist.Istatus_rfid,
           ist.CabinetUserID,
-          COALESCE(u.name, CONCAT(st.fname, ' ', st.lname), 'ไม่ระบุ') AS cabinetUserName
+          COALESCE(CONCAT(employee.FirstName, ' ', employee.LastName), 'ไม่ระบุ') AS cabinetUserName
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
-        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
-        LEFT JOIN app_microservice_users u ON ist.CabinetUserID = u.id
-        LEFT JOIN app_microservice_staff_users st ON ist.CabinetUserID = st.id
+        LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.user_id
+        LEFT JOIN users ON user_cabinet.user_id = users.ID
+        LEFT JOIN employee ON employee.EmpCode = users.EmpCode
         WHERE ${whereClause}
         ORDER BY ist.LastCabinetModify DESC
         LIMIT ${limit}

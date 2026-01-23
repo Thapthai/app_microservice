@@ -947,8 +947,7 @@ export class GatewayApiController {
   @Get('medical-supplies-dispensed-items')
   @UseGuards(FlexibleAuthGuard)
   async getDispensedItems(
-    @Query('itemCode') itemCode?: string,
-    @Query('itemTypeId') itemTypeId?: string,
+    @Query('keyword') keyword?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('page') page?: string,
@@ -956,8 +955,7 @@ export class GatewayApiController {
   ) {
     try {
       const filters: any = {};
-      if (itemCode) filters.itemCode = itemCode;
-      if (itemTypeId) filters.itemTypeId = parseInt(itemTypeId, 10);
+      if (keyword) filters.keyword = keyword;
       if (startDate) filters.startDate = startDate;
       if (endDate) filters.endDate = endDate;
       if (page) filters.page = parseInt(page, 10);

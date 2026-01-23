@@ -1,15 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { medicalSuppliesApi, vendingReportsApi } from '@/lib/api';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import AppLayout from '@/components/AppLayout';
 import { toast } from 'sonner';
 import { RotateCcw } from 'lucide-react';
 import FilterSection from './components/FilterSection';
 import ReturnedTable from './components/ReturnedTable';
 import type { DispensedItem, FilterState, SummaryData } from '../dispense-from-cabinet/types';
+import { returnedItemsApi } from '@/lib/staffApi/returnedItemsApi';
 
 // Helper function to get today's date in YYYY-MM-DD format
 const getTodayDate = () => {
@@ -21,7 +18,6 @@ const getTodayDate = () => {
 };
 
 export default function ReturnToCabinetReportPage() {
-  const { user } = useAuth();
   const [loadingList, setLoadingList] = useState(true);
   const [returnedList, setReturnedList] = useState<DispensedItem[]>([]);
 
@@ -40,10 +36,8 @@ export default function ReturnToCabinetReportPage() {
   const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
-    if (user?.id) {
-      fetchReturnedList();
-    }
-  }, [user?.id]);
+    fetchReturnedList();
+  }, []);
 
   const fetchReturnedList = async (page: number = 1) => {
     try {
@@ -59,7 +53,7 @@ export default function ReturnToCabinetReportPage() {
         params.itemTypeId = parseInt(filters.itemTypeFilter);
       }
 
-      const response = await medicalSuppliesApi.getReturnedItems(params) as any;
+      const response = await returnedItemsApi.getReturnedItems(params) as any;
 
       if (response.success || response.data) {
         // Backend returns: { success: true, data: [...], total, page, limit, totalPages }
@@ -125,9 +119,9 @@ export default function ReturnToCabinetReportPage() {
       toast.info(`กำลังสร้างรายงาน ${format.toUpperCase()}...`);
 
       if (format === 'excel') {
-        await vendingReportsApi.downloadReturnToCabinetReportExcel(params);
+        await returnedItemsApi.downloadReturnToCabinetReportExcel(params);
       } else {
-        await vendingReportsApi.downloadReturnToCabinetReportPdf(params);
+        await returnedItemsApi.downloadReturnToCabinetReportPdf(params);
       }
 
       toast.success(`กำลังดาวน์โหลดรายงาน ${format.toUpperCase()}`);
@@ -199,7 +193,6 @@ export default function ReturnToCabinetReportPage() {
           onSearch={handleSearch}
           onClear={handleClearSearch}
           onRefresh={() => fetchReturnedList(currentPage)}
-          itemTypes={getItemTypes()}
           loading={loadingList}
         />
 

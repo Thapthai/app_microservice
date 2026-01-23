@@ -441,8 +441,7 @@ export class GatewayApiService {
   }
 
   async getDispensedItems(filters?: {
-    itemCode?: string;
-    itemTypeId?: number;
+    keyword?: string;
     startDate?: string;
     endDate?: string;
     page?: number;

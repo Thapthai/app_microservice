@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+// import { medicalSuppliesApi } from '@/lib/api';
 import { DispensedItemsApi } from '@/lib/staffApi/dispensedItemsApi';
 import { toast } from 'sonner';
 import { Package } from 'lucide-react';
@@ -9,18 +10,28 @@ import FilterSection from './components/FilterSection';
 import DispensedTable from './components/DispensedTable';
 import type { DispensedItem, FilterState, SummaryData } from './types';
 
+// Helper function to get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function DispenseFromCabinetPage() {
-  const { user } = useAuth();
+
   const [loadingList, setLoadingList] = useState(true);
   const [dispensedList, setDispensedList] = useState<DispensedItem[]>([]);
 
   // Filters
   const [filters, setFilters] = useState<FilterState>({
     searchItemCode: '',
-    startDate: '',
-    endDate: '',
+    startDate: getTodayDate(),
+    endDate: getTodayDate(),
     itemTypeFilter: 'all',
   });
+
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,25 +39,22 @@ export default function DispenseFromCabinetPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
+
   useEffect(() => {
-    // if (user?.id) {
-      fetchDispensedList();
-    // }
+    fetchDispensedList();
   }, []);
 
-  const fetchDispensedList = async (page: number = 1) => {
+  const fetchDispensedList = async (page: number = 1, customFilters?: FilterState) => {
     try {
       setLoadingList(true);
+      const activeFilters = customFilters || filters;
       const params: any = {
         page,
         limit: itemsPerPage,
       };
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
-      if (filters.searchItemCode) params.itemCode = filters.searchItemCode;
-      if (filters.itemTypeFilter && filters.itemTypeFilter !== 'all') {
-        params.itemTypeId = parseInt(filters.itemTypeFilter);
-      }
+      if (activeFilters.startDate) params.startDate = activeFilters.startDate;
+      if (activeFilters.endDate) params.endDate = activeFilters.endDate;
+      if (activeFilters.searchItemCode) params.keyword = activeFilters.searchItemCode;
 
       const response = await DispensedItemsApi.getDispensedItems(params);
 
@@ -85,14 +93,15 @@ export default function DispenseFromCabinetPage() {
   };
 
   const handleClearSearch = () => {
-    setFilters({
+    const clearedFilters: FilterState = {
       searchItemCode: '',
-      startDate: '',
-      endDate: '',
+      startDate: getTodayDate(),
+      endDate: getTodayDate(),
       itemTypeFilter: 'all',
-    });
+    };
+    setFilters(clearedFilters);
     setCurrentPage(1);
-    fetchDispensedList(1);
+    fetchDispensedList(1, clearedFilters);
   };
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
@@ -181,7 +190,6 @@ export default function DispenseFromCabinetPage() {
           onSearch={handleSearch}
           onClear={handleClearSearch}
           onRefresh={() => fetchDispensedList(currentPage)}
-          itemTypes={getItemTypes()}
           loading={loadingList}
         />
 

@@ -414,10 +414,11 @@ export const medicalSuppliesApi = {
 
   // Item Comparison APIs
   getDispensedItems: async (query?: {
-    itemCode?: string;
-    itemTypeId?: number;
+    keyword?: string;
     startDate?: string;
     endDate?: string;
+    page?: number;
+    limit?: number;
   }): Promise<ApiResponse<any>> => {
     const response = await api.get('/medical-supplies-dispensed-items', { params: query });
     return response.data;

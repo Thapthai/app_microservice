@@ -45,19 +45,17 @@ export default function DispenseFromCabinetPage() {
     }
   }, [user?.id]);
 
-  const fetchDispensedList = async (page: number = 1) => {
+  const fetchDispensedList = async (page: number = 1, customFilters?: FilterState) => {
     try {
       setLoadingList(true);
+      const activeFilters = customFilters || filters;
       const params: any = {
         page,
         limit: itemsPerPage,
       };
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
-      if (filters.searchItemCode) params.itemCode = filters.searchItemCode;
-      if (filters.itemTypeFilter && filters.itemTypeFilter !== 'all') {
-        params.itemTypeId = parseInt(filters.itemTypeFilter);
-      }
+      if (activeFilters.startDate) params.startDate = activeFilters.startDate;
+      if (activeFilters.endDate) params.endDate = activeFilters.endDate;
+      if (activeFilters.searchItemCode) params.keyword = activeFilters.searchItemCode;
 
       const response = await medicalSuppliesApi.getDispensedItems(params);
       
@@ -96,14 +94,15 @@ export default function DispenseFromCabinetPage() {
   };
 
   const handleClearSearch = () => {
-    setFilters({
+    const clearedFilters: FilterState = {
       searchItemCode: '',
       startDate: getTodayDate(),
       endDate: getTodayDate(),
       itemTypeFilter: 'all',
-    });
+    };
+    setFilters(clearedFilters);
     setCurrentPage(1);
-    fetchDispensedList(1);
+    fetchDispensedList(1, clearedFilters);
   };
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
@@ -193,7 +192,6 @@ export default function DispenseFromCabinetPage() {
             onSearch={handleSearch}
             onClear={handleClearSearch}
             onRefresh={() => fetchDispensedList(currentPage)}
-            itemTypes={getItemTypes()}
             loading={loadingList}
           />
 

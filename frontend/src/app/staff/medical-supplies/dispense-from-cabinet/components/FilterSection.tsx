@@ -2,7 +2,6 @@ import { Search, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FilterState } from '../types';
 
 interface FilterSectionProps {
@@ -11,7 +10,6 @@ interface FilterSectionProps {
   onSearch: () => void;
   onClear: () => void;
   onRefresh: () => void;
-  itemTypes: Array<{ id: string; name: string }>;
   loading: boolean;
 }
 
@@ -21,7 +19,6 @@ export default function FilterSection({
   onSearch,
   onClear,
   onRefresh,
-  itemTypes,
   loading,
 }: FilterSectionProps) {
   return (
@@ -33,7 +30,7 @@ export default function FilterSection({
       <CardContent>
         <div className="space-y-6">
           {/* Row 1: Search and Item Type */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 ">
             {/* Search by Item Code */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">รหัส/ชื่อเวชภัณฑ์</label>
@@ -46,23 +43,6 @@ export default function FilterSection({
               />
             </div>
 
-            {/* Item Type Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">ประเภทเวชภัณฑ์</label>
-              <Select value={filters.itemTypeFilter} onValueChange={(value) => onFilterChange('itemTypeFilter', value)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="ทั้งหมด" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทั้งหมด</SelectItem>
-                  {itemTypes.map(type => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           {/* Row 2: Date Range */}

@@ -78,16 +78,16 @@ export const staffMenuItems = [
                 icon: Package,
             },
             {
-                name: 'บันทึกใช้อุปกรณ์กับคนไข้',
-                href: '/staff/medical-supplies/usage-record',
-                description: 'บันทึกใช้อุปกรณ์กับคนไข้ จากตู้ SmartCabinet',
-                icon: History,
-            },
-            {
                 name: 'รายงานเบิกอุปกรณ์จากตู้',
                 href: '/staff/medical-supplies/dispense-from-cabinet',
                 description: 'รายงานการเบิกอุปกรณ์จากตู้ SmartCabinet',
                 icon: FileBarChart,
+            },
+            {
+                name: 'บันทึกใช้อุปกรณ์กับคนไข้',
+                href: '/staff/medical-supplies/usage-record',
+                description: 'บันทึกใช้อุปกรณ์กับคนไข้ จากตู้ SmartCabinet',
+                icon: History,
             },
             {
                 name: 'รายงานเติมอุปกรณ์จากตู้',

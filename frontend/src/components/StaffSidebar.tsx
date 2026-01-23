@@ -169,7 +169,7 @@ export default function StaffSidebar({ staffUser, onLogout, isAdmin = false }: S
           </div>
 
           {/* User Info */}
-          {staffUser && !isCollapsed && (
+          {/* {staffUser && !isCollapsed && (
             <div className="px-4 py-4 border-b border-slate-700/50 bg-slate-800/40">
               <div className="flex items-center space-x-3">
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-slate-700/50 flex-shrink-0">
@@ -194,7 +194,7 @@ export default function StaffSidebar({ staffUser, onLogout, isAdmin = false }: S
                 </div>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* User Avatar when collapsed */}
           {staffUser && isCollapsed && (

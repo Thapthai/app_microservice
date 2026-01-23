@@ -226,8 +226,7 @@ export class MedicalSuppliesServiceController {
 
   @MessagePattern({ cmd: 'medical_supply.getDispensedItems' })
   async getDispensedItems(@Payload() data: {
-    itemCode?: string;
-    itemTypeId?: number;
+    keyword?: string;
     startDate?: string;
     endDate?: string;
     page?: number;

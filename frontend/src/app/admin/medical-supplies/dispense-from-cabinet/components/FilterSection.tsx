@@ -2,7 +2,6 @@ import { Search, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FilterState } from '../types';
 
 interface FilterSectionProps {
@@ -11,7 +10,6 @@ interface FilterSectionProps {
   onSearch: () => void;
   onClear: () => void;
   onRefresh: () => void;
-  itemTypes: Array<{ id: string; name: string }>;
   loading: boolean;
 }
 
@@ -21,7 +19,6 @@ export default function FilterSection({
   onSearch,
   onClear,
   onRefresh,
-  itemTypes,
   loading,
 }: FilterSectionProps) {
   return (
