@@ -3,6 +3,24 @@ import * as PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ReturnToCabinetReportData } from './return-to-cabinet-report-excel.service';
+import { ReportConfig } from '../config/report.config';
+
+function formatReportDate(value?: string) {
+  if (!value) return '-';
+
+  // If backend serializes a Bangkok-local DATETIME as UTC (ending with 'Z'),
+  // compensate by shifting back 7 hours, then format in ReportConfig.timezone.
+  const base = new Date(value);
+  const corrected =
+    typeof value === 'string' && value.endsWith('Z')
+      ? new Date(base.getTime() - 7 * 60 * 60 * 1000)
+      : base;
+
+  return corrected.toLocaleDateString(ReportConfig.locale, {
+    timeZone: ReportConfig.timezone,
+    ...ReportConfig.dateFormat.date,
+  });
+}
 
 @Injectable()
 export class ReturnToCabinetReportPdfService {
@@ -97,11 +115,11 @@ export class ReturnToCabinetReportPdfService {
           doc.y = headerTop + 35;
 
           // Filters Box
-          if (data.filters && (data.filters.itemCode || data.filters.itemTypeId || data.filters.startDate || data.filters.endDate)) {
+          if (data.filters && (data.filters.keyword || data.filters.itemTypeId || data.filters.startDate || data.filters.endDate)) {
             const filterBoxY = doc.y;
             const filterBoxPadding = 10;
             const filterHeaderHeight = 20;
-            const filterBoxHeight = 60;
+            const filterBoxHeight = 40;
             doc.rect(35, filterBoxY, doc.page.width - 70, filterBoxHeight)
                .fillAndStroke('#F8F9FA', '#E0E0E0');
             
@@ -118,8 +136,8 @@ export class ReturnToCabinetReportPdfService {
                .fillColor('#000000');
             
             let filterY = filterBoxY + filterHeaderHeight + 5;
-            if (data.filters.itemCode) {
-              doc.text(`รหัสอุปกรณ์: ${data.filters.itemCode}`, 35 + filterBoxPadding, filterY);
+            if (data.filters.keyword) {
+              doc.text(`คำค้นหา: ${data.filters.keyword}`, 35 + filterBoxPadding, filterY);
               filterY += 12;
             }
             if (data.filters.itemTypeId) {
@@ -137,7 +155,7 @@ export class ReturnToCabinetReportPdfService {
           const summaryBoxY = doc.y;
           const summaryBoxPadding = 10;
           const summaryHeaderHeight = 20;
-          const summaryBoxHeight = 40;
+          const summaryBoxHeight = 60;
           doc.rect(35, summaryBoxY, doc.page.width - 70, summaryBoxHeight)
              .fillAndStroke('#E8F5E9', '#C8E6C9');
           
@@ -151,8 +169,8 @@ export class ReturnToCabinetReportPdfService {
           
           doc.fontSize(10)
              .font(finalFontName)
-             .fillColor('#000000')
-             .text(`จำนวนรายการทั้งหมด: ${data.summary.total_records}`, 35 + summaryBoxPadding, summaryBoxY + summaryHeaderHeight + 5)
+             .fillColor('#000000');
+          doc.text(`จำนวนรายการทั้งหมด: ${data.summary.total_records}`, 35 + summaryBoxPadding, summaryBoxY + summaryHeaderHeight + 5)
              .text(`จำนวนรวม: ${data.summary.total_qty}`, 35 + summaryBoxPadding, summaryBoxY + summaryHeaderHeight + 17);
           
           doc.y = summaryBoxY + summaryBoxHeight + 20;
@@ -161,8 +179,19 @@ export class ReturnToCabinetReportPdfService {
           const tableTop = doc.y;
           const itemHeight = 20;
           const cellPadding = 5;
-          const headers = ['RowID', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่แก้ไข', 'จำนวน', 'RFID Code', 'StockID'];
-          const colWidths = [50, 80, 120, 80, 50, 100, 50];
+          const headers = ['RowID', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่แก้ไข', 'ชื่อผู้เบิก', 'RFID Code', 'cabinet'];
+          const totalTableWidth = doc.page.width - 70; // 35 margin on each side
+          
+          // Calculate proportional column widths
+          const colPercentages = [0.08, 0.12, 0.25, 0.15, 0.15, 0.15, 0.10]; // Sum = 1.00
+          const colWidths = colPercentages.map(p => Math.floor(totalTableWidth * p));
+          
+          // Adjust last column to fill remaining width
+          const totalCalculated = colWidths.reduce((sum, w) => sum + w, 0);
+          const remaining = totalTableWidth - totalCalculated;
+          if (remaining > 0) {
+            colWidths[colWidths.length - 1] += remaining;
+          }
           
           // Draw header
           doc.fontSize(9).font(finalFontBoldName);
@@ -182,7 +211,7 @@ export class ReturnToCabinetReportPdfService {
 
           data.data.forEach((item, index) => {
             if (yPos > doc.page.height - 120) {
-              doc.addPage({ layout: 'portrait', margin: 35 });
+              doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
               
               doc.fontSize(9).font(finalFontBoldName);
               let xPosHeader = 35;
@@ -201,10 +230,10 @@ export class ReturnToCabinetReportPdfService {
               item.RowID?.toString() || '-',
               item.itemcode || '-',
               item.itemname || '-',
-              item.modifyDate ? new Date(item.modifyDate).toLocaleDateString('th-TH') : '-',
-              item.qty?.toString() || '0',
+              formatReportDate(item.modifyDate),
+              (item as any).cabinetUserName || 'ไม่ระบุ',
               item.RfidCode || '-',
-              item.StockID?.toString() || '-',
+              (item as any).cabinetName || '-',
             ];
 
             let xPos = 35;

@@ -1,9 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
+import { ReportConfig } from '../config/report.config';
+
+function formatReportDateTime(value?: string) {
+  if (!value) return '-';
+
+  // If backend serializes a Bangkok-local DATETIME as UTC (ending with 'Z'),
+  // compensate by shifting back 7 hours, then format in ReportConfig.timezone.
+  const base = new Date(value);
+  const corrected =
+    typeof value === 'string' && value.endsWith('Z')
+      ? new Date(base.getTime() - 7 * 60 * 60 * 1000)
+      : base;
+
+  return corrected.toLocaleString(ReportConfig.locale, {
+    timeZone: ReportConfig.timezone,
+    ...ReportConfig.dateFormat.datetime,
+  });
+}
 
 export interface ReturnToCabinetReportData {
   filters?: {
-    itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
@@ -39,7 +57,7 @@ export class ReturnToCabinetReportExcelService {
 
     // Title
     const titleRow = worksheet.addRow(['รายงานคืนอุปกรณ์เข้าตู้']);
-    worksheet.mergeCells('A1:I1');
+    worksheet.mergeCells('A1:H1');
     const titleCell = worksheet.getCell('A1');
     titleCell.font = { name: 'Tahoma', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -49,29 +67,53 @@ export class ReturnToCabinetReportExcelService {
     // Filters
     worksheet.addRow([]);
     const filterRow = worksheet.addRow(['เงื่อนไขการค้นหา']);
-    worksheet.mergeCells('A2:I2');
-    filterRow.height = 20;
-    const filterCell = worksheet.getCell('A2');
+    worksheet.mergeCells('A3:H3');
+    filterRow.height = 22;
+    const filterCell = worksheet.getCell('A3');
     filterCell.font = { name: 'Tahoma', size: 12, bold: true };
     filterCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } };
+    filterCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
     const filters = data.filters || {};
-    worksheet.addRow(['รหัสอุปกรณ์', filters.itemCode || 'ทั้งหมด']);
-    worksheet.addRow(['ประเภทอุปกรณ์', filters.itemTypeId ? `ID: ${filters.itemTypeId}` : 'ทั้งหมด']);
-    worksheet.addRow(['วันที่เริ่มต้น', filters.startDate || 'ทั้งหมด']);
-    worksheet.addRow(['วันที่สิ้นสุด', filters.endDate || 'ทั้งหมด']);
+    const filterRow1 = worksheet.addRow(['คำค้นหา', filters.keyword || 'ทั้งหมด']);
+    filterRow1.height = 18;
+    worksheet.getCell('A4').font = { name: 'Tahoma', size: 10, bold: true };
+    worksheet.getCell('B4').font = { name: 'Tahoma', size: 10 };
+    
+    const filterRow2 = worksheet.addRow(['ประเภทอุปกรณ์', filters.itemTypeId ? `ID: ${filters.itemTypeId}` : 'ทั้งหมด']);
+    filterRow2.height = 18;
+    worksheet.getCell('A5').font = { name: 'Tahoma', size: 10, bold: true };
+    worksheet.getCell('B5').font = { name: 'Tahoma', size: 10 };
+    
+    const filterRow3 = worksheet.addRow(['วันที่เริ่มต้น', filters.startDate || 'ทั้งหมด']);
+    filterRow3.height = 18;
+    worksheet.getCell('A6').font = { name: 'Tahoma', size: 10, bold: true };
+    worksheet.getCell('B6').font = { name: 'Tahoma', size: 10 };
+    
+    const filterRow4 = worksheet.addRow(['วันที่สิ้นสุด', filters.endDate || 'ทั้งหมด']);
+    filterRow4.height = 18;
+    worksheet.getCell('A7').font = { name: 'Tahoma', size: 10, bold: true };
+    worksheet.getCell('B7').font = { name: 'Tahoma', size: 10 };
 
     // Summary
     worksheet.addRow([]);
     const summaryRow = worksheet.addRow(['สรุปผล']);
-    worksheet.mergeCells('A7:I7');
-    summaryRow.height = 20;
-    const summaryCell = worksheet.getCell('A7');
+    worksheet.mergeCells('A9:H9');
+    summaryRow.height = 22;
+    const summaryCell = worksheet.getCell('A9');
     summaryCell.font = { name: 'Tahoma', size: 12, bold: true };
     summaryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } };
+    summaryCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
-    worksheet.addRow(['จำนวนรายการทั้งหมด', data.summary.total_records]);
-    worksheet.addRow(['จำนวนรวม', data.summary.total_qty]);
+    const summaryRow1 = worksheet.addRow(['จำนวนรายการทั้งหมด', data.summary.total_records]);
+    summaryRow1.height = 18;
+    worksheet.getCell('A10').font = { name: 'Tahoma', size: 10, bold: true };
+    worksheet.getCell('B10').font = { name: 'Tahoma', size: 10 };
+    
+    const summaryRow2 = worksheet.addRow(['จำนวนรวม', data.summary.total_qty]);
+    summaryRow2.height = 18;
+    worksheet.getCell('A11').font = { name: 'Tahoma', size: 10, bold: true };
+    worksheet.getCell('B11').font = { name: 'Tahoma', size: 10 };
 
     worksheet.addRow([]);
 
@@ -81,10 +123,9 @@ export class ReturnToCabinetReportExcelService {
       'รหัสอุปกรณ์',
       'ชื่ออุปกรณ์',
       'วันที่แก้ไขล่าสุด',
-      'จำนวน',
-      'ประเภท',
+      'ชื่อผู้เบิก',
       'RFID Code',
-      'StockID',
+      'cabinet',
       'สถานะ RFID',
     ]);
     headerRow.eachCell((cell) => {
@@ -106,17 +147,17 @@ export class ReturnToCabinetReportExcelService {
         item.RowID,
         item.itemcode,
         item.itemname,
-        item.modifyDate ? new Date(item.modifyDate) : '-',
-        item.qty,
-        item.itemType || '-',
+        formatReportDateTime(item.modifyDate),
+        (item as any).cabinetUserName || 'ไม่ระบุ',
         item.RfidCode || '-',
-        item.StockID,
+        (item as any).cabinetName || '-',
         item.Istatus_rfid || '-',
       ]);
+      row.height = 20;
       row.eachCell((cell, colNumber) => {
         cell.font = { name: 'Tahoma', size: 11 };
         cell.alignment = {
-          horizontal: colNumber === 3 ? 'left' : 'center',
+          horizontal: colNumber === 3 || colNumber === 5 ? 'left' : 'center',
           vertical: 'middle',
         };
         cell.border = {
@@ -128,16 +169,15 @@ export class ReturnToCabinetReportExcelService {
       });
     });
 
-    // Set column widths
-    worksheet.getColumn(1).width = 10;
-    worksheet.getColumn(2).width = 15;
-    worksheet.getColumn(3).width = 30;
-    worksheet.getColumn(4).width = 20;
-    worksheet.getColumn(5).width = 10;
-    worksheet.getColumn(6).width = 20;
-    worksheet.getColumn(7).width = 20;
-    worksheet.getColumn(8).width = 10;
-    worksheet.getColumn(9).width = 15;
+    // Set column widths with better spacing
+    worksheet.getColumn(1).width = 12;  // RowID
+    worksheet.getColumn(2).width = 18;  // รหัสอุปกรณ์
+    worksheet.getColumn(3).width = 35;   // ชื่ออุปกรณ์
+    worksheet.getColumn(4).width = 22;   // วันที่แก้ไขล่าสุด
+    worksheet.getColumn(5).width = 22;   // ชื่อผู้เบิก
+    worksheet.getColumn(6).width = 22;   // RFID Code
+    worksheet.getColumn(7).width = 20;   // cabinet
+    worksheet.getColumn(8).width = 18;   // สถานะ RFID
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);

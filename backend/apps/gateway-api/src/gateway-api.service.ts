@@ -308,8 +308,7 @@ export class GatewayApiService {
   }
 
   async getReturnedItems(filters?: {
-    itemCode?: string;
-    itemTypeId?: number;
+    keyword?: string;
     startDate?: string;
     endDate?: string;
     page?: number;
@@ -826,7 +825,7 @@ export class GatewayApiService {
   }
 
   async generateReturnToCabinetReportExcel(params: {
-    itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
@@ -837,7 +836,7 @@ export class GatewayApiService {
   }
 
   async generateReturnToCabinetReportPdf(params: {
-    itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;

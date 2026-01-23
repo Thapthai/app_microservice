@@ -11,6 +11,15 @@ import FilterSection from './components/FilterSection';
 import DispensedTable from './components/DispensedTable';
 import type { DispensedItem, FilterState, SummaryData } from './types';
 
+// Helper function to get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function DispenseFromCabinetPage() {
   const { user } = useAuth();
   const [loadingList, setLoadingList] = useState(true);
@@ -19,8 +28,8 @@ export default function DispenseFromCabinetPage() {
   // Filters
   const [filters, setFilters] = useState<FilterState>({
     searchItemCode: '',
-    startDate: '',
-    endDate: '',
+    startDate: getTodayDate(),
+    endDate: getTodayDate(),
     itemTypeFilter: 'all',
   });
 
@@ -89,8 +98,8 @@ export default function DispenseFromCabinetPage() {
   const handleClearSearch = () => {
     setFilters({
       searchItemCode: '',
-      startDate: '',
-      endDate: '',
+      startDate: getTodayDate(),
+      endDate: getTodayDate(),
       itemTypeFilter: 'all',
     });
     setCurrentPage(1);

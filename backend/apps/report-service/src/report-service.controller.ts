@@ -480,7 +480,7 @@ export class ReportServiceController {
   // Generate Return To Cabinet Report Excel
   @MessagePattern({ cmd: 'report.return_to_cabinet.excel' })
   async generateReturnToCabinetReportExcel(@Payload() data: {
-    itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
@@ -504,7 +504,7 @@ export class ReportServiceController {
   // Generate Return To Cabinet Report PDF
   @MessagePattern({ cmd: 'report.return_to_cabinet.pdf' })
   async generateReturnToCabinetReportPdf(@Payload() data: {
-    itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;

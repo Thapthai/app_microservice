@@ -1,33 +1,12 @@
-import { Download, RefreshCw, RotateCcw } from 'lucide-react';
+import { Download, RefreshCw, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import DispensedPagination from '../../dispense-from-cabinet/components/DispensedPagination';
-import type { DispensedItem } from '../../dispense-from-cabinet/types';
+import DispensedPagination from './DispensedPagination';
+import type { DispensedItem } from '../types';
 
-function formatBangkokDateTime(value?: string) {
-  if (!value) return '-';
-
-  // If backend serializes a Bangkok-local DATETIME as UTC (ending with 'Z'),
-  // compensate by shifting back 7 hours, then format in Asia/Bangkok.
-  const base = new Date(value);
-  const corrected =
-    typeof value === 'string' && value.endsWith('Z')
-      ? new Date(base.getTime() - 7 * 60 * 60 * 1000)
-      : base;
-
-  return corrected.toLocaleString('th-TH', {
-    timeZone: 'Asia/Bangkok',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-interface ReturnedTableProps {
+interface DispensedTableProps {
   loading: boolean;
   items: DispensedItem[];
   currentPage: number;
@@ -41,7 +20,7 @@ interface ReturnedTableProps {
   onExportPdf: () => void;
 }
 
-export default function ReturnedTable({
+export default function DispensedTable({
   loading,
   items,
   currentPage,
@@ -53,15 +32,15 @@ export default function ReturnedTable({
   onPageChange,
   onExportExcel,
   onExportPdf,
-}: ReturnedTableProps) {
+}: DispensedTableProps) {
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>รายการคืนอุปกรณ์เข้าตู้</CardTitle>
+            <CardTitle>รายการเบิกอุปกรณ์จากตู้</CardTitle>
             <CardDescription>
-              รายการอุปกรณ์ทั้งหมดที่คืนเข้าตู้ SmartCabinet
+              รายการอุปกรณ์ทั้งหมดที่เบิกจากตู้ SmartCabinet
               {(searchItemCode || itemTypeFilter !== 'all') && ' (กรองแล้ว)'}
             </CardDescription>
           </div>
@@ -93,8 +72,8 @@ export default function ReturnedTable({
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-12">
-            <RotateCcw className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">ไม่พบรายการคืนอุปกรณ์เข้าตู้</p>
+            <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">ไม่พบรายการเบิกอุปกรณ์</p>
             <p className="text-sm text-gray-400 mt-2">กรุณาตรวจสอบว่ามีข้อมูลในระบบ</p>
           </div>
         ) : (
@@ -105,25 +84,33 @@ export default function ReturnedTable({
                   <TableRow>
                     <TableHead className="w-[60px]">ลำดับ</TableHead>
                     <TableHead>ชื่ออุปกรณ์</TableHead>
-                    <TableHead>ผู้คืน</TableHead>
-                    <TableHead className="text-right">จำนวนคืน</TableHead>
-                    <TableHead>วันที่คืน</TableHead>
+                    <TableHead>ผู้เบิก</TableHead>
+                    <TableHead className="text-right">จำนวนเบิก</TableHead>
+                    <TableHead>วันที่เบิก</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.map((item, index) => (
                     <TableRow
                       key={item.RowID}
-                      className="hover:bg-green-50 transition-colors"
+                      className="hover:bg-purple-50 transition-colors"
                     >
                       <TableCell className="text-center text-gray-500">
                         {((currentPage - 1) * itemsPerPage) + index + 1}
                       </TableCell>
                       <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
                       <TableCell>{item.cabinetUserName || 'ไม่ระบุ'}</TableCell>
-                      <TableCell className="text-right font-medium">{item.qty || 0}</TableCell>
+                      <TableCell className="text-right font-medium">{item.qty}</TableCell>
                       <TableCell>
-                        {formatBangkokDateTime(item.modifyDate)}
+                        {item.modifyDate
+                          ? new Date(item.modifyDate).toLocaleDateString('th-TH', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : '-'}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { FilterState } from '../types';
+import type { FilterState } from '../types.ts';
 
 interface FilterSectionProps {
   filters: FilterState;
@@ -21,7 +21,6 @@ export default function FilterSection({
   onSearch,
   onClear,
   onRefresh,
-  itemTypes,
   loading,
 }: FilterSectionProps) {
   return (

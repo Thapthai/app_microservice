@@ -1354,8 +1354,7 @@ export class GatewayApiController {
   @Get('medical-supply-items/returned-items')
   @UseGuards(FlexibleAuthGuard)
   async getReturnedItems(
-    @Query('itemCode') itemCode?: string,
-    @Query('itemTypeId') itemTypeId?: string,
+    @Query('keyword') keyword?: string, 
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('page') page?: string,
@@ -1363,8 +1362,7 @@ export class GatewayApiController {
   ) {
     try {
       const filters: any = {};
-      if (itemCode) filters.itemCode = itemCode;
-      if (itemTypeId) filters.itemTypeId = parseInt(itemTypeId, 10);
+      if (keyword) filters.keyword = keyword;
       if (startDate) filters.startDate = startDate;
       if (endDate) filters.endDate = endDate;
       if (page) filters.page = parseInt(page, 10);
@@ -2287,14 +2285,14 @@ export class GatewayApiController {
   @UseGuards(FlexibleAuthGuard)
   async exportReturnToCabinetReportExcel(
     @Res() res: any,
-    @Query('itemCode') itemCode?: string,
+    @Query('keyword') keyword?: string,
     @Query('itemTypeId') itemTypeId?: number,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
     try {
       const params: any = {};
-      if (itemCode) params.itemCode = itemCode;
+      if (keyword) params.keyword = keyword;
       if (itemTypeId) params.itemTypeId = Number(itemTypeId);
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
@@ -2326,14 +2324,14 @@ export class GatewayApiController {
   @UseGuards(FlexibleAuthGuard)
   async exportReturnToCabinetReportPdf(
     @Res() res: any,
-    @Query('itemCode') itemCode?: string,
+    @Query('keyword') keyword?: string,
     @Query('itemTypeId') itemTypeId?: number,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
     try {
       const params: any = {};
-      if (itemCode) params.itemCode = itemCode;
+      if (keyword) params.keyword = keyword;
       if (itemTypeId) params.itemTypeId = Number(itemTypeId);
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;

@@ -413,8 +413,7 @@ export class MedicalSuppliesServiceController {
 
   @MessagePattern({ cmd: 'medical_supply.getReturnedItems' })
   async getReturnedItems(@Payload() data: {
-    itemCode?: string;
-    itemTypeId?: number;
+    keyword?: string;
     startDate?: string;
     endDate?: string;
     page?: number;

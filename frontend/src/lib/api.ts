@@ -675,13 +675,13 @@ export const vendingReportsApi = {
     link.remove();
   },
   downloadReturnToCabinetReportExcel: async (params?: {
-    itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
   }): Promise<void> => {
     const queryParams = new URLSearchParams();
-    if (params?.itemCode) queryParams.append('itemCode', params.itemCode);
+    if (params?.keyword) queryParams.append('keyword', params.keyword);
     if (params?.itemTypeId) queryParams.append('itemTypeId', params.itemTypeId.toString());
     if (params?.startDate) queryParams.append('startDate', params.startDate);
     if (params?.endDate) queryParams.append('endDate', params.endDate);
@@ -697,13 +697,13 @@ export const vendingReportsApi = {
     link.remove();
   },
   downloadReturnToCabinetReportPdf: async (params?: {
-    itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
   }): Promise<void> => {
     const queryParams = new URLSearchParams();
-    if (params?.itemCode) queryParams.append('itemCode', params.itemCode);
+    if (params?.keyword) queryParams.append('keyword', params.keyword);
     if (params?.itemTypeId) queryParams.append('itemTypeId', params.itemTypeId.toString());
     if (params?.startDate) queryParams.append('startDate', params.startDate);
     if (params?.endDate) queryParams.append('endDate', params.endDate);

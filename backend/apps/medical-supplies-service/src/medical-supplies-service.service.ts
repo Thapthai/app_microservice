@@ -182,7 +182,7 @@ export class MedicalSuppliesServiceService {
       let existingUsage: (Prisma.MedicalSupplyUsageGetPayload<{
         include: { supply_items: true }
       }> | null) = null;
-      
+
       if (episodeNumber && patientHn && firstName && lastname) {
         existingUsage = await this.prisma.medicalSupplyUsage.findFirst({
           where: {
@@ -210,12 +210,12 @@ export class MedicalSuppliesServiceService {
           // Check if this is a discontinue item (both "discontinue" and "discontinued" are valid)
           const itemStatusLower = orderItem.ItemStatus?.toLowerCase() || '';
           const isDiscontinue = itemStatusLower === 'discontinue' || itemStatusLower === 'discontinued';
-          
+
           if (isDiscontinue && orderItem.AssessionNo) {
             // Handle discontinue items separately - find and update existing item with same AssessionNo
             const existingItem = existingUsage.supply_items.find(
               (item) => item.assession_no === orderItem.AssessionNo &&
-                       item.order_item_status?.toLowerCase() !== 'discontinue'
+                item.order_item_status?.toLowerCase() !== 'discontinue'
             );
 
             if (existingItem) {
@@ -368,12 +368,12 @@ export class MedicalSuppliesServiceService {
 
       // Handle Discontinue items: Update existing items with same assession_no in the same episode
       // Only process discontinue items if we haven't already processed them above (when existingUsage was found)
-      const discontinueItems = existingUsage 
+      const discontinueItems = existingUsage
         ? [] // Already processed above, skip here
         : orderItems.filter(item => {
-            const itemStatusLower = item.ItemStatus?.toLowerCase() || '';
-            return (itemStatusLower === 'discontinue' || itemStatusLower === 'discontinued') && item.AssessionNo;
-          });
+          const itemStatusLower = item.ItemStatus?.toLowerCase() || '';
+          return (itemStatusLower === 'discontinue' || itemStatusLower === 'discontinued') && item.AssessionNo;
+        });
 
       if (discontinueItems.length > 0 && episodeNumber) {
         // First, find all medical supply usages for this episode
@@ -2269,8 +2269,7 @@ export class MedicalSuppliesServiceService {
    * Same as getDispensedItems but with StockID = 1 instead of 0
    */
   async getReturnedItems(filters?: {
-    itemCode?: string;
-    itemTypeId?: number;
+    keyword?: string;
     startDate?: string;
     endDate?: string;
     page?: number;
@@ -2278,21 +2277,24 @@ export class MedicalSuppliesServiceService {
   }) {
     try {
       const page = filters?.page || 1;
-      const limit = filters?.limit || 20;
+      const limit = filters?.limit || 10;
       const offset = (page - 1) * limit;
 
       // Build WHERE conditions for raw SQL - Same as getDispensedItems but StockID = 1
       const sqlConditions: Prisma.Sql[] = [
-        Prisma.sql`ist.StockID = 1`,
+        Prisma.sql`ist.StockID != 0`,
         Prisma.sql`ist.RfidCode <> ''`,
       ];
 
-      if (filters?.itemCode) {
-        sqlConditions.push(Prisma.sql`ist.ItemCode = ${filters.itemCode}`);
+      if (filters?.keyword) {
+        // Escape single quotes to prevent SQL injection
+        const escapedKeyword = filters.keyword.replace(/'/g, "''");
+        const keywordPattern = `%${escapedKeyword}%`;
+        sqlConditions.push(
+          Prisma.raw(`(i.itemcode LIKE '${keywordPattern}' OR i.itemname LIKE '${keywordPattern}')`)
+        );
       }
-      if (filters?.itemTypeId) {
-        sqlConditions.push(Prisma.sql`i.itemtypeID = ${filters.itemTypeId}`);
-      }
+
       if (filters?.startDate) {
         sqlConditions.push(Prisma.sql`ist.LastCabinetModify >= ${new Date(filters.startDate)}`);
       }
@@ -2308,7 +2310,6 @@ export class MedicalSuppliesServiceService {
         SELECT COUNT(DISTINCT CONCAT(i.itemcode, '-', ist.LastCabinetModify)) as total
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
-        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
         WHERE ${whereClause}
       `;
       const totalCount = Number(countResult[0]?.total || 0);
@@ -2321,19 +2322,19 @@ export class MedicalSuppliesServiceService {
           i.itemname,
           ist.LastCabinetModify AS modifyDate,
           ist.Qty AS qty,
-          it.TypeName AS itemType,
-          'RFID' AS itemCategory,
           i.itemtypeID,
           ist.RfidCode,
           ist.StockID,
           ist.Istatus_rfid,
           ist.CabinetUserID,
-          COALESCE(u.name, CONCAT(st.fname, ' ', st.lname), 'ไม่ระบุ') AS cabinetUserName
+          COALESCE(CONCAT(employee.FirstName, ' ', employee.LastName), 'ไม่ระบุ') AS cabinetUserName,
+          app_microservice_cabinets.cabinet_name AS cabinetName
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
-        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
-        LEFT JOIN app_microservice_users u ON ist.CabinetUserID = u.id
-        LEFT JOIN app_microservice_staff_users st ON ist.CabinetUserID = st.id
+        LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.user_id
+        LEFT JOIN users ON user_cabinet.user_id = users.ID
+        LEFT JOIN employee ON employee.EmpCode = users.EmpCode
+        LEFT JOIN app_microservice_cabinets on app_microservice_cabinets.stock_id = ist.StockID
         WHERE ${whereClause}
         ORDER BY ist.LastCabinetModify DESC
         LIMIT ${limit}

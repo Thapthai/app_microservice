@@ -1883,7 +1883,7 @@ export class ReportServiceService {
    * Get Returned Items Data (StockID = 1) for report
    */
   async getReturnToCabinetReportData(params: {
-    itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
@@ -1893,7 +1893,7 @@ export class ReportServiceService {
     try {
       const response: any = await firstValueFrom(
         this.medicalSuppliesClient.send(
-          { cmd: 'medical_supply_item.getReturnedItems' },
+          { cmd: 'medical_supply.getReturnedItems' },
           params
         )
       );
@@ -1918,7 +1918,7 @@ export class ReportServiceService {
    * Generate Return To Cabinet Report in Excel format
    */
   async generateReturnToCabinetReportExcel(params: {
-    itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
@@ -1932,7 +1932,7 @@ export class ReportServiceService {
 
       const reportData: ReturnToCabinetReportData = {
         filters: {
-          itemCode: params.itemCode,
+          keyword: params.keyword,
           itemTypeId: params.itemTypeId,
           startDate: params.startDate,
           endDate: params.endDate,
@@ -1959,7 +1959,7 @@ export class ReportServiceService {
    * Generate Return To Cabinet Report in PDF format
    */
   async generateReturnToCabinetReportPdf(params: {
-    itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
@@ -1973,7 +1973,7 @@ export class ReportServiceService {
 
       const reportData: ReturnToCabinetReportData = {
         filters: {
-          itemCode: params.itemCode,
+          keyword: params.keyword,
           itemTypeId: params.itemTypeId,
           startDate: params.startDate,
           endDate: params.endDate,
