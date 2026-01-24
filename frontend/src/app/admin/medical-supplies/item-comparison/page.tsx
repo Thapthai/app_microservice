@@ -53,41 +53,45 @@ export default function ItemComparisonPage() {
     }
   }, [user?.id]);
 
-  const fetchComparisonList = async (page: number = 1) => {
+  const fetchComparisonList = async (page: number = 1, customFilters?: FilterState) => {
     try {
       setLoadingList(true);
+      const activeFilters = customFilters || filters;
       const params: any = {
         page,
         limit: itemsPerPage,
       };
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
-      if (filters.searchItemCode) params.itemCode = filters.searchItemCode;
-      if (filters.itemTypeFilter && filters.itemTypeFilter !== 'all') {
-        params.itemTypeId = parseInt(filters.itemTypeFilter);
+      if (activeFilters.startDate) params.startDate = activeFilters.startDate;
+      if (activeFilters.endDate) params.endDate = activeFilters.endDate;
+      if (activeFilters.searchItemCode) params.keyword = activeFilters.searchItemCode;
+      if (activeFilters.itemTypeFilter && activeFilters.itemTypeFilter !== 'all') {
+        params.itemTypeId = parseInt(activeFilters.itemTypeFilter);
       }
 
       const response = await medicalSuppliesApi.compareDispensedVsUsage(params);
-      
+
       if (response.success || response.data) {
         const responseData: any = response.data || response;
         
-        const comparisonData = responseData.comparison || [];
+        // API now returns { data, pagination, filters }
+        const comparisonData = Array.isArray(responseData) 
+          ? responseData 
+          : (responseData.data || responseData.comparison || []);
         
-        // Handle pagination - support multiple formats
+        // Handle pagination
         let paginationData: any = {};
         if (responseData.pagination) {
           paginationData = {
             page: responseData.pagination.page || page,
             limit: responseData.pagination.limit || itemsPerPage,
-            total: responseData.pagination.total || responseData.summary?.total_items || 0,
-            totalPages: responseData.pagination.totalPages || Math.ceil((responseData.pagination.total || responseData.summary?.total_items || 0) / (responseData.pagination.limit || itemsPerPage))
+            total: responseData.pagination.total || 0,
+            totalPages: responseData.pagination.totalPages || Math.ceil((responseData.pagination.total || 0) / (responseData.pagination.limit || itemsPerPage))
           };
         } else {
-          const totalFromResponse = responseData.total || responseData.summary?.total_items || 0;
-          const limitFromResponse = responseData.limit || responseData.filters?.limit || itemsPerPage;
+          const totalFromResponse = responseData.total || comparisonData.length;
+          const limitFromResponse = responseData.limit || itemsPerPage;
           paginationData = {
-            page: responseData.page || responseData.filters?.page || page,
+            page: responseData.page || page,
             limit: limitFromResponse,
             total: totalFromResponse,
             totalPages: responseData.totalPages || Math.ceil(totalFromResponse / limitFromResponse)
@@ -121,14 +125,15 @@ export default function ItemComparisonPage() {
   };
 
   const handleClearSearch = () => {
-    setFilters({
+    const clearedFilters: FilterState = {
       searchItemCode: '',
       startDate: getTodayDate(),
       endDate: getTodayDate(),
       itemTypeFilter: 'all',
-    });
+    };
+    setFilters(clearedFilters);
     setCurrentPage(1);
-    fetchComparisonList(1);
+    fetchComparisonList(1, clearedFilters);
   };
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {

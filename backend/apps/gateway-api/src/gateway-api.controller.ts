@@ -976,6 +976,7 @@ export class GatewayApiController {
   async compareDispensedVsUsage(
     @Query('itemCode') itemCode?: string,
     @Query('itemTypeId') itemTypeId?: string,
+    @Query('keyword') keyword?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('departmentCode') departmentCode?: string,
@@ -986,6 +987,7 @@ export class GatewayApiController {
       const filters: any = {};
       if (itemCode) filters.itemCode = itemCode;
       if (itemTypeId) filters.itemTypeId = parseInt(itemTypeId, 10);
+      if (keyword) filters.keyword = keyword;
       if (startDate) filters.startDate = startDate;
       if (endDate) filters.endDate = endDate;
       if (departmentCode) filters.departmentCode = departmentCode;
@@ -993,7 +995,7 @@ export class GatewayApiController {
       if (limit) filters.limit = parseInt(limit, 10);
 
       const result = await this.gatewayApiService.compareDispensedVsUsage(filters);
-      return result;
+      return result;  
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to compare dispensed vs usage',
@@ -1352,7 +1354,7 @@ export class GatewayApiController {
   @Get('medical-supply-items/returned-items')
   @UseGuards(FlexibleAuthGuard)
   async getReturnedItems(
-    @Query('keyword') keyword?: string, 
+    @Query('keyword') keyword?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('page') page?: string,
@@ -2454,7 +2456,7 @@ export class GatewayApiController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('keyword') keyword?: string,
-    
+
   ) {
     try {
       return await this.gatewayApiService.getAllCabinets({ page, limit, keyword });

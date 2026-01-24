@@ -453,6 +453,7 @@ export class GatewayApiService {
   async compareDispensedVsUsage(filters?: {
     itemCode?: string;
     itemTypeId?: number;
+    keyword?: string;
     startDate?: string;
     endDate?: string;
     departmentCode?: string;

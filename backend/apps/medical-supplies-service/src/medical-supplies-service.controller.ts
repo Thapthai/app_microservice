@@ -13,7 +13,7 @@ import {
 
 @Controller()
 export class MedicalSuppliesServiceController {
-  constructor(private readonly medicalSuppliesService: MedicalSuppliesServiceService) {}
+  constructor(private readonly medicalSuppliesService: MedicalSuppliesServiceService) { }
 
   @MessagePattern({ cmd: 'medical_supply_usage.create' })
   async create(@Payload() payload: any) {
@@ -255,17 +255,18 @@ export class MedicalSuppliesServiceController {
   async compareDispensedVsUsage(@Payload() data: {
     itemCode?: string;
     itemTypeId?: number;
+    keyword?: string;
     startDate?: string;
     endDate?: string;
     departmentCode?: string;
+    page?: number;
+    limit?: number;
   }) {
     try {
       const result = await this.medicalSuppliesService.compareDispensedVsUsage(data);
       return {
         success: true,
-        summary: result.summary,
-        comparison: result.comparison,
-        filters: result.filters,
+        data: result,
       };
     } catch (error) {
       return {
@@ -274,6 +275,7 @@ export class MedicalSuppliesServiceController {
       };
     }
   }
+  
 
   @MessagePattern({ cmd: 'medical_supply.getUsageByItemCode' })
   async getUsageByItemCode(@Payload() data?: any) {

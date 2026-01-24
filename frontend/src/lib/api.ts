@@ -426,10 +426,13 @@ export const medicalSuppliesApi = {
 
   compareDispensedVsUsage: async (query?: {
     itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
     departmentCode?: string;
+    page?: number;
+    limit?: number;
   }): Promise<ApiResponse<any>> => {
     const response = await api.get('/medical-supplies-comparison', { params: query });
     return response.data;
