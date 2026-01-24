@@ -5,8 +5,7 @@ import { RefreshCw, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { medicalSuppliesApi } from '@/lib/api';
+import { itemComparisonApi } from '@/lib/staffApi/itemComparisonApi';
 import { toast } from 'sonner';
 import { ComparisonPagination } from '../comparison/ComparisonPagination';
 import type { UsageItem } from '../../types';
@@ -50,7 +49,7 @@ export function UsageItemsTable({
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
       
-      const response = await medicalSuppliesApi.getUsageByItemCodeFromItemTable(params) as any;
+      const response = await itemComparisonApi.getUsageByItemCodeFromItemTable(params) as any;
       
       if (response && (response.success || response.data)) {
         const responseItems = Array.isArray(response.data) ? response.data : [];

@@ -1,9 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import AppLayout from '@/components/AppLayout';
 import { toast } from 'sonner';
 import { Package } from 'lucide-react';
 import {
@@ -27,7 +24,7 @@ const getTodayDate = (): string => {
 };
 
 export default function ItemComparisonPage() {
-  const { user } = useAuth();
+  
   const [loadingList, setLoadingList] = useState(true);
   const [selectedItemCode, setSelectedItemCode] = useState<string | null>(null);
   const [comparisonList, setComparisonList] = useState<ComparisonItem[]>([]);
