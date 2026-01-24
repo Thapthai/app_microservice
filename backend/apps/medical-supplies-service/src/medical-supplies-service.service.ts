@@ -2835,7 +2835,7 @@ export class MedicalSuppliesServiceService {
     try {
       // 1. Get Dispensed Items (from itemstock)
       const sqlConditionsDispensed: Prisma.Sql[] = [
-        Prisma.sql`ist.StockID = 0`,
+        // Prisma.sql`ist.StockID = 0`,
         Prisma.sql`ist.RfidCode <> ''`,
       ];
 
@@ -2898,29 +2898,26 @@ export class MedicalSuppliesServiceService {
           SELECT
               i.itemcode,
               i.itemname,
-              SUM(ist.Qty) AS total_dispensed,
+              IFNULL(SUM(ist.Qty), 0) AS total_dispensed,
               COUNT(DISTINCT ist.RfidCode) AS dispensed_records,
               IFNULL(u.total_usage_items, 0) AS total_used,
               i.itemtypeID,
               CASE
-                  WHEN SUM(ist.Qty) = 0 AND IFNULL(u.total_usage_items, 0) > 0
+                  WHEN IFNULL(SUM(ist.Qty), 0) = 0 AND IFNULL(u.total_usage_items, 0) > 0
                       THEN 'USED_WITHOUT_DISPENSE'
 
-                  WHEN SUM(ist.Qty) > 0 AND IFNULL(u.total_usage_items, 0) = 0
+                  WHEN IFNULL(SUM(ist.Qty), 0) > 0 AND IFNULL(u.total_usage_items, 0) = 0
                       THEN 'DISPENSED_NOT_USED'
 
-                  WHEN SUM(ist.Qty) > IFNULL(u.total_usage_items, 0)
+                  WHEN IFNULL(SUM(ist.Qty), 0) > IFNULL(u.total_usage_items, 0)
                       THEN 'DISPENSE_EXCEEDS_USAGE'
 
-                  WHEN SUM(ist.Qty) < IFNULL(u.total_usage_items, 0)
+                  WHEN IFNULL(SUM(ist.Qty), 0) < IFNULL(u.total_usage_items, 0)
                       THEN 'USAGE_EXCEEDS_DISPENSE'
 
                   ELSE 'MATCHED'
               END AS status
           FROM item i
-          LEFT JOIN itemstock ist
-              ON ist.ItemCode = i.itemcode
-              AND ist.StockID = 0
           INNER JOIN (
               SELECT
                   order_item_code,
@@ -2930,6 +2927,9 @@ export class MedicalSuppliesServiceService {
               GROUP BY order_item_code
           ) u
               ON u.order_item_code = i.itemcode
+          LEFT JOIN itemstock ist
+              ON ist.ItemCode = i.itemcode
+              -- AND ist.StockID = 0
           WHERE ${whereClauseDispensed}
           GROUP BY
               i.itemcode,
