@@ -13,4 +13,20 @@ export const itemComparisonApi = {
     const response = await staffApi.get('/medical-supplies-comparison', { params: query });
     return response.data;
   },
+
+  getUsageByItemCodeFromItemTable: async (query?: {
+    itemCode?: string;
+    startDate?: string;
+    endDate?: string;
+    first_name?: string;
+    lastname?: string;
+    assession_no?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const response = await staffApi.get('/medical-supplies-usage-by-item-code', { params: query });
+    return response.data;
+  },
 };
+
+

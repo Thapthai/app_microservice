@@ -7,7 +7,6 @@ import { StatusBadge } from '../common/StatusBadge';
 import { ComparisonPagination } from './ComparisonPagination';
 import { useState, useRef, useEffect } from 'react';
 import { medicalSuppliesApi } from '@/lib/api';
-import { toast } from 'sonner';
 import type { ComparisonItem, UsageItem } from '../../types';
 
 interface ComparisonTableProps {

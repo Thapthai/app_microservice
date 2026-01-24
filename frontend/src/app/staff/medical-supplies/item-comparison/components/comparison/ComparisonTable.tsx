@@ -6,9 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { StatusBadge } from '../common/StatusBadge';
 import { ComparisonPagination } from './ComparisonPagination';
 import { useState, useRef, useEffect } from 'react';
-import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
-import { toast } from 'sonner';
 import type { ComparisonItem, UsageItem } from '../../types';
+import { itemComparisonApi } from '@/lib/staffApi/itemComparisonApi';
 
 interface ComparisonTableProps {
   loading: boolean;
@@ -112,7 +111,7 @@ export function ComparisonTable({
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
-      const response = await staffMedicalSuppliesApi.getUsageByItemCodeFromItemTable(params) as any;
+      const response = await itemComparisonApi.getUsageByItemCodeFromItemTable(params) as any;
 
       if (response && (response.success || response.data)) {
         const responseItems = Array.isArray(response.data) ? response.data : [];
@@ -269,8 +268,6 @@ export function ComparisonTable({
                     <TableHead className="w-[40px] font-bold text-purple-900"></TableHead>
                     <TableHead className="w-[120px] font-bold text-purple-900">รหัสเวชภัณฑ์</TableHead>
                     <TableHead className="font-bold text-purple-900">ชื่อเวชภัณฑ์</TableHead>
-                    {/* <TableHead className="font-bold text-purple-900">วันที่</TableHead> */}
-                    {/* <TableHead className="font-bold text-purple-900">ประเภท</TableHead> */}
                     <TableHead className="text-right font-bold text-purple-900">จำนวนเบิก</TableHead>
                     <TableHead className="text-right font-bold text-purple-900">จำนวนใช้</TableHead>
                     <TableHead className="text-right font-bold text-purple-900">ผลต่าง</TableHead>
@@ -316,20 +313,7 @@ export function ComparisonTable({
                         >
                           {item.itemname || '-'}
                         </TableCell>
-                        {/* <TableCell onClick={() => onSelectItem(item.itemcode)}>
-                          <span className="text-gray-600 text-sm">
-                            {item.first_dispensed && item.last_dispensed
-                              ? `${formatDate(item.first_dispensed)} - ${formatDate(item.last_dispensed)}`
-                              : item.first_used && item.last_used
-                              ? `${formatDate(item.first_used)} - ${formatDate(item.last_used)}`
-                              : '-'}
-                          </span>
-                        </TableCell> */}
-                        {/* <TableCell onClick={() => onSelectItem(item.itemcode)}>
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                            {item.itemTypeName || '-'}
-                          </Badge>
-                        </TableCell> */}
+                        
                         <TableCell
                           className="text-right font-semibold text-gray-900"
                           onClick={() => onSelectItem(item.itemcode)}
@@ -404,9 +388,9 @@ export function ComparisonTable({
                                 {usage.patient_hn}
                               </TableCell>
                               <TableCell className="text-sm text-gray-800">
-                                <span className="font-medium">{usage.patient_name}</span>
+                                {/* <span className="font-medium">{usage.patient_name}</span> */}
                                 {usage.patient_en && (
-                                  <div className="text-xs text-gray-600">{usage.patient_en}</div>
+                                  <div className="text-sm text-gray-800">{usage.patient_en}</div>
                                 )}
                               </TableCell>
                               <TableCell className="text-sm text-gray-600">

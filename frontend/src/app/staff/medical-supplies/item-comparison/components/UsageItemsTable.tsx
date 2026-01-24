@@ -5,25 +5,20 @@ import { RefreshCw, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { medicalSuppliesApi } from '@/lib/api';
+import { itemComparisonApi } from '@/lib/staffApi/itemComparisonApi';
 import { toast } from 'sonner';
-import { ComparisonPagination } from '../comparison/ComparisonPagination';
-import type { UsageItem } from '../../types';
+import ComparisonPagination from './ComparisonPagination';
+import type { UsageItem } from '../types';
 
 interface UsageItemsTableProps {
   itemCode: string;
   itemName: string;
-  startDate?: string;
-  endDate?: string;
   itemsPerPage?: number;
 }
 
-export function UsageItemsTable({
+export default function UsageItemsTable({
   itemCode,
   itemName,
-  startDate,
-  endDate,
   itemsPerPage = 5,
 }: UsageItemsTableProps) {
   const [loading, setLoading] = useState(false);
@@ -41,16 +36,16 @@ export function UsageItemsTable({
     try {
       setLoading(true);
       const params: any = {
-        itemCode: itemCode,
+        itemCode: itemCode, // Use itemCode from item table
         page,
         limit: itemsPerPage,
       };
-
-      // Add date filters if provided
-      if (startDate) params.startDate = startDate;
-      if (endDate) params.endDate = endDate;
       
-      const response = await medicalSuppliesApi.getUsageByItemCodeFromItemTable(params) as any;
+      // Note: Date filters removed as per backend implementation
+      // if (startDate) params.startDate = startDate;
+      // if (endDate) params.endDate = endDate;
+      
+      const response = await itemComparisonApi.getUsageByItemCodeFromItemTable(params) as any;
       
       if (response && (response.success || response.data)) {
         const responseItems = Array.isArray(response.data) ? response.data : [];
@@ -82,7 +77,7 @@ export function UsageItemsTable({
 
   useEffect(() => {
     fetchUsageData(1);
-  }, [itemCode, startDate, endDate]);
+  }, [itemCode]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -154,8 +149,8 @@ export function UsageItemsTable({
                           <Badge variant="outline">{item.department_code || '-'}</Badge>
                         </TableCell>
                         <TableCell>
-                          {item.created_at 
-                            ? new Date(item.created_at).toLocaleDateString('th-TH', {
+                          {item.usage_datetime 
+                            ? new Date(item.usage_datetime).toLocaleDateString('th-TH', {
                                 year: 'numeric',
                                 month: 'short',
                                 day: 'numeric',
@@ -205,13 +200,15 @@ export function UsageItemsTable({
               </Table>
             </div>
 
-            <ComparisonPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              itemsPerPage={itemsPerPage}
-              onPageChange={handlePageChange}
-            />
+            {totalPages > 1 && (
+              <ComparisonPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+              />
+            )}
           </div>
         )}
       </CardContent>

@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import StatusBadge from './StatusBadge';
 import ComparisonPagination from './ComparisonPagination';
 import { useState, useRef, useEffect } from 'react';
-import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
+import { itemComparisonApi } from '@/lib/staffApi/itemComparisonApi';
+import { toast } from 'sonner';
 import type { ComparisonItem, UsageItem } from '../types';
 
 interface ComparisonTableProps {
@@ -27,7 +28,20 @@ interface ComparisonTableProps {
   onExportPdf: () => void;
 }
 
-
+const formatDate = (dateString: string | undefined): string => {
+  if (!dateString) return '';
+  try {
+    // Handle ISO 8601 format (2025-12-23T02:00:12.260Z) or YYYY-MM-DD format
+    const dateOnly = dateString.includes('T') 
+      ? dateString.split('T')[0]  // Extract date part before T
+      : dateString.split(' ')[0];  // Or extract before space
+    
+    const [year, month, day] = dateOnly.split('-');
+    return `${day}/${month}/${year}`;
+  } catch {
+    return dateString;
+  }
+};
 
 export default function ComparisonTable({
   loading,
@@ -70,9 +84,10 @@ export default function ComparisonTable({
     if (loadingUsage.has(itemCode)) {
       return;
     }
+
     try {
       setLoadingUsage(prev => new Set(prev).add(itemCode));
-
+      
       // If fetching page 1, clear existing data first to prevent accumulation
       if (page === 1) {
         setUsageData(prev => {
@@ -93,8 +108,7 @@ export default function ComparisonTable({
         limit: ITEMS_PER_PAGE,
       };
 
-      const response = await staffMedicalSuppliesApi.getUsageByItemCodeFromItemTable(params) as any;
-
+      const response = await itemComparisonApi.compareDispensedVsUsage(params) as any;
 
       if (response && (response.success || response.data)) {
         const responseItems = Array.isArray(response.data) ? response.data : [];
@@ -121,7 +135,6 @@ export default function ComparisonTable({
         }
       }
     } catch (error: any) {
-      console.error('[ComparisonTable] fetchUsageData error', error);
       if (page === 1) {
         setUsageData(prev => new Map(prev).set(itemCode, []));
       }
@@ -136,7 +149,7 @@ export default function ComparisonTable({
 
   const toggleItemExpanded = (itemCode: string) => {
     const newExpanded = new Set(expandedItems);
-
+    
     if (newExpanded.has(itemCode)) {
       // Collapsing - remove from expanded set
       newExpanded.delete(itemCode);
@@ -144,10 +157,10 @@ export default function ComparisonTable({
       // Expanding - add to expanded set
       newExpanded.add(itemCode);
     }
-
+    
     // Update expanded items first (this controls visibility)
     setExpandedItems(newExpanded);
-
+    
     // If collapsing, clean up all associated data
     if (newExpanded.has(itemCode) === false) {
       // Clear usage data
@@ -404,7 +417,7 @@ export default function ComparisonTable({
                                 {(() => {
                                   const status = usage.order_item_status || '-';
                                   const statusLower = status.toLowerCase();
-
+                                  
                                   if (statusLower === 'discontinue') {
                                     return (
                                       <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
