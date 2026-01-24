@@ -2869,23 +2869,30 @@ export class MedicalSuppliesServiceService {
 
       const whereClauseUsage = Prisma.join(sqlConditionsUsage, ' AND ');
 
-      // Get total count first
       const countResult: any[] = await this.prisma.$queryRaw`
-        SELECT COUNT(*) as total
-        FROM itemstock ist
-        INNER JOIN item i ON ist.ItemCode = i.itemcode
-        LEFT JOIN itemtype it ON i.itemtypeID = it.ID
-        INNER JOIN (
-              SELECT
-                  order_item_code,
-                  SUM(qty) AS total_usage_items
-              FROM app_microservice_supply_usage_items
-                WHERE ${whereClauseUsage}
-              GROUP BY order_item_code
-          ) u
-              ON u.order_item_code = i.itemcode
-        WHERE ${whereClauseDispensed}
-      `;
+            SELECT COUNT(DISTINCT x.itemcode) AS total
+              FROM (
+                  SELECT
+                      i.itemcode
+                  FROM item i
+                  INNER JOIN (
+                      SELECT
+                          order_item_code,
+                          SUM(qty) AS total_usage_items
+                      FROM app_microservice_supply_usage_items
+                      WHERE ${whereClauseUsage}
+                      GROUP BY order_item_code
+                  ) u
+                      ON u.order_item_code = i.itemcode
+                  LEFT JOIN itemstock ist
+                      ON ist.ItemCode = i.itemcode
+                  WHERE ${whereClauseDispensed}
+                  GROUP BY
+                      i.itemcode,
+                      i.itemname,
+                      i.itemtypeID
+              ) x
+            `;
 
       // Apply pagination
       const page = filters?.page || 1;
@@ -2940,7 +2947,7 @@ export class MedicalSuppliesServiceService {
           OFFSET ${offset}
           `;
 
- 
+
 
       // Convert BigInt to Number for JSON serialization
       const result = paginatedDispensedItems.map(item => ({
@@ -2952,7 +2959,7 @@ export class MedicalSuppliesServiceService {
         itemType: item.itemType || null,
         itemtypeID: item.itemtypeID ? Number(item.itemtypeID) : null,
       }));
- 
+
       return {
         data: result,
         pagination: {
