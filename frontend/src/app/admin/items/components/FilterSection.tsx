@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -48,12 +48,13 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
   const [cabinets, setCabinets] = useState<Cabinet[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [loadingCabinets, setLoadingCabinets] = useState(false);
+  const hasInitialSearch = useRef(false);
 
   // Form state (local)
   const [formFilters, setFormFilters] = useState({
     searchTerm: "",
-    departmentId: "",
-    cabinetId: "",
+    departmentId: "29",
+    cabinetId: "1",
     statusFilter: "all",
   });
 
@@ -129,10 +130,32 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
     }
   };
 
+  // Load departments on mount
+  useEffect(() => {
+    loadDepartments();
+  }, []);
+
   // Load cabinets when department changes
   useEffect(() => {
     loadCabinetsByDepartment(formFilters.departmentId);
   }, [formFilters.departmentId]);
+
+  // Trigger initial search with default values after cabinets are loaded
+  useEffect(() => {
+    if (
+      !hasInitialSearch.current &&
+      formFilters.departmentId === "29" &&
+      formFilters.cabinetId === "1" &&
+      cabinets.length > 0 &&
+      !loadingCabinets
+    ) {
+      hasInitialSearch.current = true;
+      onSearch({
+        ...formFilters,
+        keyword: formFilters.searchTerm,
+      });
+    }
+  }, [cabinets, loadingCabinets, formFilters, onSearch]);
 
   const handleSearch = () => {
     onSearch({
@@ -144,17 +167,18 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
   const handleReset = () => {
     const defaultFilters = {
       searchTerm: "",
-      departmentId: "",
-      cabinetId: "",
+      departmentId: "29",
+      cabinetId: "1",
       statusFilter: "all",
       keyword: "", // Add keyword to match API
     };
     setFormFilters({
       searchTerm: "",
-      departmentId: "",
-      cabinetId: "",
+      departmentId: "29",
+      cabinetId: "1",
       statusFilter: "all",
     });
+    hasInitialSearch.current = false;
     onSearch(defaultFilters);
   };
 
