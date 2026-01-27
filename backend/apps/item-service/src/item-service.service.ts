@@ -192,19 +192,144 @@ export class ItemServiceService {
         };
       });
 
+      // Apply pagination after filtering
+      const total = itemsWithCount.length;
+      const paginatedItems = itemsWithCount.slice(skip, skip + limit);
+
       return {
         success: true,
-        data: itemsWithCount,
-        total: itemsWithCount.length,
+        data: paginatedItems,
+        total,
         page,
         limit,
-        lastPage: Math.ceil(itemsWithCount.length / limit),
+        lastPage: Math.ceil(total / limit),
       };
 
     } catch (error) {
       return {
         success: false,
         message: 'Failed to fetch items',
+        error: error.message,
+      };
+    }
+  }
+
+  async getItemsStats(cabinet_id?: number, department_id?: number) {
+    try {
+      // Build itemStocks where clause
+      const itemStocksWhere: any = {
+        RfidCode: {
+          not: '',
+        },
+      };
+
+      // Filter by cabinet_id if provided
+      if (cabinet_id) {
+        const cabinet = await this.prisma.cabinet.findUnique({
+          where: { id: cabinet_id },
+          select: { stock_id: true },
+        });
+        if (cabinet?.stock_id) {
+          itemStocksWhere.StockID = cabinet.stock_id;
+        }
+      }
+
+      // Get all items with itemStocks
+      const allItemsQuery = await this.prisma.item.findMany({
+        where: {
+          item_status: 0, // Only active items
+        },
+        select: {
+          itemcode: true,
+          item_status: true,
+          stock_min: true,
+          itemStocks: {
+            where: itemStocksWhere,
+            select: {
+              RowID: true,
+              StockID: true,
+              cabinet: {
+                select: {
+                  id: true,
+                  cabinetDepartments: {
+                    where: department_id ? {
+                      department_id: department_id,
+                      status: 'ACTIVE',
+                    } : undefined,
+                    select: {
+                      id: true,
+                      department_id: true,
+                      status: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Filter items that have itemStocks matching the criteria
+      const filteredItems = allItemsQuery.filter((item: any) => {
+        if (!item.itemStocks || item.itemStocks.length === 0) {
+          return false;
+        }
+
+        // If department_id is provided, check if at least one itemStock has cabinet with that department
+        if (department_id) {
+          return item.itemStocks.some((stock: any) =>
+            stock.cabinet?.cabinetDepartments &&
+            stock.cabinet.cabinetDepartments.length > 0
+          );
+        }
+
+        return true;
+      });
+
+      // Calculate stats
+      let totalItems = 0;
+      let activeItems = 0;
+      let inactiveItems = 0;
+      let lowStockItems = 0;
+
+      filteredItems.forEach((item: any) => {
+        // Count itemStocks (only matching ones if department_id provided)
+        let matchingItemStocks = item.itemStocks;
+        if (department_id) {
+          matchingItemStocks = item.itemStocks.filter((stock: any) =>
+            stock.cabinet?.cabinetDepartments &&
+            stock.cabinet.cabinetDepartments.length > 0
+          );
+        }
+
+        const countItemStock = matchingItemStocks.length;
+        const stockMin = item.stock_min ?? 0;
+        const isLowStock = stockMin > 0 && countItemStock < stockMin;
+
+        totalItems++;
+        if (item.item_status === 0) {
+          activeItems++;
+        } else {
+          inactiveItems++;
+        }
+        if (isLowStock) {
+          lowStockItems++;
+        }
+      });
+
+      return {
+        success: true,
+        data: {
+          total_items: totalItems,
+          active_items: activeItems,
+          inactive_items: inactiveItems,
+          low_stock_items: lowStockItems,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch items stats',
         error: error.message,
       };
     }

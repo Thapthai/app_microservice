@@ -69,6 +69,11 @@ export class ItemServiceController {
     return this.itemServiceService.updateItemMinMax(data.itemcode, data.updateMinMaxDto);
   }
 
+  @MessagePattern('item.getStats')
+  async getItemsStats(@Payload() query: { cabinet_id?: number; department_id?: number }) {
+    return this.itemServiceService.getItemsStats(query.cabinet_id, query.department_id);
+  }
+
   @MessagePattern('itemStock.findAll')
   findAllItemStock(@Payload() query: { page?: number; limit?: number; keyword?: string; sort_by?: string; sort_order?: string }) {
     const page = query.page || 1;

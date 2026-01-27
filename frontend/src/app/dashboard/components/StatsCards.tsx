@@ -8,8 +8,8 @@ interface StatsCardsProps {
   stats: {
     totalItems: number;
     activeItems: number;
-    inactiveItems?: number;
-    lowStockItems?: number;
+    inactiveItems: number;
+    lowStockItems: number;
   };
 }
 
@@ -17,10 +17,6 @@ export default function StatsCards({ loading, stats }: StatsCardsProps) {
   if (loading) {
     return <SkeletonStats />;
   }
-
-  const inactiveItems = stats.inactiveItems || (stats.totalItems - stats.activeItems);
-
-  const lowStockCount = stats.lowStockItems || 0;
 
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -37,7 +33,7 @@ export default function StatsCards({ loading, stats }: StatsCardsProps) {
             {stats.totalItems.toLocaleString()}
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            ใช้งาน {stats.activeItems.toLocaleString()} | ไม่ใช้งาน {inactiveItems.toLocaleString()}
+            ใช้งาน {stats.activeItems.toLocaleString()} | ไม่ใช้งาน {stats.inactiveItems.toLocaleString()}
           </p>
         </CardContent>
       </Card>
@@ -72,10 +68,10 @@ export default function StatsCards({ loading, stats }: StatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-slate-900 dark:text-white">
-            {lowStockCount.toLocaleString()}
+            {stats.lowStockItems.toLocaleString()}
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            {lowStockCount > 0 ? 'สต็อกต่ำกว่าระดับขั้นต่ำ' : 'สต็อกเพียงพอทุกรายการ'}
+            {stats.lowStockItems > 0 ? 'สต็อกต่ำกว่าระดับขั้นต่ำ' : 'สต็อกเพียงพอทุกรายการ'}
           </p>
         </CardContent>
       </Card>
@@ -90,7 +86,7 @@ export default function StatsCards({ loading, stats }: StatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-slate-900 dark:text-white">
-            {inactiveItems.toLocaleString()}
+            {stats.inactiveItems.toLocaleString()}
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             ปิดการใช้งานชั่วคราว

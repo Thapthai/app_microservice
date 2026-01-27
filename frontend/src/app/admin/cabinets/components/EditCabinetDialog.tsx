@@ -161,7 +161,7 @@ export default function EditCabinetDialog({
               value={formData.cabinet_status}
               onValueChange={(value) => setFormData({ ...formData, cabinet_status: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="เลือกสถานะ" />
               </SelectTrigger>
               <SelectContent>

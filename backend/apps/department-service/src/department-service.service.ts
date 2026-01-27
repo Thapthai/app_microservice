@@ -181,6 +181,15 @@ export class DepartmentServiceService {
           where,
           skip,
           take: limit,
+          include: {
+            cabinetDepartments: {
+              select: {
+                id: true,
+                department_id: true,
+                status: true,
+              },
+            },
+          },
         }),
         this.prisma.cabinet.count({ where }),
       ]);
@@ -437,7 +446,8 @@ export class DepartmentServiceService {
             select: {
               id: true,
               cabinet_name: true,
-              cabinet_code: true
+              cabinet_code: true,
+              cabinet_status: true,
             },
           },
         },

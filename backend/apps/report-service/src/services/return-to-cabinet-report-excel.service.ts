@@ -119,7 +119,7 @@ export class ReturnToCabinetReportExcelService {
 
     // Headers
     const headerRow = worksheet.addRow([
-      'RowID',
+      'ลำดับ',
       'รหัสอุปกรณ์',
       'ชื่ออุปกรณ์',
       'วันที่แก้ไขล่าสุด',
@@ -142,9 +142,9 @@ export class ReturnToCabinetReportExcelService {
     headerRow.height = 25;
 
     // Data rows
-    data.data.forEach((item) => {
+    data.data.forEach((item, index) => {
       const row = worksheet.addRow([
-        item.RowID,
+        index + 1,
         item.itemcode,
         item.itemname,
         formatReportDateTime(item.modifyDate),
@@ -170,7 +170,7 @@ export class ReturnToCabinetReportExcelService {
     });
 
     // Set column widths with better spacing
-    worksheet.getColumn(1).width = 12;  // RowID
+    worksheet.getColumn(1).width = 12;  // ลำดับ
     worksheet.getColumn(2).width = 18;  // รหัสอุปกรณ์
     worksheet.getColumn(3).width = 35;   // ชื่ออุปกรณ์
     worksheet.getColumn(4).width = 22;   // วันที่แก้ไขล่าสุด

@@ -179,7 +179,7 @@ export class ReturnToCabinetReportPdfService {
           const tableTop = doc.y;
           const itemHeight = 20;
           const cellPadding = 5;
-          const headers = ['RowID', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่แก้ไข', 'ชื่อผู้เบิก', 'RFID Code', 'cabinet'];
+          const headers = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่แก้ไข', 'ชื่อผู้เบิก', 'RFID Code', 'cabinet'];
           const totalTableWidth = doc.page.width - 70; // 35 margin on each side
           
           // Calculate proportional column widths
@@ -227,7 +227,7 @@ export class ReturnToCabinetReportPdfService {
             }
 
             const rowData = [
-              item.RowID?.toString() || '-',
+              (index + 1).toString(),
               item.itemcode || '-',
               item.itemname || '-',
               formatReportDate(item.modifyDate),

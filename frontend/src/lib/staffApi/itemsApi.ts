@@ -1,6 +1,6 @@
 import staffApi from './index';
 import type { Item, CreateItemDto, UpdateItemDto, GetItemsQuery } from '@/types/item';
-import type { ApiResponse, PaginatedResponse } from '@/types/common';
+import type { ApiResponse, PaginatedResponse, ItemsStats } from '@/types/common';
 
 export const staffItemsApi = {
     create: async (data: CreateItemDto): Promise<ApiResponse<Item>> => {
@@ -72,6 +72,11 @@ export const staffItemsApi = {
 
     updateMinMax: async (itemcode: string, data: { stock_min?: number; stock_max?: number }): Promise<ApiResponse<Item>> => {
         const response = await staffApi.patch(`/items/${itemcode}/minmax`, data);
+        return response.data;
+    },
+
+    getStats: async (query?: { cabinet_id?: number; department_id?: number }): Promise<ApiResponse<ItemsStats>> => {
+        const response = await staffApi.get('/items/stats', { params: query });
         return response.data;
     },
 };

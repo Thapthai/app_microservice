@@ -66,6 +66,10 @@ export class GatewayApiService {
     return this.itemClient.send('item.updateMinMax', { itemcode, updateMinMaxDto }).toPromise();
   }
 
+  async getItemsStats(cabinet_id?: number, department_id?: number) {
+    return this.itemClient.send('item.getStats', { cabinet_id, department_id }).toPromise();
+  }
+
   async findAllItemStock(page: number, limit: number, keyword?: string, sortBy?: string, sortOrder?: string) {
     const query = { page, limit, keyword, sort_by: sortBy, sort_order: sortOrder };
     return this.itemClient.send('itemStock.findAll', query).toPromise();

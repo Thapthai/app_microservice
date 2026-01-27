@@ -369,6 +369,24 @@ export class GatewayApiController {
     }
   }
 
+  @Get('items/stats')
+  @UseGuards(FlexibleAuthGuard)
+  async getItemsStats(
+    @Request() req: any,
+    @Query('cabinet_id') cabinet_id?: number,
+    @Query('department_id') department_id?: number,
+  ) {
+    try {
+      const result = await this.gatewayApiService.getItemsStats(cabinet_id, department_id);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.response?.data?.message || error.message || 'Failed to fetch items stats',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get('items')
   @UseGuards(FlexibleAuthGuard)
   async findAllItems(

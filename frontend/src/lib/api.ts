@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { getSession } from 'next-auth/react';
-import type { ApiResponse, PaginatedResponse } from '@/types/common';
+import type { ApiResponse, PaginatedResponse, ItemsStats } from '@/types/common';
 import type { AuthResponse, User, RegisterDto, LoginDto } from '@/types/auth';
 import type { Item, CreateItemDto, UpdateItemDto, GetItemsQuery } from '@/types/item';
 
@@ -178,6 +178,11 @@ export const itemsApi = {
 
   getAll: async (query?: GetItemsQuery): Promise<PaginatedResponse<Item>> => {
     const response = await api.get('/items', { params: query });
+    return response.data;
+  },
+
+  getStats: async (query?: { cabinet_id?: number; department_id?: number }): Promise<ApiResponse<ItemsStats>> => {
+    const response = await api.get('/items/stats', { params: query });
     return response.data;
   },
 

@@ -20,16 +20,24 @@ interface Cabinet {
   id: number;
   cabinet_name?: string;
   cabinet_code?: string;
+  cabinet_status?: string;
+  cabinetDepartments?: Array<{
+    id: number;
+    department_id: number;
+    status: string;
+  }>;
 }
 
 interface CabinetDepartmentMapping {
   id: number;
   cabinet_id: number;
   department_id: number;
+  status?: string;
   cabinet?: {
     id: number;
     cabinet_name?: string;
     cabinet_code?: string;
+    cabinet_status?: string;
   };
 }
 
@@ -89,18 +97,22 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
       });
 
       if (response.success && response.data) {
+        // Extract unique cabinets from mappings (only ACTIVE mappings)
         const mappings = response.data as CabinetDepartmentMapping[];
         const uniqueCabinets = new Map<number, Cabinet>();
 
-        mappings.forEach((mapping) => {
-          if (mapping.cabinet && !uniqueCabinets.has(mapping.cabinet.id)) {
-            uniqueCabinets.set(mapping.cabinet.id, {
-              id: mapping.cabinet.id,
-              cabinet_name: mapping.cabinet.cabinet_name,
-              cabinet_code: mapping.cabinet.cabinet_code,
-            });
-          }
-        });
+        mappings
+          .filter((mapping) => mapping.status === "ACTIVE") // Filter only ACTIVE mappings
+          .forEach((mapping) => {
+            if (mapping.cabinet && !uniqueCabinets.has(mapping.cabinet.id)) {
+              uniqueCabinets.set(mapping.cabinet.id, {
+                id: mapping.cabinet.id,
+                cabinet_name: mapping.cabinet.cabinet_name,
+                cabinet_code: mapping.cabinet.cabinet_code,
+                cabinet_status: mapping.cabinet.cabinet_status,
+              });
+            }
+          });
 
         setCabinets(Array.from(uniqueCabinets.values()));
       } else {
@@ -120,7 +132,17 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
       setLoadingCabinets(true);
       const response = await staffCabinetApi.getAll({ page: 1, limit: 50, keyword });
       if (response.success && response.data) {
-        setCabinets(response.data as Cabinet[]);
+        // Filter cabinets that have at least one ACTIVE cabinetDepartment mapping
+        const allCabinets = response.data as Cabinet[];
+        const filteredCabinets = allCabinets.filter((cabinet) => {
+          // If cabinet has cabinetDepartments, check if any has status === "ACTIVE"
+          if (cabinet.cabinetDepartments && cabinet.cabinetDepartments.length > 0) {
+            return cabinet.cabinetDepartments.some((cd) => cd.status === "ACTIVE");
+          }
+          // If no cabinetDepartments, filter by cabinet_status === "ACTIVE"
+          return cabinet.cabinet_status === "ACTIVE";
+        });
+        setCabinets(filteredCabinets);
       }
     } catch (error) {
       console.error("Failed to load cabinets:", error);

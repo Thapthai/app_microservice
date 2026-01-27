@@ -2175,11 +2175,20 @@ export class MedicalSuppliesServiceService {
           Prisma.raw(`(i.itemcode LIKE '${keywordPattern}' OR i.itemname LIKE '${keywordPattern}')`)
         );
       }
-      if (filters?.startDate) {
-        sqlConditions.push(Prisma.sql`ist.LastCabinetModify >= ${new Date(filters.startDate)}`);
-      }
-      if (filters?.endDate) {
-        sqlConditions.push(Prisma.sql`ist.LastCabinetModify <= ${new Date(filters.endDate)}`);
+      // if (filters?.startDate) {
+      //   sqlConditions.push(Prisma.sql`ist.LastCabinetModify >= ${new Date(filters.startDate)}`);
+      // }
+      // if (filters?.endDate) {
+      //   sqlConditions.push(Prisma.sql`ist.LastCabinetModify <= ${new Date(filters.endDate)}`);
+      // }
+
+
+      if (filters?.startDate && filters?.endDate) {
+
+        sqlConditions.push(
+          Prisma.raw(`(DATE(ist.LastCabinetModify) BETWEEN '${filters.startDate}' AND '${filters.endDate}')`)
+        );
+
       }
 
       // Combine WHERE conditions with AND
@@ -2294,22 +2303,27 @@ export class MedicalSuppliesServiceService {
           Prisma.raw(`(i.itemcode LIKE '${keywordPattern}' OR i.itemname LIKE '${keywordPattern}')`)
         );
       }
+ 
+      if (filters?.startDate && filters?.endDate) {
 
-      if (filters?.startDate) {
-        sqlConditions.push(Prisma.sql`ist.LastCabinetModify >= ${new Date(filters.startDate)}`);
-      }
-      if (filters?.endDate) {
-        sqlConditions.push(Prisma.sql`ist.LastCabinetModify <= ${new Date(filters.endDate)}`);
+        sqlConditions.push(
+          Prisma.raw(`DATE(ist.LastCabinetModify) BETWEEN '${filters.startDate}' AND '${filters.endDate}'`)
+        );
+
       }
 
       // Combine WHERE conditions with AND
       const whereClause = Prisma.join(sqlConditions, ' AND ');
 
-      // Get total count first - Same as getDispensedItems
+      // Get total count first - Same structure as main query
       const countResult: any[] = await this.prisma.$queryRaw`
-        SELECT COUNT(DISTINCT CONCAT(i.itemcode, '-', ist.LastCabinetModify)) as total
+        SELECT count(ist.RowID) as total
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
+        LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.user_id
+        LEFT JOIN users ON user_cabinet.user_id = users.ID
+        LEFT JOIN employee ON employee.EmpCode = users.EmpCode
+        LEFT JOIN app_microservice_cabinets on app_microservice_cabinets.stock_id = ist.StockID
         WHERE ${whereClause}
       `;
       const totalCount = Number(countResult[0]?.total || 0);
@@ -2836,7 +2850,7 @@ export class MedicalSuppliesServiceService {
       // 1. Get Dispensed Items (from itemstock)
       const sqlConditionsDispensed: Prisma.Sql[] = [
         // Prisma.sql`ist.StockID = 0`,
-        Prisma.sql`ist.RfidCode <> ''`,
+        Prisma.sql`RfidCode <> ''`,
       ];
 
       if (filters?.itemCode) {
@@ -2856,7 +2870,7 @@ export class MedicalSuppliesServiceService {
         );
       }
 
-      const whereClauseDispensed = Prisma.join(sqlConditionsDispensed, ' AND ');
+
 
 
       const sqlConditionsUsage: Prisma.Sql[] = [];
@@ -2870,33 +2884,31 @@ export class MedicalSuppliesServiceService {
         sqlConditionsUsage.push(
           Prisma.raw(`(DATE(created_at) BETWEEN '${filters.startDate}' AND '${filters.endDate}')`)
         );
+
+        sqlConditionsDispensed.push(
+          Prisma.raw(`(DATE(LastCabinetModify) BETWEEN '${filters.startDate}' AND '${filters.endDate}')`)
+        );
       }
 
+
+      const whereClauseDispensed = Prisma.join(sqlConditionsDispensed, ' AND ');
       const whereClauseUsage = Prisma.join(sqlConditionsUsage, ' AND ');
 
       const countResult: any[] = await this.prisma.$queryRaw`
             SELECT COUNT(DISTINCT x.itemcode) AS total
               FROM (
-                  SELECT
-                      i.itemcode
-                  FROM item i
-                  INNER JOIN (
-                      SELECT
-                          order_item_code,
-                          SUM(qty) AS total_usage_items
-                      FROM app_microservice_supply_usage_items
-                      WHERE ${whereClauseUsage}
-                      GROUP BY order_item_code
-                  ) u
-                      ON u.order_item_code = i.itemcode
-                  LEFT JOIN itemstock ist
-                      ON ist.ItemCode = i.itemcode
+                  /* เอา itemcode จากทั้ง 2 ฝั่ง */
+                  SELECT ItemCode AS itemcode
+                  FROM itemstock
                   WHERE ${whereClauseDispensed}
-                  GROUP BY
-                      i.itemcode,
-                      i.itemname,
-                      i.itemtypeID
+
+                  UNION
+
+                  SELECT order_item_code AS itemcode
+                  FROM app_microservice_supply_usage_items
+                  WHERE ${whereClauseUsage}
               ) x
+              JOIN item i ON i.itemcode = x.itemcode
             `;
 
       // Apply pagination
@@ -2907,50 +2919,67 @@ export class MedicalSuppliesServiceService {
       const totalPages = Math.ceil(totalItems / limit);
 
       const paginatedDispensedItems: any[] = await this.prisma.$queryRaw`
-          SELECT
-              i.itemcode,
-              i.itemname,
-              IFNULL(SUM(ist.Qty), 0) AS total_dispensed,
-              COUNT(DISTINCT ist.RfidCode) AS dispensed_records,
-              IFNULL(u.total_usage_items, 0) AS total_used,
-              i.itemtypeID,
-              CASE
-                  WHEN IFNULL(SUM(ist.Qty), 0) = 0 AND IFNULL(u.total_usage_items, 0) > 0
-                      THEN 'USED_WITHOUT_DISPENSE'
-
-                  WHEN IFNULL(SUM(ist.Qty), 0) > 0 AND IFNULL(u.total_usage_items, 0) = 0
-                      THEN 'DISPENSED_NOT_USED'
-
-                  WHEN IFNULL(SUM(ist.Qty), 0) > IFNULL(u.total_usage_items, 0)
-                      THEN 'DISPENSE_EXCEEDS_USAGE'
-
-                  WHEN IFNULL(SUM(ist.Qty), 0) < IFNULL(u.total_usage_items, 0)
-                      THEN 'USAGE_EXCEEDS_DISPENSE'
-
-                  ELSE 'MATCHED'
-              END AS status
-          FROM item i
-          INNER JOIN (
               SELECT
-                  order_item_code,
-                  SUM(qty) AS total_usage_items
-              FROM app_microservice_supply_usage_items
-                WHERE ${whereClauseUsage} 
-              GROUP BY order_item_code
-          ) u
-              ON u.order_item_code = i.itemcode
-          LEFT JOIN itemstock ist
-              ON ist.ItemCode = i.itemcode
-              -- AND ist.StockID = 0
-          WHERE ${whereClauseDispensed}
-          GROUP BY
-              i.itemcode,
-              i.itemname,
-              i.itemtypeID
-          ORDER BY i.itemcode
-          LIMIT ${limit}
-          OFFSET ${offset}
-          `;
+                    i.itemcode,
+                    i.itemname,
+                    IFNULL(d.total_dispensed, 0) AS total_dispensed,
+                    IFNULL(d.dispensed_records, 0) AS dispensed_records,
+                    IFNULL(u.total_usage_items, 0) AS total_used,
+                    i.itemtypeID,
+                    CASE
+                        WHEN IFNULL(d.total_dispensed, 0) = 0
+                            AND IFNULL(u.total_usage_items, 0) > 0
+                            THEN 'USED_WITHOUT_DISPENSE'
+
+                        WHEN IFNULL(d.total_dispensed, 0) > 0
+                            AND IFNULL(u.total_usage_items, 0) = 0
+                            THEN 'DISPENSED_NOT_USED'
+
+                        WHEN IFNULL(d.total_dispensed, 0) > IFNULL(u.total_usage_items, 0)
+                            THEN 'DISPENSE_EXCEEDS_USAGE'
+
+                        WHEN IFNULL(d.total_dispensed, 0) < IFNULL(u.total_usage_items, 0)
+                            THEN 'USAGE_EXCEEDS_DISPENSE'
+
+                        ELSE 'MATCHED'
+                    END AS status
+                    FROM (
+                          /* เอา itemcode จากทั้ง 2 ฝั่ง */
+                          SELECT ItemCode AS itemcode
+                          FROM itemstock
+                          WHERE ${whereClauseDispensed}
+
+                          UNION
+
+                          SELECT order_item_code AS itemcode
+                          FROM app_microservice_supply_usage_items
+                          WHERE ${whereClauseUsage}
+                      ) x
+                      JOIN item i ON i.itemcode = x.itemcode
+                      
+                      LEFT JOIN (
+                            SELECT
+                                ItemCode,
+                                SUM(Qty) AS total_dispensed,
+                                COUNT(DISTINCT RfidCode) AS dispensed_records
+                            FROM itemstock
+                            WHERE ${whereClauseDispensed}
+                            GROUP BY ItemCode
+                        ) d ON d.ItemCode = x.itemcode
+
+                        LEFT JOIN (
+                            SELECT
+                                order_item_code,
+                                SUM(qty) AS total_usage_items
+                            FROM app_microservice_supply_usage_items
+                            WHERE ${whereClauseUsage}
+                            GROUP BY order_item_code
+                        ) u ON u.order_item_code = x.itemcode
+
+                        ORDER BY i.itemcode
+                        LIMIT ${limit}
+                        OFFSET ${offset}
+      `;
 
 
 
@@ -2976,256 +3005,7 @@ export class MedicalSuppliesServiceService {
         filters,
       };
 
-      // // 2. Get Usage Records (from medical_supply_usage)
-      // const whereConditionsUsage: any = {};
 
-
-
-      // // Build supply_items where condition - exclude Discontinue items
-      // const supplyItemsWhere: any = {};
-      // if (filters?.itemCode) {
-      //   supplyItemsWhere.supply_code = filters.itemCode;
-      // }
-      // // Exclude Discontinue items from comparison
-      // // Exclude both 'Discontinue' and 'Discontinued' variants (case-insensitive)
-
-      // // Date range filter on supply_items.created_at
-      // if (filters?.startDate && filters?.endDate) {
-
-      //   supplyItemsWhere.created_at = {
-      //     gte: new Date(filters.startDate),
-      //     lte: new Date(new Date(filters.endDate).setHours(23, 59, 59, 999)),
-      //   };
-
-      // }
-
-      // supplyItemsWhere.AND = [
-      //   {
-      //     OR: [
-      //       { order_item_status: null },
-      //       { order_item_status: { notIn: ['Discontinue', 'discontinue', 'Discontinued', 'discontinued'] } },
-      //     ],
-      //   },
-      // ];
-
-      // const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
-      //   where: whereConditionsUsage,
-      //   include: {
-      //     supply_items: {
-      //       where: supplyItemsWhere,
-      //     },
-      //   },
-      // });
-
-      // // Aggregate usage data by itemcode
-      // const usageByItem = new Map<string, any>();
-
-      // for (const usage of usageRecords) {
-      //   for (const item of usage.supply_items) {
-      //     const itemCode = item.supply_code;
-      //     if (!itemCode) continue; // Skip if no supply_code
-
-      //     // Skip items with Discontinue status
-      //     if (item.order_item_status?.toLowerCase() === 'discontinue') {
-      //       continue;
-      //     }
-
-      //     // Filter by itemTypeId if specified
-      //     if (filters?.itemTypeId) {
-      //       const itemInfo = await this.prisma.item.findUnique({
-      //         where: { itemcode: itemCode },
-      //         select: { itemtypeID: true },
-      //       });
-      //       if (itemInfo?.itemtypeID !== filters.itemTypeId) {
-      //         continue;
-      //       }
-      //     }
-
-      //     if (!usageByItem.has(itemCode)) {
-      //       usageByItem.set(itemCode, {
-      //         itemcode: itemCode,
-      //         total_used: 0,
-      //         usage_records: 0,
-      //         first_used: item.created_at,
-      //         last_used: item.created_at,
-      //       });
-      //     }
-
-      //     const existing = usageByItem.get(itemCode)!;
-      //     existing.total_used += item.qty;
-      //     existing.usage_records += 1;
-      //     if (item.created_at < existing.first_used) {
-      //       existing.first_used = item.created_at;
-      //     }
-      //     if (item.created_at > existing.last_used) {
-      //       existing.last_used = item.created_at;
-      //     }
-      //   }
-      // }
-
-      // // 3. Compare and create comparison data
-      // const comparison: any[] = [];
-      // const dispensedMap = new Map(dispensedItems.map(item => [item.itemcode, item]));
-
-      // // Get all item codes (from dispensed, usage, and all items matching filters)
-      // const allItemCodes = new Set([
-      //   ...dispensedItems.map(d => d.itemcode),
-      //   ...Array.from(usageByItem.keys()),
-      // ]);
-
-      // // If filters are applied, get all items matching the filters (not just dispensed/used)
-      // if (filters?.itemTypeId || filters?.itemCode) {
-      //   const itemFilter: any = {};
-      //   if (filters.itemTypeId) {
-      //     itemFilter.itemtypeID = filters.itemTypeId;
-      //   }
-      //   if (filters.itemCode) {
-      //     itemFilter.itemcode = filters.itemCode;
-      //   }
-
-      //   const allFilteredItems = await this.prisma.item.findMany({
-      //     where: itemFilter,
-      //     select: { itemcode: true },
-      //   });
-
-      //   allFilteredItems.forEach(item => allItemCodes.add(item.itemcode));
-      // }
-
-      // // Fetch item details for items not in dispensedMap
-      // const itemsToLookup = Array.from(allItemCodes).filter(code => !dispensedMap.has(code));
-      // const itemDetailsMap = new Map();
-
-      // if (itemsToLookup.length > 0) {
-      //   const itemDetails = await this.prisma.item.findMany({
-      //     where: {
-      //       itemcode: {
-      //         in: itemsToLookup,
-      //       },
-      //     },
-      //     select: {
-      //       itemcode: true,
-      //       itemname: true,
-      //       itemtypeID: true,
-      //       itemType: {
-      //         select: {
-      //           TypeName: true,
-      //         },
-      //       },
-      //     },
-      //   });
-
-      //   itemDetails.forEach(item => {
-      //     itemDetailsMap.set(item.itemcode, {
-      //       itemname: item.itemname,
-      //       itemType: item.itemType?.TypeName || null,
-      //       itemtypeID: item.itemtypeID,
-      //     });
-      //   });
-      // }
-
-      // for (const itemCode of allItemCodes) {
-      //   const dispensed = dispensedMap.get(itemCode);
-      //   const usage = usageByItem.get(itemCode);
-      //   const itemDetail = itemDetailsMap.get(itemCode);
-
-      //   const totalDispensed = dispensed ? Number(dispensed.total_dispensed) : 0;
-      //   const totalUsed = usage ? usage.total_used : 0;
-      //   const difference = totalDispensed - totalUsed;
-
-      //   let status: string;
-      //   if (totalDispensed === 0 && totalUsed > 0) {
-      //     status = 'USED_WITHOUT_DISPENSE'; // ใช้แล้วแต่ไม่มีการเบิก
-      //   } else if (totalDispensed > 0 && totalUsed === 0) {
-      //     status = 'DISPENSED_NOT_USED'; // เบิกแล้วแต่ยังไม่ใช้
-      //   } else if (difference > 0) {
-      //     status = 'DISPENSE_EXCEEDS_USAGE'; // เบิกมากกว่าใช้
-      //   } else if (difference < 0) {
-      //     status = 'USAGE_EXCEEDS_DISPENSE'; // ใช้มากกว่าเบิก
-      //   } else {
-      //     status = 'MATCHED'; // ตรงกัน
-      //   }
-
-      //   comparison.push({
-      //     itemcode: itemCode,
-      //     itemname: dispensed?.itemname || itemDetail?.itemname || null,
-      //     itemType: dispensed?.itemType || itemDetail?.itemType || null,
-      //     itemtypeID: dispensed?.itemtypeID ? Number(dispensed.itemtypeID) : (itemDetail?.itemtypeID || null),
-
-      //     // Dispensed data
-      //     total_dispensed: totalDispensed,
-      //     dispensed_records: dispensed ? Number(dispensed.dispensed_records) : 0,
-      //     first_dispensed: dispensed?.first_dispensed || null,
-      //     last_dispensed: dispensed?.last_dispensed || null,
-
-      //     // Usage data
-      //     total_used: totalUsed,
-      //     usage_records: usage?.usage_records || 0,
-      //     first_used: usage?.first_used || null,
-      //     last_used: usage?.last_used || null,
-
-      //     // Comparison
-      //     difference: difference,
-      //     status: status,
-      //   });
-      // }
-
-      // // Sort by status priority and difference
-      // const statusPriority: any = {
-      //   'USAGE_EXCEEDS_DISPENSE': 1,
-      //   'USED_WITHOUT_DISPENSE': 2,
-      //   'DISPENSE_EXCEEDS_USAGE': 3,
-      //   'DISPENSED_NOT_USED': 4,
-      //   'MATCHED': 5,
-      // };
-
-      // comparison.sort((a, b) => {
-      //   const priorityDiff = statusPriority[a.status] - statusPriority[b.status];
-      //   if (priorityDiff !== 0) return priorityDiff;
-      //   return Math.abs(b.difference) - Math.abs(a.difference);
-      // });
-
-      // // Calculate summary
-      // const summary = {
-      //   total_items: comparison.length,
-      //   matched: comparison.filter(c => c.status === 'MATCHED').length,
-      //   dispensed_not_used: comparison.filter(c => c.status === 'DISPENSED_NOT_USED').length,
-      //   used_without_dispense: comparison.filter(c => c.status === 'USED_WITHOUT_DISPENSE').length,
-      //   dispense_exceeds_usage: comparison.filter(c => c.status === 'DISPENSE_EXCEEDS_USAGE').length,
-      //   usage_exceeds_dispense: comparison.filter(c => c.status === 'USAGE_EXCEEDS_DISPENSE').length,
-      //   total_dispensed: comparison.reduce((sum, c) => sum + c.total_dispensed, 0),
-      //   total_used: comparison.reduce((sum, c) => sum + c.total_used, 0),
-      //   total_difference: comparison.reduce((sum, c) => sum + Math.abs(c.difference), 0),
-      // };
-
-      // // Apply pagination
-      // const page = filters?.page || 1;
-      // const limit = filters?.limit || 20;
-      // const totalItems = comparison.length;
-      // const totalPages = Math.ceil(totalItems / limit);
-      // const offset = (page - 1) * limit;
-      // const paginatedComparison = comparison.slice(offset, offset + limit);
-
-      // // Create success log
-      // await this.createLog(null, {
-      //   type: 'QUERY',
-      //   status: 'SUCCESS',
-      //   action: 'compareDispensedVsUsage',
-      //   filters: filters || {},
-      //   summary: summary,
-      // });
-
-      // return {
-      //   success: true,
-      //   summary: summary,
-      //   comparison: paginatedComparison,
-      //   pagination: {
-      //     page,
-      //     limit,
-      //     total: totalItems,
-      //     totalPages,
-      //   },
-      //   filters: filters || {},
-      // };
     } catch (error) {
       // Create error log
       await this.createLog(null, {

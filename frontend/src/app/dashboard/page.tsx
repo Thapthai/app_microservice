@@ -6,11 +6,10 @@ import { itemsApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import type { Item } from '@/types/item';
-import type { PaginatedResponse } from '@/types/common';
 import DashboardHeader from './components/DashboardHeader';
 import StatsCards from './components/StatsCards';
-import RecentItemsTable from './components/RecentItemsTable';
-import CreateItemDialog from '../admin/items/components/CreateItemDialog';
+import DashboardItemsTable from './components/DashboardItemsTable';
+import UpdateMinMaxDialog from '../admin/items/components/UpdateMinMaxDialog';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -23,16 +22,14 @@ export default function DashboardPage() {
     inactiveItems: 0,
     lowStockItems: 0,
   });
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [showMinMaxDialog, setShowMinMaxDialog] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
-
-  // Sorting states
-  const [sortBy, setSortBy] = useState<string>('CreateDate');
-  const [sortOrder, setSortOrder] = useState<string>('desc');
 
   // Fetch stats from backend
   useEffect(() => {
@@ -40,17 +37,14 @@ export default function DashboardPage() {
       try {
         if (user?.id) {
           setLoadingStats(true);
-          const response = await itemsApi.getAll({
-            page: 1,
-            limit: 10 // Just get first page, stats come from backend
-          });
+          const response = await itemsApi.getStats();
 
-          if (response.stats) {
+          if (response.success && response.data) {
             setStats({
-              totalItems: response.stats.total_items || 0,
-              activeItems: response.stats.active_items || 0,
-              inactiveItems: response.stats.inactive_items || 0,
-              lowStockItems: response.stats.low_stock_items || 0,
+              totalItems: response.data.total_items || 0,
+              activeItems: response.data.active_items || 0,
+              inactiveItems: response.data.inactive_items || 0,
+              lowStockItems: response.data.low_stock_items || 0,
             });
           }
         }
@@ -64,7 +58,7 @@ export default function DashboardPage() {
     fetchStats();
   }, [user?.id]);
 
-  // Fetch recent items with pagination and sorting
+  // Fetch items with pagination
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -73,13 +67,12 @@ export default function DashboardPage() {
           const response = await itemsApi.getAll({
             page: currentPage,
             limit: itemsPerPage,
-            sort_by: sortBy as any,
-            sort_order: sortOrder as any,
           });
 
           if (response.data) {
             setItems(response.data);
             setTotalPages(response.lastPage);
+            setTotalItems(response.total || 0);
           }
         }
       } catch (error) {
@@ -90,36 +83,41 @@ export default function DashboardPage() {
     };
 
     fetchItems();
-  }, [user?.id, currentPage, sortBy, sortOrder]);
+  }, [user?.id, currentPage]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSortChange = (newSortBy: string, newSortOrder: string) => {
-    setSortBy(newSortBy);
-    setSortOrder(newSortOrder);
-    setCurrentPage(1); // Reset to first page when sorting changes
+  const handleUpdateMinMax = (item: Item) => {
+    setSelectedItem(item);
+    setShowMinMaxDialog(true);
   };
 
-  const handleCreateSuccess = async () => {
-    setIsCreateDialogOpen(false);
+  const handleUpdateMinMaxSuccess = async () => {
+    setShowMinMaxDialog(false);
     // Refresh items and stats
-    const response = await itemsApi.getAll({
-      page: currentPage,
-      limit: itemsPerPage
-    });
-    if (response.data) {
-      setItems(response.data);
-      setTotalPages(response.lastPage);
+    const [itemsResponse, statsResponse] = await Promise.all([
+      itemsApi.getAll({
+        page: currentPage,
+        limit: itemsPerPage
+      }),
+      itemsApi.getStats()
+    ]);
+    
+    if (itemsResponse.data) {
+      setItems(itemsResponse.data);
+      setTotalPages(itemsResponse.lastPage);
+      setTotalItems(itemsResponse.total || 0);
     }
-    if (response.stats) {
+    
+    if (statsResponse.success && statsResponse.data) {
       setStats({
-        totalItems: response.stats.total_items || 0,
-        activeItems: response.stats.active_items || 0,
-        inactiveItems: response.stats.inactive_items || 0,
-        lowStockItems: response.stats.low_stock_items || 0,
+        totalItems: statsResponse.data.total_items || 0,
+        activeItems: statsResponse.data.active_items || 0,
+        inactiveItems: statsResponse.data.inactive_items || 0,
+        lowStockItems: statsResponse.data.low_stock_items || 0,
       });
     }
   };
@@ -129,27 +127,26 @@ export default function DashboardPage() {
       <AppLayout>
         <DashboardHeader 
           userName={user?.name}
-          onCreateClick={() => setIsCreateDialogOpen(true)}
         />
         
         <StatsCards loading={loadingStats} stats={stats} />
         
-        <RecentItemsTable
-          loading={loadingItems}
+        <DashboardItemsTable
           items={items}
+          loading={loadingItems}
           currentPage={currentPage}
           totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onUpdateMinMax={handleUpdateMinMax}
           onPageChange={handlePageChange}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSortChange={handleSortChange}
         />
 
-        <CreateItemDialog
-          open={isCreateDialogOpen}
-          onOpenChange={setIsCreateDialogOpen}
-          userId={user?.id}
-          onSuccess={handleCreateSuccess}
+        <UpdateMinMaxDialog
+          open={showMinMaxDialog}
+          onOpenChange={setShowMinMaxDialog}
+          item={selectedItem}
+          onSuccess={handleUpdateMinMaxSuccess}
         />
       </AppLayout>
     </ProtectedRoute>
