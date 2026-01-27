@@ -53,6 +53,7 @@ export class ItemServiceService {
     sort_order: string = 'asc',
     cabinet_id?: number,
     department_id?: number,
+    status?: string,
   ) {
     try {
       const where: any = {};
@@ -135,6 +136,7 @@ export class ItemServiceService {
                   cabinetDepartments: {
                     where: {
                       department_id: department_id,
+                      status: status,
                     },
                     select: {
                       id: true,

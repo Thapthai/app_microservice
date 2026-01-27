@@ -25,6 +25,7 @@ export class ItemServiceController {
     sort_order?: string;
     cabinet_id?: number;
     department_id?: number;
+    status?: string;
   }) {
     const page = query.page || 1;
     const limit = query.limit || 10;
@@ -33,6 +34,7 @@ export class ItemServiceController {
     const sortOrder = query.sort_order || 'desc';
     const cabinet_id = query.cabinet_id;
     const department_id = query.department_id;
+    const status = query.status;
     return this.itemServiceService.findAllItems
       (page,
         limit,
@@ -40,7 +42,8 @@ export class ItemServiceController {
         sortBy,
         sortOrder,
         cabinet_id,
-        department_id);
+        department_id,
+        status);
   }
 
 

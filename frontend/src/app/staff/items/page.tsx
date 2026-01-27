@@ -54,6 +54,7 @@ export default function ItemsPage() {
         page: currentPage,
         limit: itemsPerPage,
         keyword: activeFilters.keyword || activeFilters.searchTerm || undefined,
+        status: 'ACTIVE',
       };
 
       if (activeFilters.departmentId) {

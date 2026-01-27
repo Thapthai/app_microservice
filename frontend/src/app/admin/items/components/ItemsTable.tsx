@@ -107,7 +107,7 @@ export default function ItemsTable({
                     <TableHead className="w-[100px]">ลำดับ</TableHead>
                     <TableHead>รหัสอุปกรณ์</TableHead>
                     <TableHead>ชื่อสินค้า</TableHead>
-                    <TableHead className="text-center">จำนวนในตู้</TableHead>
+                    {/* <TableHead className="text-center">จำนวนในตู้</TableHead> */}
                     <TableHead className="text-center">Min/Max</TableHead>
                     <TableHead>สถานะ</TableHead>
                     <TableHead className="text-right">จัดการ</TableHead>
@@ -133,7 +133,7 @@ export default function ItemsTable({
                           </code>
                         </TableCell>
                         <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
-                        <TableCell className="text-center">
+                        {/* <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
                             <Archive className="h-4 w-4 text-blue-600" />
                             <span className={`font-semibold ${
@@ -142,7 +142,7 @@ export default function ItemsTable({
                               {countItemStock.toLocaleString()}
                             </span>
                           </div>
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center space-x-1 text-xs">
                             <span className="text-gray-600">{item.stock_min ?? 0}</span>

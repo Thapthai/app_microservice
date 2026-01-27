@@ -398,9 +398,10 @@ export class GatewayApiController {
     @Query('sort_order') sort_order?: string,
     @Query('cabinet_id') cabinet_id?: number,
     @Query('department_id') department_id?: number,
+    @Query('status') status?: string,
   ) {
     try {
-      const result = await this.gatewayApiService.findAllItems(page, limit, keyword, sort_by, sort_order, cabinet_id, department_id);
+      const result = await this.gatewayApiService.findAllItems(page, limit, keyword, sort_by, sort_order, cabinet_id, department_id, status);
       return result;
 
     } catch (error) {

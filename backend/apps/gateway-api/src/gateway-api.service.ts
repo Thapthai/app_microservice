@@ -41,8 +41,8 @@ export class GatewayApiService {
     return this.itemClient.send('item.create', createItemDto).toPromise();
   }
 
-  async findAllItems(page: number, limit: number, keyword?: string, sortBy?: string, sortOrder?: string, cabinet_id?: number, department_id?: number) {
-    const query = { page, limit, keyword, sort_by: sortBy, sort_order: sortOrder, cabinet_id: cabinet_id, department_id: department_id };
+  async findAllItems(page: number, limit: number, keyword?: string, sortBy?: string, sortOrder?: string, cabinet_id?: number, department_id?: number, status?: string) {
+    const query = { page, limit, keyword, sort_by: sortBy, sort_order: sortOrder, cabinet_id: cabinet_id, department_id: department_id, status: status };
     return this.itemClient.send('item.findAll', query).toPromise();
   }
 

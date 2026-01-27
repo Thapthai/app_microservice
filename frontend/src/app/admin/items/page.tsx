@@ -58,6 +58,7 @@ export default function ItemsPage() {
           page: currentPage,
           limit: itemsPerPage,
           keyword: activeFilters.keyword || activeFilters.searchTerm || undefined,
+          status: 'ACTIVE',
         };
 
         if (activeFilters.departmentId) {
@@ -67,7 +68,7 @@ export default function ItemsPage() {
         if (activeFilters.cabinetId) {
           params.cabinet_id = parseInt(activeFilters.cabinetId);
         }
-
+ 
         const response = await itemsApi.getAll(params);
         if (response.data) {
           setItems(response.data);

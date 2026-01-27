@@ -448,6 +448,7 @@ export class DepartmentServiceService {
               cabinet_name: true,
               cabinet_code: true,
               cabinet_status: true,
+              stock_id: true,
             },
           },
         },
@@ -457,9 +458,16 @@ export class DepartmentServiceService {
       // Get itemstock count for each cabinet
       const mappingsWithCount = await Promise.all(
         mappings.map(async (mapping) => {
+          // Use cabinet's stock_id for counting itemstock
+          const stockId = mapping.cabinet?.stock_id;
+          
+          if (!stockId) {
+            return { ...mapping, itemstock_count: 0 };
+          }
+
           const itemStockCount = await this.prisma.itemStock.count({
             where: {
-              StockID: mapping.cabinet_id,
+              StockID: stockId,
             },
           });
 
