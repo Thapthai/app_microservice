@@ -94,7 +94,14 @@ export class ItemServiceService {
 
       // Filter by cabinet_id if provided
       if (cabinet_id) {
-        itemStocksWhere.StockID = cabinet_id;
+        // Get stock_id from cabinet table
+        const cabinet = await this.prisma.cabinet.findUnique({
+          where: { id: cabinet_id },
+          select: { stock_id: true },
+        });
+        if (cabinet?.stock_id) {
+          itemStocksWhere.StockID = cabinet.stock_id;
+        }
       }
 
       // Get all items matching the filter criteria (including keyword search)
@@ -453,7 +460,14 @@ export class ItemServiceService {
       const skip = (page - 1) * limit;
 
       if (cabinet_id) {
-        where.StockID = cabinet_id;
+        // Get stock_id from cabinet table
+        const cabinet = await this.prisma.cabinet.findUnique({
+          where: { id: cabinet_id },
+          select: { stock_id: true },
+        });
+        if (cabinet?.stock_id) {
+          where.StockID = cabinet.stock_id;
+        }
       }
 
       if (keyword) {

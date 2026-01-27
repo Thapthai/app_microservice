@@ -26,8 +26,8 @@ export default function ItemsPage() {
   // Active filters (after search button clicked)
   const [activeFilters, setActiveFilters] = useState({
     searchTerm: '',
-    departmentId: '',
-    cabinetId: '',
+    departmentId: '29',
+    cabinetId: '1',
     statusFilter: 'all',
     keyword: '',
   });

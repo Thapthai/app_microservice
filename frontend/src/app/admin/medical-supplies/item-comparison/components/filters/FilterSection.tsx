@@ -145,29 +145,19 @@ export function FilterSection({
           </div>
         </div>
 
-        {/* Row 2: Date Range */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Start Date */}
-          <div className="space-y-2">
-
-            <label className="text-sm font-medium text-gray-700">วันที่เริ่มต้น</label>
-            <Input
-              type="date"
-              value={filters.startDate}
-              onChange={(e) => onFilterChange('startDate', e.target.value)}
-            />
-          </div>
-
-          {/* End Date */}
-          <div className="space-y-2">
-
-            <label className="text-sm font-medium text-gray-700">วันที่สิ้นสุด</label>
-            <Input
-              type="date"
-              value={filters.endDate}
-              onChange={(e) => onFilterChange('endDate', e.target.value)}
-            />
-          </div>
+        {/* Row 2: Single Date */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">วันที่</label>
+          <Input
+            type="date"
+            value={filters.startDate}
+            onChange={(e) => {
+              const selectedDate = e.target.value;
+              // Set both startDate and endDate to the same value
+              onFilterChange('startDate', selectedDate);
+              onFilterChange('endDate', selectedDate);
+            }}
+          />
         </div>
 
         {/* Row 3: Action Buttons */}

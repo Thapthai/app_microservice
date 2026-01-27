@@ -59,7 +59,7 @@ export default function MedicalSuppliesPage() {
     assessionNo: '',
     itemName: '',
   });
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -72,7 +72,7 @@ export default function MedicalSuppliesPage() {
       setLoading(true);
       const filtersToUse = customFilters || activeFilters;
       const activePage = customPage !== undefined ? customPage : currentPage;
-      
+
       const params: any = {
         page: activePage,
         limit: itemsPerPage,
@@ -80,19 +80,14 @@ export default function MedicalSuppliesPage() {
 
       if (filtersToUse.startDate) params.startDate = filtersToUse.startDate;
       if (filtersToUse.endDate) params.endDate = filtersToUse.endDate;
-      // if (filtersToUse.patientHN) params.patient_hn = filtersToUse.patientHN;
-      // if (filtersToUse.keyword) params.keyword = filtersToUse.keyword;
       if (filtersToUse.userName) params.user_name = filtersToUse.userName;
-      if (filtersToUse.itemName) params.keyword = filtersToUse.itemName; // ใช้ keyword สำหรับค้นหาชื่ออุปกรณ์
-      // if (filtersToUse.firstName) params.first_name = filtersToUse.firstName;
-      // if (filtersToUse.lastName) params.lastname = filtersToUse.lastName;
-      // if (filtersToUse.assessionNo) params.assession_no = filtersToUse.assessionNo;
+      if (filtersToUse.itemName) params.keyword = filtersToUse.itemName;
 
       const response: any = await medicalSuppliesApi.getAll(params);
 
       if (response && response.data) {
         let dataArray: any[] = [];
-        
+
         if (Array.isArray(response.data)) {
           dataArray = response.data;
         } else if (response.data.data && Array.isArray(response.data.data)) {
@@ -101,11 +96,12 @@ export default function MedicalSuppliesPage() {
           dataArray = [response.data];
         }
         
+
         setSupplies(dataArray);
-        
+
         const totalItems = response.total || dataArray.length;
         const calculatedPages = Math.ceil(totalItems / itemsPerPage);
-        
+
         setTotalPages(calculatedPages || 1);
         setTotalItems(totalItems);
       } else {
@@ -244,72 +240,6 @@ export default function MedicalSuppliesPage() {
                 />
               </div>
 
-              {/* <div className="space-y-2">
-                <Label htmlFor="patientHN">HN ผู้ป่วย</Label>
-                <Input
-                  id="patientHN"
-                  placeholder="HN ผู้ป่วย..."
-                  value={filters.patientHN}
-                  onChange={(e) => setFilters({ ...filters, patientHN: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-              </div> */}
-
-              {/* <div className="space-y-2">
-                <Label htmlFor="keyword">ค้นหา</Label>
-                <Input
-                  id="keyword"
-                  placeholder="ชื่อผู้ป่วย, EN..."
-                  value={filters.keyword}
-                  onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-              </div> */}
-
-              {/* <div className="space-y-2">
-                <Label htmlFor="firstName">ชื่อ (Firstname)</Label>
-                <Input
-                  id="firstName"
-                  placeholder="กรอกชื่อ..."
-                  value={filters.firstName}
-                  onChange={(e) => setFilters({ ...filters, firstName: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-              </div> */}
-
-              {/* <div className="space-y-2">
-                <Label htmlFor="lastName">นามสกุล (Lastname)</Label>
-                <Input
-                  id="lastName"
-                  placeholder="กรอกนามสกุล..."
-                  value={filters.lastName}
-                  onChange={(e) => setFilters({ ...filters, lastName: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-              </div> */}
-
-              {/* <div className="space-y-2">
-                <Label htmlFor="assessionNo">Assession No</Label>
-                <Input
-                  id="assessionNo"
-                  placeholder="กรอก Assession No..."
-                  value={filters.assessionNo}
-                  onChange={(e) => setFilters({ ...filters, assessionNo: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-              </div> */}
-
-              {/* <div className="space-y-2">
-                <Label htmlFor="userName">ผู้เพิ่มรายการ</Label>
-                <Input
-                  id="userName"
-                  placeholder="ชื่อผู้เพิ่มรายการ..."
-                  value={formFilters.userName}
-                  onChange={(e) => setFormFilters({ ...formFilters, userName: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-              </div> */}
-
               <div className="space-y-2">
                 <Label htmlFor="itemName">ค้นหารายการ (ชื่ออุปกรณ์)</Label>
                 <Input
@@ -360,7 +290,7 @@ export default function MedicalSuppliesPage() {
                 <CardHeader>
                   <CardTitle>รายละเอียดการเบิกอุปกรณ์</CardTitle>
                   <CardDescription>
-                    HN: {selectedSupply.data?.patient_hn || selectedSupply.patient_hn || '-'} | 
+                    HN: {selectedSupply.data?.patient_hn || selectedSupply.patient_hn || '-'} |
                     Assession No: {(() => {
                       const supplyItems = selectedSupply.data?.supply_items || selectedSupply.supply_items || [];
                       const assessionNos = supplyItems
@@ -382,9 +312,9 @@ export default function MedicalSuppliesPage() {
                       <p className="text-sm text-gray-500">ผู้เบิก</p>
                       <p className="font-semibold">
                         {selectedSupply.data?.recorded_by_display ||
-                         selectedSupply.recorded_by_display ||
-                         selectedSupply.recorded_by_name || 
-                         selectedSupply.data?.recorded_by_name || '-'}
+                          selectedSupply.recorded_by_display ||
+                          selectedSupply.recorded_by_name ||
+                          selectedSupply.data?.recorded_by_name || '-'}
                       </p>
                     </div>
                     <div>
@@ -471,7 +401,7 @@ export default function MedicalSuppliesPage() {
                       <TableBody>
                         {(() => {
                           const supplyItems = selectedSupply.data?.supply_items || selectedSupply.supply_items || [];
-                          
+
                           if (supplyItems.length === 0) {
                             return (
                               <TableRow>
@@ -502,7 +432,7 @@ export default function MedicalSuppliesPage() {
                                 {(() => {
                                   const status = item.order_item_status || '-';
                                   const statusLower = status.toLowerCase();
-                                  
+
                                   if (statusLower === 'discontinue') {
                                     return (
                                       <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
@@ -540,7 +470,7 @@ export default function MedicalSuppliesPage() {
             </div>
           )}
         </div>
-      
+
         {/* Cancel Bill Dialog */}
         <CancelBillDialog
           open={cancelBillDialogOpen}

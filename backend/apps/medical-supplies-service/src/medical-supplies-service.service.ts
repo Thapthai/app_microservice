@@ -2860,6 +2860,11 @@ export class MedicalSuppliesServiceService {
 
 
       const sqlConditionsUsage: Prisma.Sql[] = [];
+
+      sqlConditionsUsage.push(
+        Prisma.raw(`order_item_status != 'Discontinue' AND order_item_status != 'discontinue' AND order_item_status != 'Discontinued' AND order_item_status != 'discontinued'`)
+      );
+
       if (filters?.startDate && filters?.endDate) {
 
         sqlConditionsUsage.push(
@@ -2930,7 +2935,7 @@ export class MedicalSuppliesServiceService {
                   order_item_code,
                   SUM(qty) AS total_usage_items
               FROM app_microservice_supply_usage_items
-                WHERE ${whereClauseUsage}
+                WHERE ${whereClauseUsage} 
               GROUP BY order_item_code
           ) u
               ON u.order_item_code = i.itemcode

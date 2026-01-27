@@ -169,22 +169,22 @@ export default function MedicalSuppliesTable({
 
   return (
     <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>รายการเบิกอุปกรณ์</CardTitle>
-              <CardDescription>
-                ทั้งหมด {totalItems} รายการ
-                {filters.startDate && filters.endDate && (
-                  <span className="ml-2">
-                    (วันที่ {new Date(filters.startDate).toLocaleDateString('th-TH')} - {new Date(filters.endDate).toLocaleDateString('th-TH')})
-                  </span>
-                )}
-              </CardDescription>
-            </div>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>รายการเบิกอุปกรณ์</CardTitle>
+            <CardDescription>
+              ทั้งหมด {totalItems} รายการ
+              {filters.startDate && filters.endDate && (
+                <span className="ml-2">
+                  (วันที่ {new Date(filters.startDate).toLocaleDateString('th-TH')} - {new Date(filters.endDate).toLocaleDateString('th-TH')})
+                </span>
+              )}
+            </CardDescription>
           </div>
-        </CardHeader>
-        <CardContent className="px-4 py-4">
+        </div>
+      </CardHeader>
+      <CardContent className="px-4 py-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Tooltip>
@@ -214,21 +214,18 @@ export default function MedicalSuppliesTable({
               <p className="text-gray-500">ไม่พบรายการเบิก</p>
               <p className="text-sm text-gray-400 mt-2">ลองเปลี่ยนเงื่อนไขการค้นหา</p>
             </div>
-          ) : (
+        ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">ลำดับ</TableHead>
-                  {/* <TableHead>HN</TableHead> */}
-                  {/* <TableHead>ชื่อผู้ป่วย</TableHead> */}
-                  {/* <TableHead>Assession No</TableHead> */}
-                  {/* <TableHead>ชื่ออุปกรณ์</TableHead> */}
                   <TableHead>ผู้เบิก</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
+                  <TableHead className="text-center">จำนวนอุปกรณ์</TableHead>
                   <TableHead>สถานะ</TableHead>
-                  {/* <TableHead className="text-center">จัดการ</TableHead> */}
+                  <TableHead className="text-center">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -244,6 +241,22 @@ export default function MedicalSuppliesTable({
                   
                   // Get unique item names for display
                   const supplyItems = supplyData.supply_items || supply.supply_items || [];
+                  
+                  // Filter out Discontinue items for count
+                  const activeItems = supplyItems.filter((item: any) => {
+                    const status = item.order_item_status?.toLowerCase() || '';
+                    return status !== 'discontinue' && status !== 'discontinued';
+                  });
+                  
+                  // Calculate total qty_pending for active items (excluding Discontinue)
+                  const totalQtyPending = activeItems.reduce((sum: number, item: any) => {
+                    const qty = item.qty || 0;
+                    const qtyUsed = item.qty_used_with_patient || 0;
+                    const qtyReturned = item.qty_returned_to_cabinet || 0;
+                    const qtyPending = qty - qtyUsed - qtyReturned;
+                    return sum + (qtyPending > 0 ? qtyPending : 0);
+                  }, 0);
+                  
                   const itemNames: string[] = Array.from(
                     new Set(
                       supplyItems
@@ -251,70 +264,19 @@ export default function MedicalSuppliesTable({
                         .filter((name: string) => name && name.trim() !== '')
                     )
                   ) as string[];
-                  
+
                   const isSelected = selectedSupplyId === id;
-                  
+
                   return (
-                    <TableRow 
+                    <TableRow
                       key={id || index}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected ? 'bg-purple-100 hover:bg-purple-100' : 'hover:bg-gray-50'
-                      }`}
+                      className={`cursor-pointer transition-colors ${isSelected ? 'bg-purple-100 hover:bg-purple-100' : 'hover:bg-gray-50'
+                        }`}
                       onClick={() => onSelectSupply && onSelectSupply(supply)}
                     >
                       <TableCell className="text-center">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </TableCell>
-                      {/* <TableCell className="font-mono font-medium">
-                        {supplyData.patient_hn || '-'}
-                      </TableCell> */}
-                      {/* <TableCell>
-                        {itemNames.length > 0 ? (
-                          <div className="space-y-1">
-                            {itemNames.map((name: string, idx: number) => (
-                              <div key={idx} className="text-sm text-gray-700 flex items-start">
-                                <span className="mr-2 text-gray-400">-</span>
-                                <span>{name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400">-</span>
-                        )}
-                      </TableCell> */}
-                      {/* <TableCell>
-                        {patientName}
-                      </TableCell> */}
-                      {/* <TableCell>
-                        {(() => {
-                          const supplyItems = supplyData.supply_items || supply.supply_items || [];
-                          const assessionNos = supplyItems
-                            .map((item: any) => item.assession_no)
-                            .filter((no: string) => no && no.trim() !== '');
-                          
-                          if (assessionNos.length === 0) {
-                            return <span className="text-gray-400">-</span>;
-                          }
-                          
-                          // Show first assession_no, or multiple if there are few
-                          if (assessionNos.length === 1) {
-                            return (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
-                                {assessionNos[0]}
-                              </Badge>
-                            );
-                          }
-                          
-                          // If multiple, show first one with count
-                          return (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
-                              {assessionNos[0]} {assessionNos.length > 1 && `(+${assessionNos.length - 1})`}
-                            </Badge>
-                          );
-                        })()}
-                      </TableCell> */}
                       <TableCell>
                         <span className="text-sm text-gray-700">{recordedByName}</span>
                       </TableCell>
@@ -323,7 +285,12 @@ export default function MedicalSuppliesTable({
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold">
-                          {supply.supplies_count || supplyData.supplies_count || (supplyData.supply_items || []).length || 0}
+                          {activeItems.length || 0}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold">
+                          {totalQtyPending || 0}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -382,7 +349,7 @@ export default function MedicalSuppliesTable({
               >
                 ก่อนหน้า
               </Button>
-              
+
               {generatePageNumbers().map((page, idx) =>
                 page === '...' ? (
                   <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>

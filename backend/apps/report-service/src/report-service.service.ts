@@ -611,7 +611,8 @@ export class ReportServiceService {
   }): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const queryParams: any = {};
-      if (params.itemCode) queryParams.itemCode = params.itemCode;
+      // Use keyword instead of itemCode to match frontend API call
+      if (params.itemCode) queryParams.keyword = params.itemCode;
       if (params.itemTypeId) queryParams.itemTypeId = params.itemTypeId;
       if (params.startDate) queryParams.startDate = params.startDate;
       if (params.endDate) queryParams.endDate = params.endDate;
@@ -622,8 +623,31 @@ export class ReportServiceService {
         this.medicalSuppliesClient.send({ cmd: 'medical_supply.compareDispensedVsUsage' }, queryParams)
       );
 
-      if (!comparisonResponse || !comparisonResponse.success) {
+      if (!comparisonResponse || !comparisonResponse.success || !comparisonResponse.data) {
         throw new Error('Failed to fetch comparison data');
+      }
+
+      // Response structure from controller: { success: true, data: { data: [...], pagination: {...}, filters: {...} } }
+      // Service returns: { data: result, pagination: {...}, filters: {...} }
+      // So we need to access comparisonResponse.data.data to get the array
+      let comparisonData: any[] = [];
+      
+      if (comparisonResponse.data && comparisonResponse.data.data) {
+        // Standard structure: { success: true, data: { data: [...], pagination: {...}, filters: {...} } }
+        comparisonData = Array.isArray(comparisonResponse.data.data) 
+          ? comparisonResponse.data.data 
+          : [];
+      } else if (Array.isArray(comparisonResponse.data)) {
+        // Fallback: direct array
+        comparisonData = comparisonResponse.data;
+      } else if (Array.isArray(comparisonResponse)) {
+        // Fallback: response is array directly
+        comparisonData = comparisonResponse;
+      }
+
+      if (!Array.isArray(comparisonData)) {
+        console.error('Invalid comparison data structure:', JSON.stringify(comparisonResponse, null, 2));
+        comparisonData = [];
       }
 
       const reportData: ItemComparisonReportData = {
@@ -641,7 +665,7 @@ export class ReportServiceService {
           matched_count: 0,
           discrepancy_count: 0,
         },
-        comparison: (comparisonResponse.comparison || []).map((item: any) => ({
+        comparison: comparisonData.map((item: any) => ({
           ...item,
           usageItems: [],
         })),
@@ -649,7 +673,7 @@ export class ReportServiceService {
 
       // Fetch usage details for each item to include in excel
       const comparisonWithUsage = await Promise.all(
-        (comparisonResponse.comparison || []).map(async (item: any) => {
+        comparisonData.map(async (item: any) => {
           try {
             const usageResponse: any = await firstValueFrom(
               this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCodeFromItemTable' }, {
@@ -704,7 +728,8 @@ export class ReportServiceService {
   }): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const queryParams: any = {};
-      if (params.itemCode) queryParams.itemCode = params.itemCode;
+      // Use keyword instead of itemCode to match frontend API call
+      if (params.itemCode) queryParams.keyword = params.itemCode;
       if (params.itemTypeId) queryParams.itemTypeId = params.itemTypeId;
       if (params.startDate) queryParams.startDate = params.startDate;
       if (params.endDate) queryParams.endDate = params.endDate;
@@ -715,8 +740,31 @@ export class ReportServiceService {
         this.medicalSuppliesClient.send({ cmd: 'medical_supply.compareDispensedVsUsage' }, queryParams)
       );
 
-      if (!comparisonResponse || !comparisonResponse.success) {
+      if (!comparisonResponse || !comparisonResponse.success || !comparisonResponse.data) {
         throw new Error('Failed to fetch comparison data');
+      }
+
+      // Response structure from controller: { success: true, data: { data: [...], pagination: {...}, filters: {...} } }
+      // Service returns: { data: result, pagination: {...}, filters: {...} }
+      // So we need to access comparisonResponse.data.data to get the array
+      let comparisonData: any[] = [];
+      
+      if (comparisonResponse.data && comparisonResponse.data.data) {
+        // Standard structure: { success: true, data: { data: [...], pagination: {...}, filters: {...} } }
+        comparisonData = Array.isArray(comparisonResponse.data.data) 
+          ? comparisonResponse.data.data 
+          : [];
+      } else if (Array.isArray(comparisonResponse.data)) {
+        // Fallback: direct array
+        comparisonData = comparisonResponse.data;
+      } else if (Array.isArray(comparisonResponse)) {
+        // Fallback: response is array directly
+        comparisonData = comparisonResponse;
+      }
+
+      if (!Array.isArray(comparisonData)) {
+        console.error('Invalid comparison data structure:', JSON.stringify(comparisonResponse, null, 2));
+        comparisonData = [];
       }
 
       const reportData: ItemComparisonReportData = {
@@ -734,7 +782,7 @@ export class ReportServiceService {
           matched_count: 0,
           discrepancy_count: 0,
         },
-        comparison: (comparisonResponse.comparison || []).map((item: any) => ({
+        comparison: comparisonData.map((item: any) => ({
           ...item,
           usageItems: [],
         })),
@@ -742,7 +790,7 @@ export class ReportServiceService {
 
       // Fetch usage details for each item to include in PDF
       const comparisonWithUsage = await Promise.all(
-        (comparisonResponse.comparison || []).map(async (item: any) => {
+        comparisonData.map(async (item: any) => {
           try {
             const usageResponse: any = await firstValueFrom(
               this.medicalSuppliesClient.send({ cmd: 'medical_supply.getUsageByItemCodeFromItemTable' }, {

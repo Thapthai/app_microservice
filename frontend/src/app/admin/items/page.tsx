@@ -26,16 +26,16 @@ export default function ItemsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showMinMaxDialog, setShowMinMaxDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  
+
   // Active filters (after search button clicked)
   const [activeFilters, setActiveFilters] = useState({
     searchTerm: '',
-    departmentId: '',
-    cabinetId: '',
+    departmentId: '29',
+    cabinetId: '1',
     statusFilter: 'all',
     keyword: '',
   });
-  
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -55,19 +55,19 @@ export default function ItemsPage() {
       if (user?.id) {
         setLoading(true);
         const params: any = {
-          page: currentPage, 
+          page: currentPage,
           limit: itemsPerPage,
           keyword: activeFilters.keyword || activeFilters.searchTerm || undefined,
         };
-        
+
         if (activeFilters.departmentId) {
           params.department_id = parseInt(activeFilters.departmentId);
         }
-        
+
         if (activeFilters.cabinetId) {
           params.cabinet_id = parseInt(activeFilters.cabinetId);
         }
-        
+
         const response = await itemsApi.getAll(params);
         if (response.data) {
           setItems(response.data);
@@ -88,7 +88,7 @@ export default function ItemsPage() {
 
     // Filter by status (client-side)
     if (activeFilters.statusFilter !== 'all') {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         activeFilters.statusFilter === 'active' ? item.item_status === 0 : item.item_status !== 0
       );
     }
@@ -143,24 +143,7 @@ export default function ItemsPage() {
                 <p className="text-sm text-gray-500">รายการอุปกรณ์ทั้งหมดในระบบ</p>
               </div>
             </div>
-            {/* <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchItems()}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                รีเฟรช
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => setShowCreateDialog(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                เพิ่มอุปกรณ์
-              </Button>
-            </div> */}
+
           </div>
 
           {/* Filter Section */}
