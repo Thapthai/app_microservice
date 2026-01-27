@@ -48,11 +48,7 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
   const [cabinets, setCabinets] = useState<Cabinet[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [loadingCabinets, setLoadingCabinets] = useState(false);
-<<<<<<< HEAD
-  const hasInitialized = useRef(false);
-=======
   const hasInitialSearch = useRef(false);
->>>>>>> 5ae9d6ece46b92bb4c0992aef41a03d6c36577a2
 
   // Form state (local)
   const [formFilters, setFormFilters] = useState({
@@ -144,28 +140,12 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
     loadCabinetsByDepartment(formFilters.departmentId);
   }, [formFilters.departmentId]);
 
-<<<<<<< HEAD
-  // Auto-trigger search on mount with default values (only once)
-  useEffect(() => {
-    if (!hasInitialized.current && formFilters.departmentId && formFilters.cabinetId && cabinets.length > 0) {
-      // Wait a bit to ensure cabinets are loaded, then trigger search
-      const timer = setTimeout(() => {
-        onSearch({
-          ...formFilters,
-          keyword: formFilters.searchTerm,
-        });
-        hasInitialized.current = true;
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [formFilters.departmentId, formFilters.cabinetId, cabinets.length]);
-=======
   // Trigger initial search with default values after cabinets are loaded
   useEffect(() => {
     if (
       !hasInitialSearch.current &&
-      formFilters.departmentId === "29" &&
-      formFilters.cabinetId === "1" &&
+      formFilters.departmentId &&
+      formFilters.cabinetId &&
       cabinets.length > 0 &&
       !loadingCabinets
     ) {
@@ -176,7 +156,6 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
       });
     }
   }, [cabinets, loadingCabinets, formFilters, onSearch]);
->>>>>>> 5ae9d6ece46b92bb4c0992aef41a03d6c36577a2
 
   const handleSearch = () => {
     onSearch({
