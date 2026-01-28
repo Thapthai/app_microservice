@@ -1,6 +1,5 @@
 import { Download, RefreshCw, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import DispensedPagination from './DispensedPagination';
@@ -46,7 +45,7 @@ export default function DispensedTable({
               {(searchItemCode || itemTypeFilter !== 'all') && ' (กรองแล้ว)'}
             </CardDescription>
           </div>
-          {/* <div className="flex gap-2">
+          <div className="flex gap-2">
             <Button
               onClick={onExportExcel}
               variant="outline"
@@ -63,7 +62,7 @@ export default function DispensedTable({
               <Download className="h-4 w-4 mr-2" />
               PDF
             </Button>
-          </div> */}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="px-4 py-4">

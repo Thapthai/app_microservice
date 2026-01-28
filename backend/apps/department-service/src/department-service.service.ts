@@ -9,22 +9,6 @@ export class DepartmentServiceService {
 
   constructor(private prisma: PrismaService) { }
 
-  // Department CRUD operations
-  // async createDepartment(data: CreateDepartmentDto) {
-  //   try {
-  //     const department = await this.prisma.department.create({
-  //       data,
-  //     });
-  //     return {
-  //       success: true,
-  //       message: 'Department created successfully',
-  //       data: department,
-  //     };
-  //   } catch (error) {
-  //     this.logger.error(`Error creating department: ${error.message}`);
-  //     throw new BadRequestException('Failed to create department');
-  //   }
-  // }
 
   async getAllDepartments(query?: { page?: number; limit?: number; keyword?: string }) {
     try {
@@ -74,69 +58,6 @@ export class DepartmentServiceService {
     }
   }
 
-  // async getDepartmentById(id: number) {
-  //   try {
-  //     const department = await this.prisma.department.findUnique({
-  //       where: { ID: id },
-  //       include: {
-  //         itemStockDepartments: {
-  //           include: {
-  //             itemStock: true,
-  //           },
-  //         },
-  //       },
-  //     });
-
-  //     if (!department) {
-  //       throw new NotFoundException(`Department with ID ${id} not found`);
-  //     }
-
-  //     return {
-  //       success: true,
-  //       data: department,
-  //     };
-  //   } catch (error) {
-  //     if (error instanceof NotFoundException) {
-  //       throw error;
-  //     }
-  //     this.logger.error(`Error fetching department: ${error.message}`);
-  //     throw new BadRequestException('Failed to fetch department');
-  //   }
-  // }
-
-  // async updateDepartment(id: number, data: UpdateDepartmentDto) {
-  //   try {
-  //     const department = await this.prisma.department.update({
-  //       where: { ID: id },
-  //       data,
-  //     });
-
-  //     return {
-  //       success: true,
-  //       message: 'Department updated successfully',
-  //       data: department,
-  //     };
-  //   } catch (error) {
-  //     this.logger.error(`Error updating department: ${error.message}`);
-  //     throw new BadRequestException('Failed to update department');
-  //   }
-  // }
-
-  // async deleteDepartment(id: number) {
-  //   try {
-  //     await this.prisma.department.delete({
-  //       where: { ID: id },
-  //     });
-
-  //     return {
-  //       success: true,
-  //       message: 'Department deleted successfully',
-  //     };
-  //   } catch (error) {
-  //     this.logger.error(`Error deleting department: ${error.message}`);
-  //     throw new BadRequestException('Failed to delete department');
-  //   }
-  // }
 
 
   // =========================== Cabinet CRUD operations ===========================
@@ -311,22 +232,6 @@ export class DepartmentServiceService {
         };
       }
 
-
-      // Check if the cabinet already exists
-      // const existingCabinet = await this.prisma.cabinet.findUnique({
-      //   where: {
-      //     id: data.cabinet_id,
-      //   },
-      // });
-
-      // if (existingCabinet) {
-      //   return {
-      //     success: false,
-      //     message: 'Cabinet already exists'
-      //   };
-      // }
-
-
       // Both found, create mapping
       const mapping = await this.prisma.cabinetDepartment.create({
         data: {
@@ -460,7 +365,7 @@ export class DepartmentServiceService {
         mappings.map(async (mapping) => {
           // Use cabinet's stock_id for counting itemstock
           const stockId = mapping.cabinet?.stock_id;
-          
+
           if (!stockId) {
             return { ...mapping, itemstock_count: 0 };
           }
@@ -673,54 +578,4 @@ export class DepartmentServiceService {
     }
   }
 
-  // // Helper method to get departments by cabinetId
-  // async getDepartmentsByCabinet(cabinetId: number) {
-  //   try {
-  //     const mappings = await this.prisma.cabinetDepartment.findMany({
-  //       where: {
-  //         cabinet_id: cabinetId,
-  //         status: 'ACTIVE',
-  //       },
-  //       include: {
-  //         department: true,
-  //       },
-  //     });
-
-  //     return {
-  //       success: true,
-  //       data: mappings.map(m => m.department),
-  //     };
-  //   } catch (error) {
-  //     this.logger.error(`Error fetching departments by cabinet: ${error.message}`);
-  //     throw new BadRequestException('Failed to fetch departments');
-  //   }
-  // }
-
-  // // Helper method to get cabinets by departmentId
-  // async getCabinetsByDepartment(departmentId: number) {
-  //   try {
-  //     const mappings = await this.prisma.cabinetDepartment.findMany({
-  //       where: {
-  //         department_id: departmentId,
-  //         status: 'ACTIVE',
-  //       },
-  //       include: {
-  //         cabinet: true,
-  //       },
-  //       orderBy: { created_at: 'desc' },
-  //     });
-
-  //     return {
-  //       success: true,
-  //       data: mappings.map(m => m.cabinet?.id),
-  //       total: mappings.length,
-  //       page: 1,
-  //       limit: 10,
-  //       lastPage: Math.ceil(mappings.length / 10),
-  //     };
-  //   } catch (error) {
-  //     this.logger.error(`Error fetching itemStocks by department: ${error.message}`);
-  //     throw new BadRequestException('Failed to fetch itemStocks');
-  //   }
-  // }
 }

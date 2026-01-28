@@ -990,6 +990,74 @@ export class GatewayApiController {
     }
   }
 
+  @Get('medical-supplies-dispensed-items/export/excel')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportDispensedItemsExcel(
+    @Query('keyword') keyword?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Res() res?: any,
+  ) {
+    try {
+      const params: any = {};
+      if (keyword) params.keyword = keyword;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      // Get all items for export (no pagination)
+      params.page = 1;
+      params.limit = 100000;
+
+      const result = await this.gatewayApiService.generateDispensedItemsExcelReport(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Dispensed Items Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Dispensed Items Excel report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('medical-supplies-dispensed-items/export/pdf')
+  // @UseGuards(FlexibleAuthGuard) // Comment สำหรับทดสอบ - Uncomment ก่อน production
+  async exportDispensedItemsPDF(
+    @Query('keyword') keyword?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Res() res?: any,
+  ) {
+    try {
+      const params: any = {};
+      if (keyword) params.keyword = keyword;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      // Get all items for export (no pagination)
+      params.page = 1;
+      params.limit = 100000;
+
+      const result = await this.gatewayApiService.generateDispensedItemsPDFReport(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Dispensed Items PDF report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Dispensed Items PDF report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get('medical-supplies-comparison')
   @UseGuards(FlexibleAuthGuard)
   async compareDispensedVsUsage(

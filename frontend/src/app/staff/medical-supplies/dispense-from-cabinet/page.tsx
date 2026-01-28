@@ -112,15 +112,18 @@ export default function DispenseFromCabinetPage() {
     try {
       const params = new URLSearchParams();
 
-      if (filters.searchItemCode) params.append('itemCode', filters.searchItemCode);
-      if (filters.itemTypeFilter && filters.itemTypeFilter !== 'all') {
-        params.append('itemTypeId', filters.itemTypeFilter);
-      }
+      // ใช้รูปแบบเดียวกับฝั่ง admin เพื่อให้พฤติกรรมตรงกัน
+      if (filters.searchItemCode) params.append('keyword', filters.searchItemCode);
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
 
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+      const url = `${baseUrl}/medical-supplies-dispensed-items/export/${format}?${params.toString()}`;
+
       toast.info(`กำลังสร้างรายงาน ${format.toUpperCase()}...`);
-      // TODO: Implement export endpoint
+
+      window.open(url, '_blank');
+
       toast.success(`กำลังดาวน์โหลดรายงาน ${format.toUpperCase()}`);
     } catch (error: any) {
       toast.error(`ไม่สามารถสร้างรายงาน ${format.toUpperCase()} ได้: ${error.message}`);

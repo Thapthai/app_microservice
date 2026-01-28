@@ -19,6 +19,8 @@ import { CancelBillReportExcelService, CancelBillReportData } from './services/c
 import { CancelBillReportPdfService } from './services/cancel-bill-report-pdf.service';
 import { ReturnToCabinetReportExcelService, ReturnToCabinetReportData } from './services/return-to-cabinet-report-excel.service';
 import { ReturnToCabinetReportPdfService } from './services/return-to-cabinet-report-pdf.service';
+import { DispensedItemsExcelService, DispensedItemsReportData } from './services/dispensed-items-excel.service';
+import { DispensedItemsPdfService } from './services/dispensed-items-pdf.service';
 import { ComparisonReportData } from './types/comparison-report.types';
 import { EquipmentUsageReportData } from './types/equipment-usage-report.types';
 import { EquipmentDisbursementReportData } from './types/equipment-disbursement-report.types';
@@ -50,6 +52,8 @@ export class ReportServiceService {
     private readonly cancelBillReportPdfService: CancelBillReportPdfService,
     private readonly returnToCabinetReportExcelService: ReturnToCabinetReportExcelService,
     private readonly returnToCabinetReportPdfService: ReturnToCabinetReportPdfService,
+    private readonly dispensedItemsExcelService: DispensedItemsExcelService,
+    private readonly dispensedItemsPdfService: DispensedItemsPdfService,
   ) {
     this.prisma = new PrismaClient();
   }
@@ -631,11 +635,11 @@ export class ReportServiceService {
       // Service returns: { data: result, pagination: {...}, filters: {...} }
       // So we need to access comparisonResponse.data.data to get the array
       let comparisonData: any[] = [];
-      
+
       if (comparisonResponse.data && comparisonResponse.data.data) {
         // Standard structure: { success: true, data: { data: [...], pagination: {...}, filters: {...} } }
-        comparisonData = Array.isArray(comparisonResponse.data.data) 
-          ? comparisonResponse.data.data 
+        comparisonData = Array.isArray(comparisonResponse.data.data)
+          ? comparisonResponse.data.data
           : [];
       } else if (Array.isArray(comparisonResponse.data)) {
         // Fallback: direct array
@@ -694,7 +698,7 @@ export class ReportServiceService {
           } catch (error) {
             console.warn(`Failed to fetch usage details for ${item.itemcode}:`, error);
           }
-          
+
           return item;
         })
       );
@@ -748,11 +752,11 @@ export class ReportServiceService {
       // Service returns: { data: result, pagination: {...}, filters: {...} }
       // So we need to access comparisonResponse.data.data to get the array
       let comparisonData: any[] = [];
-      
+
       if (comparisonResponse.data && comparisonResponse.data.data) {
         // Standard structure: { success: true, data: { data: [...], pagination: {...}, filters: {...} } }
-        comparisonData = Array.isArray(comparisonResponse.data.data) 
-          ? comparisonResponse.data.data 
+        comparisonData = Array.isArray(comparisonResponse.data.data)
+          ? comparisonResponse.data.data
           : [];
       } else if (Array.isArray(comparisonResponse.data)) {
         // Fallback: direct array
@@ -1119,7 +1123,7 @@ export class ReportServiceService {
       const groupBy = params.groupBy || 'day';
 
       let whereClause = Prisma.sql`ist.StockID = 0 AND ist.RfidCode <> ''`;
-      
+
       if (params?.startDate) {
         whereClause = Prisma.sql`${whereClause} AND DATE(ist.LastCabinetModify) >= DATE(${new Date(params.startDate)})`;
       }
@@ -1127,7 +1131,7 @@ export class ReportServiceService {
         whereClause = Prisma.sql`${whereClause} AND DATE(ist.LastCabinetModify) <= DATE(${new Date(params.endDate)})`;
       }
 
-      const dateFormat = groupBy === 'day' 
+      const dateFormat = groupBy === 'day'
         ? Prisma.sql`DATE(ist.LastCabinetModify)`
         : Prisma.sql`DATE_FORMAT(ist.LastCabinetModify, '%Y-%m')`;
 
@@ -1225,10 +1229,10 @@ export class ReportServiceService {
     date?: string;
   }): Promise<{ buffer: Buffer; filename: string }> {
     try {
-      const targetDate = params?.date 
+      const targetDate = params?.date
         ? new Date(params.date)
         : new Date();
-      
+
       const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
       const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
 
@@ -1315,22 +1319,18 @@ export class ReportServiceService {
     printDate?: string;
   }): Promise<any> {
     try {
-      const whereConditions: any = {
-        print_date: { not: null },
-      };
+      const whereConditions: any = {};
 
       if (params?.printDate) {
-        whereConditions.print_date = params.printDate;
-      } else if (params?.startDate || params?.endDate) {
-        whereConditions.print_date = {
-          not: null,
-        };
-        if (params?.startDate) {
-          whereConditions.print_date.gte = params.startDate;
-        }
-        if (params?.endDate) {
-          whereConditions.print_date.lte = params.endDate;
-        }
+        // whereConditions.print_date = params.printDate;
+        whereConditions.print_date = params.startDate
+      }
+
+      if (params?.startDate && params?.endDate) {
+        whereConditions.created_at = {
+          gte: new Date(params.startDate + 'T00:00:00.000Z'),
+          lte: new Date(params.endDate + 'T23:59:59.999Z'),
+        };  
       }
 
       const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
@@ -1382,7 +1382,7 @@ export class ReportServiceService {
             INNER JOIN item i ON ist.ItemCode = i.itemcode
             WHERE ist.ItemCode = ${itemCode}
               AND ist.StockID = 0
-              AND DATE(ist.LastCabinetModify) = DATE(${new Date(printDate)})
+           
             LIMIT 1
           `;
 
@@ -1449,7 +1449,7 @@ export class ReportServiceService {
       const groupBy = params.groupBy || 'day';
 
       let whereClause = Prisma.sql`ist.StockID = 0 AND ist.RfidCode <> ''`;
-      
+
       if (params?.startDate) {
         whereClause = Prisma.sql`${whereClause} AND DATE(ist.LastCabinetModify) >= DATE(${new Date(params.startDate)})`;
       }
@@ -1457,7 +1457,7 @@ export class ReportServiceService {
         whereClause = Prisma.sql`${whereClause} AND DATE(ist.LastCabinetModify) <= DATE(${new Date(params.endDate)})`;
       }
 
-      const dateFormat = groupBy === 'day' 
+      const dateFormat = groupBy === 'day'
         ? Prisma.sql`DATE(ist.LastCabinetModify)`
         : Prisma.sql`DATE_FORMAT(ist.LastCabinetModify, '%Y-%m')`;
 
@@ -1548,10 +1548,10 @@ export class ReportServiceService {
     date?: string;
   }): Promise<any> {
     try {
-      const targetDate = params?.date 
+      const targetDate = params?.date
         ? new Date(params.date)
         : new Date();
-      
+
       const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
       const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
 
@@ -1621,7 +1621,7 @@ export class ReportServiceService {
             const availableQty = item.qty - (item.qty_used_with_patient || 0) - (item.qty_returned_to_cabinet || 0);
             return availableQty > 0;
           });
-          
+
           if (matchingItem) {
             const availableQty = matchingItem.qty || 0 - (matchingItem.qty_used_with_patient || 0) - (matchingItem.qty_returned_to_cabinet || 0);
             unusedItems.push({
@@ -2041,6 +2041,122 @@ export class ReportServiceService {
     } catch (error) {
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
       throw new Error(`Failed to generate Return To Cabinet Report PDF: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Dispensed Items Report in Excel format
+   */
+  async generateDispensedItemsExcel(params: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      // Get dispensed items data from medical-supplies-service
+      const response: any = await firstValueFrom(
+        this.medicalSuppliesClient.send(
+          { cmd: 'medical_supply.getDispensedItems' },
+          {
+            keyword: params.keyword,
+            startDate: params.startDate,
+            endDate: params.endDate,
+            page: params.page || 1,
+            limit: params.limit || 10000, // Get all records for report
+          }
+        )
+      );
+
+      if (!response || !response.success || !response.data) {
+        throw new Error('Failed to fetch dispensed items data');
+      }
+
+      const dispensedItems = Array.isArray(response.data) ? response.data : [];
+
+      // Prepare report data
+      const reportData: DispensedItemsReportData = {
+        filters: {
+          keyword: params.keyword,
+          startDate: params.startDate,
+          endDate: params.endDate,
+        },
+        summary: {
+          total_records: response.total || dispensedItems.length,
+          total_qty: dispensedItems.reduce((sum: number, item: any) => sum + (item.qty || 0), 0),
+        },
+        data: dispensedItems,
+      };
+
+      // Generate Excel report
+      const buffer = await this.dispensedItemsExcelService.generateReport(reportData);
+      const dateStr = params.startDate ? params.startDate.replace(/\//g, '-') : new Date().toISOString().split('T')[0];
+      const filename = `dispensed_items_report_${dateStr}.xlsx`;
+
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Dispensed Items Excel:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Dispensed Items Excel report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Dispensed Items Report in PDF format
+   */
+  async generateDispensedItemsPDF(params: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      // Get dispensed items data from medical-supplies-service
+      const response: any = await firstValueFrom(
+        this.medicalSuppliesClient.send(
+          { cmd: 'medical_supply.getDispensedItems' },
+          {
+            keyword: params.keyword,
+            startDate: params.startDate,
+            endDate: params.endDate,
+            page: params.page || 1,
+            limit: params.limit || 10000, // Get all records for report
+          }
+        )
+      );
+
+      if (!response || !response.success || !response.data) {
+        throw new Error('Failed to fetch dispensed items data');
+      }
+
+      const dispensedItems = Array.isArray(response.data) ? response.data : [];
+
+      // Prepare report data
+      const reportData: DispensedItemsReportData = {
+        filters: {
+          keyword: params.keyword,
+          startDate: params.startDate,
+          endDate: params.endDate,
+        },
+        summary: {
+          total_records: response.total || dispensedItems.length,
+          total_qty: dispensedItems.reduce((sum: number, item: any) => sum + (item.qty || 0), 0),
+        },
+        data: dispensedItems,
+      };
+
+      // Generate PDF report
+      const buffer = await this.dispensedItemsPdfService.generateReport(reportData);
+      const dateStr = params.startDate ? params.startDate.replace(/\//g, '-') : new Date().toISOString().split('T')[0];
+      const filename = `dispensed_items_report_${dateStr}.pdf`;
+
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Dispensed Items PDF:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Dispensed Items PDF report: ${errorMessage}`);
     }
   }
 }

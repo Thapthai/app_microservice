@@ -454,6 +454,26 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply.getDispensedItems' }, filters || {}).toPromise();
   }
 
+  async generateDispensedItemsExcelReport(params: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.reportClient.send({ cmd: 'report.dispensed_items.excel' }, params).toPromise();
+  }
+
+  async generateDispensedItemsPDFReport(params: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.reportClient.send({ cmd: 'report.dispensed_items.pdf' }, params).toPromise();
+  }
+
   async compareDispensedVsUsage(filters?: {
     itemCode?: string;
     itemTypeId?: number;

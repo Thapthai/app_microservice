@@ -659,30 +659,5 @@ export class ItemServiceService {
     }
   }
 
-  // async findItemStockByCabinetId(cabinet_id: number) {
-  //   try {
-  //     const itemStocks = await this.prisma.itemStock.findMany({
-  //       where: { StockID: cabinet_id },
-  //       include: {
-  //         item: {
-  //           select: {
-  //             itemcode: true,
-  //             itemname: true,
-  //           },
-  //         },
-  //       },
-  //     });
-  //     return {
-  //       success: true,
-  //       data: itemStocks,
-  //     };
-  //   } catch (error) {
-  //     return {
-  //       success: false,
-  //       message: 'Failed to fetch item stocks by cabinet id',
-  //       error: error.message,
-  //     };
-  //   }
-  // }
 
 }

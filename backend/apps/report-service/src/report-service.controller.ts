@@ -149,6 +149,60 @@ export class ReportServiceController {
     }
   }
 
+  @MessagePattern({ cmd: 'report.dispensed_items.excel' })
+  async generateDispensedItemsExcel(@Payload() data: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const result = await this.reportServiceService.generateDispensedItemsExcel(data);
+      return {
+        success: true,
+        data: {
+          buffer: result.buffer,
+          filename: result.filename,
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
+      };
+    } catch (error) {
+      console.error('[Report Service Controller] Error generating dispensed items Excel:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'report.dispensed_items.pdf' })
+  async generateDispensedItemsPDF(@Payload() data: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const result = await this.reportServiceService.generateDispensedItemsPDF(data);
+      return {
+        success: true,
+        data: {
+          buffer: result.buffer,
+          filename: result.filename,
+          contentType: 'application/pdf',
+        },
+      };
+    } catch (error) {
+      console.error('[Report Service Controller] Error generating dispensed items PDF:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
   @MessagePattern({ cmd: 'report.item_comparison.excel' })
   async generateItemComparisonExcel(@Payload() data: {
     itemCode?: string;
