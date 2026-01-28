@@ -212,31 +212,39 @@ export class MedicalSuppliesServiceService {
           const isDiscontinue = itemStatusLower === 'discontinue' || itemStatusLower === 'discontinued';
 
           if (isDiscontinue && orderItem.AssessionNo) {
-            // Handle discontinue items separately - find and update existing item with same AssessionNo
-            const existingItem = existingUsage.supply_items.find(
-              (item) => item.assession_no === orderItem.AssessionNo &&
-                item.order_item_status?.toLowerCase() !== 'discontinue'
-            );
+            // Handle discontinue items separately - find and update ALL existing items with same AssessionNo
+            // Search across all usage records, not just the current one
+            const allItemsWithSameAssessionNo = await this.prisma.supplyUsageItem.findMany({
+              where: {
+                assession_no: orderItem.AssessionNo,
+                order_item_status: {
+                  not: 'Discontinue', // Only update items that are not already discontinued
+                },
+              },
+              include: {
+                usage: true,
+              },
+            });
 
-            if (existingItem) {
-              // Update existing item to discontinue status
+            // Update all items with the same AssessionNo to Discontinue
+            for (const item of allItemsWithSameAssessionNo) {
               await this.prisma.supplyUsageItem.update({
-                where: { id: existingItem.id },
+                where: { id: item.id },
                 data: {
                   order_item_status: 'Discontinue', // Always use 'Discontinue' (not 'Discontinued')
                   qty_used_with_patient: 0, // Set to 0 to reflect cancellation
                 },
               });
 
-              await this.createLog(existingUsage.id, {
+              await this.createLog(item.medical_supply_usage_id, {
                 type: 'UPDATE',
                 status: 'SUCCESS',
                 action: 'discontinue_item',
                 assession_no: orderItem.AssessionNo,
-                item_code: existingItem.order_item_code,
-                old_status: existingItem.order_item_status,
+                item_code: item.order_item_code,
+                old_status: item.order_item_status,
                 new_status: 'Discontinue',
-                reason: 'ItemStatus updated to Discontinue based on AssessionNo match',
+                reason: 'ItemStatus updated to Discontinue - all items with same AssessionNo are discontinued',
               });
             }
             // Store for later processing in discontinue section if needed
@@ -397,40 +405,46 @@ export class MedicalSuppliesServiceService {
         const updatedUsageIds = new Set<number>();
 
         for (const discontinueItem of discontinueItems) {
-          // Find existing items with the same assession_no in the same episode
-          for (const usage of episodeUsages) {
-            const existingItems = usage.supply_items.filter(item =>
-              item.assession_no === discontinueItem.AssessionNo &&
-              item.order_item_status?.toLowerCase() !== 'discontinue'
-            );
+          // Find ALL existing items with the same assession_no across ALL usage records
+          const allItemsWithSameAssessionNo = await this.prisma.supplyUsageItem.findMany({
+            where: {
+              assession_no: discontinueItem.AssessionNo,
+              order_item_status: {
+                not: 'Discontinue', // Only update items that are not already discontinued
+              },
+            },
+            include: {
+              usage: true,
+            },
+          });
 
-            if (existingItems.length > 0) {
-              updatedUsageIds.add(usage.id);
-            }
+          // Track which usage records are affected
+          for (const item of allItemsWithSameAssessionNo) {
+            updatedUsageIds.add(item.medical_supply_usage_id);
+          }
 
-            // Cancel/Discontinue existing items
-            for (const existingItem of existingItems) {
-              await this.prisma.supplyUsageItem.update({
-                where: { id: existingItem.id },
-                data: {
-                  order_item_status: 'Discontinue', // Always use 'Discontinue' (not 'Discontinued')
-                  // Set qty_used_with_patient to 0 to reflect cancellation
-                  qty_used_with_patient: 0,
-                },
-              });
+          // Cancel/Discontinue ALL items with the same AssessionNo
+          for (const existingItem of allItemsWithSameAssessionNo) {
+            await this.prisma.supplyUsageItem.update({
+              where: { id: existingItem.id },
+              data: {
+                order_item_status: 'Discontinue', // Always use 'Discontinue' (not 'Discontinued')
+                // Set qty_used_with_patient to 0 to reflect cancellation
+                qty_used_with_patient: 0,
+              },
+            });
 
-              // Log the cancellation
-              await this.createLog(usage.id, {
-                type: 'UPDATE',
-                status: 'SUCCESS',
-                action: 'discontinue_item',
-                assession_no: discontinueItem.AssessionNo,
-                item_code: existingItem.order_item_code,
-                reason: 'Bill cancelled - Discontinue status received',
-                cancelled_qty: existingItem.qty,
-                original_qty: existingItem.qty,
-              });
-            }
+            // Log the cancellation
+            await this.createLog(existingItem.medical_supply_usage_id, {
+              type: 'UPDATE',
+              status: 'SUCCESS',
+              action: 'discontinue_item',
+              assession_no: discontinueItem.AssessionNo,
+              item_code: existingItem.order_item_code,
+              reason: 'Bill cancelled - Discontinue status received. All items with same AssessionNo are discontinued.',
+              cancelled_qty: existingItem.qty,
+              original_qty: existingItem.qty,
+            });
           }
         }
 
