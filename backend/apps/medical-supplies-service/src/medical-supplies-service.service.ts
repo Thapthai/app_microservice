@@ -249,23 +249,33 @@ export class MedicalSuppliesServiceService {
             }
             // Store for later processing in discontinue section if needed
             discontinueItemsInOrder.push(orderItem);
-            continue;
+            // Continue to create new item even if AssessionNo matches (don't skip creation)
+            // The item will be created with Discontinue status as specified in JSON
           }
 
-          // Find existing item with same AssessionNo
-          const existingItem = existingUsage.supply_items.find(
-            (item) => item.assession_no === orderItem.AssessionNo
-          );
-
-          if (existingItem) {
-            // If AssessionNo matches, update ItemStatus
-            itemsToUpdate.push({
-              item: existingItem,
-              newStatus: orderItem.ItemStatus || existingItem.order_item_status || 'Verified',
-            });
-          } else {
-            // If AssessionNo doesn't match, add new item
+          // Find existing item with same AssessionNo in current usage
+          // Skip if this is a Discontinue item (already processed above, but still need to create)
+          if (isDiscontinue && orderItem.AssessionNo) {
+            // For Discontinue items, always create new item even if AssessionNo matches
+            // (existing items with same AssessionNo were already updated to Discontinue above)
             itemsToCreate.push(orderItem);
+          } else {
+            // For non-Discontinue items, check if AssessionNo matches
+            const existingItem = existingUsage.supply_items.find(
+              (item) => item.assession_no === orderItem.AssessionNo &&
+                item.order_item_status?.toLowerCase() !== 'discontinue'
+            );
+
+            if (existingItem) {
+              // If AssessionNo matches, update ItemStatus
+              itemsToUpdate.push({
+                item: existingItem,
+                newStatus: orderItem.ItemStatus || existingItem.order_item_status || 'Verified',
+              });
+            } else {
+              // If AssessionNo doesn't match, add new item
+              itemsToCreate.push(orderItem);
+            }
           }
         }
 
@@ -379,8 +389,8 @@ export class MedicalSuppliesServiceService {
       const discontinueItems = existingUsage
         ? [] // Already processed above, skip here
         : orderItems.filter(item => {
-          const itemStatusLower = item.ItemStatus?.toLowerCase() || '';
-          return (itemStatusLower === 'discontinue' || itemStatusLower === 'discontinued') && item.AssessionNo;
+          const statusLower = item.ItemStatus?.toLowerCase() || '';
+          return (statusLower === 'discontinue' || statusLower === 'discontinued') && item.AssessionNo;
         });
 
       if (discontinueItems.length > 0 && episodeNumber) {
@@ -467,10 +477,9 @@ export class MedicalSuppliesServiceService {
         }
       }
 
-      // Filter out Discontinue items from creation (they are only used to cancel existing items)
-      const itemsToCreate = orderItems.filter(item =>
-        !item.ItemStatus || item.ItemStatus.toLowerCase() !== 'discontinue'
-      );
+      // Include all items for creation, including Discontinue items
+      // (Discontinue items will create new records with Discontinue status)
+      const itemsToCreate = orderItems;
 
       // Validate ItemCodes ก่อนสร้าง usage (only for items to be created, not Discontinue)
       const allItemCodes = [
@@ -501,40 +510,11 @@ export class MedicalSuppliesServiceService {
 
       }
 
-      // If no items to create (only Discontinue items), return the updated usage record
+      // If no items to create at all, return error (should not happen)
       if (itemsToCreate.length === 0 && legacySupplies.length === 0) {
-        // Find the most recent updated usage for this episode
-        const updatedUsage = await this.prisma.medicalSupplyUsage.findFirst({
-          where: {
-            en: episodeNumber,
-            patient_hn: patientHn,
-          },
-          include: {
-            supply_items: true,
-          },
-          orderBy: {
-            updated_at: 'desc',
-          },
-        });
-
-        if (updatedUsage) {
-          await this.createLog(updatedUsage.id, {
-            type: 'UPDATE',
-            status: 'SUCCESS',
-            action: 'discontinue_items_only',
-            hospital: hospital,
-            en: episodeNumber,
-            patient_hn: patientHn,
-            discontinue_items_count: discontinueItems.length,
-            message: 'Discontinue items processed successfully. Existing records updated.',
-          });
-
-          return updatedUsage as unknown as MedicalSupplyUsageResponse;
-        } else {
-          throw new BadRequestException(
-            `No medical supply usage found to update for EN: ${episodeNumber}, HN: ${patientHn}`
-          );
-        }
+        throw new BadRequestException(
+          `No items to create for EN: ${episodeNumber}, HN: ${patientHn}`
+        );
       }
 
       const usage = await this.prisma.medicalSupplyUsage.create({
