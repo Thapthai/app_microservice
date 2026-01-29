@@ -639,12 +639,35 @@ export class ItemServiceService {
             },
           },
         },
-
       });
+
+      // สรุปจำนวนอุปกรณ์แต่ละชนิดในตู้ (A กี่ชิ้น, B กี่ชิ้น, ...)
+      const itemCountsRaw = await this.prisma.itemStock.groupBy({
+        by: ['ItemCode'],
+        where,
+        _sum: { Qty: true },
+        _count: { RowID: true },
+      });
+      const itemCodes = itemCountsRaw.map((x) => x.ItemCode).filter(Boolean) as string[];
+      const itemsInfo =
+        itemCodes.length > 0
+          ? await this.prisma.item.findMany({
+              where: { itemcode: { in: itemCodes } },
+              select: { itemcode: true, itemname: true },
+            })
+          : [];
+      const itemNameMap = Object.fromEntries(itemsInfo.map((i) => [i.itemcode, i.itemname ?? i.itemcode]));
+      const item_counts = itemCountsRaw.map((row) => ({
+        itemcode: row.ItemCode,
+        itemname: itemNameMap[row.ItemCode ?? ''] ?? row.ItemCode ?? '-',
+        total_qty: row._sum.Qty ?? 0,
+        count_rows: row._count.RowID,
+      }));
 
       return {
         success: true,
         data: itemStocks,
+        item_counts,
         total,
         page,
         limit,
