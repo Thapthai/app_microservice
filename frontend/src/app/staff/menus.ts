@@ -109,30 +109,30 @@ export const staffMenuItems = [
         icon: BarChart3,
         description: 'รายงานและสถิติต่างๆ',
         submenu: [
-            {
-                name: 'รายงานทั้งหมด',
-                href: '/staff/medical-supplies/reports',
-                description: 'รายงานทางการแพทย์ทั้งหมด',
-                icon: FileBarChart,
-            },
-            {
-                name: 'เปรียบเทียบตามผู้ป่วย',
-                href: '/staff/medical-supplies/comparison',
-                description: 'เปรียบเทียบการเบิกกับการใช้งานตามผู้ป่วย',
-                icon: FileBarChart,
-            },
-            {
-                name: 'การใช้อุปกรณ์',
-                href: '/staff/medical-supplies/equipment-usage',
-                description: 'รายงานการใช้อุปกรณ์กับคนไข้',
-                icon: ClipboardList,
-            },
-            {
-                name: 'การตัดจ่าย',
-                href: '/staff/medical-supplies/equipment-disbursement',
-                description: 'รายงานการรับบันทึกตัดจ่ายอุปกรณ์',
-                icon: FileText,
-            },
+            // {
+            //     name: 'รายงานทั้งหมด',
+            //     href: '/staff/medical-supplies/reports',
+            //     description: 'รายงานทางการแพทย์ทั้งหมด',
+            //     icon: FileBarChart,
+            // },
+            // {
+            //     name: 'เปรียบเทียบตามผู้ป่วย',
+            //     href: '/staff/medical-supplies/comparison',
+            //     description: 'เปรียบเทียบการเบิกกับการใช้งานตามผู้ป่วย',
+            //     icon: FileBarChart,
+            // },
+            // {
+            //     name: 'การใช้อุปกรณ์',
+            //     href: '/staff/medical-supplies/equipment-usage',
+            //     description: 'รายงานการใช้อุปกรณ์กับคนไข้',
+            //     icon: ClipboardList,
+            // },
+            // {
+            //     name: 'การตัดจ่าย',
+            //     href: '/staff/medical-supplies/equipment-disbursement',
+            //     description: 'รายงานการรับบันทึกตัดจ่ายอุปกรณ์',
+            //     icon: FileText,
+            // },
             {
                 name: 'รายงาน Vending',
                 href: '/staff/medical-supplies/vending-reports',

@@ -134,36 +134,36 @@ const mainMenuItems = [
     icon: BarChart3,
     description: "รายงานและสถิติต่างๆ",
     submenu: [
-      {
-        name: "รายงานทั้งหมด",
-        href: "/admin/medical-supplies/reports",
-        description: "รายงานทางการแพทย์ทั้งหมด",
-        icon: FileBarChart,
-      },
-      {
-        name: "เปรียบเทียบตามผู้ป่วย",
-        href: "/admin/medical-supplies/comparison",
-        description: "เปรียบเทียบการเบิกกับการใช้งานตามผู้ป่วย",
-        icon: FileBarChart,
-      },
+      // {
+      //   name: "รายงานทั้งหมด",
+      //   href: "/admin/medical-supplies/reports",
+      //   description: "รายงานทางการแพทย์ทั้งหมด",
+      //   icon: FileBarChart,
+      // },
+      // {
+      //   name: "เปรียบเทียบตามผู้ป่วย",
+      //   href: "/admin/medical-supplies/comparison",
+      //   description: "เปรียบเทียบการเบิกกับการใช้งานตามผู้ป่วย",
+      //   icon: FileBarChart,
+      // },
       // {
       //   name: 'เปรียบเทียบตามเวชภัณฑ์',
       //   href: '/medical-supplies/item-comparison',
       //   description: 'เปรียบเทียบการเบิกกับการใช้งานตามเวชภัณฑ์',
       //   icon: FileBarChart,
       // },
-      {
-        name: "การใช้อุปกรณ์",
-        href: "/admin/medical-supplies/equipment-usage",
-        description: "รายงานการใช้อุปกรณ์กับคนไข้",
-        icon: ClipboardList,
-      },
-      {
-        name: "การตัดจ่าย",
-        href: "/admin/medical-supplies/equipment-disbursement",
-        description: "รายงานการรับบันทึกตัดจ่ายอุปกรณ์",
-        icon: FileText,
-      },
+      // {
+      //   name: "การใช้อุปกรณ์",
+      //   href: "/admin/medical-supplies/equipment-usage",
+      //   description: "รายงานการใช้อุปกรณ์กับคนไข้",
+      //   icon: ClipboardList,
+      // },
+      // {
+      //   name: "การตัดจ่าย",
+      //   href: "/admin/medical-supplies/equipment-disbursement",
+      //   description: "รายงานการรับบันทึกตัดจ่ายอุปกรณ์",
+      //   icon: FileText,
+      // },
       {
         name: "รายงาน Vending",
         href: "/admin/medical-supplies/vending-reports",
