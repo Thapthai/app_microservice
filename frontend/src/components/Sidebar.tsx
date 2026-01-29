@@ -97,9 +97,9 @@ const mainMenuItems = [
       //   icon: Package,
       // },
       {
-        name: "รายการเบิกอุปกรณ์อุปกรณ์ใช้กับคนไข้",
+        name: "รายการเบิกอุปกรณ์ใช้กับคนไข้",
         href: "/admin/medical-supplies",
-        description: "รายการเบิกอุปกรณ์อุปกรณ์ใช้กับคนไข้",
+        description: "รายการเบิกอุปกรณ์ใช้กับคนไข้",
         icon: ClipboardList,
       },
       {
