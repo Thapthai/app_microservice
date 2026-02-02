@@ -57,6 +57,15 @@ export const staffMedicalSuppliesApi = {
         return response.data;
     },
 
+    /** สรุปโดยรวม: จำนวนเบิก, จำนวนใช้, ผลต่าง (สำหรับ Dashboard) */
+    getDispensedVsUsageSummary: async (params?: {
+        startDate?: string;
+        endDate?: string;
+    }): Promise<ApiResponse<{ total_dispensed: number; total_used: number; difference: number }>> => {
+        const response = await staffApi.get('/medical-supplies-comparison/summary', { params });
+        return response.data;
+    },
+
     getUsageByItemCodeFromItemTable: async (query?: {
         itemCode?: string;
         startDate?: string;

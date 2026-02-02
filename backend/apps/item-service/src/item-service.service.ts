@@ -127,6 +127,7 @@ export class ItemServiceService {
               StockID: true,
               Qty: true,
               RfidCode: true,
+              ExpireDate: true,
               cabinet: {
                 select: {
                   id: true,

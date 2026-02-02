@@ -1,6 +1,7 @@
 "use client";
 
-import { Package, RefreshCw, Gauge, Pencil, Trash2, Archive } from "lucide-react";
+import { useState, Fragment } from "react";
+import { Package, RefreshCw, Gauge, ChevronDown, ChevronRight, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,6 +20,23 @@ interface ItemsTableProps {
   onPageChange: (page: number) => void;
 }
 
+const COLUMN_COUNT = 9; // รวมคอลัมน์ chevron + แผนก
+
+function getItemDepartmentDisplay(item: Item): string {
+  if (item.department?.DepName || item.department?.DepName2) {
+    return item.department.DepName || item.department.DepName2 || "-";
+  }
+  const itemStocks = item.itemStocks ?? [];
+  const names = new Set<string>();
+  itemStocks.forEach((stock) => {
+    stock.cabinet?.cabinetDepartments?.forEach((cd) => {
+      const name = cd.department?.DepName || cd.department?.DepName2;
+      if (name) names.add(name);
+    });
+  });
+  return names.size > 0 ? [...names].join(", ") : "-";
+}
+
 export default function ItemsTable({
   items,
   loading,
@@ -26,24 +44,23 @@ export default function ItemsTable({
   totalPages,
   totalItems,
   itemsPerPage,
-  onEdit,
-  onDelete,
   onUpdateMinMax,
-  onPageChange
+  onPageChange,
 }: ItemsTableProps) {
-  
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
   const getStatusBadge = (status: number | undefined) => {
     if (status === 0) {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full border bg-green-100 text-green-800 border-green-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
           ใช้งาน
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full border bg-gray-100 text-gray-800 border-gray-200">
-        <span className="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
         ไม่ใช้งาน
       </span>
     );
@@ -52,25 +69,22 @@ export default function ItemsTable({
   const generatePageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
-
     if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       if (currentPage <= 3) {
         for (let i = 1; i <= 4; i++) pages.push(i);
-        pages.push('...');
+        pages.push("...");
         pages.push(totalPages);
       } else if (currentPage >= totalPages - 2) {
         pages.push(1);
-        pages.push('...');
+        pages.push("...");
         for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
       } else {
         pages.push(1);
-        pages.push('...');
+        pages.push("...");
         for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
-        pages.push('...');
+        pages.push("...");
         pages.push(totalPages);
       }
     }
@@ -104,9 +118,11 @@ export default function ItemsTable({
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12" />
                     <TableHead className="w-[100px]">ลำดับ</TableHead>
                     <TableHead>รหัสอุปกรณ์</TableHead>
                     <TableHead>ชื่อสินค้า</TableHead>
+                    <TableHead>แผนก</TableHead>
                     <TableHead className="text-center">จำนวนในตู้</TableHead>
                     <TableHead className="text-center">Min/Max</TableHead>
                     <TableHead>สถานะ</TableHead>
@@ -115,44 +131,59 @@ export default function ItemsTable({
                 </TableHeader>
                 <TableBody>
                   {items.map((item, index) => {
-                    const countItemStock = (item as any).count_itemstock ?? 0;
+                    const countItemStock = (item as Item & { count_itemstock?: number }).count_itemstock ?? item.itemStocks?.length ?? 0;
                     const stockMin = item.stock_min ?? 0;
                     const isLowStock = stockMin > 0 && countItemStock < stockMin;
-                    
+                    const itemStocks = item.itemStocks ?? [];
+                    const isExpanded = expandedRow === item.itemcode;
+
                     return (
-                      <TableRow 
-                        key={item.itemcode}
-                        className={isLowStock ? 'bg-red-50 hover:bg-red-100' : ''}
-                      >
-                        <TableCell className="font-medium">
-                          {(currentPage - 1) * itemsPerPage + index + 1}
-                        </TableCell>
-                        <TableCell>
-                          <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                            {item.itemcode}
-                          </code>
-                        </TableCell>
-                        <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <Archive className="h-4 w-4 text-blue-600" />
-                            <span className={`font-semibold ${
-                              isLowStock ? 'text-red-600' : 'text-blue-600'
-                            }`}>
-                              {countItemStock.toLocaleString()}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center space-x-1 text-xs">
+                      <Fragment key={item.itemcode}>
+                        <TableRow
+                          className={isLowStock ? "bg-red-50 hover:bg-red-100" : ""}
+                        >
+                          <TableCell className="w-12">
+                            {itemStocks.length > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedRow(isExpanded ? null : item.itemcode)}
+                                className="hover:bg-gray-200 p-1 rounded"
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </button>
+                            ) : (
+                              <span className="w-4 inline-block" />
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {(currentPage - 1) * itemsPerPage + index + 1}
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                              {item.itemcode}
+                            </code>
+                          </TableCell>
+                          <TableCell className="font-medium">{item.itemname || "-"}</TableCell>
+                          <TableCell className="text-muted-foreground">{getItemDepartmentDisplay(item)}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Archive className="h-4 w-4 text-blue-600" />
+                              <span className={`font-semibold ${isLowStock ? "text-red-600" : "text-blue-600"}`}>
+                                {countItemStock.toLocaleString()}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
                             <span className="text-gray-600">{item.stock_min ?? 0}</span>
-                            <span className="text-gray-400">/</span>
+                            <span className="text-gray-400 mx-1">/</span>
                             <span className="text-gray-600">{item.stock_max ?? 0}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(item.item_status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end space-x-2">
+                          </TableCell>
+                          <TableCell>{getStatusBadge(item.item_status)}</TableCell>
+                          <TableCell className="text-right">
                             <Button
                               size="sm"
                               variant="outline"
@@ -162,43 +193,92 @@ export default function ItemsTable({
                             >
                               <Gauge className="h-4 w-4" />
                             </Button>
-                           
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                          </TableCell>
+                        </TableRow>
+
+                        {isExpanded && itemStocks.length > 0 && (
+                          <TableRow>
+                            <TableCell colSpan={COLUMN_COUNT} className="bg-gray-50 p-4">
+                              <div>
+                                <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                                  <Package className="h-4 w-4" />
+                                  รายการ Item Stock ในอุปกรณ์ ({itemStocks.length} รายการ)
+                                </h4>
+                                <div className="overflow-x-auto">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="w-12">ลำดับ</TableHead>
+                                        <TableHead>RowID</TableHead>
+                                        <TableHead>ตู้ (Cabinet)</TableHead>
+                                        <TableHead>RFID</TableHead>
+                                        <TableHead>หมดอายุ</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {itemStocks.map((stock, idx) => {
+                                        const deptNames = stock.cabinet?.cabinetDepartments
+                                          ?.map((cd) => cd.department?.DepName || cd.department?.DepName2)
+                                          .filter(Boolean)
+                                          .join(", ") || "-";
+                                        const expireStr = stock.ExpireDate;
+                                        const expireDate = expireStr ? new Date(expireStr) : null;
+                                        const isExpired = expireDate ? expireDate.getTime() < Date.now() : false;
+                                        const expireDisplay = expireStr
+                                          ? expireDate?.toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }) ?? expireStr
+                                          : "-";
+                                        return (
+                                          <TableRow key={stock.RowID ?? idx}>
+                                            <TableCell className="font-medium">{idx + 1}</TableCell>
+                                            <TableCell>{stock.RowID ?? "-"}</TableCell>
+                                            <TableCell>
+                                              {stock.cabinet?.cabinet_name || stock.cabinet?.cabinet_code || "-"}
+                                            </TableCell>
+                                            <TableCell className="text-xs font-mono">
+                                              {stock.RfidCode || "-"}
+                                            </TableCell>
+                                            <TableCell>
+                                              {expireDisplay}
+                                              {isExpired && (
+                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 border border-red-200">
+                                                  หมดอายุ
+                                                </span>
+                                              )}
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </TableBody>
               </Table>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-6 flex items-center justify-between border-t pt-4">
                 <div className="text-sm text-gray-500">
                   หน้า {currentPage} จาก {totalPages} ({totalItems} อุปกรณ์)
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onPageChange(1)}
-                    disabled={currentPage === 1}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => onPageChange(1)} disabled={currentPage === 1}>
                     แรกสุด
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>
                     ก่อนหน้า
                   </Button>
-                  
-                  {generatePageNumbers().map((page, idx) => (
-                    page === '...' ? (
-                      <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>
+                  {generatePageNumbers().map((page, idx) =>
+                    page === "..." ? (
+                      <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">
+                        ...
+                      </span>
                     ) : (
                       <Button
                         key={page}
@@ -209,22 +289,11 @@ export default function ItemsTable({
                         {page}
                       </Button>
                     )
-                  ))}
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages}>
                     ถัดไป
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onPageChange(totalPages)}
-                    disabled={currentPage === totalPages}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages}>
                     สุดท้าย
                   </Button>
                 </div>

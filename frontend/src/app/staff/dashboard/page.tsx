@@ -1,18 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, FileText } from 'lucide-react';
 import { staffItemsApi } from '@/lib/staffApi/itemsApi';
-import type { Item } from '@/types/item';
-import DashboardItemsTable from './components/DashboardItemsTable';
-import UpdateMinMaxDialog from '../items/components/UpdateMinMaxDialog';
+import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
+import { staffCabinetDepartmentApi } from '@/lib/staffApi/cabinetApi';
+import type { ItemWithExpiry } from '../../admin/dashboard/components/ItemsWithExpirySidebar';
 import StatsCards from '../../admin/dashboard/components/StatsCards';
+import DashboardMappingsTable, { type CabinetDepartment } from '../../admin/dashboard/components/DashboardMappingsTable';
+import DispensedVsUsageChartCard from '../../admin/dashboard/components/DispensedVsUsageChartCard';
+import ItemsWithExpirySidebar from '../../admin/dashboard/components/ItemsWithExpirySidebar';
 
 export default function StaffDashboardPage() {
   const [staffUser, setStaffUser] = useState<any>(null);
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [mappings, setMappings] = useState<CabinetDepartment[]>([]);
+  const [loadingMappings, setLoadingMappings] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
   const [stats, setStats] = useState({
     totalItems: 0,
@@ -20,19 +21,24 @@ export default function StaffDashboardPage() {
     inactiveItems: 0,
     lowStockItems: 0,
   });
-  const [showMinMaxDialog, setShowMinMaxDialog] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const itemsPerPage = 10;
+  const [itemsWithExpiry, setItemsWithExpiry] = useState<ItemWithExpiry[]>([]);
+  const [nearExpire7Days, setNearExpire7Days] = useState(0);
+  const [nearExpire3Days, setNearExpire3Days] = useState(0);
+  const [dispensedVsUsageSummary, setDispensedVsUsageSummary] = useState<{
+    total_dispensed: number;
+    total_used: number;
+    difference: number;
+  } | null>(null);
+  const [loadingDispensedVsUsage, setLoadingDispensedVsUsage] = useState(false);
 
   useEffect(() => {
     const user = localStorage.getItem('staff_user');
     if (user) {
-      setStaffUser(JSON.parse(user));
+      try {
+        setStaffUser(JSON.parse(user));
+      } catch {
+        setStaffUser(null);
+      }
     }
   }, []);
 
@@ -45,12 +51,20 @@ export default function StaffDashboardPage() {
           const response = await staffItemsApi.getStats();
 
           if (response.success && response.data) {
+            const data = response.data as any;
+            const d = data.details ?? data;
             setStats({
-              totalItems: (response.data as any).details?.total_items ?? response.data.total_items ?? 0,
-              activeItems: (response.data as any).details?.active_items ?? response.data.active_items ?? 0,
-              inactiveItems: (response.data as any).details?.inactive_items ?? response.data.inactive_items ?? 0,
-              lowStockItems: (response.data as any).details?.low_stock_items ?? response.data.low_stock_items ?? 0,
+              totalItems: d.total_items ?? 0,
+              activeItems: d.active_items ?? 0,
+              inactiveItems: d.inactive_items ?? 0,
+              lowStockItems: d.low_stock_items ?? 0,
             });
+            const itemStock = data.item_stock;
+            if (itemStock) {
+              setNearExpire7Days(itemStock.expire?.near_expire_7_days ?? 0);
+              setNearExpire3Days(itemStock.expire?.near_expire_3_days ?? 0);
+              setItemsWithExpiry(Array.isArray(itemStock.items_with_expiry) ? itemStock.items_with_expiry : []);
+            }
           }
         }
       } catch (error) {
@@ -63,67 +77,51 @@ export default function StaffDashboardPage() {
     fetchStats();
   }, [staffUser]);
 
+  // Fetch เบิก vs ใช้ โดยรวม
   useEffect(() => {
-    if (staffUser) {
-      fetchItems();
-    }
-  }, [staffUser, currentPage]);
-
-  const fetchItems = async () => {
-    try {
-      setLoading(true);
-      const response = await staffItemsApi.getAll({
-        page: currentPage,
-        limit: itemsPerPage,
-      });
-      if (response.data) {
-        setItems(response.data);
-        setTotalItems(response.total || 0);
-        setTotalPages(response.lastPage || 1);
+    const fetchSummary = async () => {
+      try {
+        if (!staffUser) return;
+        setLoadingDispensedVsUsage(true);
+        const response = await staffMedicalSuppliesApi.getDispensedVsUsageSummary();
+        if (response.success && response.data) {
+          setDispensedVsUsageSummary(response.data);
+        } else {
+          setDispensedVsUsageSummary(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dispensed vs usage summary:', error);
+        setDispensedVsUsageSummary(null);
+      } finally {
+        setLoadingDispensedVsUsage(false);
       }
-    } catch (error) {
-      console.error('Failed to fetch items:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    fetchSummary();
+  }, [staffUser]);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // Fetch รายการเชื่อมโยง (ตู้-แผนก)
+  useEffect(() => {
+    const fetchMappings = async () => {
+      try {
+        if (staffUser) {
+          setLoadingMappings(true);
+          const response = await staffCabinetDepartmentApi.getAll();
+          if (response.success && response.data) {
+            setMappings(response.data as CabinetDepartment[]);
+          } else {
+            setMappings([]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch cabinet-department mappings:', error);
+        setMappings([]);
+      } finally {
+        setLoadingMappings(false);
+      }
+    };
 
-  const handleUpdateMinMax = (item: Item) => {
-    setSelectedItem(item);
-    setShowMinMaxDialog(true);
-  };
-
-  const handleUpdateMinMaxSuccess = async () => {
-    setShowMinMaxDialog(false);
-    // Refresh items and stats
-    const [itemsResponse, statsResponse] = await Promise.all([
-      staffItemsApi.getAll({
-        page: currentPage,
-        limit: itemsPerPage
-      }),
-      staffItemsApi.getStats()
-    ]);
-    
-    if (itemsResponse.data) {
-      setItems(itemsResponse.data);
-      setTotalPages(itemsResponse.lastPage || 1);
-      setTotalItems(itemsResponse.total || 0);
-    }
-    
-    if (statsResponse.success && statsResponse.data) {
-      setStats({
-        totalItems: (statsResponse.data as any).details?.total_items ?? statsResponse.data.total_items ?? 0,
-        activeItems: (statsResponse.data as any).details?.active_items ?? statsResponse.data.active_items ?? 0,
-        inactiveItems: (statsResponse.data as any).details?.inactive_items ?? statsResponse.data.inactive_items ?? 0,
-        lowStockItems: (statsResponse.data as any).details?.low_stock_items ?? statsResponse.data.low_stock_items ?? 0,
-      });
-    }
-  };
+    fetchMappings();
+  }, [staffUser]);
 
   if (!staffUser) {
     return null;
@@ -131,58 +129,35 @@ export default function StaffDashboardPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">
-          ยินดีต้อนรับ, {staffUser.fname}!
-        </h2>
-        <p className="text-gray-600">อีเมล: {staffUser.email}</p>
+      <StatsCards
+        loading={loadingStats}
+        stats={stats}
+        dispensedVsUsage={dispensedVsUsageSummary}
+        loadingDispensedVsUsage={loadingDispensedVsUsage}
+      />
+
+      {/* แถว 1: สรุปการเชื่อมโยง (เล็ก) + รายการเชื่อมโยง (ตาราง) | Card อุปกรณ์ใกล้หมดอายุ ความสูงเท่ากัน */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-stretch">
+        <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
+          <DispensedVsUsageChartCard
+            mappingSummary={{
+              total: mappings.length,
+              cabinets: new Set(mappings.map((m) => m.cabinet_id)).size,
+              departments: new Set(mappings.map((m) => m.department_id)).size,
+            }}
+            loadingMappings={loadingMappings}
+          />
+          <DashboardMappingsTable mappings={mappings} loading={loadingMappings} />
+        </div>
+        <div className="lg:col-span-1 h-full min-h-0 flex flex-col">
+          <ItemsWithExpirySidebar
+            itemsWithExpiry={itemsWithExpiry}
+            nearExpire7Days={nearExpire7Days}
+            nearExpire3Days={nearExpire3Days}
+            loading={loadingStats}
+          />
+        </div>
       </div>
-
-      {/* Stats Cards */}
-      <StatsCards loading={loadingStats} stats={stats} />
-
-      {/* Items Table */}
-      <DashboardItemsTable
-        items={items}
-        loading={loading}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        itemsPerPage={itemsPerPage}
-        onUpdateMinMax={handleUpdateMinMax}
-        onPageChange={handlePageChange}
-      />
-
-      {/* Info Card */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>ข้อมูลการใช้งาน</CardTitle>
-          <CardDescription>
-            ระบบสำหรับพนักงาน - สามารถดูและจัดการข้อมูลพื้นฐาน
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <p className="text-sm text-gray-600">
-              <strong>Client ID:</strong> {staffUser.client_id}
-            </p>
-            <p className="text-sm text-gray-600">
-              <strong>สถานะ:</strong>{' '}
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                ใช้งานอยู่
-              </span>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <UpdateMinMaxDialog
-        open={showMinMaxDialog}
-        onOpenChange={setShowMinMaxDialog}
-        item={selectedItem}
-        onSuccess={handleUpdateMinMaxSuccess}
-      />
     </>
   );
 }
-

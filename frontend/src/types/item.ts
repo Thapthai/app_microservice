@@ -92,6 +92,34 @@ export interface Item {
     DepName?: string;
     DepName2?: string;
   };
+
+  // Item stocks (from API when included, e.g. findAllItems)
+  itemStocks?: ItemStockRow[];
+  count_itemstock?: number;
+}
+
+export interface ItemStockRow {
+  RowID?: number;
+  StockID?: number;
+  Qty?: number;
+  RfidCode?: string;
+  ExpireDate?: string; // ISO date string
+  cabinet?: {
+    id?: number;
+    cabinet_name?: string;
+    cabinet_code?: string;
+    stock_id?: number;
+    cabinetDepartments?: {
+      id?: number;
+      department_id?: number;
+      status?: string;
+      department?: {
+        ID?: number;
+        DepName?: string;
+        DepName2?: string;
+      };
+    }[];
+  };
 }
 
 export interface CreateItemDto {
