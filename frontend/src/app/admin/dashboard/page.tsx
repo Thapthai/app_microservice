@@ -9,7 +9,7 @@ import type { Item } from '@/types/item';
 import DashboardHeader from './components/DashboardHeader';
 import StatsCards from './components/StatsCards';
 import DashboardItemsTable from './components/DashboardItemsTable';
-import UpdateMinMaxDialog from '../admin/items/components/UpdateMinMaxDialog';
+import UpdateMinMaxDialog from '../items/components/UpdateMinMaxDialog';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -124,7 +124,7 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <AppLayout>
+      <AppLayout fullWidth>
         <DashboardHeader 
           userName={user?.name}
         />

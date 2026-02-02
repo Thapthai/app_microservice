@@ -33,9 +33,9 @@ export default withAuth(
           return true;
         }
         
-        // ตรวจสอบว่าเป็น protected route หรือไม่
+        // ตรวจสอบว่าเป็น protected route หรือไม่ (แยก admin กับ route อื่น)
         const protectedRoutes = [
-          `${basePath}/dashboard`,
+          `${basePath}/admin`,
           `${basePath}/items`,
           `${basePath}/profile`,
           `${basePath}/categories`,

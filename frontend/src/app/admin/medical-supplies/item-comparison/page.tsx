@@ -204,7 +204,7 @@ export default function ItemComparisonPage() {
 
   return (
     <ProtectedRoute>
-      <AppLayout>
+      <AppLayout fullWidth>
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center gap-3">

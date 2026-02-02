@@ -7,7 +7,7 @@ import { staffItemsApi } from '@/lib/staffApi/itemsApi';
 import type { Item } from '@/types/item';
 import DashboardItemsTable from './components/DashboardItemsTable';
 import UpdateMinMaxDialog from '../items/components/UpdateMinMaxDialog';
-import StatsCards from '../../dashboard/components/StatsCards';
+import StatsCards from '../../admin/dashboard/components/StatsCards';
 
 export default function StaffDashboardPage() {
   const [staffUser, setStaffUser] = useState<any>(null);

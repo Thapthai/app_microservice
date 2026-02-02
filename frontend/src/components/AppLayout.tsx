@@ -6,9 +6,11 @@ import Navbar from './Navbar';
 
 interface AppLayoutProps {
   children: ReactNode;
+  /** ใช้ความกว้างเต็ม (ไม่มี max-width) เหมาะกับ Dashboard */
+  fullWidth?: boolean;
 }
 
-export default function AppLayout({ children }: AppLayoutProps) {
+export default function AppLayout({ children, fullWidth }: AppLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
@@ -24,7 +26,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <Navbar />
         
         <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl">
+          <div
+            className={
+              fullWidth
+                ? 'w-full max-w-full px-4 sm:px-6 lg:px-8 py-6'
+                : 'container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl'
+            }
+          >
             {children}
           </div>
         </main>

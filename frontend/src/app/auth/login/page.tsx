@@ -92,7 +92,7 @@ export default function LoginPage() {
         }
       } else {
         toast.success('เข้าสู่ระบบสำเร็จ');
-        router.push('/dashboard');
+        router.push('/admin/dashboard');
       }
     } catch (err: any) {
       setError(err.message || 'เกิดข้อผิดพลาด');
@@ -129,7 +129,7 @@ export default function LoginPage() {
         if (result?.ok) {
           setShow2FAModal(false);
           toast.success('เข้าสู่ระบบสำเร็จ');
-          router.push('/dashboard');
+          router.push('/admin/dashboard');
         } else if (result?.error) {
           throw new Error(result.error);
         } else {
@@ -163,7 +163,7 @@ export default function LoginPage() {
         toast.error(result.error);
       } else {
         toast.success('เข้าสู่ระบบสำเร็จ');
-        router.push('/dashboard');
+        router.push('/admin/dashboard');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Firebase');

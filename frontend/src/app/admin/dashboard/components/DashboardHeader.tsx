@@ -9,7 +9,7 @@ interface DashboardHeaderProps {
 
 export default function DashboardHeader({ userName, onCreateClick }: DashboardHeaderProps) {
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <div className="px-0 py-4 sm:py-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">

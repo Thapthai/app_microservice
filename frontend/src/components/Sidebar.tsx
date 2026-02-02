@@ -42,7 +42,7 @@ interface SidebarProps {
 const mainMenuItems = [
   {
     name: "Dashboard",
-    href: "/medical-supplies/dashboard",
+    href: "/medical-supplies/admin/dashboard",
     icon: LayoutDashboard,
     description: "ภาพรวมระบบ",
   },
@@ -273,7 +273,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             <div className="flex items-center h-full">
               {/* Mobile: แสดงเต็มเสมอ, Desktop: ตาม isCollapsed */}
               <Link
-                href="/dashboard"
+                href="/admin/dashboard"
                 className={cn(
                   "flex items-center space-x-3 group",
                   isCollapsed && "lg:space-x-0 lg:justify-center lg:w-full"

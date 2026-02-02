@@ -222,7 +222,7 @@ export default function ItemStockDepartmentsPage() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <AppLayout>
+        <AppLayout fullWidth>
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
@@ -236,7 +236,7 @@ export default function ItemStockDepartmentsPage() {
 
   return (
     <ProtectedRoute>
-      <AppLayout>
+      <AppLayout fullWidth>
         <div className="mb-6 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
