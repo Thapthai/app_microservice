@@ -1058,6 +1058,25 @@ export class GatewayApiController {
     }
   }
 
+  @Get('medical-supplies-comparison/summary')
+  @UseGuards(FlexibleAuthGuard)
+  async getDispensedVsUsageSummary(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const result = await this.gatewayApiService.getDispensedVsUsageSummary(
+        startDate && endDate ? { startDate, endDate } : undefined,
+      );
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get dispensed vs usage summary',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get('medical-supplies-comparison')
   @UseGuards(FlexibleAuthGuard)
   async compareDispensedVsUsage(

@@ -487,6 +487,10 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply.compareDispensedVsUsage' }, filters || {}).toPromise();
   }
 
+  async getDispensedVsUsageSummary(filters?: { startDate?: string; endDate?: string }) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply.getDispensedVsUsageSummary' }, filters || {}).toPromise();
+  }
+
   async getUsageByItemCode(filters?: {
     itemCode?: string;
     startDate?: string;

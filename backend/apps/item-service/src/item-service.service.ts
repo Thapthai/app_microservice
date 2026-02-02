@@ -236,13 +236,14 @@ export class ItemServiceService {
         }
       }
 
-      // Get all items with itemStocks
+      // Get all items with itemStocks (รวม ExpireDate สำหรับนับใกล้หมดอายุ)
       const allItemsQuery = await this.prisma.item.findMany({
         where: {
           item_status: 0, // Only active items
         },
         select: {
           itemcode: true,
+          itemname: true,
           item_status: true,
           stock_min: true,
           itemStocks: {
@@ -250,9 +251,14 @@ export class ItemServiceService {
             select: {
               RowID: true,
               StockID: true,
+              ExpireDate: true,
+              ItemCode: true,
+              RfidCode: true,
               cabinet: {
                 select: {
                   id: true,
+                  cabinet_name: true,
+                  cabinet_code: true,
                   cabinetDepartments: {
                     where: department_id ? {
                       department_id: department_id,
@@ -271,6 +277,7 @@ export class ItemServiceService {
         },
       });
 
+
       // Filter items that have itemStocks matching the criteria
       const filteredItems = allItemsQuery.filter((item: any) => {
         if (!item.itemStocks || item.itemStocks.length === 0) {
@@ -288,11 +295,12 @@ export class ItemServiceService {
         return true;
       });
 
-      // Calculate stats
+      // Calculate stats และรวบรวม itemStocks ที่ match สำหรับนับหมดอายุ
       let totalItems = 0;
       let activeItems = 0;
       let inactiveItems = 0;
       let lowStockItems = 0;
+      const allMatchingStocks: Array<{ RowID: number; ItemCode: string | null; itemname: string | null; ExpireDate: Date | null; RfidCode: string | null; cabinet_name?: string; cabinet_code?: string }> = [];
 
       filteredItems.forEach((item: any) => {
         // Count itemStocks (only matching ones if department_id provided)
@@ -317,15 +325,68 @@ export class ItemServiceService {
         if (isLowStock) {
           lowStockItems++;
         }
+
+        // รวบรวม itemStocks สำหรับรายการวันหมดอายุ
+        matchingItemStocks.forEach((stock: any) => {
+          allMatchingStocks.push({
+            RowID: stock.RowID,
+            ItemCode: stock.ItemCode ?? item.itemcode,
+            itemname: item.itemname ?? null,
+            ExpireDate: stock.ExpireDate ?? null,
+            RfidCode: stock.RfidCode ?? null,
+            cabinet_name: stock.cabinet?.cabinet_name ?? undefined,
+            cabinet_code: stock.cabinet?.cabinet_code ?? undefined,
+          });
+        });
       });
+
+      // นับจำนวนชิ้นใกล้หมดอายุ (ภายใน 7 วัน และ 3 วัน)
+      const now = new Date();
+      const in7Days = new Date(now);
+      in7Days.setDate(in7Days.getDate() + 7);
+      const in3Days = new Date(now);
+      in3Days.setDate(in3Days.getDate() + 3);
+
+      let nearExpire7Days = 0;
+      let nearExpire3Days = 0;
+      allMatchingStocks.forEach((s) => {
+        if (!s.ExpireDate) return;
+        const exp = new Date(s.ExpireDate);
+        if (exp <= in7Days && exp >= now) nearExpire7Days++;
+        if (exp <= in3Days && exp >= now) nearExpire3Days++;
+      });
+
+      // รายการ item_stock พร้อมวันหมดอายุ (เรียงจากใกล้หมดก่อน)
+      const itemsWithExpiry = allMatchingStocks
+        .filter((s) => s.ExpireDate != null)
+        .map((s) => ({
+          RowID: s.RowID,
+          ItemCode: s.ItemCode,
+          itemname: s.itemname,
+          ExpireDate: s.ExpireDate,
+          วันหมดอายุ: s.ExpireDate ? new Date(s.ExpireDate).toISOString().split('T')[0] : null,
+          RfidCode: s.RfidCode,
+          cabinet_name: s.cabinet_name,
+          cabinet_code: s.cabinet_code,
+        }))
+        .sort((a, b) => (a.ExpireDate && b.ExpireDate ? new Date(a.ExpireDate).getTime() - new Date(b.ExpireDate).getTime() : 0));
 
       return {
         success: true,
         data: {
-          total_items: totalItems,
-          active_items: activeItems,
-          inactive_items: inactiveItems,
-          low_stock_items: lowStockItems,
+          details: {
+            total_items: totalItems,
+            active_items: activeItems,
+            inactive_items: inactiveItems,
+            low_stock_items: lowStockItems,
+          },
+          item_stock: {
+            expire: {
+              near_expire_7_days: nearExpire7Days,
+              near_expire_3_days: nearExpire3Days,
+            },
+            items_with_expiry: itemsWithExpiry,
+          },
         },
       };
     } catch (error) {
@@ -572,8 +633,6 @@ export class ItemServiceService {
     }
   }
 
-
-
   // ====================================== Item Stock IN Cabinet API ======================================
 
   async findAllItemStockInCabinet(
@@ -681,6 +740,5 @@ export class ItemServiceService {
       };
     }
   }
-
 
 }

@@ -15,6 +15,32 @@ export interface ItemsStats {
   low_stock_items?: number;
 }
 
+/** รูปแบบ response จาก getItemsStats (มี details + item_stock.expire) */
+export interface GetItemsStatsData {
+  details: {
+    total_items: number;
+    active_items: number;
+    inactive_items: number;
+    low_stock_items: number;
+  };
+  item_stock: {
+    expire: {
+      near_expire_7_days: number;
+      near_expire_3_days: number;
+    };
+    items_with_expiry: Array<{
+      RowID: number;
+      ItemCode: string | null;
+      itemname: string | null;
+      ExpireDate: string | null;
+      วันหมดอายุ: string | null;
+      RfidCode: string | null;
+      cabinet_name?: string;
+      cabinet_code?: string;
+    }>;
+  };
+}
+
 export interface PaginatedResponse<T> {
   success?: boolean;
   data: T[];

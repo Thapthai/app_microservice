@@ -251,6 +251,11 @@ export class MedicalSuppliesServiceController {
     }
   }
 
+  @MessagePattern({ cmd: 'medical_supply.getDispensedVsUsageSummary' })
+  async getDispensedVsUsageSummary(@Payload() data: { startDate?: string; endDate?: string }) {
+    return this.medicalSuppliesService.getDispensedVsUsageSummary(data);
+  }
+
   @MessagePattern({ cmd: 'medical_supply.compareDispensedVsUsage' })
   async compareDispensedVsUsage(@Payload() data: {
     itemCode?: string;

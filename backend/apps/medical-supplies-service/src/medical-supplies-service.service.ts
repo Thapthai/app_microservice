@@ -2828,6 +2828,56 @@ export class MedicalSuppliesServiceService {
     }
   }
   // ==============================================================
+  // ============ Summary: เบิก vs ใช้ โดยรวม (สำหรับ Dashboard) ==============
+  // ============================================================
+  async getDispensedVsUsageSummary(filters?: { startDate?: string; endDate?: string }) {
+    try {
+      const sqlConditionsDispensed: Prisma.Sql[] = [
+        Prisma.sql`RfidCode <> ''`,
+      ];
+      const sqlConditionsUsage: Prisma.Sql[] = [
+        Prisma.raw(`order_item_status != 'Discontinue' AND order_item_status != 'discontinue' AND order_item_status != 'Discontinued' AND order_item_status != 'discontinued'`),
+      ];
+      if (filters?.startDate && filters?.endDate) {
+        sqlConditionsDispensed.push(
+          Prisma.raw(`(DATE(LastCabinetModify) BETWEEN '${filters.startDate.replace(/'/g, "''")}' AND '${filters.endDate.replace(/'/g, "''")}')`),
+        );
+        sqlConditionsUsage.push(
+          Prisma.raw(`(DATE(created_at) BETWEEN '${filters.startDate.replace(/'/g, "''")}' AND '${filters.endDate.replace(/'/g, "''")}')`),
+        );
+      }
+      const whereDispensed = Prisma.join(sqlConditionsDispensed, ' AND ');
+      const whereUsage = Prisma.join(sqlConditionsUsage, ' AND ');
+
+      const [dispensedRow] = await this.prisma.$queryRaw<Array<{ total_dispensed: number | null }>>`
+        SELECT COALESCE(SUM(Qty), 0) AS total_dispensed FROM itemstock WHERE ${whereDispensed}
+      `;
+      const [usageRow] = await this.prisma.$queryRaw<Array<{ total_used: number | null }>>`
+        SELECT COALESCE(SUM(qty), 0) AS total_used FROM app_microservice_supply_usage_items WHERE ${whereUsage}
+      `;
+
+      const total_dispensed = Number(dispensedRow?.total_dispensed ?? 0);
+      const total_used = Number(usageRow?.total_used ?? 0);
+      const difference = total_dispensed - total_used;
+
+      return {
+        success: true,
+        data: {
+          total_dispensed,
+          total_used,
+          difference,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch dispensed vs usage summary',
+        error: error?.message,
+      };
+    }
+  }
+
+  // ==============================================================
   // ============ Compare Dispensed vs Usage Records ==============
   // ============================================================
   async compareDispensedVsUsage(filters?: {

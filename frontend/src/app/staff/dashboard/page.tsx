@@ -46,10 +46,10 @@ export default function StaffDashboardPage() {
 
           if (response.success && response.data) {
             setStats({
-              totalItems: response.data.total_items || 0,
-              activeItems: response.data.active_items || 0,
-              inactiveItems: response.data.inactive_items || 0,
-              lowStockItems: response.data.low_stock_items || 0,
+              totalItems: (response.data as any).details?.total_items ?? response.data.total_items ?? 0,
+              activeItems: (response.data as any).details?.active_items ?? response.data.active_items ?? 0,
+              inactiveItems: (response.data as any).details?.inactive_items ?? response.data.inactive_items ?? 0,
+              lowStockItems: (response.data as any).details?.low_stock_items ?? response.data.low_stock_items ?? 0,
             });
           }
         }
@@ -117,10 +117,10 @@ export default function StaffDashboardPage() {
     
     if (statsResponse.success && statsResponse.data) {
       setStats({
-        totalItems: statsResponse.data.total_items || 0,
-        activeItems: statsResponse.data.active_items || 0,
-        inactiveItems: statsResponse.data.inactive_items || 0,
-        lowStockItems: statsResponse.data.low_stock_items || 0,
+        totalItems: (statsResponse.data as any).details?.total_items ?? statsResponse.data.total_items ?? 0,
+        activeItems: (statsResponse.data as any).details?.active_items ?? statsResponse.data.active_items ?? 0,
+        inactiveItems: (statsResponse.data as any).details?.inactive_items ?? statsResponse.data.inactive_items ?? 0,
+        lowStockItems: (statsResponse.data as any).details?.low_stock_items ?? statsResponse.data.low_stock_items ?? 0,
       });
     }
   };

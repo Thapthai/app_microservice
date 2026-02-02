@@ -85,6 +85,13 @@ export interface Item {
   
   // Legacy fields (for backward compatibility)
   category?: Category;
+
+  // Department (from API when included)
+  department?: {
+    ID?: number;
+    DepName?: string;
+    DepName2?: string;
+  };
 }
 
 export interface CreateItemDto {
