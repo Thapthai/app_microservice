@@ -5,6 +5,7 @@ import { Package, RefreshCw, Gauge, ChevronDown, ChevronRight, Archive } from "l
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import type { Item } from "@/types/item";
 
 interface ItemsTableProps {
@@ -20,7 +21,23 @@ interface ItemsTableProps {
   onPageChange: (page: number) => void;
 }
 
-const COLUMN_COUNT = 9; // รวมคอลัมน์ chevron + แผนก
+const COLUMN_COUNT = 9;
+const NEAR_EXPIRY_DAYS = 30;
+
+function isExpired(expireStr: string | null | undefined): boolean {
+  if (!expireStr) return false;
+  const d = new Date(expireStr);
+  return d.getTime() < Date.now();
+}
+
+function isNearExpiry(expireStr: string | null | undefined): boolean {
+  if (!expireStr) return false;
+  const d = new Date(expireStr);
+  const now = Date.now();
+  const end = new Date(now);
+  end.setDate(end.getDate() + NEAR_EXPIRY_DAYS);
+  return d.getTime() >= now && d.getTime() <= end.getTime();
+}
 
 function getItemDepartmentDisplay(item: Item): string {
   if (item.department?.DepName || item.department?.DepName2) {
@@ -136,11 +153,15 @@ export default function ItemsTable({
                     const isLowStock = stockMin > 0 && countItemStock < stockMin;
                     const itemStocks = item.itemStocks ?? [];
                     const isExpanded = expandedRow === item.itemcode;
+                    const hasExpired = itemStocks.some((s) => isExpired(s.ExpireDate));
 
                     return (
                       <Fragment key={item.itemcode}>
                         <TableRow
-                          className={isLowStock ? "bg-red-50 hover:bg-red-100" : ""}
+                          className={cn(
+                            hasExpired && "bg-orange-100 hover:bg-orange-200",
+                            !hasExpired && isLowStock && "bg-red-50 hover:bg-red-100"
+                          )}
                         >
                           <TableCell className="w-12">
                             {itemStocks.length > 0 ? (
@@ -167,7 +188,12 @@ export default function ItemsTable({
                               {item.itemcode}
                             </code>
                           </TableCell>
-                          <TableCell className="font-medium">{item.itemname || "-"}</TableCell>
+                          <TableCell className={cn("font-medium", hasExpired && "text-red-600 font-semibold")}>
+                              {item.itemname || "-"}
+                              {hasExpired && (
+                                <span className="ml-2 text-xs font-medium text-red-600">(มีอุปกรณ์หมดอายุ)</span>
+                              )}
+                            </TableCell>
                           <TableCell className="text-muted-foreground">{getItemDepartmentDisplay(item)}</TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-1">
@@ -217,18 +243,18 @@ export default function ItemsTable({
                                     </TableHeader>
                                     <TableBody>
                                       {itemStocks.map((stock, idx) => {
-                                        const deptNames = stock.cabinet?.cabinetDepartments
-                                          ?.map((cd) => cd.department?.DepName || cd.department?.DepName2)
-                                          .filter(Boolean)
-                                          .join(", ") || "-";
                                         const expireStr = stock.ExpireDate;
                                         const expireDate = expireStr ? new Date(expireStr) : null;
-                                        const isExpired = expireDate ? expireDate.getTime() < Date.now() : false;
+                                        const expired = isExpired(expireStr);
+                                        const nearExpiry = !expired && isNearExpiry(expireStr);
                                         const expireDisplay = expireStr
                                           ? expireDate?.toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }) ?? expireStr
                                           : "-";
                                         return (
-                                          <TableRow key={stock.RowID ?? idx}>
+                                          <TableRow
+                                            key={stock.RowID ?? idx}
+                                            className={expired ? "bg-red-100 hover:bg-red-100" : nearExpiry ? "bg-amber-50 hover:bg-amber-50" : ""}
+                                          >
                                             <TableCell className="font-medium">{idx + 1}</TableCell>
                                             <TableCell>{stock.RowID ?? "-"}</TableCell>
                                             <TableCell>
@@ -239,9 +265,14 @@ export default function ItemsTable({
                                             </TableCell>
                                             <TableCell>
                                               {expireDisplay}
-                                              {isExpired && (
+                                              {expired && (
                                                 <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 border border-red-200">
                                                   หมดอายุ
+                                                </span>
+                                              )}
+                                              {nearExpiry && (
+                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                                  ใกล้หมดอายุ
                                                 </span>
                                               )}
                                             </TableCell>

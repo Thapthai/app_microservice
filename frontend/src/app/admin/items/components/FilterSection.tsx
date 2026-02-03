@@ -49,9 +49,11 @@ interface FilterSectionProps {
     statusFilter: string;
     keyword: string;
   }) => void;
+  /** เรียกก่อน onSearch เพื่อให้หน้ารีเซ็ตเป็นหน้า 1 (เช่น setCurrentPage(1)) */
+  onBeforeSearch?: () => void;
 }
 
-export default function FilterSection({ onSearch }: FilterSectionProps) {
+export default function FilterSection({ onSearch, onBeforeSearch }: FilterSectionProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [cabinets, setCabinets] = useState<Cabinet[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
@@ -179,9 +181,10 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
   }, [cabinets, loadingCabinets, formFilters, onSearch]);
 
   const handleSearch = () => {
+    onBeforeSearch?.(); // รีเซ็ตเป็นหน้า 1 ก่อนค้นหา
     onSearch({
       ...formFilters,
-      keyword: formFilters.searchTerm, // Add keyword to match API
+      keyword: formFilters.searchTerm,
     });
   };
 

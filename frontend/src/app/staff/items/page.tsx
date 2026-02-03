@@ -161,7 +161,7 @@ export default function ItemsPage() {
         </div>
 
         {/* Filter Section */}
-        <FilterSection onSearch={handleSearch} />
+        <FilterSection onSearch={handleSearch} onBeforeSearch={() => setCurrentPage(1)} />
 
         {/* Table Section */}
         <ItemsTable
