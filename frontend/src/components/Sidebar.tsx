@@ -90,7 +90,7 @@ const mainMenuItems: MenuItem[] = [
       },
       {
         name: "เปรียบเทียบตามเวชภัณฑ์",
-        href: "/admin/medical-supplies/item-comparison",
+        href: "/admin/item-comparison",
         description: "เปรียบเทียบการเบิกกับการใช้งานตามเวชภัณฑ์",
         icon: FileBarChart,
       },
