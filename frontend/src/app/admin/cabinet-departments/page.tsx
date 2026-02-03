@@ -43,6 +43,7 @@ export default function ItemStockDepartmentsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedMapping, setSelectedMapping] = useState<CabinetDepartment | null>(null);
   const [filterVersion, setFilterVersion] = useState(0);
+  const [searchVersion, setSearchVersion] = useState(0);
 
   // Active filters (applied after search button click)
   const [activeFilters, setActiveFilters] = useState({
@@ -89,8 +90,8 @@ export default function ItemStockDepartmentsPage() {
       departmentId: "",
       status: "ALL",
     });
-    // ใช้สำหรับบังคับให้ FilterSection reset state ภายใน (ค้นหา/กรอง)
     setFilterVersion((prev) => prev + 1);
+    setSearchVersion((v) => v + 1); // ให้ตารางรีเซ็ตเป็นหน้า 1
   };
 
   const handleCreate = () => {
@@ -264,9 +265,10 @@ export default function ItemStockDepartmentsPage() {
           </div>
         </div>
 
-        <FilterSection onSearch={handleSearch} key={filterVersion} />
+        <FilterSection onSearch={handleSearch} onBeforeSearch={() => setSearchVersion((v) => v + 1)} key={`filter-${filterVersion}`} />
 
         <MappingTable
+          key={`table-${searchVersion}`}
           mappings={filteredMappings}
           onEdit={handleEdit}
           onDelete={handleDelete}

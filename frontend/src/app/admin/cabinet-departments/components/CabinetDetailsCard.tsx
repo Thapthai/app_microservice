@@ -167,7 +167,7 @@ export default function CabinetDetailsCard({ selectedRow, onClose }: CabinetDeta
                   </TableHeader>
                   <TableBody>
                     {itemStocks.map((stock, index) => (
-                      <TableRow key={`detail-stock-${stock.StockID}-${index}`}>
+                      <TableRow key={`detail-stock-${index}-${stock.StockID ?? ""}`}>
                         <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
                         <TableCell>{stock.RfidCode || "-"}</TableCell>
                         <TableCell>{stock.item?.itemcode || stock.ItemCode || "-"}</TableCell>
@@ -214,7 +214,7 @@ export default function CabinetDetailsCard({ selectedRow, onClose }: CabinetDeta
                         }
                         return (
                           <Button
-                            key={page}
+                            key={`cabinet-detail-page-${i}-${page}`}
                             variant={currentPage === page ? "default" : "outline"}
                             size="sm"
                             onClick={() => loadItemStocks(page)}

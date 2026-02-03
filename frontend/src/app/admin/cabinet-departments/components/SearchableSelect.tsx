@@ -165,9 +165,9 @@ export default function SearchableSelect({
               ) : filteredOptions.length === 0 ? (
                 <div className="text-center py-4 text-sm text-gray-500">ไม่พบข้อมูล</div>
               ) : (
-                filteredOptions.map((option) => (
+                filteredOptions.map((option, idx) => (
                   <button
-                    key={option.value}
+                    key={`opt-${option.value}-${idx}`}
                     type="button"
                     onClick={() => {
                       onValueChange(option.value);

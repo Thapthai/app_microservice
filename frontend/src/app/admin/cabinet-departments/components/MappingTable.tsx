@@ -128,7 +128,7 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                   </TableRow>
                 ) : (
                   currentMappings.map((mapping, index) => (
-                    <Fragment key={mapping.id}>
+                    <Fragment key={`mapping-${mapping.id}-${startIndex + index}`}>
                       <TableRow
                         className={`cursor-pointer hover:bg-gray-50 ${
                           selectedRow?.id === mapping.id ? "bg-blue-50" : ""
@@ -182,7 +182,7 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                       {/* Dropdown - Item Counts Summary */}
                       {expandedDropdown === mapping.id && (
                         <TableRow>
-                          <TableCell colSpan={9} className="bg-gray-50 p-4">
+                          <TableCell colSpan={9} className="bg-gray-50 p-4" >
                             {loadingItemStock === mapping.cabinet_id ? (
                               <div className="flex items-center justify-center py-4">
                                 <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
@@ -207,7 +207,7 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                                     </TableHeader>
                                     <TableBody>
                                       {itemCounts[mapping.cabinet_id].map((itemCount, index) => (
-                                        <TableRow key={`mapping-${mapping.id}-count-${itemCount.itemcode}-${index}`}>
+                                        <TableRow key={`mapping-${mapping.id}-count-${index}-${itemCount.itemcode ?? ""}`}>
                                           <TableCell className="font-medium">{index + 1}</TableCell>
                                           <TableCell className="font-semibold">{itemCount.itemcode}</TableCell>
                                           <TableCell>{itemCount.itemname}</TableCell>
@@ -256,9 +256,9 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                   ก่อนหน้า
                 </Button>
                 <div className="flex items-center gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page, paginationIndex) => (
                     <Button
-                      key={page}
+                      key={`pagination-${paginationIndex}-${page}`}
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(page)}

@@ -120,7 +120,7 @@ export default function EditMappingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl" key={selectedMapping?.id}>
+      <DialogContent className="max-w-2xl" key={selectedMapping ? `edit-mapping-${selectedMapping.id}` : "edit-mapping-new"}>
         <DialogHeader>
           <DialogTitle>แก้ไขการเชื่อมโยง</DialogTitle>
           <DialogDescription>แก้ไขข้อมูลการเชื่อมโยงตู้ Cabinet กับแผนก</DialogDescription>
