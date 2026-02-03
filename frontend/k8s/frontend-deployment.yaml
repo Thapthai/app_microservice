@@ -43,11 +43,11 @@ spec:
               value: "https://phc.dyndns.biz/medical-supplies/"  # Frontend public URL with NodePort
           resources:
             requests:
-              memory: "48Mi"   # ลดจาก 128Mi (ใช้จริง 43-46MB)
-              cpu: "50m"       # ลดจาก 100m
+              memory: "64Mi"   # ลดจาก 128Mi (ใช้จริง 43-46MB)
+              cpu: "100m"       # ลดจาก 100m
             limits:
-              memory: "80Mi"  # ลดจาก 512Mi (ใช้จริง 43-46MB + buffer)
-              cpu: "200m"      # ลดจาก 500m
+              memory: "128Mi"  # ลดจาก 512Mi (ใช้จริง 43-46MB + buffer)
+              cpu: "400m"      # ลดจาก 500m
           livenessProbe:
             httpGet:
               path: /medical-supplies
