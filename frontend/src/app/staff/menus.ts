@@ -59,12 +59,7 @@ export const staffMenuItems = [
         icon: Box,
         description: 'จัดการอุปกรณ์และสต๊อก',
         submenu: [
-            {
-                name: 'จัดการตู้ Cabinet',
-                href: '/staff/cabinets',
-                icon: Package,
-                description: 'จัดการตู้ Cabinet',
-            },
+
             {
                 name: 'จัดการตู้ Cabinet - แผนก',
                 href: '/staff/cabinet-departments',
@@ -79,25 +74,25 @@ export const staffMenuItems = [
             },
             {
                 name: 'รายงานเบิกอุปกรณ์จากตู้',
-                href: '/staff/medical-supplies/dispense-from-cabinet',
+                href: '/staff/dispense-from-cabinet',
                 description: 'รายงานการเบิกอุปกรณ์จากตู้ SmartCabinet',
                 icon: FileBarChart,
             },
             {
                 name: 'บันทึกใช้อุปกรณ์กับคนไข้',
-                href: '/staff/medical-supplies/usage-record',
+                href: '/staff/usage-record',
                 description: 'บันทึกใช้อุปกรณ์กับคนไข้ จากตู้ SmartCabinet',
                 icon: History,
             },
             {
                 name: 'รายงานเติมอุปกรณ์จากตู้',
-                href: '/staff/medical-supplies/return-to-cabinet-report',
+                href: '/staff/return-to-cabinet-report',
                 description: 'รายงานการเติมอุปกรณ์จากตู้ SmartCabinet',
                 icon: FileBarChart,
             },
             {
                 name: 'เปรียบเทียบตามเวชภัณฑ์',
-                href: '/staff/medical-supplies/item-comparison',
+                href: '/staff/item-comparison',
                 description: 'เปรียบเทียบการเบิกกับการใช้งานตามเวชภัณฑ์',
                 icon: FileBarChart,
             },
@@ -109,69 +104,55 @@ export const staffMenuItems = [
         icon: BarChart3,
         description: 'รายงานและสถิติต่างๆ',
         submenu: [
-            // {
-            //     name: 'รายงานทั้งหมด',
-            //     href: '/staff/medical-supplies/reports',
-            //     description: 'รายงานทางการแพทย์ทั้งหมด',
-            //     icon: FileBarChart,
-            // },
-            // {
-            //     name: 'เปรียบเทียบตามผู้ป่วย',
-            //     href: '/staff/medical-supplies/comparison',
-            //     description: 'เปรียบเทียบการเบิกกับการใช้งานตามผู้ป่วย',
-            //     icon: FileBarChart,
-            // },
-            // {
-            //     name: 'การใช้อุปกรณ์',
-            //     href: '/staff/medical-supplies/equipment-usage',
-            //     description: 'รายงานการใช้อุปกรณ์กับคนไข้',
-            //     icon: ClipboardList,
-            // },
-            // {
-            //     name: 'การตัดจ่าย',
-            //     href: '/staff/medical-supplies/equipment-disbursement',
-            //     description: 'รายงานการรับบันทึกตัดจ่ายอุปกรณ์',
-            //     icon: FileText,
-            // },
             {
                 name: 'รายงาน Vending',
-                href: '/staff/medical-supplies/vending-reports',
+                href: '/staff/reports/vending-reports',
                 description: 'รายงานการ Mapping และการเบิกอุปกรณ์จาก Vending',
                 icon: TrendingUp,
             },
             {
                 name: 'รายงานยกเลิก Bill',
-                href: '/staff/medical-supplies/cancel-bill-report',
+                href: '/staff/reports/cancel-bill-report',
                 description: 'รายงานการยกเลิก Bill และใบเสร็จ',
                 icon: TrendingUp,
             },
             {
                 name: 'คืนเวชภัณฑ์',
-                href: '/staff/medical-supplies/reports/return-report',
+                href: '/staff/reports/return-report',
                 description: 'รายงานการคืนเวชภัณฑ์',
                 icon: TrendingUp,
             },
         ],
     },
+
     {
         name: 'ตั้งค่า',
-        href: '/staff/settings',
+        href: '/management',
         icon: Settings,
         description: 'ตั้งค่าระบบ',
+        submenu: [
+            {
+                name: 'จัดการตู้ Cabinet',
+                href: '/staff/management/cabinets',
+                icon: Package,
+                description: 'จัดการตู้ Cabinet',
+            },
+            {
+                name: 'จัดการสิทธิ์',
+                href: '/staff/management/permission-users',
+                icon: Users,
+                description: 'จัดการ User',
+                roles: ['it1'],
+            },
+            {
+                name: 'กำหนดสิทธิ์',
+                href: '/staff/management/permission-roles',
+                icon: Shield,
+                description: 'กำหนดสิทธิ์การเข้าถึงเมนู',
+                roles: ['it1'],
+            },
+        ],
     },
-    {
-        name: 'จัดการสิทธิ์',
-        href: '/staff/permissions/users',
-        icon: Users,
-        description: 'จัดการ User',
-        roles: ['it1'],
-    },
-    {
-        name: 'กำหนดสิทธิ์',
-        href: '/staff/permissions/roles',
-        icon: Shield,
-        description: 'กำหนดสิทธิ์การเข้าถึงเมนู',
-        roles: ['it1'],
-    },
+
 
 ];

@@ -54,6 +54,13 @@ export default function CreateMappingDialog({
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [loadingCabinets, setLoadingCabinets] = useState(false);
 
+  // สถานะเริ่มต้นเป็น ACTIVE ตอนเปิด dialog
+  useEffect(() => {
+    if (open) {
+      setFormData({ ...formData, status: "ACTIVE" });
+    }
+  }, [open]);
+
   // Load departments with search
   const loadDepartments = async (keyword?: string) => {
     try {
@@ -128,22 +135,6 @@ export default function CreateMappingDialog({
             onSearch={loadDepartments}
             searchPlaceholder="ค้นหาชื่อแผนก..."
           />
-
-          <div>
-            <Label>สถานะ</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value) => setFormData({ ...formData, status: value })}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                <SelectItem value="INACTIVE">INACTIVE</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           <div>
             <Label>หมายเหตุ</Label>

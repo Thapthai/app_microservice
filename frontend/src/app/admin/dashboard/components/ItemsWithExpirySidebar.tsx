@@ -100,10 +100,10 @@ export default function ItemsWithExpirySidebar({
           </div>
           <div className="mt-4 flex gap-3 flex-wrap">
             <span className="rounded-lg bg-white/25 px-4 py-2 text-sm font-semibold">
-              ≤7 วัน: <span className="text-lg sm:text-xl font-bold">{nearExpire7Days}</span>
+            น้อยกว่า 7 วัน: <span className="text-lg sm:text-xl font-bold">{nearExpire7Days}</span>
             </span>
             <span className="rounded-lg bg-white/25 px-4 py-2 text-sm font-semibold">
-              ≤3 วัน: <span className="text-lg sm:text-xl font-bold">{nearExpire3Days}</span>
+              น้อยกว่า 3 วัน: <span className="text-lg sm:text-xl font-bold">{nearExpire3Days}</span>
             </span>
           </div>
         </CardContent>

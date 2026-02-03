@@ -6,13 +6,14 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { cabinetDepartmentApi } from "@/lib/api";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Package } from "lucide-react";
 import { toast } from "sonner";
 import FilterSection from "./components/FilterSection";
 import MappingTable from "./components/MappingTable";
 import CreateMappingDialog from "./components/CreateMappingDialog";
 import EditMappingDialog from "./components/EditMappingDialog";
 import DeleteMappingDialog from "./components/DeleteMappingDialog";
+import CreateCabinetDialog from "@/app/admin/cabinets/components/CreateCabinetDialog";
 
 interface CabinetDepartment {
   id: number;
@@ -37,6 +38,7 @@ export default function ItemStockDepartmentsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCreateCabinetDialog, setShowCreateCabinetDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedMapping, setSelectedMapping] = useState<CabinetDepartment | null>(null);
@@ -246,10 +248,20 @@ export default function ItemStockDepartmentsPage() {
               จัดการตู้ Cabinet และเชื่อมโยงกับแผนก
             </p>
           </div>
-          <Button onClick={handleCreate} size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
-            <Plus className="mr-2 h-5 w-5" />
-            เพิ่มการเชื่อมโยง
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateCabinetDialog(true)}
+              size="lg"
+            >
+              <Package className="mr-2 h-5 w-5" />
+              เพิ่มตู้
+            </Button>
+            <Button onClick={handleCreate} size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+              <Plus className="mr-2 h-5 w-5" />
+              เพิ่มการเชื่อมโยง
+            </Button>
+          </div>
         </div>
 
         <FilterSection onSearch={handleSearch} key={filterVersion} />
@@ -267,6 +279,12 @@ export default function ItemStockDepartmentsPage() {
           setFormData={setFormData}
           onSubmit={submitCreate}
           saving={saving}
+        />
+
+        <CreateCabinetDialog
+          open={showCreateCabinetDialog}
+          onOpenChange={setShowCreateCabinetDialog}
+          onSuccess={loadData}
         />
 
         <EditMappingDialog

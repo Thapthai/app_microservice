@@ -20,6 +20,11 @@ export class CreateCabinetDto {
     @IsString()
     @IsOptional()
     cabinet_status?: string;
+
+    /** แผนก (ใช้ RefDepID สำหรับสร้างรหัสตู้ เช่น VTN-ER-001) */
+    @IsInt()
+    @IsOptional()
+    department_id?: number;
 }
 
 export class UpdateCabinetDto {

@@ -93,7 +93,7 @@ export default function StaffSidebar({ staffUser, onLogout, isAdmin = false }: S
 
   const getRoleLabel = (role?: string | { code?: string; name?: string }) => {
     if (isAdmin) return 'Admin';
-    
+
     const roleCode = typeof role === 'string' ? role : role?.code || '';
     const roleMap: Record<string, string> = {
       it1: 'IT 1',
@@ -168,39 +168,11 @@ export default function StaffSidebar({ staffUser, onLogout, isAdmin = false }: S
             </Button>
           </div>
 
-          {/* User Info */}
-          {/* {staffUser && !isCollapsed && (
-            <div className="px-4 py-4 border-b border-slate-700/50 bg-slate-800/40">
-              <div className="flex items-center space-x-3">
-                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-slate-700/50 flex-shrink-0">
-                  {isAdmin 
-                    ? (staffUser.name?.charAt(0) || staffUser.email?.charAt(0) || 'A').toUpperCase()
-                    : (staffUser.fname?.charAt(0) || 'S').toUpperCase()
-                  }
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">
-                    {isAdmin 
-                      ? staffUser.name || staffUser.email
-                      : `${staffUser.fname || ''} ${staffUser.lname || ''}`
-                    }
-                  </p>
-                  <p className="text-xs text-slate-400 truncate mt-0.5">{staffUser.email}</p>
-                  {(staffUser.role || isAdmin) && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-500/20 text-blue-300 mt-1.5">
-                      {getRoleLabel(staffUser.role)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )} */}
-
           {/* User Avatar when collapsed */}
           {staffUser && isCollapsed && (
             <div className="px-2 py-4 border-b border-slate-700/50 flex justify-center">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-slate-700/50">
-                {isAdmin 
+                {isAdmin
                   ? (staffUser.name?.charAt(0) || staffUser.email?.charAt(0) || 'A').toUpperCase()
                   : (staffUser.fname?.charAt(0) || 'S').toUpperCase()
                 }

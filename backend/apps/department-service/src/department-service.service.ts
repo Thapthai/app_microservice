@@ -61,16 +61,106 @@ export class DepartmentServiceService {
 
 
   // =========================== Cabinet CRUD operations ===========================
+  /** ค่าเริ่มต้นชื่อย่อ รพ. สำหรับรหัสตู้ */
+  private readonly HOSPITAL_PREFIX = 'VTN';
+
+  /**
+   * สร้าง cabinet_code จาก stock_id ที่รับมา (หรือสร้าง stock_id อัตโนมัติถ้าไม่ส่งมา)
+   * รูปแบบ: VTN-ER-001 (ชื่อย่อรพ.-RefDepID ของแผนก-เลข stock_id 3 หลัก)
+   * ถ้าไม่เลือกแผนก: VTN-001
+   */
+  private async generateCabinetCode(options: {
+    hospitalPrefix?: string;
+    department_id?: number;
+    stock_id?: number;
+  }): Promise<{ cabinet_code: string; stock_id: number }> {
+    const prefix = options.hospitalPrefix ?? this.HOSPITAL_PREFIX;
+    let refDepId = '';
+
+    if (options.department_id) {
+      const dept = await this.prisma.department.findUnique({
+        where: { ID: options.department_id },
+        select: { RefDepID: true },
+      });
+      if (dept?.RefDepID?.trim()) {
+        refDepId = dept.RefDepID.trim().toUpperCase();
+      }
+    }
+
+    let stock_id: number;
+    if (options.stock_id != null && options.stock_id > 0) {
+      stock_id = options.stock_id;
+    } else {
+      const maxStock = await this.prisma.cabinet.findFirst({
+        where: { stock_id: { not: null } },
+        select: { stock_id: true },
+        orderBy: { stock_id: 'desc' },
+      });
+      stock_id = (maxStock?.stock_id ?? 0) + 1;
+    }
+
+    const segment = refDepId ? `${prefix}-${refDepId}` : prefix;
+    const cabinet_code = `${segment}-${String(stock_id).padStart(3, '0')}`;
+
+    return { cabinet_code, stock_id };
+  }
+
   async createCabinet(data: CreateCabinetDto) {
     try {
+      const { department_id, ...rest } = data;
+      let cabinet_code = data.cabinet_code?.trim();
+      let stock_id = data.stock_id;
+
+      if (!cabinet_code || stock_id == null) {
+        const generated = await this.generateCabinetCode({
+          hospitalPrefix: this.HOSPITAL_PREFIX,
+          department_id,
+          stock_id: stock_id ?? undefined,
+        });
+        if (!cabinet_code) cabinet_code = generated.cabinet_code;
+        if (stock_id == null) stock_id = generated.stock_id;
+      }
+
       const cabinet = await this.prisma.cabinet.create({
-        data,
+        data: {
+          ...rest,
+          cabinet_code,
+          stock_id,
+          // เลือกแผนกแล้วให้สถานะตู้เป็น USED
+          ...(department_id ? { cabinet_status: 'USED' } : {}),
+        },
+      });
+
+      // ถ้าเลือกแผนก ให้สร้าง cabinetDepartment ในคราวเดียว (ผูกตู้กับแผนก)
+      if (department_id) {
+        const department = await this.prisma.department.findUnique({
+          where: { ID: department_id },
+        });
+        if (department) {
+          await this.prisma.cabinetDepartment.create({
+            data: {
+              cabinet_id: cabinet.id,
+              department_id,
+              status: 'ACTIVE',
+            },
+          });
+        }
+      }
+
+      // ดึง cabinet พร้อม cabinetDepartments สำหรับ response
+      const cabinetWithDepts = await this.prisma.cabinet.findUnique({
+        where: { id: cabinet.id },
+        include: {
+          cabinetDepartments: {
+            select: { id: true, department_id: true, status: true },
+          },
+        },
       });
 
       return {
         success: true,
         message: 'Cabinet created successfully',
-        data: cabinet,
+        data: cabinetWithDepts ?? cabinet,
       };
     } catch (error) {
       this.logger.error(`Error creating cabinet: ${error.message}`);
