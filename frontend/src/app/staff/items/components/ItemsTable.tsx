@@ -154,13 +154,17 @@ export default function ItemsTable({
                     const itemStocks = item.itemStocks ?? [];
                     const isExpanded = expandedRow === item.itemcode;
                     const hasExpired = itemStocks.some((s) => isExpired(s.ExpireDate));
+                    const hasNearExpiry = !hasExpired && itemStocks.some((s) => isNearExpiry(s.ExpireDate));
 
                     return (
                       <Fragment key={item.itemcode}>
                         <TableRow
                           className={cn(
+                            "transition-colors",
                             hasExpired && "bg-orange-100 hover:bg-orange-200",
-                            !hasExpired && isLowStock && "bg-red-50 hover:bg-red-100"
+                            !hasExpired && hasNearExpiry && "bg-amber-100 hover:bg-amber-200",
+                            !hasExpired && !hasNearExpiry && isLowStock && "bg-red-50 hover:bg-red-100",
+                            !hasExpired && !hasNearExpiry && !isLowStock && "hover:bg-slate-50/80"
                           )}
                         >
                           <TableCell className="w-12">
