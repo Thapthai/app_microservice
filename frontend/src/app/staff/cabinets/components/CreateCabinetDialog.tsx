@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { cabinetApi } from '@/lib/api';
-import { staffDepartmentApi } from '@/lib/staffApi/departmentApi';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Package } from 'lucide-react';
 
@@ -21,26 +19,15 @@ export default function CreateCabinetDialog({
   onSuccess,
 }: CreateCabinetDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [departments, setDepartments] = useState<Array<{ ID: number; DepName?: string; RefDepID?: string }>>([]);
   const [formData, setFormData] = useState({
     cabinet_name: '',
-    department_id: '',
     stock_id: '',
   });
-
-  useEffect(() => {
-    if (open) {
-      staffDepartmentApi.getAll({ limit: 500 }).then((res) => {
-        if (res.data && Array.isArray(res.data)) setDepartments(res.data);
-      }).catch(() => setDepartments([]));
-    }
-  }, [open]);
 
   useEffect(() => {
     if (!open) {
       setFormData({
         cabinet_name: '',
-        department_id: '',
         stock_id: '',
       });
     }
@@ -54,9 +41,6 @@ export default function CreateCabinetDialog({
       const data: any = {
         cabinet_name: formData.cabinet_name || undefined,
       };
-      if (formData.department_id) {
-        data.department_id = parseInt(formData.department_id);
-      }
       if (formData.stock_id.trim()) {
         const sid = parseInt(formData.stock_id, 10);
         if (!Number.isNaN(sid)) data.stock_id = sid;
@@ -87,7 +71,7 @@ export default function CreateCabinetDialog({
             <span>เพิ่มตู้ใหม่</span>
           </DialogTitle>
           <DialogDescription>
-            รหัสตู้จะสร้างอัตโนมัติ เช่น VTN-ER-001 (ขึ้นต้น VTN + RefDepID ของแผนก + เลขลำดับ)
+            รหัสตู้จะสร้างอัตโนมัติจากระบบ
           </DialogDescription>
         </DialogHeader>
 
@@ -100,29 +84,6 @@ export default function CreateCabinetDialog({
               value={formData.cabinet_name}
               onChange={(e) => setFormData({ ...formData, cabinet_name: e.target.value })}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label>แผนก</Label>
-            <Select
-              value={formData.department_id}
-              onValueChange={(v) => setFormData({ ...formData, department_id: v })}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="เลือกแผนก (เช่น ER → รหัส VTN-ER-001)" />
-              </SelectTrigger>
-              <SelectContent>
-                {departments.map((d) => (
-                  <SelectItem key={d.ID} value={String(d.ID)}>
-                    {d.DepName || `ID ${d.ID}`}
-                    {d.RefDepID ? ` (${d.RefDepID})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              เลือกแผนก ER จะได้รหัส VTN-ER-001, VTN-ER-002 ฯลฯ
-            </p>
           </div>
 
           <div className="space-y-2">

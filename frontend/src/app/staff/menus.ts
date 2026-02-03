@@ -43,7 +43,7 @@ import {
     Settings,
     Users,
     Shield,
-    Link as LinkIcon,
+    Network,
 } from 'lucide-react';
 
 export const staffMenuItems = [
@@ -63,7 +63,7 @@ export const staffMenuItems = [
             {
                 name: 'จัดการตู้ Cabinet - แผนก',
                 href: '/staff/cabinet-departments',
-                icon: LinkIcon,
+                icon: Network,
                 description: 'จัดการตู้ Cabinet และเชื่อมโยงกับแผนก',
             },
             {

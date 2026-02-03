@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, RotateCcw } from "lucide-react";
+import { Search, RotateCcw, Filter } from "lucide-react";
 import SearchableSelect from "./SearchableSelect";
 import { staffCabinetApi, staffCabinetDepartmentApi } from "@/lib/staffApi/cabinetApi";
 import { staffDepartmentApi } from "@/lib/staffApi/departmentApi";
@@ -146,12 +146,15 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
   };
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>ค้นหาและกรอง</CardTitle>
+    <Card className="mb-6 border-slate-200/80 shadow-sm rounded-xl">
+      <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+        <CardTitle className="flex items-center gap-2 text-slate-800">
+          <Filter className="h-5 w-5 text-blue-600" />
+          ค้นหาและกรอง
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+      <CardContent className="pt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
           <SearchableSelect
             label="แผนก"
             placeholder="เลือกแผนก"
@@ -205,12 +208,12 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
 
         </div>
 
-        <div className="flex gap-4">
-          <Button onClick={handleSearch} className="flex-1">
+        <div className="flex gap-3 pt-1">
+          <Button onClick={handleSearch} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
             <Search className="mr-2 h-4 w-4" />
             ค้นหา
           </Button>
-          <Button onClick={handleReset} variant="outline" className="flex-1">
+          <Button onClick={handleReset} variant="outline" className="flex-1 border-slate-200 hover:bg-slate-50">
             <RotateCcw className="mr-2 h-4 w-4" />
             รีเซ็ต
           </Button>

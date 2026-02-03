@@ -6,7 +6,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { cabinetDepartmentApi } from "@/lib/api";
-import { Loader2, Plus, Package } from "lucide-react";
+import { Loader2, Plus, Network } from "lucide-react";
 import { toast } from "sonner";
 import FilterSection from "./components/FilterSection";
 import MappingTable from "./components/MappingTable";
@@ -240,30 +240,31 @@ export default function ItemStockDepartmentsPage() {
   return (
     <ProtectedRoute>
       <AppLayout fullWidth>
-        <div className="mb-6 flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">
-              จัดการตู้ Cabinet - แผนก
-            </h2>
-            <p className="text-gray-600 mt-1">
-              จัดการตู้ Cabinet และเชื่อมโยงกับแผนก
-            </p>
-          </div>
-          <div className="flex gap-2">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
+                <Network className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                  จัดการตู้ Cabinet - แผนก
+                </h1>
+                <p className="mt-0.5 text-sm text-gray-500">
+                  จัดการตู้ Cabinet และเชื่อมโยงกับแผนก
+                </p>
+              </div>
+            </div>
             <Button
-              variant="outline"
-              onClick={() => setShowCreateCabinetDialog(true)}
+              onClick={handleCreate}
               size="lg"
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-shadow shrink-0"
             >
-              <Package className="mr-2 h-5 w-5" />
-              เพิ่มตู้
-            </Button>
-            <Button onClick={handleCreate} size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
-              <Plus className="mr-2 h-5 w-5" />
+              <Network className="mr-2 h-5 w-5" />
               เพิ่มการเชื่อมโยง
             </Button>
           </div>
-        </div>
 
         <FilterSection onSearch={handleSearch} onBeforeSearch={() => setSearchVersion((v) => v + 1)} key={`filter-${filterVersion}`} />
 
@@ -305,6 +306,7 @@ export default function ItemStockDepartmentsPage() {
           onConfirm={submitDelete}
           saving={saving}
         />
+        </div>
       </AppLayout>
     </ProtectedRoute>
   );

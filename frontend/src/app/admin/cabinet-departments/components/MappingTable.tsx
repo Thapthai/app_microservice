@@ -99,30 +99,33 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>รายการเชื่อมโยง ({mappings.length})</CardTitle>
+      <Card className="border-slate-200/80 shadow-sm overflow-hidden rounded-xl">
+        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+          <CardTitle className="text-slate-800 flex items-center gap-2">
+            <Package className="h-5 w-5 text-blue-600" />
+            รายการเชื่อมโยง ({mappings.length})
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto rounded-b-xl">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12"></TableHead>
-                  <TableHead>ลำดับ</TableHead>
-                  <TableHead>รหัสตู้</TableHead>
-                  <TableHead>ชื่อตู้</TableHead>      
-                  <TableHead>แผนก</TableHead>
-                  <TableHead className="text-center">จำนวนอุปกรณ์</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                  <TableHead>หมายเหตุ</TableHead>
-                  <TableHead className="text-right">จัดการ</TableHead>
+                <TableRow className="bg-slate-100/80 hover:bg-slate-100/80 border-b border-slate-200">
+                  <TableHead className="w-12 text-slate-600 font-semibold"></TableHead>
+                  <TableHead className="text-slate-600 font-semibold">ลำดับ</TableHead>
+                  <TableHead className="text-slate-600 font-semibold">รหัสตู้</TableHead>
+                  <TableHead className="text-slate-600 font-semibold">ชื่อตู้</TableHead>
+                  <TableHead className="text-slate-600 font-semibold">แผนก</TableHead>
+                  <TableHead className="text-center text-slate-600 font-semibold">จำนวนอุปกรณ์</TableHead>
+                  <TableHead className="text-slate-600 font-semibold">สถานะ</TableHead>
+                  <TableHead className="text-slate-600 font-semibold">หมายเหตุ</TableHead>
+                  <TableHead className="text-right text-slate-600 font-semibold">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {currentMappings.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center text-gray-500">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={9} className="text-center py-12 text-slate-500">
                       ไม่พบข้อมูล
                     </TableCell>
                   </TableRow>
@@ -130,8 +133,8 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                   currentMappings.map((mapping, index) => (
                     <Fragment key={`mapping-${mapping.id}-${startIndex + index}`}>
                       <TableRow
-                        className={`cursor-pointer hover:bg-gray-50 ${
-                          selectedRow?.id === mapping.id ? "bg-blue-50" : ""
+                        className={`cursor-pointer transition-colors ${
+                          selectedRow?.id === mapping.id ? "bg-blue-50/80" : "hover:bg-slate-50/80"
                         }`}
                         onClick={() => handleRowClick(mapping)}
                       >
@@ -160,7 +163,10 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={mapping.status === "ACTIVE" ? "default" : "secondary"}>
+                          <Badge
+                            variant={mapping.status === "ACTIVE" ? "default" : "secondary"}
+                            className={mapping.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100" : ""}
+                          >
                             {mapping.status}
                           </Badge>
                         </TableCell>

@@ -207,7 +207,7 @@ export default function FilterSection({ onSearch, onBeforeSearch }: FilterSectio
   };
 
   return (
-    <Card>
+    <Card className="mb-6 border-slate-200/80 shadow-sm rounded-xl">
       <CardHeader>
         <div className="flex items-center space-x-2">
           <Filter className="h-5 w-5 text-gray-500" />

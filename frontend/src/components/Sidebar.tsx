@@ -20,7 +20,7 @@ import {
   TrendingUp,
   RotateCcw,
   Receipt,
-  Link as LinkIcon,
+  Network,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -59,7 +59,7 @@ const mainMenuItems: MenuItem[] = [
       {
         name: "จัดการตู้ Cabinet - แผนก",
         href: "/admin/cabinet-departments",
-        icon: LinkIcon,
+        icon: Network,
         description: "จัดการตู้ Cabinet และเชื่อมโยงกับแผนก",
       },
       {
