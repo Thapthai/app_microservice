@@ -126,7 +126,7 @@ export class CabinetStockReportPdfService {
           align: 'right',
         });
         doc.fillColor('#000000');
-        doc.y += 10;
+        doc.y += 4;
 
         const itemHeight = 18;
         const cellPadding = 4;
@@ -145,15 +145,16 @@ export class CabinetStockReportPdfService {
           headers.forEach((h, i) => {
             doc.text(h, x + cellPadding, y + 5, {
               width: Math.max(2, colWidths[i] - cellPadding * 2),
-              align: i === 1 || i === 3 ? 'left' : 'center',
+              align: 'center',
             });
             x += colWidths[i];
           });
           doc.fillColor('#000000');
         };
 
-        drawTableHeader(doc.y);
-        doc.y += itemHeight;
+        const tableHeaderY = doc.y;
+        drawTableHeader(tableHeaderY);
+        doc.y = tableHeaderY + itemHeight;
 
         doc.fontSize(7).font(finalFontName).fillColor('#000000');
         if (rows.length === 0) {
@@ -170,8 +171,9 @@ export class CabinetStockReportPdfService {
             if (doc.y + itemHeight > pageHeight - 35) {
               doc.addPage({ size: 'A4', layout: 'portrait', margin: 40 });
               doc.y = margin;
-              drawTableHeader(doc.y);
-              doc.y += itemHeight;
+              const newHeaderY = doc.y;
+              drawTableHeader(newHeaderY);
+              doc.y = newHeaderY + itemHeight;
             }
 
             const rowY = doc.y;
