@@ -45,6 +45,9 @@ COPY --from=build /app/prisma ./prisma
 # Copy assets (fonts for PDF generation)
 COPY --from=build /app/apps/report-service/assets ./apps/report-service/assets
 
+# Copy report logo (backend/public/3_logo_p-1-fit.png -> /app/public/)
+COPY --from=build /app/public/3_logo_p-1-fit.png ./public/
+
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nestjs -u 1001

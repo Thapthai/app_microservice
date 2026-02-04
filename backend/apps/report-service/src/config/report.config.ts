@@ -5,13 +5,17 @@ import * as fs from 'fs';
 const CABINET_REPORT_LOGO_FILENAME = '3_logo_p-1-fit.png';
 
 /**
- * หา path ไฟล์โลโก้สำหรับรายงานสต๊อกอุปกรณ์ในตู้ (uploads/items/3_logo_p-1-fit.png)
- * ลองตามลำดับ: process.cwd(), backend/, __dirname relative
+ * หา path ไฟล์โลโก้สำหรับรายงานสต๊อกอุปกรณ์ในตู้ (3_logo_p-1-fit.png)
+ * ลองตามลำดับ: public/, uploads/items/, backend/public, __dirname relative
  */
 export function resolveReportLogoPath(): string | null {
   const candidates = [
+    path.join(process.cwd(), 'public', CABINET_REPORT_LOGO_FILENAME),
+    path.join(process.cwd(), 'backend', 'public', CABINET_REPORT_LOGO_FILENAME),
     path.join(process.cwd(), 'uploads', 'items', CABINET_REPORT_LOGO_FILENAME),
     path.join(process.cwd(), 'backend', 'uploads', 'items', CABINET_REPORT_LOGO_FILENAME),
+    path.join(__dirname, '..', '..', '..', '..', 'public', CABINET_REPORT_LOGO_FILENAME),
+    path.join(__dirname, '..', '..', '..', '..', '..', 'public', CABINET_REPORT_LOGO_FILENAME),
     path.join(__dirname, '..', '..', '..', '..', 'uploads', 'items', CABINET_REPORT_LOGO_FILENAME),
     path.join(__dirname, '..', '..', '..', '..', '..', 'uploads', 'items', CABINET_REPORT_LOGO_FILENAME),
   ];
