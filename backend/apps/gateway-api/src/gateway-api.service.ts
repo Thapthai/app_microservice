@@ -874,6 +874,33 @@ export class GatewayApiService {
     );
   }
 
+  async generateCabinetStockReportExcel(params: {
+    cabinetId?: number;
+    cabinetCode?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.cabinet_stock.excel' }, params)
+    );
+  }
+
+  async generateCabinetStockReportPdf(params: {
+    cabinetId?: number;
+    cabinetCode?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.cabinet_stock.pdf' }, params)
+    );
+  }
+
+  async getCabinetStockReportData(params: {
+    cabinetId?: number;
+    cabinetCode?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.cabinet_stock.data' }, params)
+    );
+  }
+
   // ==================================== Department Service Methods ====================================
   // async createDepartment(data: any) {
   //   try {

@@ -19,6 +19,7 @@ interface ItemsTableProps {
   onDelete: (item: Item) => void;
   onUpdateMinMax: (item: Item) => void;
   onPageChange: (page: number) => void;
+  headerActions?: React.ReactNode;
 }
 
 const COLUMN_COUNT = 9;
@@ -63,6 +64,7 @@ export default function ItemsTable({
   itemsPerPage,
   onUpdateMinMax,
   onPageChange,
+  headerActions,
 }: ItemsTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
@@ -110,11 +112,14 @@ export default function ItemsTable({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>รายการอุปกรณ์</CardTitle>
-        <CardDescription>
-          แสดง {items.length} รายการ จากทั้งหมด {totalItems} อุปกรณ์
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4 pb-2">
+        <div className="space-y-1.5">
+          <CardTitle>รายการอุปกรณ์</CardTitle>
+          <CardDescription>
+            แสดง {items.length} รายการ จากทั้งหมด {totalItems} อุปกรณ์
+          </CardDescription>
+        </div>
+        {headerActions ? <div className="flex shrink-0 items-center gap-2">{headerActions}</div> : null}
       </CardHeader>
       <CardContent className="px-4 py-4">
         {loading ? (

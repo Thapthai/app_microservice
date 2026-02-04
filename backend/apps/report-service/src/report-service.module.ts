@@ -23,7 +23,8 @@ import { ReturnToCabinetReportExcelService } from './services/return-to-cabinet-
 import { ReturnToCabinetReportPdfService } from './services/return-to-cabinet-report-pdf.service';
 import { DispensedItemsExcelService } from './services/dispensed-items-excel.service';
 import { DispensedItemsPdfService } from './services/dispensed-items-pdf.service';
-
+import { CabinetStockReportExcelService } from './services/cabinet-stock-report-excel.service';
+import { CabinetStockReportPdfService } from './services/cabinet-stock-report-pdf.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -68,6 +69,8 @@ import { DispensedItemsPdfService } from './services/dispensed-items-pdf.service
     ReturnToCabinetReportPdfService,
     DispensedItemsExcelService,
     DispensedItemsPdfService,
+    CabinetStockReportExcelService,
+    CabinetStockReportPdfService,
   ],
 })
 export class ReportServiceModule {}

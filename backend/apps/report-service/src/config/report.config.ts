@@ -1,3 +1,26 @@
+import * as path from 'path';
+import * as fs from 'fs';
+
+/** รายงานต๊อกอุปกรณ์ในตู้ - ชื่อไฟล์โลโก้ */
+const CABINET_REPORT_LOGO_FILENAME = '3_logo_p-1-fit.png';
+
+/**
+ * หา path ไฟล์โลโก้สำหรับรายงาน (uploads/items/3_logo_p-1-fit.png)
+ * ลองตามลำดับ: process.cwd(), backend/, __dirname relative
+ */
+export function resolveReportLogoPath(): string | null {
+  const candidates = [
+    path.join(process.cwd(), 'uploads', 'items', CABINET_REPORT_LOGO_FILENAME),
+    path.join(process.cwd(), 'backend', 'uploads', 'items', CABINET_REPORT_LOGO_FILENAME),
+    path.join(__dirname, '..', '..', '..', '..', 'uploads', 'items', CABINET_REPORT_LOGO_FILENAME),
+    path.join(__dirname, '..', '..', '..', '..', '..', 'uploads', 'items', CABINET_REPORT_LOGO_FILENAME),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
 export const ReportConfig = {
   timezone: process.env.REPORT_TIMEZONE || 'Asia/Bangkok',
   locale: process.env.REPORT_LOCALE || 'th-TH',

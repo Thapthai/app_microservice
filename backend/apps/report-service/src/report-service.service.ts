@@ -21,6 +21,11 @@ import { ReturnToCabinetReportExcelService, ReturnToCabinetReportData } from './
 import { ReturnToCabinetReportPdfService } from './services/return-to-cabinet-report-pdf.service';
 import { DispensedItemsExcelService, DispensedItemsReportData } from './services/dispensed-items-excel.service';
 import { DispensedItemsPdfService } from './services/dispensed-items-pdf.service';
+import {
+  CabinetStockReportExcelService,
+  CabinetStockReportData,
+} from './services/cabinet-stock-report-excel.service';
+import { CabinetStockReportPdfService } from './services/cabinet-stock-report-pdf.service';
 import { ComparisonReportData } from './types/comparison-report.types';
 import { EquipmentUsageReportData } from './types/equipment-usage-report.types';
 import { EquipmentDisbursementReportData } from './types/equipment-disbursement-report.types';
@@ -54,6 +59,8 @@ export class ReportServiceService {
     private readonly returnToCabinetReportPdfService: ReturnToCabinetReportPdfService,
     private readonly dispensedItemsExcelService: DispensedItemsExcelService,
     private readonly dispensedItemsPdfService: DispensedItemsPdfService,
+    private readonly cabinetStockReportExcelService: CabinetStockReportExcelService,
+    private readonly cabinetStockReportPdfService: CabinetStockReportPdfService,
   ) {
     this.prisma = new PrismaClient();
   }
@@ -2157,6 +2164,135 @@ export class ReportServiceService {
       console.error('[Report Service] Error generating Dispensed Items PDF:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
       throw new Error(`Failed to generate Dispensed Items PDF report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get Cabinet Stock Report Data (ต๊อกอุปกรณ์ในตู้)
+   * คอลัมน์: ลำดับ, แผนก, รหัสอุปกรณ์, อุปกรณ์, คงเหลือ, Stock Max, Stock Min, จำนวนที่ต้องเติม
+   * จำนวนที่ต้องเติม = Max - (Min - คงเหลือ) (แสดงเป็น 0 ถ้าเป็นลบ)
+   */
+  async getCabinetStockData(params: {
+    cabinetId?: number;
+    cabinetCode?: string;
+  }): Promise<CabinetStockReportData> {
+    try {
+      let whereClause = Prisma.sql`ist.StockID > 0 AND ist.StockID = c.stock_id`;
+      if (params?.cabinetId != null) {
+        whereClause = Prisma.sql`${whereClause} AND c.id = ${params.cabinetId}`;
+      }
+      if (params?.cabinetCode) {
+        whereClause = Prisma.sql`${whereClause} AND c.cabinet_code = ${params.cabinetCode}`;
+      }
+
+      const rows = await this.prisma.$queryRaw<any[]>`
+        SELECT
+          c.id AS cabinet_id,
+          c.cabinet_name,
+          c.cabinet_code,
+          dept.DepName AS department_name,
+          ist.ItemCode AS item_code,
+          i.itemname AS item_name,
+          SUM(ist.Qty) AS balance_qty,
+          i.stock_max,
+          i.stock_min
+        FROM itemstock ist
+        INNER JOIN item i ON ist.ItemCode = i.itemcode
+        INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id
+        LEFT JOIN (
+          SELECT cd.cabinet_id, MIN(d.DepName) AS DepName
+          FROM app_microservice_cabinet_departments cd
+          INNER JOIN department d ON d.ID = cd.department_id
+          GROUP BY cd.cabinet_id
+        ) dept ON dept.cabinet_id = c.id
+        WHERE ${whereClause}
+        GROUP BY c.id, c.cabinet_name, c.cabinet_code, dept.DepName, ist.ItemCode, i.itemname, i.stock_max, i.stock_min
+        ORDER BY dept.DepName, c.cabinet_name, ist.ItemCode
+      `;
+
+      const data: CabinetStockReportData['data'] = [];
+      let seq = 1;
+      let totalQty = 0;
+      let totalRefillQty = 0;
+      for (const row of rows) {
+        const balanceQty = Number(row.balance_qty ?? 0);
+        const stockMax = row.stock_max != null ? Number(row.stock_max) : null;
+        const stockMin = row.stock_min != null ? Number(row.stock_min) : null;
+        const refillQty =
+          stockMax != null ? Math.max(0, stockMax - balanceQty) : 0;
+        totalQty += balanceQty;
+        totalRefillQty += refillQty;
+        data.push({
+          seq,
+          department_name: row.department_name ?? '-',
+          item_code: row.item_code,
+          item_name: row.item_name,
+          balance_qty: balanceQty,
+          stock_max: row.stock_max != null ? Number(row.stock_max) : null,
+          stock_min: stockMin,
+          refill_qty: refillQty,
+        });
+        seq++;
+      }
+
+      data.sort((a, b) => (b.refill_qty || 0) - (a.refill_qty || 0));
+      data.forEach((row, i) => {
+        row.seq = i + 1;
+      });
+
+      return {
+        filters: { cabinetId: params?.cabinetId, cabinetCode: params?.cabinetCode },
+        summary: {
+          total_rows: data.length,
+          total_qty: totalQty,
+          total_refill_qty: totalRefillQty,
+        },
+        data,
+      };
+    } catch (error) {
+      console.error('[Report Service] Error getting Cabinet Stock data:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to get Cabinet Stock report data: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Cabinet Stock Report (ต๊อกอุปกรณ์ในตู้) - Excel
+   */
+  async generateCabinetStockExcel(params: {
+    cabinetId?: number;
+    cabinetCode?: string;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const reportData = await this.getCabinetStockData(params);
+      const buffer = await this.cabinetStockReportExcelService.generateReport(reportData);
+      const dateStr = new Date().toISOString().split('T')[0];
+      const filename = `cabinet_stock_report_${dateStr}.xlsx`;
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Cabinet Stock Excel:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Cabinet Stock Excel report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Cabinet Stock Report (ต๊อกอุปกรณ์ในตู้) - PDF
+   */
+  async generateCabinetStockPdf(params: {
+    cabinetId?: number;
+    cabinetCode?: string;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const reportData = await this.getCabinetStockData(params);
+      const buffer = await this.cabinetStockReportPdfService.generateReport(reportData);
+      const dateStr = new Date().toISOString().split('T')[0];
+      const filename = `cabinet_stock_report_${dateStr}.pdf`;
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Cabinet Stock PDF:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Cabinet Stock PDF report: ${errorMessage}`);
     }
   }
 }

@@ -578,4 +578,61 @@ export class ReportServiceController {
       };
     }
   }
+
+  // Cabinet Stock Report (ต๊อกอุปกรณ์ในตู้)
+  @MessagePattern({ cmd: 'report.cabinet_stock.excel' })
+  async generateCabinetStockExcel(@Payload() data: { cabinetId?: number; cabinetCode?: string }) {
+    try {
+      const result = await this.reportServiceService.generateCabinetStockExcel(data);
+      return {
+        success: true,
+        data: {
+          buffer: result.buffer,
+          filename: result.filename,
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'report.cabinet_stock.pdf' })
+  async generateCabinetStockPdf(@Payload() data: { cabinetId?: number; cabinetCode?: string }) {
+    try {
+      const result = await this.reportServiceService.generateCabinetStockPdf(data);
+      return {
+        success: true,
+        data: {
+          buffer: result.buffer,
+          filename: result.filename,
+          contentType: 'application/pdf',
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'report.cabinet_stock.data' })
+  async getCabinetStockData(@Payload() data: { cabinetId?: number; cabinetCode?: string }) {
+    try {
+      const result = await this.reportServiceService.getCabinetStockData(data);
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

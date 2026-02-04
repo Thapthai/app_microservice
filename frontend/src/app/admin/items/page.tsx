@@ -7,8 +7,9 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import type { Item } from '@/types/item';
 import { toast } from 'sonner';
-import { Package, Plus, RefreshCw } from 'lucide-react';
+import { Package, Plus, RefreshCw, FileSpreadsheet, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { reportsApi } from '@/lib/api';
 import CreateItemDialog from './components/CreateItemDialog';
 import EditItemDialog from './components/EditItemDialog';
 import DeleteItemDialog from './components/DeleteItemDialog';
@@ -26,6 +27,7 @@ export default function ItemsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showMinMaxDialog, setShowMinMaxDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [reportLoading, setReportLoading] = useState<'excel' | 'pdf' | null>(null);
 
   // Active filters (after search button clicked)
   const [activeFilters, setActiveFilters] = useState({
@@ -128,6 +130,33 @@ export default function ItemsPage() {
     setShowMinMaxDialog(true);
   };
 
+  const handleDownloadCabinetStockExcel = async () => {
+    try {
+      setReportLoading('excel');
+      const cabinetId = activeFilters.cabinetId ? parseInt(activeFilters.cabinetId, 10) : undefined;
+      await reportsApi.downloadCabinetStockExcel({ cabinetId });
+      toast.success('ดาวน์โหลดรายงาน Excel สำเร็จ');
+    } catch (e) {
+      console.error(e);
+      toast.error('ดาวน์โหลดรายงานไม่สำเร็จ');
+    } finally {
+      setReportLoading(null);
+    }
+  };
+
+  const handleDownloadCabinetStockPdf = async () => {
+    try {
+      setReportLoading('pdf');
+      const cabinetId = activeFilters.cabinetId ? parseInt(activeFilters.cabinetId, 10) : undefined;
+      await reportsApi.downloadCabinetStockPdf({ cabinetId });
+      toast.success('ดาวน์โหลดรายงาน PDF สำเร็จ');
+    } catch (e) {
+      console.error(e);
+      toast.error('ดาวน์โหลดรายงานไม่สำเร็จ');
+    } finally {
+      setReportLoading(null);
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -162,6 +191,29 @@ export default function ItemsPage() {
             onDelete={handleDelete}
             onUpdateMinMax={handleUpdateMinMax}
             onPageChange={handlePageChange}
+            headerActions={
+              <div className="flex flex-wrap items-center gap-2">
+                {/* <span className="text-sm text-gray-600">รายงานต๊อกในตู้:</span> */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadCabinetStockExcel}
+                  disabled={reportLoading !== null}
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+                  {reportLoading === 'excel' ? 'กำลังโหลด...' : 'Excel'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadCabinetStockPdf}
+                  disabled={reportLoading !== null}
+                >
+                  <FileText className="h-4 w-4 mr-1.5" />
+                  {reportLoading === 'pdf' ? 'กำลังโหลด...' : 'PDF'}
+                </Button>
+              </div>
+            }
           />
         </div>
 

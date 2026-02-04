@@ -835,6 +835,41 @@ export const reportsApi = {
     });
     return response.data;
   },
+
+  // Cabinet Stock Report (รายงานต๊อกอุปกรณ์ในตู้)
+  downloadCabinetStockExcel: async (params?: { cabinetId?: number; cabinetCode?: string }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.cabinetId != null) queryParams.append('cabinetId', params.cabinetId.toString());
+    if (params?.cabinetCode) queryParams.append('cabinetCode', params.cabinetCode);
+    const response = await api.get(`/reports/cabinet-stock/excel?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `cabinet_stock_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
+  downloadCabinetStockPdf: async (params?: { cabinetId?: number; cabinetCode?: string }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.cabinetId != null) queryParams.append('cabinetId', params.cabinetId.toString());
+    if (params?.cabinetCode) queryParams.append('cabinetCode', params.cabinetCode);
+    const response = await api.get(`/reports/cabinet-stock/pdf?${queryParams.toString()}`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `cabinet_stock_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 // =========================== Staff User API ===========================

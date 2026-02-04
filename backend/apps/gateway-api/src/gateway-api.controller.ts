@@ -2465,6 +2465,80 @@ export class GatewayApiController {
     }
   }
 
+  @Get('reports/cabinet-stock/excel')
+  // @UseGuards(FlexibleAuthGuard)
+  async exportCabinetStockReportExcel(
+    @Res() res: any,
+    @Query('cabinetId') cabinetId?: string,
+    @Query('cabinetCode') cabinetCode?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (cabinetId) params.cabinetId = Number(cabinetId);
+      if (cabinetCode) params.cabinetCode = cabinetCode;
+
+      const result = await this.gatewayApiService.generateCabinetStockReportExcel(params);
+
+      if (!result.success) {
+        throw new HttpException(
+          result.error || 'Failed to generate Cabinet Stock Report Excel',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      const buffer = Buffer.isBuffer(result.data?.buffer)
+        ? result.data.buffer
+        : Buffer.from(result.data?.buffer || '', 'base64');
+      const filename = result.data?.filename || `cabinet_stock_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      res.setHeader('Content-Type', result.data?.contentType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Cabinet Stock Report Excel',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/cabinet-stock/pdf')
+  // @UseGuards(FlexibleAuthGuard)
+  async exportCabinetStockReportPdf(
+    @Res() res: any,
+    @Query('cabinetId') cabinetId?: string,
+    @Query('cabinetCode') cabinetCode?: string,
+  ) {
+    try {
+      const params: any = {};
+      if (cabinetId) params.cabinetId = Number(cabinetId);
+      if (cabinetCode) params.cabinetCode = cabinetCode;
+
+      const result = await this.gatewayApiService.generateCabinetStockReportPdf(params);
+
+      if (!result.success) {
+        throw new HttpException(
+          result.error || 'Failed to generate Cabinet Stock Report PDF',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      const buffer = Buffer.isBuffer(result.data?.buffer)
+        ? result.data.buffer
+        : Buffer.from(result.data?.buffer || '', 'base64');
+      const filename = result.data?.filename || `cabinet_stock_report_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      res.setHeader('Content-Type', result.data?.contentType || 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Cabinet Stock Report PDF',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // ==================================== Department REST API Endpoints ====================================
   // @Post('departments')
   // @UseGuards(FlexibleAuthGuard)
