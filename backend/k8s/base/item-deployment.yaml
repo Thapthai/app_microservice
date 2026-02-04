@@ -33,6 +33,9 @@ spec:
             secretKeyRef:
               name: pose-secrets
               key: DATABASE_URL
+        # รูปภาพอุปกรณ์: ตั้ง UPLOAD_PATH ให้ชี้ไปที่โฟลเดอร์ที่มีไฟล์ (ต้อง mount volume ด้านล่าง)
+        - name: UPLOAD_PATH
+          value: "/app/uploads/items"
         resources:
           requests:
             memory: "40Mi"   # ลดจาก 64Mi (ใช้จริง 36MB)
@@ -51,4 +54,14 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 5
         imagePullPolicy: Never  # Use local image
+        # Mount โฟลเดอร์ uploads จากโฮสต์ (แก้ path ตาม server จริง เช่น /var/www/app_microservice/backend/uploads)
+        volumeMounts:
+        - name: item-uploads
+          mountPath: /app/uploads
+          readOnly: false
+      volumes:
+      - name: item-uploads
+        hostPath:
+          path: /var/www/app_microservice/backend/uploads
+          type: DirectoryOrCreate
 

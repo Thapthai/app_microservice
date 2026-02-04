@@ -107,13 +107,13 @@ export class CabinetStockReportPdfService {
         }
 
         doc.fontSize(14).font(finalFontBoldName).fillColor('#1A365D');
-        doc.text('รายงานสต๊อกอุปกรณ์ในตู้', margin + 90, headerTop + 6, {
-          width: contentWidth - 100,
+        doc.text('รายงานต๊อกอุปกรณ์ในตู้', margin, headerTop + 6, {
+          width: contentWidth,
           align: 'center',
         });
         doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
-        doc.text('Cabinet Stock Report', margin + 90, headerTop + 22, {
-          width: contentWidth - 100,
+        doc.text('Cabinet Stock Report', margin, headerTop + 22, {
+          width: contentWidth,
           align: 'center',
         });
         doc.fillColor('#000000');
