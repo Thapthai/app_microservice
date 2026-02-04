@@ -206,7 +206,7 @@ export default function ItemsPage() {
           onPageChange={handlePageChange}
           headerActions={
             <div className="flex flex-wrap items-center gap-2">
-              {/* <span className="text-sm text-gray-600">รายงานต๊อกในตู้:</span> */}
+              {/* <span className="text-sm text-gray-600">รายงานสต๊อกอุปกรณ์ในตู้:</span> */}
               <Button
                 variant="outline"
                 size="sm"

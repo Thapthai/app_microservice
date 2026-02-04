@@ -836,7 +836,7 @@ export const reportsApi = {
     return response.data;
   },
 
-  // Cabinet Stock Report (รายงานต๊อกอุปกรณ์ในตู้)
+  // Cabinet Stock Report (รายงานสต๊อกอุปกรณ์ในตู้)
   downloadCabinetStockExcel: async (params?: { cabinetId?: number; cabinetCode?: string }): Promise<void> => {
     const queryParams = new URLSearchParams();
     if (params?.cabinetId != null) queryParams.append('cabinetId', params.cabinetId.toString());

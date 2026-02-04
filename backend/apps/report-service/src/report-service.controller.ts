@@ -579,7 +579,7 @@ export class ReportServiceController {
     }
   }
 
-  // Cabinet Stock Report (ต๊อกอุปกรณ์ในตู้)
+  // Cabinet Stock Report (สต๊อกอุปกรณ์ในตู้)
   @MessagePattern({ cmd: 'report.cabinet_stock.excel' })
   async generateCabinetStockExcel(@Payload() data: { cabinetId?: number; cabinetCode?: string }) {
     try {

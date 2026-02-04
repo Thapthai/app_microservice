@@ -1,11 +1,11 @@
 import * as path from 'path';
 import * as fs from 'fs';
 
-/** รายงานต๊อกอุปกรณ์ในตู้ - ชื่อไฟล์โลโก้ */
+/** รายงานสต๊อกอุปกรณ์ในตู้ - ชื่อไฟล์โลโก้ */
 const CABINET_REPORT_LOGO_FILENAME = '3_logo_p-1-fit.png';
 
 /**
- * หา path ไฟล์โลโก้สำหรับรายงาน (uploads/items/3_logo_p-1-fit.png)
+ * หา path ไฟล์โลโก้สำหรับรายงานสต๊อกอุปกรณ์ในตู้ (uploads/items/3_logo_p-1-fit.png)
  * ลองตามลำดับ: process.cwd(), backend/, __dirname relative
  */
 export function resolveReportLogoPath(): string | null {

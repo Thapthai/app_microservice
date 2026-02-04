@@ -2168,7 +2168,7 @@ export class ReportServiceService {
   }
 
   /**
-   * Get Cabinet Stock Report Data (ต๊อกอุปกรณ์ในตู้)
+   * Get Cabinet Stock Report Data (สต๊อกอุปกรณ์ในตู้)
    * คอลัมน์: ลำดับ, แผนก, รหัสอุปกรณ์, อุปกรณ์, คงเหลือ, Stock Max, Stock Min, จำนวนที่ต้องเติม
    * จำนวนที่ต้องเติม = Max - (Min - คงเหลือ) (แสดงเป็น 0 ถ้าเป็นลบ)
    */
@@ -2257,7 +2257,7 @@ export class ReportServiceService {
   }
 
   /**
-   * Generate Cabinet Stock Report (ต๊อกอุปกรณ์ในตู้) - Excel
+   * Generate Cabinet Stock Report (สต๊อกอุปกรณ์ในตู้) - Excel
    */
   async generateCabinetStockExcel(params: {
     cabinetId?: number;
@@ -2277,7 +2277,7 @@ export class ReportServiceService {
   }
 
   /**
-   * Generate Cabinet Stock Report (ต๊อกอุปกรณ์ในตู้) - PDF
+   * Generate Cabinet Stock Report (สต๊อกอุปกรณ์ในตู้) - PDF
    */
   async generateCabinetStockPdf(params: {
     cabinetId?: number;

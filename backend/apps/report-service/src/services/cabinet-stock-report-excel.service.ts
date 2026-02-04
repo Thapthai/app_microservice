@@ -3,7 +3,7 @@ import * as ExcelJS from 'exceljs';
 import * as fs from 'fs';
 import { resolveReportLogoPath } from '../config/report.config';
 
-/** แถวรายงานต๊อกอุปกรณ์ในตู้ */
+/** แถวรายงานสต๊อกอุปกรณ์ในตู้ */
 export interface CabinetStockRow {
   seq: number;
   department_name: string;
@@ -27,7 +27,7 @@ export class CabinetStockReportExcelService {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Report Service';
     workbook.created = new Date();
-    const worksheet = workbook.addWorksheet('รายงานต๊อกอุปกรณ์ในตู้', {
+    const worksheet = workbook.addWorksheet('รายงานสต๊อกอุปกรณ์ในตู้', {
       pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true },
       properties: { defaultRowHeight: 20 },
     });
@@ -68,7 +68,7 @@ export class CabinetStockReportExcelService {
 
     worksheet.mergeCells('B1:H2');
     const headerCell = worksheet.getCell('B1');
-    headerCell.value = 'รายงานต๊อกอุปกรณ์ในตู้\nCabinet Stock Report';
+    headerCell.value = 'รายงานสต๊อกอุปกรณ์ในตู้\nCabinet Stock Report';
     headerCell.font = { name: 'Tahoma', size: 14, bold: true, color: { argb: 'FF1A365D' } };
     headerCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     headerCell.fill = {
