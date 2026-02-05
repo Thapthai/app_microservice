@@ -25,6 +25,8 @@ import { DispensedItemsExcelService } from './services/dispensed-items-excel.ser
 import { DispensedItemsPdfService } from './services/dispensed-items-pdf.service';
 import { CabinetStockReportExcelService } from './services/cabinet-stock-report-excel.service';
 import { CabinetStockReportPdfService } from './services/cabinet-stock-report-pdf.service';
+import { DispensedItemsForPatientsExcelService } from './services/dispensed-items-for-patients-excel.service';
+import { DispensedItemsForPatientsPdfService } from './services/dispensed-items-for-patients-pdf.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -71,6 +73,8 @@ import { CabinetStockReportPdfService } from './services/cabinet-stock-report-pd
     DispensedItemsPdfService,
     CabinetStockReportExcelService,
     CabinetStockReportPdfService,
+    DispensedItemsForPatientsExcelService,
+    DispensedItemsForPatientsPdfService,
   ],
 })
 export class ReportServiceModule {}

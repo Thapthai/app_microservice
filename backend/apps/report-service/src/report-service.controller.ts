@@ -635,4 +635,79 @@ export class ReportServiceController {
       };
     }
   }
+
+  // Dispensed Items for Patients Report (รายการเบิกอุปกรณ์ใช้กับคนไข้)
+  @MessagePattern({ cmd: 'report.dispensed_items_for_patients.excel' })
+  async generateDispensedItemsForPatientsExcel(@Payload() data: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }) {
+    try {
+      const result = await this.reportServiceService.generateDispensedItemsForPatientsExcel(data);
+      return {
+        success: true,
+        data: {
+          buffer: result.buffer,
+          filename: result.filename,
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'report.dispensed_items_for_patients.pdf' })
+  async generateDispensedItemsForPatientsPdf(@Payload() data: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }) {
+    try {
+      const result = await this.reportServiceService.generateDispensedItemsForPatientsPdf(data);
+      return {
+        success: true,
+        data: {
+          buffer: result.buffer,
+          filename: result.filename,
+          contentType: 'application/pdf',
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'report.dispensed_items_for_patients.data' })
+  async getDispensedItemsForPatientsData(@Payload() data: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }) {
+    try {
+      const result = await this.reportServiceService.getDispensedItemsForPatientsData(data);
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

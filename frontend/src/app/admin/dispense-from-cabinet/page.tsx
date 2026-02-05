@@ -24,7 +24,7 @@ export default function DispenseFromCabinetPage() {
   const { user } = useAuth();
   const [loadingList, setLoadingList] = useState(true);
   const [dispensedList, setDispensedList] = useState<DispensedItem[]>([]);
-  
+
   // Filters
   const [filters, setFilters] = useState<FilterState>({
     searchItemCode: '',
@@ -58,21 +58,23 @@ export default function DispenseFromCabinetPage() {
       if (activeFilters.searchItemCode) params.keyword = activeFilters.searchItemCode;
 
       const response = await medicalSuppliesApi.getDispensedItems(params);
-      
-      if (response.success || response.data) {
-        const responseData: any = response.data || response;
-        
-        const dispensedData = Array.isArray(responseData) ? responseData : (responseData.data || []);
-        
-        const total = responseData.total || dispensedData.length;
-        const limit = responseData.limit || itemsPerPage;
-        const totalPagesNum = responseData.totalPages || Math.ceil(total / limit);
-        
+
+
+      // response shape expected from API:
+      // { success: boolean, data: [...], total, page, limit, totalPages, ... }
+      if (response?.success && Array.isArray(response.data)) {
+        const dispensedData = response.data;
+
+        const total = typeof response.total === 'number' ? response.total : dispensedData.length;
+        const limit = typeof response.limit === 'number' ? response.limit : itemsPerPage;
+        const totalPagesNum =
+          typeof response.totalPages === 'number' ? response.totalPages : Math.ceil(total / limit);
+
         setDispensedList(dispensedData);
         setTotalItems(total);
         setTotalPages(totalPagesNum);
-        setCurrentPage(responseData.page || page);
-        
+        setCurrentPage(response.page || page);
+
         if (dispensedData.length === 0) {
           toast.info('ไม่พบข้อมูลการเบิกอุปกรณ์ กรุณาตรวจสอบว่ามีข้อมูลในระบบ');
         } else {
@@ -112,18 +114,18 @@ export default function DispenseFromCabinetPage() {
   const handleExportReport = async (format: 'excel' | 'pdf') => {
     try {
       const params = new URLSearchParams();
-      
+
       if (filters.searchItemCode) params.append('keyword', filters.searchItemCode);
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
-      
+
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
       const url = `${baseUrl}/medical-supplies-dispensed-items/export/${format}?${params.toString()}`;
-      
+
       toast.info(`กำลังสร้างรายงาน ${format.toUpperCase()}...`);
-      
+
       window.open(url, '_blank');
-      
+
       toast.success(`กำลังดาวน์โหลดรายงาน ${format.toUpperCase()}`);
     } catch (error: any) {
       toast.error(`ไม่สามารถสร้างรายงาน ${format.toUpperCase()} ได้: ${error.message}`);

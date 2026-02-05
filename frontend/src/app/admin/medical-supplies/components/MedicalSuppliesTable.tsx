@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { RefreshCw, Package, XCircle } from 'lucide-react';
+import { RefreshCw, Package, XCircle, FileSpreadsheet, FileText } from 'lucide-react';
 
 interface MedicalSuppliesTableProps {
   loading: boolean;
@@ -18,6 +18,9 @@ interface MedicalSuppliesTableProps {
   onSelectSupply?: (supply: any) => void;
   selectedSupplyId?: number | null;
   onCancelBill?: (supply: any) => void;
+  onExportExcel?: () => void;
+  onExportPdf?: () => void;
+  exportLoading?: 'excel' | 'pdf' | null;
   filters: {
     startDate: string;
     endDate: string;
@@ -41,6 +44,9 @@ export default function MedicalSuppliesTable({
   onSelectSupply,
   selectedSupplyId,
   onCancelBill,
+  onExportExcel,
+  onExportPdf,
+  exportLoading,
   filters,
 }: MedicalSuppliesTableProps) {
 
@@ -169,20 +175,44 @@ export default function MedicalSuppliesTable({
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>รายการเบิกอุปกรณ์</CardTitle>
-            <CardDescription>
-              ทั้งหมด {totalItems} รายการ
-              {filters.startDate && filters.endDate && (
-                <span className="ml-2">
-                  (วันที่ {new Date(filters.startDate).toLocaleDateString('th-TH')} - {new Date(filters.endDate).toLocaleDateString('th-TH')})
-                </span>
-              )}
-            </CardDescription>
-          </div>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4 pb-2">
+        <div className="space-y-1.5">
+          <CardTitle>รายการเบิกอุปกรณ์</CardTitle>
+          <CardDescription>
+            ทั้งหมด {totalItems} รายการ
+            {filters.startDate && filters.endDate && (
+              <span className="ml-2">
+                (วันที่ {new Date(filters.startDate).toLocaleDateString('th-TH')} - {new Date(filters.endDate).toLocaleDateString('th-TH')})
+              </span>
+            )}
+          </CardDescription>
         </div>
+        {(onExportExcel ?? onExportPdf) && (
+          <div className="flex shrink-0 items-center gap-2">
+            {onExportExcel && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onExportExcel}
+                disabled={exportLoading !== undefined && exportLoading !== null}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+                {exportLoading === 'excel' ? 'กำลังโหลด...' : 'Excel'}
+              </Button>
+            )}
+            {onExportPdf && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onExportPdf}
+                disabled={exportLoading !== undefined && exportLoading !== null}
+              >
+                <FileText className="h-4 w-4 mr-1.5" />
+                {exportLoading === 'pdf' ? 'กำลังโหลด...' : 'PDF'}
+              </Button>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="px-4 py-4">
         {loading ? (

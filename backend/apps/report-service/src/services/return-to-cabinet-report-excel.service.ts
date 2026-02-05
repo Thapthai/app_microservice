@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
-import { ReportConfig } from '../config/report.config';
+import * as fs from 'fs';
+import { ReportConfig, resolveReportLogoPath } from '../config/report.config';
 
 function formatReportDateTime(value?: string) {
   if (!value) return '-';
@@ -53,72 +54,77 @@ export class ReturnToCabinetReportExcelService {
     }
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('รายงานคืนอุปกรณ์เข้าตู้');
+    workbook.creator = 'Report Service';
+    workbook.created = new Date();
 
-    // Title
-    const titleRow = worksheet.addRow(['รายงานคืนอุปกรณ์เข้าตู้']);
-    worksheet.mergeCells('A1:H1');
-    const titleCell = worksheet.getCell('A1');
-    titleCell.font = { name: 'Tahoma', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
-    titleRow.height = 30;
+    const worksheet = workbook.addWorksheet('รายงานคืนอุปกรณ์เข้าตู้', {
+      pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true },
+      properties: { defaultRowHeight: 20 },
+    });
 
-    // Filters
+    const reportDate = new Date().toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'Asia/Bangkok',
+    });
+
+    // ---- แถว 1-2: โลโก้ (A1:A2) + ชื่อรายงาน (B1:H2) ----
+    worksheet.mergeCells('A1:A2');
+    worksheet.getCell('A1').fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFF8F9FA' },
+    };
+    worksheet.getCell('A1').border = {
+      right: { style: 'thin' },
+      bottom: { style: 'thin' },
+    };
+
+    const logoPath = resolveReportLogoPath();
+    if (logoPath && fs.existsSync(logoPath)) {
+      try {
+        const imageId = workbook.addImage({
+          filename: logoPath,
+          extension: 'png',
+        });
+        worksheet.addImage(imageId, 'A1:A2');
+      } catch {
+        // skip logo on error
+      }
+    }
+    worksheet.getRow(1).height = 20;
+    worksheet.getRow(2).height = 20;
+    worksheet.getColumn(1).width = 12;
+
+    worksheet.mergeCells('B1:G2');
+    const headerCell = worksheet.getCell('B1');
+    headerCell.value = 'รายงานคืนอุปกรณ์เข้าตู้\nReturn To Cabinet Report';
+    headerCell.font = { name: 'Tahoma', size: 14, bold: true, color: { argb: 'FF1A365D' } };
+    headerCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    headerCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFF8F9FA' },
+    };
+    headerCell.border = {
+      left: { style: 'thin' },
+      bottom: { style: 'thin' },
+      right: { style: 'thin' },
+    };
+
+    // แถว 3: วันที่รายงาน
+    worksheet.mergeCells('A3:G3');
+    const dateCell = worksheet.getCell('A3');
+    dateCell.value = `วันที่รายงาน: ${reportDate}`;
+    dateCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF6C757D' } };
+    dateCell.alignment = { horizontal: 'right', vertical: 'middle' };
+    worksheet.getRow(3).height = 20;
     worksheet.addRow([]);
-    const filterRow = worksheet.addRow(['เงื่อนไขการค้นหา']);
-    worksheet.mergeCells('A3:H3');
-    filterRow.height = 22;
-    const filterCell = worksheet.getCell('A3');
-    filterCell.font = { name: 'Tahoma', size: 12, bold: true };
-    filterCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } };
-    filterCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
-    const filters = data.filters || {};
-    const filterRow1 = worksheet.addRow(['คำค้นหา', filters.keyword || 'ทั้งหมด']);
-    filterRow1.height = 18;
-    worksheet.getCell('A4').font = { name: 'Tahoma', size: 10, bold: true };
-    worksheet.getCell('B4').font = { name: 'Tahoma', size: 10 };
-    
-    const filterRow2 = worksheet.addRow(['ประเภทอุปกรณ์', filters.itemTypeId ? `ID: ${filters.itemTypeId}` : 'ทั้งหมด']);
-    filterRow2.height = 18;
-    worksheet.getCell('A5').font = { name: 'Tahoma', size: 10, bold: true };
-    worksheet.getCell('B5').font = { name: 'Tahoma', size: 10 };
-    
-    const filterRow3 = worksheet.addRow(['วันที่เริ่มต้น', filters.startDate || 'ทั้งหมด']);
-    filterRow3.height = 18;
-    worksheet.getCell('A6').font = { name: 'Tahoma', size: 10, bold: true };
-    worksheet.getCell('B6').font = { name: 'Tahoma', size: 10 };
-    
-    const filterRow4 = worksheet.addRow(['วันที่สิ้นสุด', filters.endDate || 'ทั้งหมด']);
-    filterRow4.height = 18;
-    worksheet.getCell('A7').font = { name: 'Tahoma', size: 10, bold: true };
-    worksheet.getCell('B7').font = { name: 'Tahoma', size: 10 };
-
-    // Summary
-    worksheet.addRow([]);
-    const summaryRow = worksheet.addRow(['สรุปผล']);
-    worksheet.mergeCells('A9:H9');
-    summaryRow.height = 22;
-    const summaryCell = worksheet.getCell('A9');
-    summaryCell.font = { name: 'Tahoma', size: 12, bold: true };
-    summaryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } };
-    summaryCell.alignment = { horizontal: 'left', vertical: 'middle' };
-
-    const summaryRow1 = worksheet.addRow(['จำนวนรายการทั้งหมด', data.summary.total_records]);
-    summaryRow1.height = 18;
-    worksheet.getCell('A10').font = { name: 'Tahoma', size: 10, bold: true };
-    worksheet.getCell('B10').font = { name: 'Tahoma', size: 10 };
-    
-    const summaryRow2 = worksheet.addRow(['จำนวนรวม', data.summary.total_qty]);
-    summaryRow2.height = 18;
-    worksheet.getCell('A11').font = { name: 'Tahoma', size: 10, bold: true };
-    worksheet.getCell('B11').font = { name: 'Tahoma', size: 10 };
-
-    worksheet.addRow([]);
-
-    // Headers
-    const headerRow = worksheet.addRow([
+    // ---- ตารางข้อมูล (รูปแบบเดียวกับ dispensed-items-for-patients) ----
+    const tableStartRow = 5;
+    const tableHeaders = [
       'ลำดับ',
       'รหัสอุปกรณ์',
       'ชื่ออุปกรณ์',
@@ -126,11 +132,13 @@ export class ReturnToCabinetReportExcelService {
       'ชื่อผู้เบิก',
       'RFID Code',
       'cabinet',
-      'สถานะ RFID',
-    ]);
-    headerRow.eachCell((cell) => {
-      cell.font = { name: 'Tahoma', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF203864' } };
+    ];
+    const headerRow = worksheet.getRow(tableStartRow);
+    tableHeaders.forEach((h, i) => {
+      const cell = headerRow.getCell(i + 1);
+      cell.value = h;
+      cell.font = { name: 'Tahoma', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A365D' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
       cell.border = {
         top: { style: 'thin' },
@@ -139,25 +147,29 @@ export class ReturnToCabinetReportExcelService {
         right: { style: 'thin' },
       };
     });
-    headerRow.height = 25;
+    headerRow.height = 26;
 
-    // Data rows
-    data.data.forEach((item, index) => {
-      const row = worksheet.addRow([
-        index + 1,
+    let dataRowIndex = tableStartRow + 1;
+    data.data.forEach((item, idx) => {
+      const excelRow = worksheet.getRow(dataRowIndex);
+      const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA';
+      const rowValues = [
+        idx + 1,
         item.itemcode,
         item.itemname,
         formatReportDateTime(item.modifyDate),
         (item as any).cabinetUserName || 'ไม่ระบุ',
         item.RfidCode || '-',
         (item as any).cabinetName || '-',
-        item.Istatus_rfid || '-',
-      ]);
-      row.height = 20;
-      row.eachCell((cell, colNumber) => {
-        cell.font = { name: 'Tahoma', size: 11 };
+      ];
+
+      rowValues.forEach((val, colIndex) => {
+        const cell = excelRow.getCell(colIndex + 1);
+        cell.value = val;
+        cell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF212529' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
         cell.alignment = {
-          horizontal: colNumber === 3 || colNumber === 5 ? 'left' : 'center',
+          horizontal: colIndex === 2 || colIndex === 4 ? 'left' : 'center',
           vertical: 'middle',
         };
         cell.border = {
@@ -167,17 +179,19 @@ export class ReturnToCabinetReportExcelService {
           right: { style: 'thin' },
         };
       });
+
+      excelRow.height = 22;
+      dataRowIndex++;
     });
 
-    // Set column widths with better spacing
-    worksheet.getColumn(1).width = 12;  // ลำดับ
-    worksheet.getColumn(2).width = 18;  // รหัสอุปกรณ์
-    worksheet.getColumn(3).width = 35;   // ชื่ออุปกรณ์
-    worksheet.getColumn(4).width = 22;   // วันที่แก้ไขล่าสุด
-    worksheet.getColumn(5).width = 22;   // ชื่อผู้เบิก
-    worksheet.getColumn(6).width = 22;   // RFID Code
-    worksheet.getColumn(7).width = 20;   // cabinet
-    worksheet.getColumn(8).width = 18;   // สถานะ RFID
+    // ปรับความกว้างคอลัมน์ให้ใกล้เคียง PDF/Excel อื่นๆ
+    worksheet.getColumn(1).width = 10; // ลำดับ
+    worksheet.getColumn(2).width = 18; // รหัสอุปกรณ์
+    worksheet.getColumn(3).width = 32; // ชื่ออุปกรณ์
+    worksheet.getColumn(4).width = 22; // วันที่แก้ไขล่าสุด
+    worksheet.getColumn(5).width = 22; // ชื่อผู้เบิก
+    worksheet.getColumn(6).width = 22; // RFID Code
+    worksheet.getColumn(7).width = 20; // cabinet
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);

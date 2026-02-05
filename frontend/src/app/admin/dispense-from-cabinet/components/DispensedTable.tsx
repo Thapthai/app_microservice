@@ -83,11 +83,14 @@ export default function DispensedTable({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[60px]">ลำดับ</TableHead>
+                    <TableHead className="w-[60px] text-center">ลำดับ</TableHead>
+                    <TableHead>รหัสอุปกรณ์</TableHead>
                     <TableHead>ชื่ออุปกรณ์</TableHead>
-                    <TableHead>ผู้เบิก</TableHead>
-                    <TableHead className="text-right">จำนวนเบิก</TableHead>
                     <TableHead>วันที่เบิก</TableHead>
+                    <TableHead className="text-right">จำนวน</TableHead>
+                    <TableHead>ประเภท</TableHead>
+                    <TableHead>RFID Code</TableHead>
+                    <TableHead>ชื่อผู้เบิก</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -99,12 +102,15 @@ export default function DispensedTable({
                       <TableCell className="text-center text-gray-500">
                         {((currentPage - 1) * itemsPerPage) + index + 1}
                       </TableCell>
+                      <TableCell className="text-gray-700">{item.itemcode || '-'}</TableCell>
                       <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
-                      <TableCell>{item.cabinetUserName || 'ไม่ระบุ'}</TableCell>
-                      <TableCell className="text-right font-medium">{item.qty}</TableCell>
                       <TableCell>
                         {formatThaiDateTime(item.modifyDate)}
                       </TableCell>
+                      <TableCell className="text-right font-medium">{item.qty}</TableCell>
+                      <TableCell>{item.itemCategory || '-'}</TableCell>
+                      <TableCell>{item.RfidCode || '-'}</TableCell>
+                      <TableCell>{item.cabinetUserName || 'ไม่ระบุ'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

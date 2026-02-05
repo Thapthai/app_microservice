@@ -744,6 +744,8 @@ export class MedicalSuppliesServiceService {
         }
       }
 
+
+      
       // Filter by assession_no in SupplyUsageItem if provided
       if (query.assession_no) {
         baseWhere.supply_items = {
@@ -2176,7 +2178,6 @@ export class MedicalSuppliesServiceService {
       //   sqlConditions.push(Prisma.sql`ist.LastCabinetModify <= ${new Date(filters.endDate)}`);
       // }
 
-
       if (filters?.startDate && filters?.endDate) {
 
         sqlConditions.push(
@@ -2190,7 +2191,8 @@ export class MedicalSuppliesServiceService {
 
       // Get total count first
       const countResult: any[] = await this.prisma.$queryRaw`
-        SELECT COUNT(DISTINCT CONCAT(i.itemcode, '-', ist.LastCabinetModify)) as total
+        -- SELECT COUNT(DISTINCT CONCAT(i.itemcode, '-', ist.LastCabinetModify)) as total
+        SELECT COUNT(*) as total
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
         LEFT JOIN itemtype it ON i.itemtypeID = it.ID
@@ -2297,7 +2299,7 @@ export class MedicalSuppliesServiceService {
           Prisma.raw(`(i.itemcode LIKE '${keywordPattern}' OR i.itemname LIKE '${keywordPattern}')`)
         );
       }
- 
+
       if (filters?.startDate && filters?.endDate) {
 
         sqlConditions.push(

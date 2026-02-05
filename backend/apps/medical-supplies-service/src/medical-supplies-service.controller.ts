@@ -29,6 +29,8 @@ export class MedicalSuppliesServiceController {
   @MessagePattern({ cmd: 'medical_supply_usage.findAll' })
   async findAll(@Payload() query: GetMedicalSupplyUsagesQueryDto) {
     try {
+
+  
       const result = await this.medicalSuppliesService.findAll(query);
       return { success: true, ...result };
     } catch (error) {

@@ -26,6 +26,11 @@ import {
   CabinetStockReportData,
 } from './services/cabinet-stock-report-excel.service';
 import { CabinetStockReportPdfService } from './services/cabinet-stock-report-pdf.service';
+import {
+  DispensedItemsForPatientsExcelService,
+  DispensedItemsForPatientsReportData,
+} from './services/dispensed-items-for-patients-excel.service';
+import { DispensedItemsForPatientsPdfService } from './services/dispensed-items-for-patients-pdf.service';
 import { ComparisonReportData } from './types/comparison-report.types';
 import { EquipmentUsageReportData } from './types/equipment-usage-report.types';
 import { EquipmentDisbursementReportData } from './types/equipment-disbursement-report.types';
@@ -61,6 +66,8 @@ export class ReportServiceService {
     private readonly dispensedItemsPdfService: DispensedItemsPdfService,
     private readonly cabinetStockReportExcelService: CabinetStockReportExcelService,
     private readonly cabinetStockReportPdfService: CabinetStockReportPdfService,
+    private readonly dispensedItemsForPatientsExcelService: DispensedItemsForPatientsExcelService,
+    private readonly dispensedItemsForPatientsPdfService: DispensedItemsForPatientsPdfService,
   ) {
     this.prisma = new PrismaClient();
   }
@@ -1337,7 +1344,7 @@ export class ReportServiceService {
         whereConditions.created_at = {
           gte: new Date(params.startDate + 'T00:00:00.000Z'),
           lte: new Date(params.endDate + 'T23:59:59.999Z'),
-        };  
+        };
       }
 
       const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
@@ -2293,6 +2300,153 @@ export class ReportServiceService {
       console.error('[Report Service] Error generating Cabinet Stock PDF:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
       throw new Error(`Failed to generate Cabinet Stock PDF report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get Dispensed Items for Patients Report Data (รายการเบิกอุปกรณ์ใช้กับคนไข้)
+   * ดึงข้อมูลจาก medical supply usage ที่มี supply_items และเชื่อมโยงกับ dispensed items
+   */
+  async getDispensedItemsForPatientsData(params: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }): Promise<DispensedItemsForPatientsReportData> {
+    try {
+      const baseWhere: any = {};
+      if (params.startDate || params.endDate) {
+        baseWhere.created_at = {};
+        if (params.startDate) {
+          baseWhere.created_at.gte = new Date(params.startDate + 'T00:00:00.000Z');
+        }
+        if (params.endDate) {
+          baseWhere.created_at.lte = new Date(params.endDate + 'T23:59:59.999Z');
+        }
+      }
+      if (params?.patientHn) {
+        baseWhere.patient_hn = params.patientHn;
+      }
+      if (params?.departmentCode) {
+        baseWhere.department_code = params.departmentCode;
+      }
+      if (params?.keyword?.trim()) {
+        const keyword = params.keyword.trim();
+        baseWhere.OR = [
+          { first_name: { contains: keyword } },
+          { lastname: { contains: keyword } },
+          { patient_name_th: { contains: keyword } },
+          { patient_name_en: { contains: keyword } },
+          { en: { contains: keyword } },
+          {
+            supply_items: {
+              some: {
+                OR: [
+                  { order_item_description: { contains: keyword } },
+                  { supply_name: { contains: keyword } },
+                  { order_item_code: { contains: keyword } },
+                ],
+              },
+            },
+          },
+        ];
+      }
+      const [data, total] = await Promise.all([
+        this.prisma.medicalSupplyUsage.findMany({
+          where: baseWhere,
+          include: {
+            supply_items: {
+              include: {
+                return_items: true, // รวม return records ด้วย
+              },
+            },
+          },
+          orderBy: {
+            created_at: 'desc',
+          },
+        }),
+        this.prisma.medicalSupplyUsage.count({ where: baseWhere }),
+      ]);
+
+
+      const reportData: DispensedItemsForPatientsReportData['data'] = data.map((usage, index) => ({
+        seq: index + 1,
+        patient_hn: usage.patient_hn ?? '-',
+        patient_name: usage.first_name ?? usage.lastname ?? usage.patient_name_th ?? usage.patient_name_en ?? '-',
+        en: usage.en ?? undefined,
+        department_code: usage.department_code ?? undefined,
+        itemcode: usage.supply_items[0]?.order_item_code ?? usage.supply_items[0]?.supply_code ?? '-',
+        itemname: usage.supply_items[0]?.order_item_description ?? usage.supply_items[0]?.supply_name ?? '-',
+        qty: Number(usage.supply_items[0]?.qty ?? usage.supply_items[0]?.quantity ?? 0),
+        dispensed_date: usage.usage_datetime ?? usage.created_at?.toISOString(),
+      }));
+
+      return {
+        filters: {
+          keyword: params.keyword,
+          startDate: params.startDate,
+          endDate: params.endDate,
+          patientHn: params.patientHn,
+          departmentCode: params.departmentCode,
+        },
+        summary: {
+          total_records: total,
+          total_qty: data.reduce((sum, usage) => sum + (Number(usage.supply_items[0]?.qty ?? usage.supply_items[0]?.quantity ?? 0)), 0),
+          total_patients: data.length,
+        },
+        data: reportData,
+      };
+    } catch (error) {
+      console.error('[Report Service] Error getting Dispensed Items for Patients data:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to get Dispensed Items for Patients report data: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Dispensed Items for Patients Report (รายการเบิกอุปกรณ์ใช้กับคนไข้) - Excel
+   */
+  async generateDispensedItemsForPatientsExcel(params: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const reportData = await this.getDispensedItemsForPatientsData(params);
+      const buffer = await this.dispensedItemsForPatientsExcelService.generateReport(reportData);
+      const dateStr = params.startDate ? params.startDate.replace(/\//g, '-') : new Date().toISOString().split('T')[0];
+      const filename = `dispensed_items_for_patients_report_${dateStr}.xlsx`;
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Dispensed Items for Patients Excel:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Dispensed Items for Patients Excel report: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate Dispensed Items for Patients Report (รายการเบิกอุปกรณ์ใช้กับคนไข้) - PDF
+   */
+  async generateDispensedItemsForPatientsPdf(params: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const reportData = await this.getDispensedItemsForPatientsData(params);
+      const buffer = await this.dispensedItemsForPatientsPdfService.generateReport(reportData);
+      const dateStr = params.startDate ? params.startDate.replace(/\//g, '-') : new Date().toISOString().split('T')[0];
+      const filename = `dispensed_items_for_patients_report_${dateStr}.pdf`;
+      return { buffer, filename };
+    } catch (error) {
+      console.error('[Report Service] Error generating Dispensed Items for Patients PDF:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to generate Dispensed Items for Patients PDF report: ${errorMessage}`);
     }
   }
 }

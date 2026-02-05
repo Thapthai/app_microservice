@@ -24,6 +24,7 @@ export default function MedicalSuppliesPage() {
   const [selectedSupplyId, setSelectedSupplyId] = useState<number | null>(null);
   const [cancelBillDialogOpen, setCancelBillDialogOpen] = useState(false);
   const [selectedSupplyForCancel, setSelectedSupplyForCancel] = useState<any>(null);
+  const [exportLoading, setExportLoading] = useState<'excel' | 'pdf' | null>(null);
 
   // Get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
@@ -196,6 +197,28 @@ export default function MedicalSuppliesPage() {
     }
   };
 
+  const handleExportReport = async (format: 'excel' | 'pdf') => {
+    try {
+      setExportLoading(format);
+      const params = new URLSearchParams();
+      if (activeFilters.itemName) params.append('keyword', activeFilters.itemName);
+      if (activeFilters.startDate) params.append('startDate', activeFilters.startDate);
+      if (activeFilters.endDate) params.append('endDate', activeFilters.endDate);
+      if (activeFilters.patientHN) params.append('patientHn', activeFilters.patientHN);
+
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+      const url = `${baseUrl}/reports/dispensed-items-for-patients/export/${format}?${params.toString()}`;
+
+      toast.info(`กำลังสร้างรายงาน ${format.toUpperCase()}...`);
+      window.open(url, '_blank');
+      toast.success(`กำลังดาวน์โหลดรายงาน ${format.toUpperCase()}`);
+    } catch (error: any) {
+      toast.error(`ไม่สามารถสร้างรายงาน ${format.toUpperCase()} ได้: ${error.message}`);
+    } finally {
+      setExportLoading(null);
+    }
+  };
+
   return (
     <ProtectedRoute>
       <AppLayout fullWidth>
@@ -208,7 +231,7 @@ export default function MedicalSuppliesPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                  รายการเบิกอุปกรณ์อุปกรณ์ใช้กับคนไข้
+                  รายการเบิกอุปกรณ์ใช้กับคนไข้
                 </h1>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   ประวัติการเบิกอุปกรณ์จากตู้ SmartCabinet
@@ -280,6 +303,9 @@ export default function MedicalSuppliesPage() {
             onSelectSupply={handleSelectSupply}
             selectedSupplyId={selectedSupplyId}
             onCancelBill={handleCancelBill}
+            onExportExcel={() => handleExportReport('excel')}
+            onExportPdf={() => handleExportReport('pdf')}
+            exportLoading={exportLoading}
             filters={activeFilters}
           />
 

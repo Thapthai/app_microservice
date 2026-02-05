@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DispensedItemsReportData } from './dispensed-items-excel.service';
+import { DispensedItemsForPatientsReportData } from './dispensed-items-for-patients-excel.service';
 import { ReportConfig } from '../config/report.config';
 import { resolveReportLogoPath } from '../config/report.config';
 
@@ -20,7 +20,7 @@ function formatReportDateTime(value?: string) {
 }
 
 @Injectable()
-export class DispensedItemsPdfService {
+export class DispensedItemsForPatientsPdfService {
   private async registerThaiFont(doc: PDFKit.PDFDocument): Promise<boolean> {
     try {
       const possiblePaths = [
@@ -58,7 +58,7 @@ export class DispensedItemsPdfService {
     }
   }
 
-  async generateReport(data: DispensedItemsReportData): Promise<Buffer> {
+  async generateReport(data: DispensedItemsForPatientsReportData): Promise<Buffer> {
     if (!data || !data.data || !Array.isArray(data.data)) {
       throw new Error('Invalid data structure: data.data must be an array');
     }
@@ -66,7 +66,7 @@ export class DispensedItemsPdfService {
     const doc = new PDFDocument({
       size: 'A4',
       layout: 'portrait',
-      margin: 40,
+      margin: 35,
       bufferPages: true,
     });
 
@@ -97,18 +97,20 @@ export class DispensedItemsPdfService {
       doc.on('error', reject);
 
       try {
-        const margin = 40;
+        const margin = 35;
         const pageWidth = doc.page.width;
         const pageHeight = doc.page.height;
         const contentWidth = pageWidth - margin * 2;
-        const summary = data.summary ?? { total_records: 0, total_qty: 0 };
+        const summary = data.summary ?? { total_records: 0, total_qty: 0, total_patients: 0 };
         const rows = data.data ?? [];
 
-        // ---- Header block with logo (เหมือน cabinet-stock) ----
+        // ---- Header block with logo (เหมือน dispensed-items-pdf) ----
         const headerTop = 35;
         const headerHeight = 48;
+        doc.save();
         doc.rect(margin, headerTop, contentWidth, headerHeight)
           .fillAndStroke('#F8F9FA', '#DEE2E6');
+        doc.restore();
 
         if (logoBuffer && logoBuffer.length > 0) {
           try {
@@ -123,12 +125,12 @@ export class DispensedItemsPdfService {
         }
 
         doc.fontSize(14).font(finalFontBoldName).fillColor('#1A365D');
-        doc.text('รายงานการเบิกอุปกรณ์', margin, headerTop + 6, {
+        doc.text('รายการเบิกอุปกรณ์ใช้กับคนไข้', margin, headerTop + 6, {
           width: contentWidth,
           align: 'center',
         });
         doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
-        doc.text('Dispensed Items Report', margin, headerTop + 22, {
+        doc.text('Dispensed Items for Patients Report', margin, headerTop + 22, {
           width: contentWidth,
           align: 'center',
         });
@@ -144,23 +146,26 @@ export class DispensedItemsPdfService {
         doc.fillColor('#000000');
         doc.y += 4;
 
-        const itemHeight = 18;
-        const cellPadding = 4;
+        const itemHeight = 20;
+        const cellPadding = 3;
         const totalTableWidth = contentWidth;
-        // 8 columns: ลำดับ, รหัสอุปกรณ์, ชื่ออุปกรณ์, วันที่เบิก, จำนวน, ประเภท, RFID Code, ชื่อผู้เบิก (ไม่มี สถานะ RFID)
-        const colPct = [0.06, 0.12, 0.22, 0.14, 0.08, 0.10, 0.14, 0.14];
+        const colPct = [0.05, 0.09, 0.16, 0.10, 0.10, 0.11, 0.18, 0.07, 0.10];
         const colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
-        if (sumW < totalTableWidth) colWidths[2] += totalTableWidth - sumW;
-        const headers = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่เบิก', 'จำนวน', 'ประเภท', 'RFID Code', 'ชื่อผู้เบิก'];
+        if (sumW < totalTableWidth) {
+          const diff = totalTableWidth - sumW;
+          colWidths[6] += Math.floor(diff * 0.5);
+          colWidths[2] += diff - Math.floor(diff * 0.5);
+        }
+        const headers = ['ลำดับ', 'HN', 'ชื่อคนไข้', 'EN', 'แผนก', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'จำนวน', 'วันที่เบิก'];
 
         const drawTableHeader = (y: number) => {
           let x = margin;
-          doc.fontSize(7).font(finalFontBoldName);
+          doc.fontSize(8).font(finalFontBoldName);
           doc.rect(margin, y, totalTableWidth, itemHeight).fillAndStroke('#1A365D', '#1A365D');
           doc.fillColor('#FFFFFF');
           headers.forEach((h, i) => {
-            doc.text(h, x + cellPadding, y + 5, {
+            doc.text(h, x + cellPadding, y + 6, {
               width: Math.max(2, colWidths[i] - cellPadding * 2),
               align: 'center',
             });
@@ -173,19 +178,19 @@ export class DispensedItemsPdfService {
         drawTableHeader(tableHeaderY);
         doc.y = tableHeaderY + itemHeight;
 
-        doc.fontSize(7).font(finalFontName).fillColor('#000000');
+        doc.fontSize(8).font(finalFontName).fillColor('#000000');
         if (rows.length === 0) {
           const rowY = doc.y;
           doc.rect(margin, rowY, totalTableWidth, itemHeight).fillAndStroke('#F8F9FA', '#DEE2E6');
-          doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 5, {
+          doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 6, {
             width: totalTableWidth - cellPadding * 2,
             align: 'center',
           });
           doc.y = rowY + itemHeight;
         } else {
-          rows.forEach((item, idx) => {
+          rows.forEach((row, idx) => {
             if (doc.y + itemHeight > pageHeight - 35) {
-              doc.addPage({ size: 'A4', layout: 'portrait', margin: 40 });
+              doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
               doc.y = margin;
               const newHeaderY = doc.y;
               drawTableHeader(newHeaderY);
@@ -196,23 +201,24 @@ export class DispensedItemsPdfService {
             const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
             let xPos = margin;
             const cellTexts = [
-              String(idx + 1),
-              (item?.itemcode ?? '-').toString().substring(0, 14),
-              (item?.itemname ?? '-').toString().substring(0, 24),
-              formatReportDateTime(item?.modifyDate as any).substring(0, 18),
-              item?.qty != null ? String(item.qty) : '0',
-              (item?.itemCategory ?? '-').toString().substring(0, 10),
-              (item?.RfidCode ?? '-').toString().substring(0, 14),
-              (item?.cabinetUserName ?? 'ไม่ระบุ').toString().substring(0, 14),
+              String(row.seq ?? idx + 1),
+              (row.patient_hn ?? '-').toString().substring(0, 12),
+              (row.patient_name ?? '-').toString().substring(0, 22),
+              (row.en ?? '-').toString().substring(0, 14),
+              (row.department_code ?? '-').toString().substring(0, 12),
+              (row.itemcode ?? '-').toString().substring(0, 14),
+              (row.itemname ?? '-').toString().substring(0, 24),
+              row.qty != null ? String(row.qty) : '0',
+              formatReportDateTime(row.dispensed_date).substring(0, 16),
             ];
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 9; i++) {
               const cw = colWidths[i];
               const w = Math.max(4, cw - cellPadding * 2);
               doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');
               doc.fillColor('#000000');
-              doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 5, {
+              doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
                 width: w,
-                align: i === 2 ? 'left' : 'center',
+                align: i === 2 || i === 6 ? 'left' : 'center',
               });
               xPos += cw;
             }
@@ -223,25 +229,45 @@ export class DispensedItemsPdfService {
         doc.y += 6;
 
         // // ---- สรุปผล (หลังตาราง) ----
-        // doc.rect(margin, doc.y, contentWidth, 44).fillAndStroke('#E9ECEF', '#DEE2E6');
+        // doc.rect(margin, doc.y, contentWidth, 50).fillAndStroke('#E9ECEF', '#DEE2E6');
         // doc.fontSize(10).font(finalFontBoldName).fillColor('#1A365D');
         // doc.text('สรุปผล', margin + 8, doc.y + 4);
         // doc.fontSize(9).font(finalFontName).fillColor('#000000');
         // doc
         //   .text(`จำนวนรายการทั้งหมด: ${summary.total_records}`, margin + 8, doc.y + 14)
-        //   .text(`จำนวนรวม: ${summary.total_qty}`, margin + 8, doc.y + 26);
-        // doc.y += 46;
+        //   .text(`จำนวนคนไข้: ${summary.total_patients}`, margin + 8, doc.y + 26)
+        //   .text(`จำนวนรวม: ${summary.total_qty}`, margin + 8, doc.y + 38);
+        // doc.y += 52;
 
         // // ---- เงื่อนไขการค้นหา (หลังตาราง) ----
         // const filters = data.filters ?? {};
-        // if (filters.keyword || filters.startDate || filters.endDate) {
-        //   doc.rect(margin, doc.y, contentWidth, 36).fillAndStroke('#E9ECEF', '#DEE2E6');
+        // if (filters.keyword || filters.patientHn || filters.departmentCode || filters.startDate || filters.endDate) {
+        //   let filterHeight = 20;
+        //   if (filters.keyword) filterHeight += 14;
+        //   if (filters.patientHn) filterHeight += 14;
+        //   if (filters.departmentCode) filterHeight += 14;
+        //   if (filters.startDate || filters.endDate) filterHeight += 14;
+        //   doc.rect(margin, doc.y, contentWidth, filterHeight).fillAndStroke('#E9ECEF', '#DEE2E6');
         //   doc.fontSize(10).font(finalFontBoldName).fillColor('#1A365D');
         //   doc.text('เงื่อนไขการค้นหา', margin + 8, doc.y + 4);
         //   doc.fontSize(9).font(finalFontName).fillColor('#000000');
-        //   doc.text(`คำค้นหา: ${filters.keyword ?? 'ทั้งหมด'}`, margin + 8, doc.y + 14);
-        //   doc.text(`วันที่: ${filters.startDate ?? ''} ถึง ${filters.endDate ?? ''}`, margin + 8, doc.y + 24);
-        //   doc.y += 40;
+        //   let filterY = doc.y + 14;
+        //   if (filters.keyword) {
+        //     doc.text(`คำค้นหา: ${filters.keyword}`, margin + 8, filterY);
+        //     filterY += 14;
+        //   }
+        //   if (filters.patientHn) {
+        //     doc.text(`HN: ${filters.patientHn}`, margin + 8, filterY);
+        //     filterY += 14;
+        //   }
+        //   if (filters.departmentCode) {
+        //     doc.text(`แผนก: ${filters.departmentCode}`, margin + 8, filterY);
+        //     filterY += 14;
+        //   }
+        //   if (filters.startDate || filters.endDate) {
+        //     doc.text(`วันที่: ${filters.startDate ?? ''} ถึง ${filters.endDate ?? ''}`, margin + 8, filterY);
+        //   }
+        //   doc.y += filterHeight + 4;
         // }
 
         doc.end();

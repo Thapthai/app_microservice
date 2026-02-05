@@ -424,7 +424,12 @@ export const medicalSuppliesApi = {
     endDate?: string;
     page?: number;
     limit?: number;
-  }): Promise<ApiResponse<any>> => {
+  }): Promise<ApiResponse<any> & {
+    total?: number;
+    page?: number;
+    limit?: number;
+    totalPages?: number;
+  }> => {
     const response = await api.get('/medical-supplies-dispensed-items', { params: query });
     return response.data;
   },

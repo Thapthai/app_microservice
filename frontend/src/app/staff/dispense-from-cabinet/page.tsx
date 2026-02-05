@@ -58,19 +58,22 @@ export default function DispenseFromCabinetPage() {
 
       const response = await DispensedItemsApi.getDispensedItems(params);
 
-      if (response.success || response.data) {
-        const responseData: any = response.data || response;
+      console.log(response);
 
-        const dispensedData = Array.isArray(responseData) ? responseData : (responseData.data || []);
+      // ให้โครงสร้างเหมือนกับฝั่ง admin:
+      // { success: boolean, data: [...], total, page, limit, totalPages, ... }
+      if (response?.success && Array.isArray(response.data)) {
+        const dispensedData = response.data;
 
-        const total = responseData.total || dispensedData.length;
-        const limit = responseData.limit || itemsPerPage;
-        const totalPagesNum = responseData.totalPages || Math.ceil(total / limit);
+        const total = typeof response.total === 'number' ? response.total : dispensedData.length;
+        const limit = typeof response.limit === 'number' ? response.limit : itemsPerPage;
+        const totalPagesNum =
+          typeof response.totalPages === 'number' ? response.totalPages : Math.ceil(total / limit);
 
         setDispensedList(dispensedData);
         setTotalItems(total);
         setTotalPages(totalPagesNum);
-        setCurrentPage(responseData.page || page);
+        setCurrentPage(response.page || page);
 
         if (dispensedData.length === 0) {
           toast.info('ไม่พบข้อมูลการเบิกอุปกรณ์ กรุณาตรวจสอบว่ามีข้อมูลในระบบ');
@@ -78,7 +81,7 @@ export default function DispenseFromCabinetPage() {
           toast.success(`พบ ${total} รายการเบิกอุปกรณ์`);
         }
       } else {
-        toast.error(response.message || 'ไม่สามารถโหลดข้อมูลได้');
+        toast.error(response?.message || 'ไม่สามารถโหลดข้อมูลได้');
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');

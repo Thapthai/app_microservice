@@ -1058,6 +1058,75 @@ export class GatewayApiController {
     }
   }
 
+  @Get('reports/dispensed-items-for-patients/export/excel')
+  // @UseGuards(FlexibleAuthGuard)
+  async exportDispensedItemsForPatientsExcel(
+    @Query('keyword') keyword?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('patientHn') patientHn?: string,
+    @Query('departmentCode') departmentCode?: string,
+    @Res() res?: any,
+  ) {
+    try {
+      const params: any = {};
+      if (keyword) params.keyword = keyword;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (patientHn) params.patientHn = patientHn;
+      if (departmentCode) params.departmentCode = departmentCode;
+
+      const result = await this.gatewayApiService.generateDispensedItemsForPatientsReportExcel(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Dispensed Items for Patients Excel report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Dispensed Items for Patients Excel report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('reports/dispensed-items-for-patients/export/pdf')
+  // @UseGuards(FlexibleAuthGuard)
+  async exportDispensedItemsForPatientsPDF(
+    @Query('keyword') keyword?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('patientHn') patientHn?: string,
+    @Query('departmentCode') departmentCode?: string,
+    @Res() res?: any,
+  ) {
+    try {
+      const params: any = {};
+      if (keyword) params.keyword = keyword;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (patientHn) params.patientHn = patientHn;
+      if (departmentCode) params.departmentCode = departmentCode;
+      const result = await this.gatewayApiService.generateDispensedItemsForPatientsReportPdf(params);
+
+      if (!result.success) {
+        throw new HttpException(result.error || 'Failed to generate Dispensed Items for Patients PDF report', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(Buffer.from(result.data.buffer));
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to generate Dispensed Items for Patients PDF report',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get('medical-supplies-comparison/summary')
   @UseGuards(FlexibleAuthGuard)
   async getDispensedVsUsageSummary(
@@ -2388,7 +2457,7 @@ export class GatewayApiController {
   }
 
   @Get('reports/return-to-cabinet/excel')
-  @UseGuards(FlexibleAuthGuard)
+  // @UseGuards(FlexibleAuthGuard)
   async exportReturnToCabinetReportExcel(
     @Res() res: any,
     @Query('keyword') keyword?: string,
@@ -2427,7 +2496,7 @@ export class GatewayApiController {
   }
 
   @Get('reports/return-to-cabinet/pdf')
-  @UseGuards(FlexibleAuthGuard)
+  // @UseGuards(FlexibleAuthGuard)
   async exportReturnToCabinetReportPdf(
     @Res() res: any,
     @Query('keyword') keyword?: string,

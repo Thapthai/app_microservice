@@ -179,11 +179,21 @@ export class ReturnToCabinetReportPdfService {
           const tableTop = doc.y;
           const itemHeight = 20;
           const cellPadding = 5;
-          const headers = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่แก้ไข', 'ชื่อผู้เบิก', 'RFID Code', 'cabinet'];
+          // ให้หัวตารางและคอลัมน์ตรงกับ Excel (รายงานคืนอุปกรณ์เข้าตู้)
+          const headers = [
+            'ลำดับ',
+            'รหัสอุปกรณ์',
+            'ชื่ออุปกรณ์',
+            'วันที่แก้ไขล่าสุด',
+            'ชื่อผู้เบิก',
+            'RFID Code',
+            'cabinet',
+            'สถานะ RFID',
+          ];
           const totalTableWidth = doc.page.width - 70; // 35 margin on each side
           
-          // Calculate proportional column widths
-          const colPercentages = [0.08, 0.12, 0.25, 0.15, 0.15, 0.15, 0.10]; // Sum = 1.00
+          // Calculate proportional column widths (ให้ใกล้เคียง Excel)
+          const colPercentages = [0.07, 0.11, 0.24, 0.16, 0.14, 0.11, 0.09, 0.08];
           const colWidths = colPercentages.map(p => Math.floor(totalTableWidth * p));
           
           // Adjust last column to fill remaining width
@@ -234,15 +244,16 @@ export class ReturnToCabinetReportPdfService {
               (item as any).cabinetUserName || 'ไม่ระบุ',
               item.RfidCode || '-',
               (item as any).cabinetName || '-',
+              (item as any).Istatus_rfid ?? '-',
             ];
 
             let xPos = 35;
             rowData.forEach((cellData, i) => {
-              doc.rect(xPos, yPos, colWidths[i], itemHeight)
-                 .stroke();
-              doc.text(cellData, xPos + cellPadding, yPos + 6, { 
-                width: colWidths[i] - cellPadding * 2, 
-                align: i === 2 ? 'left' : 'center' 
+              doc.rect(xPos, yPos, colWidths[i], itemHeight).stroke();
+              doc.text(cellData, xPos + cellPadding, yPos + 6, {
+                width: colWidths[i] - cellPadding * 2,
+                // ให้จัดชิดซ้ายเหมือน Excel ที่ column ชื่ออุปกรณ์ และชื่อผู้เบิก
+                align: i === 2 || i === 4 ? 'left' : 'center',
               });
               xPos += colWidths[i];
             });

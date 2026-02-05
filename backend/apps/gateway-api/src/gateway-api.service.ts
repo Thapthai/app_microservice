@@ -901,6 +901,42 @@ export class GatewayApiService {
     );
   }
 
+  async generateDispensedItemsForPatientsReportExcel(params: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.dispensed_items_for_patients.excel' }, params)
+    );
+  }
+
+  async generateDispensedItemsForPatientsReportPdf(params: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.dispensed_items_for_patients.pdf' }, params)
+    );
+  }
+
+  async getDispensedItemsForPatientsReportData(params: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.reportClient.send({ cmd: 'report.dispensed_items_for_patients.data' }, params)
+    );
+  }
+
   // ==================================== Department Service Methods ====================================
   // async createDepartment(data: any) {
   //   try {
