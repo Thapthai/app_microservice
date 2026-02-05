@@ -30,6 +30,8 @@ export default function DispenseFromCabinetPage() {
     startDate: getTodayDate(),
     endDate: getTodayDate(),
     itemTypeFilter: 'all',
+    departmentId: '',
+    cabinetId: '',
   });
 
 
@@ -101,6 +103,8 @@ export default function DispenseFromCabinetPage() {
       startDate: getTodayDate(),
       endDate: getTodayDate(),
       itemTypeFilter: 'all',
+      departmentId: '',
+      cabinetId: '',
     };
     setFilters(clearedFilters);
     setCurrentPage(1);
