@@ -163,7 +163,7 @@ export default function ReturnHistoryTable({
                 <TableHead className="text-slate-600 font-medium">รหัสอุปกรณ์</TableHead>
                 <TableHead className="text-slate-600 font-medium">ชื่ออุปกรณ์</TableHead>
                 <TableHead className="text-slate-600 font-medium min-w-[180px]">มาจากการเบิก (Usage)</TableHead>
-                <TableHead className="text-slate-600 font-medium">ผู้คืน</TableHead>
+                <TableHead className="text-slate-600 font-medium">ชื่อผู้เติม</TableHead>
                 <TableHead className="text-center text-slate-600 font-medium w-24">จำนวน</TableHead>
                 <TableHead className="text-slate-600 font-medium">สาเหตุ</TableHead>
                 <TableHead className="text-center text-slate-600 font-medium">วันที่คืน</TableHead>

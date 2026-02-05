@@ -83,7 +83,7 @@ export default function ReturnHistoryTable({
                 <TableHead>รหัสอุปกรณ์</TableHead>
                 <TableHead>ชื่ออุปกรณ์</TableHead>
                 {/* <TableHead>HN</TableHead> */}
-                <TableHead>ผู้คืน</TableHead>
+                <TableHead>ชื่อผู้เติม</TableHead>
                 <TableHead className="text-center">จำนวนที่คืน</TableHead>
                 <TableHead>สาเหตุการคืน</TableHead>
                 <TableHead className="text-center">วันที่คืน</TableHead>
