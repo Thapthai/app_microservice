@@ -220,6 +220,9 @@ DATABASE_URL="mysql://user:password@localhost/dbname"
 cd backend
 kubectl apply -k k8s/overlays/development
 
+#ลบ pod แล้วให้มันสร้างใหม่
+kubectl delete pod -n pose-microservices --all
+
 # รอให้ pods พร้อม
 kubectl -n pose-microservices wait --for=condition=available --timeout=300s deployment --all
 

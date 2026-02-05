@@ -12,6 +12,8 @@ export interface DispensedItem {
   Istatus_rfid?: number;
   CabinetUserID?: number;
   cabinetUserName?: string;
+  cabinetName?: string;
+  departmentName?: string;
 }
 
 export interface FilterState {
@@ -19,6 +21,10 @@ export interface FilterState {
   startDate: string;
   endDate: string;
   itemTypeFilter: string;
+  departmentId: string;
+  cabinetId: string;
+  departmentCode?: string;
+  cabinetCode?: string;
 }
 
 export interface SummaryData {

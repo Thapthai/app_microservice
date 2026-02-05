@@ -406,6 +406,8 @@ export const medicalSuppliesApi = {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentCode?: string;
+    cabinetCode?: string;
   }): Promise<ApiResponse<any>> => {
     const response = await api.get('/medical-supply-items/returned-items', { params: query });
     return response.data;
@@ -861,12 +863,16 @@ export const vendingReportsApi = {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
+    departmentCode?: string;
+    cabinetCode?: string;
   }): Promise<void> => {
     const queryParams = new URLSearchParams();
     if (params?.keyword) queryParams.append('keyword', params.keyword);
     if (params?.itemTypeId) queryParams.append('itemTypeId', params.itemTypeId.toString());
     if (params?.startDate) queryParams.append('startDate', params.startDate);
     if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
+    if (params?.cabinetCode) queryParams.append('cabinetCode', params.cabinetCode);
     const response = await api.get(`/reports/return-to-cabinet/excel?${queryParams.toString()}`, {
       responseType: 'blob',
     });
@@ -883,12 +889,16 @@ export const vendingReportsApi = {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
+    departmentCode?: string;
+    cabinetCode?: string;
   }): Promise<void> => {
     const queryParams = new URLSearchParams();
     if (params?.keyword) queryParams.append('keyword', params.keyword);
     if (params?.itemTypeId) queryParams.append('itemTypeId', params.itemTypeId.toString());
     if (params?.startDate) queryParams.append('startDate', params.startDate);
     if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
+    if (params?.cabinetCode) queryParams.append('cabinetCode', params.cabinetCode);
     const response = await api.get(`/reports/return-to-cabinet/pdf?${queryParams.toString()}`, {
       responseType: 'blob',
     });

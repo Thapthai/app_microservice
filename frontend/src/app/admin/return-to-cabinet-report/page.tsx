@@ -25,12 +25,14 @@ export default function ReturnToCabinetReportPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [returnedList, setReturnedList] = useState<DispensedItem[]>([]);
 
-  // Filters
+  // Filters (ค่าเริ่มต้นแผนก/ตู้เหมือน /items)
   const [filters, setFilters] = useState<FilterState>({
     searchItemCode: '',
     startDate: getTodayDate(),
     endDate: getTodayDate(),
     itemTypeFilter: 'all',
+    departmentId: '29',
+    cabinetId: '1',
   });
 
   // Pagination
@@ -39,25 +41,30 @@ export default function ReturnToCabinetReportPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
+  // โหลดข้อมูลเมื่อมี user; ถ้ามี default แผนก/ตู้แต่ยังไม่มี code จะรอให้ FilterSection ส่ง code มาก่อน
   useEffect(() => {
-    if (user?.id) {
-      fetchReturnedList();
-    }
+    if (!user?.id) return;
+    const hasDefaultFilter = filters.departmentId && filters.cabinetId;
+    if (hasDefaultFilter && !filters.departmentCode && !filters.cabinetCode) return;
+    fetchReturnedList(1);
   }, [user?.id]);
 
-  const fetchReturnedList = async (page: number = 1) => {
+  const fetchReturnedList = async (page: number = 1, overrideFilters?: FilterState) => {
     try {
       setLoadingList(true);
+      const activeFilters = overrideFilters ?? filters;
       const params: any = {
         page,
         limit: itemsPerPage,
       };
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
-      if (filters.searchItemCode) params.keyword = filters.searchItemCode;
-      if (filters.itemTypeFilter && filters.itemTypeFilter !== 'all') {
-        params.itemTypeId = parseInt(filters.itemTypeFilter);
+      if (activeFilters.startDate) params.startDate = activeFilters.startDate;
+      if (activeFilters.endDate) params.endDate = activeFilters.endDate;
+      if (activeFilters.searchItemCode) params.keyword = activeFilters.searchItemCode;
+      if (activeFilters.itemTypeFilter && activeFilters.itemTypeFilter !== 'all') {
+        params.itemTypeId = parseInt(activeFilters.itemTypeFilter);
       }
+      if (activeFilters.departmentCode) params.departmentCode = activeFilters.departmentCode;
+      if (activeFilters.cabinetCode) params.cabinetCode = activeFilters.cabinetCode;
 
       const response = await medicalSuppliesApi.getReturnedItems(params) as any;
 
@@ -92,9 +99,11 @@ export default function ReturnToCabinetReportPage() {
     }
   };
 
-  const handleSearch = () => {
+  const handleSearch = (extra?: Partial<FilterState>) => {
+    const mergedFilters: FilterState = extra ? { ...filters, ...extra } : filters;
+    setFilters(mergedFilters);
     setCurrentPage(1);
-    fetchReturnedList(1);
+    fetchReturnedList(1, mergedFilters);
   };
 
   const handleClearSearch = () => {
@@ -103,9 +112,13 @@ export default function ReturnToCabinetReportPage() {
       startDate: getTodayDate(),
       endDate: getTodayDate(),
       itemTypeFilter: 'all',
+      departmentId: '29',
+      cabinetId: '1',
+      departmentCode: '',
+      cabinetCode: '',
     });
     setCurrentPage(1);
-    fetchReturnedList(1);
+    // ไม่ fetch ตรงนี้; FilterSection จะส่ง departmentCode/cabinetCode มาแล้วค่อย fetch
   };
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
@@ -121,6 +134,8 @@ export default function ReturnToCabinetReportPage() {
       }
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
+      if (filters.departmentCode) params.departmentCode = filters.departmentCode;
+      if (filters.cabinetCode) params.cabinetCode = filters.cabinetCode;
 
       toast.info(`กำลังสร้างรายงาน ${format.toUpperCase()}...`);
 

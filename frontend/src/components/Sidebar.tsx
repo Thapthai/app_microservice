@@ -78,7 +78,12 @@ const mainMenuItems: MenuItem[] = [
         description: "การเบิกอุปกรณ์จากตู้ SmartCabinet",
         icon: FileBarChart,
       },
-
+      {
+        name: "เติมอุปกรณ์เข้าตู้",
+        href: "/admin/return-to-cabinet-report",
+        description: "การเติมอุปกรณ์เข้าตู้ SmartCabinet",
+        icon: FileBarChart,
+      },
       {
         name: "เบิกอุปกรณ์กับคนไข้",
         href: "/admin/medical-supplies",
@@ -92,12 +97,6 @@ const mainMenuItems: MenuItem[] = [
             icon: RotateCcw,
           },
         ],
-      },
-      {
-        name: "เติมอุปกรณ์จากตู้",
-        href: "/admin/return-to-cabinet-report",
-        description: "การเติมอุปกรณ์จากตู้ SmartCabinet",
-        icon: FileBarChart,
       },
       {
         name: "เปรียบเทียบตามเวชภัณฑ์",

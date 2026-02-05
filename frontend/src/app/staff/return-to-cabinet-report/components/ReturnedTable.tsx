@@ -86,8 +86,10 @@ export default function ReturnedTable({
                   <TableRow>
                     <TableHead className="w-[60px]">ลำดับ</TableHead>
                     <TableHead>ชื่ออุปกรณ์</TableHead>
-                    <TableHead>ผู้คืน</TableHead>
-                    <TableHead className="text-right">จำนวนคืน</TableHead>
+                    <TableHead>ตู้</TableHead>
+                    <TableHead>แผนก</TableHead>
+                    <TableHead>ชื่อผู้เติม</TableHead>
+                    {/* <TableHead className="text-right">จำนวนคืน</TableHead> */}
                     <TableHead>วันที่คืน</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -101,8 +103,10 @@ export default function ReturnedTable({
                         {((currentPage - 1) * itemsPerPage) + index + 1}
                       </TableCell>
                       <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
+                      <TableCell>{item.cabinetName || '-'}</TableCell>
+                      <TableCell>{item.departmentName || '-'}</TableCell>
                       <TableCell>{item.cabinetUserName || 'ไม่ระบุ'}</TableCell>
-                      <TableCell className="text-right font-medium">{item.qty || 0}</TableCell>
+                      {/* <TableCell className="text-right font-medium">{item.qty || 0}</TableCell> */}
                       <TableCell>
                         {formatThaiDateTime(item.modifyDate)}
                       </TableCell>

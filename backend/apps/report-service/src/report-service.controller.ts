@@ -538,6 +538,8 @@ export class ReportServiceController {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
+    departmentCode?: string;
+    cabinetCode?: string;
   }) {
     try {
       const buffer = await this.reportServiceService.generateReturnToCabinetReportExcel(data);
@@ -562,6 +564,8 @@ export class ReportServiceController {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
+    departmentCode?: string;
+    cabinetCode?: string;
   }) {
     try {
       const buffer = await this.reportServiceService.generateReturnToCabinetReportPdf(data);

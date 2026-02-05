@@ -74,9 +74,15 @@ export const staffMenuItems = [
                 icon: Package,
             },
             {
-                name: 'รายงานเบิกอุปกรณ์จากตู้',
+                name: 'เบิกอุปกรณ์จากตู้',
                 href: '/staff/dispense-from-cabinet',
-                description: 'รายงานการเบิกอุปกรณ์จากตู้ SmartCabinet',
+                description: 'การเบิกอุปกรณ์จากตู้ SmartCabinet',
+                icon: FileBarChart,
+            },
+            {
+                name: 'เติมอุปกรณ์เข้าตู้',
+                href: '/staff/return-to-cabinet-report',
+                description: 'การเติมอุปกรณ์เข้าตู้ SmartCabinet',
                 icon: FileBarChart,
             },
             {
@@ -91,12 +97,7 @@ export const staffMenuItems = [
                 description: 'คืนอุปกรณ์ / ชำระค่าบริการ',
                 icon: RotateCcw,
             },
-            {
-                name: 'รายงานเติมอุปกรณ์จากตู้',
-                href: '/staff/return-to-cabinet-report',
-                description: 'รายงานการเติมอุปกรณ์จากตู้ SmartCabinet',
-                icon: FileBarChart,
-            },
+
             {
                 name: 'เปรียบเทียบตามเวชภัณฑ์',
                 href: '/staff/item-comparison',

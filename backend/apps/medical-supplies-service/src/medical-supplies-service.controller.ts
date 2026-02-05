@@ -426,6 +426,8 @@ export class MedicalSuppliesServiceController {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentCode?: string;
+    cabinetCode?: string;
   }) {
     try {
       const result = await this.medicalSuppliesService.getReturnedItems(data);

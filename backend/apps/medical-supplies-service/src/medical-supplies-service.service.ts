@@ -2172,7 +2172,6 @@ export class MedicalSuppliesServiceService {
         );
       }
 
-
       if (filters?.startDate && filters?.endDate) {
 
         sqlConditions.push(
@@ -2215,6 +2214,7 @@ export class MedicalSuppliesServiceService {
         LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.cabinet_finger_id
         LEFT JOIN users ON user_cabinet.user_id = users.ID
         LEFT JOIN employee ON employee.EmpCode = users.EmpCode
+        LEFT JOIN app_microservice_cabinets on app_microservice_cabinets.stock_id = ist.StockID
         WHERE ${whereClause}
         ORDER BY ist.LastCabinetModify DESC
         LIMIT ${limit}
@@ -2274,6 +2274,8 @@ export class MedicalSuppliesServiceService {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentCode?: string;
+    cabinetCode?: string;
   }) {
     try {
       const page = filters?.page || 1;
@@ -2303,6 +2305,14 @@ export class MedicalSuppliesServiceService {
 
       }
 
+      if (filters?.departmentCode) {
+        sqlConditions.push(Prisma.raw(`department.DepCode = '${filters.departmentCode}'`));
+      }
+
+      if (filters?.cabinetCode) {
+        sqlConditions.push(Prisma.raw(`app_microservice_cabinets.cabinet_code = '${filters.cabinetCode}'`));
+      }
+
       // Combine WHERE conditions with AND
       const whereClause = Prisma.join(sqlConditions, ' AND ');
 
@@ -2315,6 +2325,8 @@ export class MedicalSuppliesServiceService {
         LEFT JOIN users ON user_cabinet.user_id = users.ID
         LEFT JOIN employee ON employee.EmpCode = users.EmpCode
         LEFT JOIN app_microservice_cabinets on app_microservice_cabinets.stock_id = ist.StockID
+        LEFT JOIN app_microservice_cabinet_departments on app_microservice_cabinet_departments.cabinet_id = app_microservice_cabinets.ID
+        LEFT JOIN department on department.ID = app_microservice_cabinet_departments.department_id
         WHERE ${whereClause}
       `;
       const totalCount = Number(countResult[0]?.total || 0);
@@ -2333,13 +2345,16 @@ export class MedicalSuppliesServiceService {
           ist.Istatus_rfid,
           ist.CabinetUserID,
           COALESCE(CONCAT(employee.FirstName, ' ', employee.LastName), 'ไม่ระบุ') AS cabinetUserName,
-          app_microservice_cabinets.cabinet_name AS cabinetName
+          app_microservice_cabinets.cabinet_name AS cabinetName,
+          department.DepName AS departmentName
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
         LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.user_id
         LEFT JOIN users ON user_cabinet.user_id = users.ID
         LEFT JOIN employee ON employee.EmpCode = users.EmpCode
         LEFT JOIN app_microservice_cabinets on app_microservice_cabinets.stock_id = ist.StockID
+        LEFT JOIN app_microservice_cabinet_departments on app_microservice_cabinet_departments.cabinet_id = app_microservice_cabinets.ID
+        LEFT JOIN department on department.ID = app_microservice_cabinet_departments.department_id
         WHERE ${whereClause}
         ORDER BY ist.LastCabinetModify DESC
         LIMIT ${limit}

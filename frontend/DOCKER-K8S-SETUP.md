@@ -77,18 +77,14 @@ docker-compose -f docker/docker-compose.dev.yml up -d --build
 # Build image
 docker build -f docker/Dockerfile -t frontend-pose:latest .
 
-docker build \
-  --build-arg NEXT_PUBLIC_API_URL=https://phc.dyndns.biz/medical-supplies-api/v1/ \
-  --build-arg NEXT_PUBLIC_BASE_PATH=/medical-supplies \
-  -f docker/Dockerfile \
-  -t frontend-pose:latest \
-  .
-
 # Import to K3s
 docker save frontend-pose:latest | sudo k3s ctr images import -
 
 # Deploy
 kubectl apply -f k8s/frontend-deployment.yaml
+
+#ลบ pod แล้วให้มันสร้างใหม่
+kubectl delete pod -n pose-microservices --all
 
 # Access: http://<SERVER_IP>:30100
 ```
