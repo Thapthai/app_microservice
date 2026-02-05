@@ -73,16 +73,16 @@ const mainMenuItems: MenuItem[] = [
       },
 
       {
-        name: "รายงานเบิกอุปกรณ์จากตู้",
+        name: "เบิกอุปกรณ์จากตู้",
         href: "/admin/dispense-from-cabinet",
-        description: "รายงานการเบิกอุปกรณ์จากตู้ SmartCabinet",
+        description: "การเบิกอุปกรณ์จากตู้ SmartCabinet",
         icon: FileBarChart,
       },
 
       {
-        name: "รายการเบิกอุปกรณ์ใช้กับคนไข้",
+        name: "เบิกอุปกรณ์กับคนไข้",
         href: "/admin/medical-supplies",
-        description: "รายการเบิกอุปกรณ์ใช้กับคนไข้",
+        description: "รายการเบิกอุปกรณ์กับคนไข้",
         icon: ClipboardList,
         submenu: [
           {
@@ -94,9 +94,9 @@ const mainMenuItems: MenuItem[] = [
         ],
       },
       {
-        name: "รายงานเติมอุปกรณ์จากตู้",
+        name: "เติมอุปกรณ์จากตู้",
         href: "/admin/return-to-cabinet-report",
-        description: "รายงานการเติมอุปกรณ์จากตู้ SmartCabinet",
+        description: "การเติมอุปกรณ์จากตู้ SmartCabinet",
         icon: FileBarChart,
       },
       {

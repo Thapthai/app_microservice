@@ -745,7 +745,7 @@ export class MedicalSuppliesServiceService {
       }
 
 
-      
+
       // Filter by assession_no in SupplyUsageItem if provided
       if (query.assession_no) {
         baseWhere.supply_items = {
@@ -2171,12 +2171,7 @@ export class MedicalSuppliesServiceService {
           Prisma.raw(`(i.itemcode LIKE '${keywordPattern}' OR i.itemname LIKE '${keywordPattern}')`)
         );
       }
-      // if (filters?.startDate) {
-      //   sqlConditions.push(Prisma.sql`ist.LastCabinetModify >= ${new Date(filters.startDate)}`);
-      // }
-      // if (filters?.endDate) {
-      //   sqlConditions.push(Prisma.sql`ist.LastCabinetModify <= ${new Date(filters.endDate)}`);
-      // }
+
 
       if (filters?.startDate && filters?.endDate) {
 
@@ -2216,8 +2211,8 @@ export class MedicalSuppliesServiceService {
           ist.CabinetUserID,
           COALESCE(CONCAT(employee.FirstName, ' ', employee.LastName), 'ไม่ระบุ') AS cabinetUserName
         FROM itemstock ist
-        INNER JOIN item i ON ist.ItemCode = i.itemcode
-        LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.user_id
+        LEFT JOIN item i ON ist.ItemCode = i.itemcode
+        LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.cabinet_finger_id
         LEFT JOIN users ON user_cabinet.user_id = users.ID
         LEFT JOIN employee ON employee.EmpCode = users.EmpCode
         WHERE ${whereClause}
