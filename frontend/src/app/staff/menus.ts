@@ -44,6 +44,7 @@ import {
     Users,
     Shield,
     Network,
+    RotateCcw,
 } from 'lucide-react';
 
 export const staffMenuItems = [
@@ -83,6 +84,12 @@ export const staffMenuItems = [
                 href: '/staff/usage-record',
                 description: 'บันทึกใช้อุปกรณ์กับคนไข้ จากตู้ SmartCabinet',
                 icon: History,
+            },
+            {
+                name: 'คืนอุปกรณ์ / ชำรุด',
+                href: '/staff/medical-supplies/return',
+                description: 'คืนอุปกรณ์ / ชำระค่าบริการ',
+                icon: RotateCcw,
             },
             {
                 name: 'รายงานเติมอุปกรณ์จากตู้',

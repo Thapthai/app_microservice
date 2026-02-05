@@ -34,7 +34,13 @@ export interface ReturnHistoryRecord {
     order_item_description?: string;
     supply_name?: string;
     usage?: {
+      id?: number;
+      en?: string;
       patient_hn?: string;
+      first_name?: string;
+      lastname?: string;
+      department_code?: string;
+      created_at?: string;
     };
   };
 }

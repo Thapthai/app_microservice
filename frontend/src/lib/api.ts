@@ -434,6 +434,53 @@ export const medicalSuppliesApi = {
     return response.data;
   },
 
+  /** ดาวน์โหลดรายงานเบิกจากตู้ (Excel/PDF) โดยไม่เปิดแท็บใหม่ */
+  downloadDispensedItemsExcel: async (params?: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.keyword) queryParams.append('keyword', params.keyword);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    const response = await api.get(
+      `/medical-supplies-dispensed-items/export/excel?${queryParams.toString()}`,
+      { responseType: 'blob' },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `dispensed_items_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
+  downloadDispensedItemsPdf: async (params?: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.keyword) queryParams.append('keyword', params.keyword);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    const response = await api.get(
+      `/medical-supplies-dispensed-items/export/pdf?${queryParams.toString()}`,
+      { responseType: 'blob' },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `dispensed_items_${new Date().toISOString().split('T')[0]}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
   compareDispensedVsUsage: async (query?: {
     itemCode?: string;
     keyword?: string;
@@ -455,6 +502,65 @@ export const medicalSuppliesApi = {
   }): Promise<ApiResponse<{ total_dispensed: number; total_used: number; difference: number }>> => {
     const response = await api.get('/medical-supplies-comparison/summary', { params });
     return response.data;
+  },
+
+  /** ดาวน์โหลดรายงานเปรียบเทียบการเบิกและใช้ (Excel/PDF) โดยไม่เปิดแท็บใหม่ */
+  downloadMedicalSuppliesComparisonExcel: async (params?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+    includeUsageDetails?: boolean | string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.itemCode) queryParams.append('itemCode', params.itemCode);
+    if (params?.itemTypeId != null) queryParams.append('itemTypeId', String(params.itemTypeId));
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
+    if (params?.includeUsageDetails !== undefined) queryParams.append('includeUsageDetails', String(params.includeUsageDetails));
+    const response = await api.get(
+      `/medical-supplies-comparison/export/excel?${queryParams.toString()}`,
+      { responseType: 'blob' },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `medical_supplies_comparison_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
+  downloadMedicalSuppliesComparisonPdf: async (params?: {
+    itemCode?: string;
+    itemTypeId?: number;
+    startDate?: string;
+    endDate?: string;
+    departmentCode?: string;
+    includeUsageDetails?: boolean | string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.itemCode) queryParams.append('itemCode', params.itemCode);
+    if (params?.itemTypeId != null) queryParams.append('itemTypeId', String(params.itemTypeId));
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
+    if (params?.includeUsageDetails !== undefined) queryParams.append('includeUsageDetails', String(params.includeUsageDetails));
+    const response = await api.get(
+      `/medical-supplies-comparison/export/pdf?${queryParams.toString()}`,
+      { responseType: 'blob' },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `medical_supplies_comparison_${new Date().toISOString().split('T')[0]}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   },
 
   getUsageByItemCode: async (query?: {
@@ -573,6 +679,59 @@ export const vendingReportsApi = {
     if (params?.endDate) queryParams.append('endDate', params.endDate);
     const response = await api.get(`/reports/cancel-bill/data?${queryParams.toString()}`);
     return response.data;
+  },
+  /** ดาวน์โหลดรายงานเบิกใช้กับคนไข้ (Excel/PDF) โดยไม่เปิดแท็บใหม่ */
+  downloadDispensedItemsForPatientsExcel: async (params?: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.keyword) queryParams.append('keyword', params.keyword);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.patientHn) queryParams.append('patientHn', params.patientHn);
+    if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
+    const response = await api.get(
+      `/reports/dispensed-items-for-patients/export/excel?${queryParams.toString()}`,
+      { responseType: 'blob' },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `dispensed_items_for_patients_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+  downloadDispensedItemsForPatientsPdf: async (params?: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.keyword) queryParams.append('keyword', params.keyword);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.patientHn) queryParams.append('patientHn', params.patientHn);
+    if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
+    const response = await api.get(
+      `/reports/dispensed-items-for-patients/export/pdf?${queryParams.toString()}`,
+      { responseType: 'blob' },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `dispensed_items_for_patients_${new Date().toISOString().split('T')[0]}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   },
   // Download reports
   downloadVendingMappingExcel: async (params: { startDate?: string; endDate?: string; printDate?: string }) => {

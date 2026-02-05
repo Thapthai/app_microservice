@@ -32,6 +32,59 @@ export const staffVendingReportsApi = {
     const response = await staffApi.get(`/reports/cancel-bill/data?${queryParams.toString()}`);
     return response.data;
   },
+  /** ดาวน์โหลดรายงานเบิกใช้กับคนไข้ (Excel/PDF) โดยไม่เปิดแท็บใหม่ */
+  downloadDispensedItemsForPatientsExcel: async (params?: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.keyword) queryParams.append('keyword', params.keyword);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.patientHn) queryParams.append('patientHn', params.patientHn);
+    if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
+    const response = await staffApi.get(
+      `/reports/dispensed-items-for-patients/export/excel?${queryParams.toString()}`,
+      { responseType: 'blob' },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `dispensed_items_for_patients_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+  downloadDispensedItemsForPatientsPdf: async (params?: {
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+    patientHn?: string;
+    departmentCode?: string;
+  }): Promise<void> => {
+    const queryParams = new URLSearchParams();
+    if (params?.keyword) queryParams.append('keyword', params.keyword);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.patientHn) queryParams.append('patientHn', params.patientHn);
+    if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
+    const response = await staffApi.get(
+      `/reports/dispensed-items-for-patients/export/pdf?${queryParams.toString()}`,
+      { responseType: 'blob' },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `dispensed_items_for_patients_${new Date().toISOString().split('T')[0]}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
   // Download reports
   downloadVendingMappingExcel: async (params: { startDate?: string; endDate?: string; printDate?: string }) => {
     const queryParams = new URLSearchParams();

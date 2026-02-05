@@ -141,29 +141,20 @@ export default function ItemComparisonPage() {
 
   const handleExportReport = async (format: 'excel' | 'pdf', itemCode?: string) => {
     try {
-      const params = new URLSearchParams();
-
-      if (itemCode) {
-        params.append('itemCode', itemCode);
-        params.append('includeUsageDetails', 'true');
-      } else {
-        if (filters.searchItemCode) params.append('itemCode', filters.searchItemCode);
-        if (filters.itemTypeFilter && filters.itemTypeFilter !== 'all') {
-          params.append('itemTypeId', filters.itemTypeFilter);
-        }
-      }
-
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
-
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-      const url = `${baseUrl}/medical-supplies-comparison/export/${format}?${params.toString()}`;
-
       toast.info(`กำลังสร้างรายงาน ${format.toUpperCase()}...`);
-
-      window.open(url, '_blank');
-
-      toast.success(`กำลังดาวน์โหลดรายงาน ${format.toUpperCase()}`);
+      const params = {
+        itemCode: itemCode || filters.searchItemCode || undefined,
+        itemTypeId: filters.itemTypeFilter && filters.itemTypeFilter !== 'all' ? Number(filters.itemTypeFilter) : undefined,
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
+        includeUsageDetails: itemCode ? 'true' : undefined,
+      };
+      if (format === 'excel') {
+        await itemComparisonApi.downloadComparisonExcel(params);
+      } else {
+        await itemComparisonApi.downloadComparisonPdf(params);
+      }
+      toast.success(`ดาวน์โหลดรายงาน ${format.toUpperCase()} สำเร็จ`);
     } catch (error: any) {
       toast.error(`ไม่สามารถสร้างรายงาน ${format.toUpperCase()} ได้: ${error.message}`);
     }

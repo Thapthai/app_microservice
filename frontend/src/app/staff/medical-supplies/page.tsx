@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { medicalSuppliesApi } from '@/lib/api';
+import { staffVendingReportsApi } from '@/lib/staffApi/vendingReportsApi';
 
 import { toast } from 'sonner';
 import { History, Search, RefreshCw } from 'lucide-react';
@@ -148,18 +149,19 @@ export default function MedicalSuppliesPage() {
   const handleExportReport = async (format: 'excel' | 'pdf') => {
     try {
       setExportLoading(format);
-      const params = new URLSearchParams();
-      if (filters.keyword) params.append('keyword', filters.keyword);
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
-      if (filters.patientHN) params.append('patientHn', filters.patientHN);
-
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-      const url = `${baseUrl}/reports/dispensed-items-for-patients/export/${format}?${params.toString()}`;
-
       toast.info(`กำลังสร้างรายงาน ${format.toUpperCase()}...`);
-      window.open(url, '_blank');
-      toast.success(`กำลังดาวน์โหลดรายงาน ${format.toUpperCase()}`);
+      const params = {
+        keyword: filters.keyword || undefined,
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
+        patientHn: filters.patientHN || undefined,
+      };
+      if (format === 'excel') {
+        await staffVendingReportsApi.downloadDispensedItemsForPatientsExcel(params);
+      } else {
+        await staffVendingReportsApi.downloadDispensedItemsForPatientsPdf(params);
+      }
+      toast.success(`ดาวน์โหลดรายงาน ${format.toUpperCase()} สำเร็จ`);
     } catch (error: any) {
       toast.error(`ไม่สามารถสร้างรายงาน ${format.toUpperCase()} ได้: ${error.message}`);
     } finally {

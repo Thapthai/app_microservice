@@ -113,21 +113,18 @@ export default function DispenseFromCabinetPage() {
 
   const handleExportReport = async (format: 'excel' | 'pdf') => {
     try {
-      const params = new URLSearchParams();
-
-      // ใช้รูปแบบเดียวกับฝั่ง admin เพื่อให้พฤติกรรมตรงกัน
-      if (filters.searchItemCode) params.append('keyword', filters.searchItemCode);
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
-
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-      const url = `${baseUrl}/medical-supplies-dispensed-items/export/${format}?${params.toString()}`;
-
       toast.info(`กำลังสร้างรายงาน ${format.toUpperCase()}...`);
-
-      window.open(url, '_blank');
-
-      toast.success(`กำลังดาวน์โหลดรายงาน ${format.toUpperCase()}`);
+      const params = {
+        keyword: filters.searchItemCode || undefined,
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
+      };
+      if (format === 'excel') {
+        await DispensedItemsApi.downloadDispensedItemsExcel(params);
+      } else {
+        await DispensedItemsApi.downloadDispensedItemsPdf(params);
+      }
+      toast.success(`ดาวน์โหลดรายงาน ${format.toUpperCase()} สำเร็จ`);
     } catch (error: any) {
       toast.error(`ไม่สามารถสร้างรายงาน ${format.toUpperCase()} ได้: ${error.message}`);
     }

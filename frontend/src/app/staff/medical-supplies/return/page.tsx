@@ -1,13 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import AppLayout from '@/components/AppLayout';
 import { RotateCcw, History } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { medicalSuppliesApi } from '@/lib/api';
+import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
 import { toast } from 'sonner';
 import UsageSelectStep from './components/UsageSelectStep';
 import SupplyItemSelectStep from './components/SupplyItemSelectStep';
@@ -17,11 +14,11 @@ import ReturnHistoryTable from './components/ReturnHistoryTable';
 import type { Usage, SupplyItem, ReturnReason, ReturnHistoryData } from './types';
 
 export default function ReturnMedicalSuppliesPage() {
-  const { user } = useAuth();
+ 
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('return');
-  
+
   // Form states for return
   const [selectedUsageId, setSelectedUsageId] = useState<number | null>(null);
   const [selectedSupplyItemId, setSelectedSupplyItemId] = useState<number | null>(null);
@@ -33,7 +30,7 @@ export default function ReturnMedicalSuppliesPage() {
   const [returnNote, setReturnNote] = useState<string>('');
   const [loadingUsages, setLoadingUsages] = useState(false);
   const [loadingSupplyItems, setLoadingSupplyItems] = useState(false);
-  
+
   // Return history states
   const [returnHistoryDateFrom, setReturnHistoryDateFrom] = useState('');
   const [returnHistoryDateTo, setReturnHistoryDateTo] = useState('');
@@ -46,13 +43,13 @@ export default function ReturnMedicalSuppliesPage() {
   const fetchUsages = async () => {
     try {
       setLoadingUsages(true);
-      const result = await medicalSuppliesApi.getAll({
+      const result = await staffMedicalSuppliesApi.getAll({
         page: 1,
         limit: 100,
         startDate: '',
         endDate: '',
       });
-      
+
       if (result.data) {
         const usagesList = Array.isArray(result.data) ? result.data : [result.data];
         // Filter usages that have supply_items with qty_pending > 0
@@ -76,8 +73,8 @@ export default function ReturnMedicalSuppliesPage() {
   const fetchSupplyItems = async (usageId: number) => {
     try {
       setLoadingSupplyItems(true);
-      const result = await medicalSuppliesApi.getSupplyItemsByUsageId(usageId);
-      
+      const result = await staffMedicalSuppliesApi.getSupplyItemsByUsageId(usageId);
+
       if (result.success && result.data) {
         // Filter items that can be returned (qty_pending > 0)
         const returnableItems = result.data.filter((item: any) => {
@@ -122,7 +119,7 @@ export default function ReturnMedicalSuppliesPage() {
       if (returnHistoryDateTo) params.date_to = returnHistoryDateTo;
       if (returnHistoryReason && returnHistoryReason !== 'ALL') params.return_reason = returnHistoryReason;
 
-      const result = await medicalSuppliesApi.getReturnHistory(params);
+      const result = await staffMedicalSuppliesApi.getReturnHistory(params);
       // Backend returns: { success: true, data: [...], total: ..., page: ..., limit: ... }
       if (result.success && result.data) {
         // Extract the data structure from ApiResponse
@@ -158,24 +155,23 @@ export default function ReturnMedicalSuppliesPage() {
 
     try {
       setLoading(true);
-      
+
       const qtyPending = (selectedSupplyItem.qty || 0) - (selectedSupplyItem.qty_used_with_patient || 0) - (selectedSupplyItem.qty_returned_to_cabinet || 0);
-      
+
       if (returnQty > qtyPending) {
         toast.error(`จำนวนที่ต้องการคืนเกินจำนวนที่สามารถคืนได้ (${qtyPending})`);
         return;
       }
 
-      await medicalSuppliesApi.recordItemReturn({
+      await staffMedicalSuppliesApi.recordItemReturn({
         item_id: selectedSupplyItemId,
         qty_returned: returnQty,
         return_reason: returnReason,
-        return_by_user_id: user?.id?.toString() || 'unknown',
         return_note: returnNote,
       });
 
       toast.success('บันทึกการคืนเวชภัณฑ์สำเร็จ');
-      
+
       // Reset form
       setSelectedUsageId(null);
       setSelectedSupplyItemId(null);
@@ -184,7 +180,7 @@ export default function ReturnMedicalSuppliesPage() {
       setReturnReason('UNWRAPPED_UNUSED');
       setReturnNote('');
       setSupplyItems([]);
-      
+
       // Refresh data
       if (selectedUsageId) {
         await fetchSupplyItems(selectedUsageId);
@@ -238,125 +234,122 @@ export default function ReturnMedicalSuppliesPage() {
   };
 
   return (
-    <ProtectedRoute>
-      <AppLayout>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
-              <RotateCcw className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                คืนอุปกรณ์เข้าตู้
-              </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                คืนอุปกรณ์เข้าตู้ Vending ที่เบิกแล้วแต่ยังไม่ได้ใช้กลับเข้าตู้ Vending
-              </p>
-            </div>
-          </div>
+    <>        <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
+          <RotateCcw className="h-6 w-6 text-white" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            คืนอุปกรณ์เข้าตู้
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            คืนอุปกรณ์เข้าตู้ Vending ที่เบิกแล้วแต่ยังไม่ได้ใช้กลับเข้าตู้ Vending
+          </p>
+        </div>
+      </div>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="return" className="flex items-center gap-2">
-                <RotateCcw className="h-4 w-4" />
-                คืนอุปกรณ์
-              </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-2">
-                <History className="h-4 w-4" />
-                ประวัติการคืน
-              </TabsTrigger>
-            </TabsList>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="return" className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4" />
+            คืนอุปกรณ์
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            ประวัติการคืน
+          </TabsTrigger>
+        </TabsList>
 
-            {/* Tab: Return Items */}
-            <TabsContent value="return" className="space-y-4">
-              {/* Return Form */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>บันทึกการคืนเวชภัณฑ์</CardTitle>
-                  <CardDescription>
-                    เลือก MedicalSupplyUsage และ SupplyUsageItem เพื่อบันทึกการคืน
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Step 1: Select MedicalSupplyUsage */}
-                  <UsageSelectStep
-                    usages={usages}
-                    selectedUsageId={selectedUsageId}
-                    loading={loadingUsages}
-                    onSelect={handleUsageSelect}
-                    onRefresh={fetchUsages}
-                    formatDate={formatDate}
-                  />
-
-                  {/* Step 2: Select SupplyUsageItem */}
-                  {selectedUsageId && (
-                    <SupplyItemSelectStep
-                      supplyItems={supplyItems}
-                      selectedSupplyItemId={selectedSupplyItemId}
-                      selectedSupplyItem={selectedSupplyItem}
-                      loading={loadingSupplyItems}
-                      onSelect={handleSupplyItemSelect}
-                    />
-                  )}
-
-                  {/* Step 3: Return Details */}
-                  {selectedSupplyItem && (
-                    <ReturnDetailsStep
-                      selectedSupplyItem={selectedSupplyItem}
-                      returnQty={returnQty}
-                      returnReason={returnReason}
-                      returnNote={returnNote}
-                      loading={loading}
-                      onQtyChange={setReturnQty}
-                      onReasonChange={setReturnReason}
-                      onNoteChange={setReturnNote}
-                      onSubmit={handleReturn}
-                    />
-                  )}
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-900 mb-2">Flow การจัดการ:</h4>
-                    <ul className="space-y-1 text-sm text-blue-800">
-                      <li>• กรณีที่ยังไม่ได้แกะซอง หรือยังอยู่ในสภาพเดิมจากการเบิก: ให้นำกลับเข้าตู้ Vending (หมายถึงการนำกลับมาคืน)</li>
-                      <li>• กรณีที่ Package ไม่เหมือนเดิม หรือนำไปใช้ในแผนก: ติดต่อแผนกที่เกี่ยวข้อง</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Tab: Return History */}
-            <TabsContent value="history" className="space-y-4">
-              <ReturnHistoryFilter
-                dateFrom={returnHistoryDateFrom}
-                dateTo={returnHistoryDateTo}
-                reason={returnHistoryReason}
-                loading={historyLoading}
-                onDateFromChange={setReturnHistoryDateFrom}
-                onDateToChange={setReturnHistoryDateTo}
-                onReasonChange={setReturnHistoryReason}
-                onSearch={fetchReturnHistory}
+        {/* Tab: Return Items */}
+        <TabsContent value="return" className="space-y-4">
+          {/* Return Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle>บันทึกการคืนเวชภัณฑ์</CardTitle>
+              <CardDescription>
+                เลือก MedicalSupplyUsage และ SupplyUsageItem เพื่อบันทึกการคืน
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Step 1: Select MedicalSupplyUsage */}
+              <UsageSelectStep
+                usages={usages}
+                selectedUsageId={selectedUsageId}
+                loading={loadingUsages}
+                onSelect={handleUsageSelect}
+                onRefresh={fetchUsages}
+                formatDate={formatDate}
               />
 
-              {returnHistoryData && (
-                <ReturnHistoryTable
-                  data={returnHistoryData}
-                  currentPage={returnHistoryPage}
-                  limit={returnHistoryLimit}
-                  dateFrom={returnHistoryDateFrom}
-                  dateTo={returnHistoryDateTo}
-                  reason={returnHistoryReason}
-                  formatDate={formatDate}
-                  getReturnReasonLabel={getReturnReasonLabel}
-                  onPageChange={setReturnHistoryPage}
+              {/* Step 2: Select SupplyUsageItem */}
+              {selectedUsageId && (
+                <SupplyItemSelectStep
+                  supplyItems={supplyItems}
+                  selectedSupplyItemId={selectedSupplyItemId}
+                  selectedSupplyItem={selectedSupplyItem}
+                  loading={loadingSupplyItems}
+                  onSelect={handleSupplyItemSelect}
                 />
               )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      </AppLayout>
-    </ProtectedRoute>
+
+              {/* Step 3: Return Details */}
+              {selectedSupplyItem && (
+                <ReturnDetailsStep
+                  selectedSupplyItem={selectedSupplyItem}
+                  returnQty={returnQty}
+                  returnReason={returnReason}
+                  returnNote={returnNote}
+                  loading={loading}
+                  onQtyChange={setReturnQty}
+                  onReasonChange={setReturnReason}
+                  onNoteChange={setReturnNote}
+                  onSubmit={handleReturn}
+                />
+              )}
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-900 mb-2">Flow การจัดการ:</h4>
+                <ul className="space-y-1 text-sm text-blue-800">
+                  <li>• กรณีที่ยังไม่ได้แกะซอง หรือยังอยู่ในสภาพเดิมจากการเบิก: ให้นำกลับเข้าตู้ Vending (หมายถึงการนำกลับมาคืน)</li>
+                  <li>• กรณีที่ Package ไม่เหมือนเดิม หรือนำไปใช้ในแผนก: ติดต่อแผนกที่เกี่ยวข้อง</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Return History */}
+        <TabsContent value="history" className="space-y-4">
+          <ReturnHistoryFilter
+            dateFrom={returnHistoryDateFrom}
+            dateTo={returnHistoryDateTo}
+            reason={returnHistoryReason}
+            loading={historyLoading}
+            onDateFromChange={setReturnHistoryDateFrom}
+            onDateToChange={setReturnHistoryDateTo}
+            onReasonChange={setReturnHistoryReason}
+            onSearch={fetchReturnHistory}
+          />
+
+          {returnHistoryData && (
+            <ReturnHistoryTable
+              data={returnHistoryData}
+              currentPage={returnHistoryPage}
+              limit={returnHistoryLimit}
+              dateFrom={returnHistoryDateFrom}
+              dateTo={returnHistoryDateTo}
+              reason={returnHistoryReason}
+              formatDate={formatDate}
+              getReturnReasonLabel={getReturnReasonLabel}
+              onPageChange={setReturnHistoryPage}
+            />
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+    </>
   );
 }

@@ -84,7 +84,7 @@ export const staffMedicalSuppliesApi = {
         return response.data;
     },
 
-      getReturnHistory: async (query?: {
+    getReturnHistory: async (query?: {
         department_code?: string;
         patient_hn?: string;
         return_reason?: string;
@@ -97,6 +97,16 @@ export const staffMedicalSuppliesApi = {
         return response.data;
       },
 
+    recordItemReturn: async (data: {
+        item_id: number;
+        qty_returned: number;
+        return_reason: string;
+        return_by_user_id?: string;
+        return_note?: string;
+      }): Promise<ApiResponse<any>> => {
+        const response = await staffApi.post('/medical-supply-items/record-return', data);
+        return response.data;
+      },
 };
 
 

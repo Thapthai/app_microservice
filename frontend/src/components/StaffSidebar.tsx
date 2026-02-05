@@ -84,12 +84,8 @@ export default function StaffSidebar({ staffUser, onLogout, isAdmin = false }: S
     }
   };
 
-  const toggleSubmenu = (href: string) => {
-    setOpenSubmenus((prev) => ({
-      ...prev,
-      [href]: !prev[href],
-    }));
-  };
+  const isPathActive = (path: string, href: string) =>
+    path === href || path.startsWith(href + '/');
 
   const getRoleLabel = (role?: string | { code?: string; name?: string }) => {
     if (isAdmin) return 'Admin';
@@ -204,58 +200,65 @@ export default function StaffSidebar({ staffUser, onLogout, isAdmin = false }: S
             {filterMenuByPermissions(staffMenuItems, permissions)
               .map((item) => {
                 const Icon = item.icon;
-                // Next.js automatically strips basePath from pathname, so we can use it directly
-                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 const hasSubmenu = item.submenu && item.submenu.length > 0;
-                const isSubmenuOpen = openSubmenus[item.href];
+                const isActive =
+                  isPathActive(pathname, item.href) ||
+                  (hasSubmenu && item.submenu!.some((s) => isPathActive(pathname, s.href)));
+                const open = openSubmenus[item.href] ?? isActive;
 
                 return (
                   <div key={item.href}>
-                    <Link
-                      href={hasSubmenu ? '#' : item.href}
-                      onClick={(e) => {
-                        if (hasSubmenu) {
-                          e.preventDefault();
-                          toggleSubmenu(item.href);
-                        } else {
-                          setIsMobileOpen(false);
-                        }
-                      }}
+                    <div
                       className={cn(
-                        'group relative flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200',
+                        'group relative flex items-center w-full rounded-xl transition-all duration-200',
                         isActive
                           ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
                           : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
                         isCollapsed && 'lg:justify-center lg:px-2'
                       )}
-                      title={isCollapsed ? item.name : undefined}
                     >
-                      {isActive && !isCollapsed && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full"></div>
-                      )}
-                      <Icon className={cn('h-5 w-5 flex-shrink-0', isCollapsed ? 'lg:mx-auto' : 'mr-3')} />
-                      {!isCollapsed && (
-                        <>
-                          <span className="flex-1">{item.name}</span>
-                          {hasSubmenu && (
-                            <ChevronRight
-                              className={cn(
-                                'h-4 w-4 transition-transform duration-200',
-                                isSubmenuOpen && 'rotate-90'
-                              )}
-                            />
+                      <Link
+                        href={item.href}
+                        onClick={() => setIsMobileOpen(false)}
+                        className={cn(
+                          'flex flex-1 min-w-0 items-center px-3 py-3 text-sm font-medium rounded-xl text-inherit',
+                          isActive && 'text-white',
+                          isCollapsed && 'lg:justify-center lg:px-2'
+                        )}
+                        title={isCollapsed ? item.name : undefined}
+                      >
+                        {isActive && !isCollapsed && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
+                        )}
+                        <Icon className={cn('h-5 w-5 flex-shrink-0', isCollapsed ? 'lg:mx-auto' : 'mr-3')} />
+                        {!isCollapsed && <span className="flex-1 truncate text-left">{item.name}</span>}
+                      </Link>
+                      {hasSubmenu && !isCollapsed && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setOpenSubmenus((p) => ({ ...p, [item.href]: !open }));
+                          }}
+                          className={cn(
+                            'flex-shrink-0 p-2 rounded-lg text-inherit hover:bg-white/10 transition-colors',
+                            isActive && 'text-white'
                           )}
-                        </>
+                          aria-expanded={open}
+                          aria-label={open ? 'ปิดเมนูย่อย' : 'เปิดเมนูย่อย'}
+                        >
+                          <ChevronRight className={cn('h-4 w-4 transition-transform duration-200', open && 'rotate-90')} />
+                        </button>
                       )}
-                    </Link>
+                    </div>
 
                     {/* Submenu */}
-                    {hasSubmenu && isSubmenuOpen && !isCollapsed && (
+                    {hasSubmenu && open && !isCollapsed && (
                       <div className="ml-4 mt-2 space-y-1 border-l-2 border-slate-700/50 pl-4">
-                        {item.submenu && item.submenu.length > 0 && item.submenu.map((subItem) => {
+                        {item.submenu!.map((subItem) => {
                           const SubIcon = subItem.icon;
-                          const isSubActive =
-                            pathname === subItem.href || pathname.startsWith(subItem.href + '/');
+                          const isSubActive = isPathActive(pathname, subItem.href);
                           return (
                             <Link
                               key={subItem.href}
@@ -268,7 +271,7 @@ export default function StaffSidebar({ staffUser, onLogout, isAdmin = false }: S
                                   : 'text-slate-400 hover:bg-slate-700/30 hover:text-slate-200'
                               )}
                             >
-                              <SubIcon className="h-4 w-4 mr-2" />
+                              {SubIcon ? <SubIcon className="h-4 w-4 mr-2 flex-shrink-0" /> : <span className="w-1.5 h-1.5 rounded-full bg-slate-500 mr-2" />}
                               <span>{subItem.name}</span>
                             </Link>
                           );

@@ -28,17 +28,20 @@ interface SidebarProps {
   setIsCollapsed: (value: boolean) => void;
 }
 
+type SubMenuItem = {
+  name: string;
+  href: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  description: string;
+  submenu?: SubMenuItem[];
+};
+
 type MenuItem = {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   description: string;
-  submenu?: Array<{
-    name: string;
-    href: string;
-    icon?: React.ComponentType<{ className?: string }>;
-    description: string;
-  }>;
+  submenu?: SubMenuItem[];
 };
 
 
@@ -81,6 +84,14 @@ const mainMenuItems: MenuItem[] = [
         href: "/admin/medical-supplies",
         description: "รายการเบิกอุปกรณ์ใช้กับคนไข้",
         icon: ClipboardList,
+        submenu: [
+          {
+            name: "คืนอุปกรณ์ / ชำรุด",
+            href: "/admin/medical-supplies/return",
+            description: "คืนอุปกรณ์ / ชำระค่าบริการ",
+            icon: RotateCcw,
+          },
+        ],
       },
       {
         name: "รายงานเติมอุปกรณ์จากตู้",
@@ -152,6 +163,15 @@ const mainMenuItems: MenuItem[] = [
 ];
 
 
+
+function isPathActive(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
+function isSubmenuActive(pathname: string, sub: SubMenuItem): boolean {
+  if (isPathActive(pathname, sub.href)) return true;
+  return (sub.submenu ?? []).some((s) => isSubmenuActive(pathname, s));
+}
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const pathname = usePathname();
@@ -241,42 +261,118 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
               const Icon = item.icon;
               const hasSubmenu = item.submenu?.length;
               const isActive =
-                pathname === item.href ||
-                pathname.startsWith(item.href + "/") ||
-                (hasSubmenu && item.submenu!.some((s) => pathname === s.href || pathname.startsWith(s.href + "/")));
+                isPathActive(pathname, item.href) ||
+                (hasSubmenu && item.submenu!.some((s) => isSubmenuActive(pathname, s)));
               const open = openSubmenus[item.href] ?? true;
 
               return (
                 <div key={item.href}>
-                  <Link
-                    href={hasSubmenu ? "#" : item.href}
-                    onClick={(e) => {
-                      if (hasSubmenu) {
-                        e.preventDefault();
-                        setOpenSubmenus((p) => ({ ...p, [item.href]: !open }));
-                      } else setIsMobileOpen(false);
-                    }}
+                  <div
                     className={cn(
-                      "flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl",
+                      "flex items-center w-full rounded-xl",
                       isActive
                         ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white"
                         : "bg-slate-800/40 text-slate-300 hover:bg-slate-700/50 hover:text-white",
                       isCollapsed && "lg:justify-center lg:px-2"
                     )}
                   >
-                    <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-slate-300", isCollapsed ? "lg:mx-auto" : "mr-3")} />
-                    {!isCollapsed && (
-                      <>
-                        <span className="flex-1 text-left">{item.name}</span>
-                        {hasSubmenu && <ChevronRight className={cn("h-4 w-4 flex-shrink-0", open && "rotate-90")} />}
-                      </>
+                    <Link
+                      href={item.href}
+                      onClick={() => setIsMobileOpen(false)}
+                      className={cn(
+                        "flex items-center flex-1 min-w-0 px-3 py-3 text-sm font-medium rounded-xl",
+                        isActive ? "text-white" : "text-inherit hover:text-white",
+                        isCollapsed && "lg:justify-center lg:px-2"
+                      )}
+                    >
+                      <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-slate-300", isCollapsed ? "lg:mx-auto" : "mr-3")} />
+                      {!isCollapsed && <span className="flex-1 text-left truncate">{item.name}</span>}
+                    </Link>
+                    {hasSubmenu && !isCollapsed && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpenSubmenus((p) => ({ ...p, [item.href]: !open }));
+                        }}
+                        className={cn(
+                          "flex-shrink-0 p-2 rounded-lg text-inherit hover:bg-white/10 transition-colors",
+                          isActive && "text-white"
+                        )}
+                        aria-expanded={open}
+                        aria-label={open ? "ปิดเมนูย่อย" : "เปิดเมนูย่อย"}
+                      >
+                        <ChevronRight className={cn("h-4 w-4", open && "rotate-90")} />
+                      </button>
                     )}
-                  </Link>
+                  </div>
                   {hasSubmenu && !isCollapsed && open && (
                     <div className="ml-4 mt-1 space-y-1 border-l border-slate-700/50 pl-4">
                       {item.submenu!.map((sub) => {
                         const SubIcon = sub.icon;
-                        const subActive = pathname === sub.href || pathname.startsWith(sub.href + "/");
+                        const hasNested = (sub.submenu?.length ?? 0) > 0;
+                        const subActive = isSubmenuActive(pathname, sub);
+                        const nestedKey = `${item.href}__${sub.href}`;
+                        const nestedOpen = openSubmenus[nestedKey] ?? subActive;
+
+                        if (hasNested) {
+                          return (
+                            <div key={sub.href}>
+                              <div
+                                className={cn(
+                                  "flex items-center rounded-lg",
+                                  subActive ? "bg-blue-500/20 text-blue-300 border-l-2 border-blue-500" : "text-slate-400 hover:bg-slate-700/30 hover:text-slate-200"
+                                )}
+                              >
+                                <Link
+                                  href={sub.href}
+                                  onClick={() => setIsMobileOpen(false)}
+                                  className="flex flex-1 min-w-0 items-center px-3 py-2 text-sm rounded-lg text-inherit"
+                                >
+                                  {SubIcon ? <SubIcon className="h-4 w-4 mr-2 flex-shrink-0" /> : <span className="w-1.5 h-1.5 rounded-full bg-slate-500 mr-2" />}
+                                  <span className="truncate">{sub.name}</span>
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setOpenSubmenus((p) => ({ ...p, [nestedKey]: !nestedOpen }));
+                                  }}
+                                  className="flex-shrink-0 p-1.5 rounded text-inherit hover:bg-white/10"
+                                  aria-expanded={nestedOpen}
+                                  aria-label={nestedOpen ? "ปิดเมนูย่อย" : "เปิดเมนูย่อย"}
+                                >
+                                  <ChevronRight className={cn("h-4 w-4", nestedOpen && "rotate-90")} />
+                                </button>
+                              </div>
+                              {nestedOpen && (
+                                <div className="ml-3 mt-1 space-y-1 border-l border-slate-600/50 pl-3">
+                                  {sub.submenu!.map((inner) => {
+                                    const InnerIcon = inner.icon;
+                                    const innerActive = isPathActive(pathname, inner.href);
+                                    return (
+                                      <Link
+                                        key={inner.href}
+                                        href={inner.href}
+                                        onClick={() => setIsMobileOpen(false)}
+                                        className={cn(
+                                          "flex items-center px-3 py-2 text-sm rounded-lg",
+                                          innerActive ? "bg-blue-500/20 text-blue-300 border-l-2 border-blue-500" : "text-slate-400 hover:bg-slate-700/30 hover:text-slate-200"
+                                        )}
+                                      >
+                                        {InnerIcon ? <InnerIcon className="h-4 w-4 mr-2 flex-shrink-0" /> : <span className="w-1.5 h-1.5 rounded-full bg-slate-500 mr-2" />}
+                                        <span>{inner.name}</span>
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
                         return (
                           <Link
                             key={sub.href}
