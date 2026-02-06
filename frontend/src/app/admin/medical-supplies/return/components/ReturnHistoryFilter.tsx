@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -86,7 +86,7 @@ export default function ReturnHistoryFilter({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
             <Button
               onClick={onSearch}
               disabled={loading}
@@ -103,6 +103,17 @@ export default function ReturnHistoryFilter({
                   ค้นหา
                 </>
               )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onSearch}
+              disabled={loading}
+              className="gap-2 rounded-lg border-slate-200"
+              title="โหลดประวัติการคืนใหม่"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              รีเฟรช
             </Button>
           </div>
         </div>

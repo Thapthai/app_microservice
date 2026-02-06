@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
-import { RotateCcw, History } from 'lucide-react';
+import { RotateCcw, History, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -265,15 +265,27 @@ export default function ReturnMedicalSuppliesPage() {
                         แสดงรายการจากตู้ที่มีโอกาสต้องคืนเข้าตู้ Vending
                       </p>
                     </div>
-                    {willReturnItems.length > 0 && (
-                      <p className="text-sm text-slate-700">
-                        ทั้งหมด{' '}
-                        <span className="font-semibold">
-                          {willReturnItems.length.toLocaleString('th-TH')}
-                        </span>{' '}
-                        รายการ
-                      </p>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {willReturnItems.length > 0 && (
+                        <p className="text-sm text-slate-700">
+                          ทั้งหมด{' '}
+                          <span className="font-semibold">
+                            {willReturnItems.length.toLocaleString('th-TH')}
+                          </span>{' '}
+                          รายการ
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={loadWillReturnItems}
+                        disabled={loadingWillReturn}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                        title="โหลดรายการใหม่"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${loadingWillReturn ? 'animate-spin' : ''}`} />
+                        รีเฟรช
+                      </button>
+                    </div>
                   </div>
 
                   <div className="rounded-xl border border-slate-200 overflow-x-auto">
