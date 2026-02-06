@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { RotateCcw, Search, RefreshCw, Download } from 'lucide-react';
+import { RotateCcw, Search, RefreshCw, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ export default function ReturnReportPage() {
   const [returnHistoryData, setReturnHistoryData] = useState<any>(null);
   const [returnHistoryPage, setReturnHistoryPage] = useState(1);
   const [returnHistoryLimit] = useState(10);
+  const [reportDownloadLoading, setReportDownloadLoading] = useState<'excel' | 'pdf' | null>(null);
 
   const fetchReturnHistory = async () => {
     try {
@@ -183,34 +184,60 @@ export default function ReturnReportPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          staffVendingReportsApi.downloadReturnReportExcel({
-                            date_from: returnHistoryDateFrom || undefined,
-                            date_to: returnHistoryDateTo || undefined,
-                            return_reason: returnHistoryReason !== 'ALL' ? returnHistoryReason : undefined,
-                          });
+                        onClick={async () => {
+                          try {
+                            setReportDownloadLoading('excel');
+                            toast.info('กำลังสร้างรายงาน Excel...');
+                            await staffVendingReportsApi.downloadReturnReportExcel({
+                              date_from: returnHistoryDateFrom || undefined,
+                              date_to: returnHistoryDateTo || undefined,
+                              return_reason: returnHistoryReason !== 'ALL' ? returnHistoryReason : undefined,
+                            });
+                            toast.success('ดาวน์โหลดรายงาน Excel สำเร็จ');
+                          } catch (error: any) {
+                            toast.error(`ไม่สามารถดาวน์โหลดรายงาน Excel ได้: ${error?.message || error}`);
+                          } finally {
+                            setReportDownloadLoading(null);
+                          }
                         }}
-                        disabled={loading}
+                        disabled={loading || reportDownloadLoading !== null}
                         className="flex items-center gap-2"
                       >
-                        <Download className="h-4 w-4" />
-                        ดาวน์โหลด Excel
+                        {reportDownloadLoading === 'excel' ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                        {reportDownloadLoading === 'excel' ? 'กำลังโหลด...' : 'ดาวน์โหลด Excel'}
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          staffVendingReportsApi.downloadReturnReportPdf({
-                            date_from: returnHistoryDateFrom || undefined,
-                            date_to: returnHistoryDateTo || undefined,
-                            return_reason: returnHistoryReason !== 'ALL' ? returnHistoryReason : undefined,
-                          });
+                        onClick={async () => {
+                          try {
+                            setReportDownloadLoading('pdf');
+                            toast.info('กำลังสร้างรายงาน PDF...');
+                            await staffVendingReportsApi.downloadReturnReportPdf({
+                              date_from: returnHistoryDateFrom || undefined,
+                              date_to: returnHistoryDateTo || undefined,
+                              return_reason: returnHistoryReason !== 'ALL' ? returnHistoryReason : undefined,
+                            });
+                            toast.success('ดาวน์โหลดรายงาน PDF สำเร็จ');
+                          } catch (error: any) {
+                            toast.error(`ไม่สามารถดาวน์โหลดรายงาน PDF ได้: ${error?.message || error}`);
+                          } finally {
+                            setReportDownloadLoading(null);
+                          }
                         }}
-                        disabled={loading}
+                        disabled={loading || reportDownloadLoading !== null}
                         className="flex items-center gap-2"
                       >
-                        <Download className="h-4 w-4" />
-                        ดาวน์โหลด PDF
+                        {reportDownloadLoading === 'pdf' ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                        {reportDownloadLoading === 'pdf' ? 'กำลังโหลด...' : 'ดาวน์โหลด PDF'}
                       </Button>
                     </div>
                   </div>

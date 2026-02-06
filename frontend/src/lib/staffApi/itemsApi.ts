@@ -79,4 +79,9 @@ export const staffItemsApi = {
         const response = await staffApi.get('/items/stats', { params: query });
         return response.data;
     },
+
+    getItemStocksWillReturn: async (): Promise<{ success: boolean; data: any[] }> => {
+        const response = await staffApi.get('/item-stocks/will-return');
+        return response.data as { success: boolean; data: any[] };
+    },
 };

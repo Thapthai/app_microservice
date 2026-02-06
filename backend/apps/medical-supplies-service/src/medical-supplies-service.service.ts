@@ -1931,7 +1931,7 @@ export class MedicalSuppliesServiceService {
             const [userType, id] = userId.split(':');
             const userIdNum = parseInt(id, 10);
 
-            if (userType === 'user' && !isNaN(userIdNum)) {
+            if ((userType === 'user' || userType === 'admin') && !isNaN(userIdNum)) {
               const adminUser = await this.prisma.user.findUnique({
                 where: { id: userIdNum },
                 select: { name: true },
@@ -3491,7 +3491,11 @@ export class MedicalSuppliesServiceService {
         throw new BadRequestException('return_by_user_id is required');
       }
 
-      const userIdNum = parseInt(String(data.return_by_user_id), 10) || 0;
+      // รองรับรูปแบบ "user:1" / "staff:1" — ดึงตัวเลขสำหรับ CabinetUserID
+      const idStr = String(data.return_by_user_id);
+      const userIdNum = idStr.includes(':')
+        ? parseInt(idStr.split(':')[1], 10) || 0
+        : parseInt(idStr, 10) || 0;
 
       const rowIds = data.items.map((i) => i.item_stock_id);
 

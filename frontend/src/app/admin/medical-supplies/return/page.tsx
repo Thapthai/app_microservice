@@ -135,7 +135,7 @@ export default function ReturnMedicalSuppliesPage() {
 
       const resp: any = await medicalSuppliesApi.recordStockReturn({
         items,
-        return_by_user_id: user?.id?.toString(),
+        return_by_user_id: user?.id != null ? `admin:${user.id}` : undefined,
       });
 
       if (resp?.success) {

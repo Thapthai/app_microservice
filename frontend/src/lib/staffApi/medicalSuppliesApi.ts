@@ -107,6 +107,35 @@ export const staffMedicalSuppliesApi = {
         const response = await staffApi.post('/medical-supply-items/record-return', data);
         return response.data;
       },
+
+    getItemStocksForReturnToCabinet: async (filters?: {
+        itemCode?: string;
+        itemTypeId?: number;
+        rfidCode?: string;
+        startDate?: string;
+        endDate?: string;
+        page?: number;
+        limit?: number;
+      }): Promise<ApiResponse<any>> => {
+        const queryParams = new URLSearchParams();
+        if (filters?.itemCode) queryParams.append('itemCode', filters.itemCode);
+        if (filters?.itemTypeId) queryParams.append('itemTypeId', String(filters.itemTypeId));
+        if (filters?.rfidCode) queryParams.append('rfidCode', filters.rfidCode);
+        if (filters?.startDate) queryParams.append('startDate', filters.startDate);
+        if (filters?.endDate) queryParams.append('endDate', filters.endDate);
+        if (filters?.page) queryParams.append('page', String(filters.page));
+        if (filters?.limit) queryParams.append('limit', String(filters.limit));
+        const response = await staffApi.get(`/medical-supply-items/return-to-cabinet?${queryParams.toString()}`);
+        return response.data;
+      },
+
+    recordStockReturn: async (data: {
+        items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }>;
+        return_by_user_id?: string;
+      }): Promise<ApiResponse<any>> => {
+        const response = await staffApi.post('/medical-supply-items/record-stock-return', data);
+        return response.data;
+      },
 };
 
 

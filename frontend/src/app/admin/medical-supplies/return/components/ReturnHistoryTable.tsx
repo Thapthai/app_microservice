@@ -1,11 +1,13 @@
 'use client';
 
-import { Download, FileSpreadsheet, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Download, FileSpreadsheet, FileText, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { vendingReportsApi } from '@/lib/api';
+import { toast } from 'sonner';
 import type { ReturnHistoryData, ReturnHistoryRecord } from '../types';
 
 interface ReturnHistoryTableProps {
@@ -31,22 +33,42 @@ export default function ReturnHistoryTable({
   getReturnReasonLabel,
   onPageChange,
 }: ReturnHistoryTableProps) {
+  const [exportLoading, setExportLoading] = useState<'excel' | 'pdf' | null>(null);
+
   if (!data) return null;
 
-  const handleDownloadExcel = () => {
-    vendingReportsApi.downloadReturnReportExcel({
-      date_from: dateFrom || undefined,
-      date_to: dateTo || undefined,
-      return_reason: reason !== 'ALL' ? reason : undefined,
-    });
+  const handleDownloadExcel = async () => {
+    try {
+      setExportLoading('excel');
+      toast.info('กำลังสร้างรายงาน Excel...');
+      await vendingReportsApi.downloadReturnReportExcel({
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        return_reason: reason !== 'ALL' ? reason : undefined,
+      });
+      toast.success('ดาวน์โหลดรายงาน Excel สำเร็จ');
+    } catch (error: any) {
+      toast.error(`ไม่สามารถดาวน์โหลดรายงาน Excel ได้: ${error?.message || error}`);
+    } finally {
+      setExportLoading(null);
+    }
   };
 
-  const handleDownloadPdf = () => {
-    vendingReportsApi.downloadReturnReportPdf({
-      date_from: dateFrom || undefined,
-      date_to: dateTo || undefined,
-      return_reason: reason !== 'ALL' ? reason : undefined,
-    });
+  const handleDownloadPdf = async () => {
+    try {
+      setExportLoading('pdf');
+      toast.info('กำลังสร้างรายงาน PDF...');
+      await vendingReportsApi.downloadReturnReportPdf({
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        return_reason: reason !== 'ALL' ? reason : undefined,
+      });
+      toast.success('ดาวน์โหลดรายงาน PDF สำเร็จ');
+    } catch (error: any) {
+      toast.error(`ไม่สามารถดาวน์โหลดรายงาน PDF ได้: ${error?.message || error}`);
+    } finally {
+      setExportLoading(null);
+    }
   };
 
   const totalPages = Math.ceil(data.total / limit) || 1;
@@ -70,19 +92,29 @@ export default function ReturnHistoryTable({
               variant="outline"
               size="sm"
               onClick={handleDownloadExcel}
+              disabled={exportLoading !== null}
               className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
             >
-              <FileSpreadsheet className="h-4 w-4" />
-              Excel
+              {exportLoading === 'excel' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
+              {exportLoading === 'excel' ? 'กำลังโหลด...' : 'Excel'}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={handleDownloadPdf}
+              disabled={exportLoading !== null}
               className="gap-2 border-sky-200 text-sky-700 hover:bg-sky-50"
             >
-              <FileText className="h-4 w-4" />
-              PDF
+              {exportLoading === 'pdf' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+              {exportLoading === 'pdf' ? 'กำลังโหลด...' : 'PDF'}
             </Button>
           </div>
         </div>
