@@ -37,6 +37,11 @@ export interface ReturnHistoryRecord {
       patient_hn?: string;
     };
   };
+  item_stock?: {
+    ItemCode?: string;
+    RfidCode?: string;
+    item?: { itemcode?: string; itemname?: string };
+  };
 }
 
 export interface ReturnHistoryData {

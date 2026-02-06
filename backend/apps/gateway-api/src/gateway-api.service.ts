@@ -291,6 +291,13 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.getItemStocksForReturnToCabinet' }, filters || {}).toPromise();
   }
 
+  async recordStockReturns(data: {
+    items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }>;
+    return_by_user_id: string;
+  }) {
+    return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.recordStockReturns' }, data).toPromise();
+  }
+
   async returnItemsToCabinet(rowIds: number[], userId: number) {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.returnItemsToCabinet' }, { rowIds, userId }).toPromise();
   }
@@ -1152,6 +1159,21 @@ export class GatewayApiService {
         this.itemClient.send('itemStock.findAllInCabinet', params || {}).pipe(
           catchError((error) => {
             throw new Error(error?.message || 'Failed to fetch item stocks in cabinet');
+          })
+        )
+      );
+    } catch (error) {
+      throw new Error(error?.message || 'Item service unavailable');
+    }
+  }
+
+  // =========================== Item Stock Return API ===========================
+  async findAllItemStockWillReturn(params?: { departmentCode?: string; cabinetCode?: string }) {
+    try {
+      return await firstValueFrom(
+        this.itemClient.send('itemStock.findAllWillReturn', params || {}).pipe(
+          catchError((error) => {
+            throw new Error(error?.message || 'Failed to fetch item stock will return');
           })
         )
       );

@@ -7,6 +7,7 @@ import {
   GetMedicalSupplyUsagesQueryDto,
   RecordItemUsedWithPatientDto,
   RecordItemReturnDto,
+  RecordStockReturnDto,
   GetPendingItemsQueryDto,
   GetReturnHistoryQueryDto,
 } from './dto';
@@ -368,6 +369,19 @@ export class MedicalSuppliesServiceController {
       return {
         success: false,
         error: error.message,
+      };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_item.recordStockReturns' })
+  async recordStockReturns(@Payload() data: RecordStockReturnDto) {
+    try {
+      const result = await this.medicalSuppliesService.recordStockReturns(data);
+      return result;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error?.message || error,
       };
     }
   }

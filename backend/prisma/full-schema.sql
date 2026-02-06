@@ -474,16 +474,15 @@ CREATE TABLE IF NOT EXISTS `app_microservice_supply_usage_items` (
 -- Supply Item Return Record table
 CREATE TABLE IF NOT EXISTS `app_microservice_supply_item_return_records` (
   `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `supply_usage_item_id` INTEGER NOT NULL,
+  -- `supply_usage_item_id` INTEGER NOT NULL,
+  `item_stock_id` INTEGER NOT NULL,
   `qty_returned` INTEGER NOT NULL,
   `return_reason` VARCHAR(191) NOT NULL,
   `return_datetime` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `return_by_user_id` VARCHAR(191) NOT NULL,
   `return_note` VARCHAR(191),
-  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  INDEX `idx_return_supply_item` (`supply_usage_item_id`),
-  FOREIGN KEY (`supply_usage_item_id`) REFERENCES `app_microservice_supply_usage_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Medical Supply Usage Log table
 CREATE TABLE IF NOT EXISTS `app_microservice_medical_supply_usages_logs` (

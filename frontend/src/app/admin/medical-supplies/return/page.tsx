@@ -7,15 +7,33 @@ import AppLayout from '@/components/AppLayout';
 import { RotateCcw, History } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { medicalSuppliesApi } from '@/lib/api';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { medicalSuppliesApi, itemsApi } from '@/lib/api';
 import { toast } from 'sonner';
-import UsageSearchStep from './components/UsageSearchStep';
-import ReturnEditableTable, { type ReturnRow } from './components/ReturnEditableTable';
 import ReturnHistoryFilter from './components/ReturnHistoryFilter';
 import ReturnHistoryTable from './components/ReturnHistoryTable';
-import type { Usage, SupplyItem, ReturnReason, ReturnHistoryData } from './types';
+import type { ReturnHistoryData } from './types';
 
-const USAGES_PAGE_SIZE = 10;
+interface WillReturnItem {
+  itemname: string;
+  ItemCode: string;
+  RfidCode: string;
+}
 
 export default function ReturnMedicalSuppliesPage() {
   const { user } = useAuth();
@@ -23,22 +41,13 @@ export default function ReturnMedicalSuppliesPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('return');
 
-  // Step 1: Search & table (default start/end date = today)
-  const today = () => new Date().toISOString().slice(0, 10);
-  const [searchStartDate, setSearchStartDate] = useState(today);
-  const [searchEndDate, setSearchEndDate] = useState(today);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [usages, setUsages] = useState<Usage[]>([]);
-  const [usagesPage, setUsagesPage] = useState(1);
-  const [usagesTotal, setUsagesTotal] = useState(0);
-  const [usagesLastPage, setUsagesLastPage] = useState(1);
-  const [loadingUsages, setLoadingUsages] = useState(false);
-  const [selectedUsageId, setSelectedUsageId] = useState<number | null>(null);
-
-  // Step 2: Editable return table
-  const [supplyItems, setSupplyItems] = useState<SupplyItem[]>([]);
-  const [returnRows, setReturnRows] = useState<ReturnRow[]>([]);
-  const [loadingSupplyItems, setLoadingSupplyItems] = useState(false);
+  // รายการจาก /item-stocks/will-return (เลือกตาม index เพื่อไม่ให้ RfidCode ซ้ำแล้วเช็คทั้งหมด)
+  const [willReturnItems, setWillReturnItems] = useState<WillReturnItem[]>([]);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+  const [loadingWillReturn, setLoadingWillReturn] = useState(false);
+  const [rowDetails, setRowDetails] = useState<
+    Record<number, { reason: string; note: string }>
+  >({});
 
   // Return history (default date from/to = today)
   const [returnHistoryDateFrom, setReturnHistoryDateFrom] = useState(() =>
@@ -52,115 +61,93 @@ export default function ReturnMedicalSuppliesPage() {
   const [returnHistoryPage, setReturnHistoryPage] = useState(1);
   const [returnHistoryLimit] = useState(10);
 
-  const fetchUsages = useCallback(async (page: number = 1) => {
+  const loadWillReturnItems = useCallback(async () => {
     try {
-      setLoadingUsages(true);
-      const result = await medicalSuppliesApi.getAll({
-        page,
-        limit: USAGES_PAGE_SIZE,
-        startDate: searchStartDate || undefined,
-        endDate: searchEndDate || undefined,
-        keyword: searchKeyword.trim() || undefined,
-      });
-      const data = result.data ?? [];
-      const list = Array.isArray(data) ? data : [data];
-      setUsages(list);
-      setUsagesTotal(result.total ?? 0);
-      setUsagesPage(result.page ?? page);
-      setUsagesLastPage(result.lastPage ?? (Math.ceil((result.total ?? 0) / USAGES_PAGE_SIZE) || 1));
-    } catch (error: any) {
-      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
-      setUsages([]);
+      setLoadingWillReturn(true);
+      const res = await itemsApi.getItemStocksWillReturn();
+      if (res?.success && Array.isArray(res.data)) {
+        setWillReturnItems(res.data as WillReturnItem[]);
+      } else {
+        setWillReturnItems([]);
+      }
+    } catch {
+      setWillReturnItems([]);
     } finally {
-      setLoadingUsages(false);
-    }
-  }, [searchStartDate, searchEndDate, searchKeyword]);
-
-  const handleSearch = () => fetchUsages(1);
-
-  const fetchSupplyItems = useCallback(async (usageId: number) => {
-    try {
-      setLoadingSupplyItems(true);
-      const result = await medicalSuppliesApi.getSupplyItemsByUsageId(usageId);
-      const raw = result.success && result.data ? result.data : [];
-      const items = Array.isArray(raw) ? raw : [raw];
-      const returnable = items.filter((item: any) => {
-        const qtyPending = (item.qty || 0) - (item.qty_used_with_patient || 0) - (item.qty_returned_to_cabinet || 0);
-        return qtyPending > 0;
-      }) as SupplyItem[];
-      setSupplyItems(returnable);
-      setReturnRows(
-        returnable.map((item) => ({
-          item,
-          returnQty: 0,
-          returnReason: 'UNWRAPPED_UNUSED' as ReturnReason,
-          returnNote: '',
-        }))
-      );
-    } catch (error: any) {
-      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
-      setSupplyItems([]);
-      setReturnRows([]);
-    } finally {
-      setLoadingSupplyItems(false);
+      setLoadingWillReturn(false);
     }
   }, []);
 
-  const handleSelectUsage = (usageId: number) => {
-    setSelectedUsageId(usageId);
-    fetchSupplyItems(usageId);
+  useEffect(() => {
+    loadWillReturnItems();
+  }, [loadWillReturnItems]);
+
+  const toggleSelectAll = () => {
+    if (selectedIndices.length === willReturnItems.length) {
+      setSelectedIndices([]);
+    } else {
+      setSelectedIndices(willReturnItems.map((_, i) => i));
+    }
   };
 
-  const setReturnQty = (itemId: number, qty: number) => {
-    setReturnRows((prev) =>
-      prev.map((r) => (r.item.id === itemId ? { ...r, returnQty: Math.max(0, qty) } : r))
-    );
-  };
-  const setReturnReason = (itemId: number, reason: ReturnReason) => {
-    setReturnRows((prev) =>
-      prev.map((r) => (r.item.id === itemId ? { ...r, returnReason: reason } : r))
-    );
-  };
-  const setReturnNote = (itemId: number, note: string) => {
-    setReturnRows((prev) =>
-      prev.map((r) => (r.item.id === itemId ? { ...r, returnNote: note } : r))
+  const toggleSelectOne = (index: number) => {
+    setSelectedIndices((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
     );
   };
 
-  const handleSaveReturn = async () => {
-    const toSave = returnRows.filter((r) => r.returnQty > 0);
-    if (toSave.length === 0) {
-      toast.error('กรุณาระบุจำนวนที่ต้องการคืนอย่างน้อย 1 รายการ');
+  const handleReturnToCabinet = async () => {
+    if (selectedIndices.length === 0) {
+      toast.error('กรุณาเลือกรายการที่ต้องการคืนเข้าตู้');
       return;
     }
 
     try {
       setLoading(true);
-      for (const row of toSave) {
-        const maxQty =
-          (row.item.qty || 0) -
-          (row.item.qty_used_with_patient || 0) -
-          (row.item.qty_returned_to_cabinet || 0);
-        if (row.returnQty > maxQty) {
-          toast.error(`จำนวนคืนเกินที่คืนได้ (${row.item.order_item_code || row.item.supply_code})`);
-          return;
-        }
-        await medicalSuppliesApi.recordItemReturn({
-          item_id: row.item.id,
-          qty_returned: row.returnQty,
-          return_reason: row.returnReason,
-          return_by_user_id: user?.id?.toString() || 'unknown',
-          return_note: row.returnNote,
+
+      const items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }> = [];
+
+      for (const index of selectedIndices) {
+        const item = willReturnItems[index];
+        if (!item) continue;
+
+        const result: any = await medicalSuppliesApi.getItemStocksForReturnToCabinet({
+          rfidCode: item.RfidCode,
+          page: 1,
+          limit: 1,
+        });
+
+        const row = result?.success && Array.isArray(result.data) ? result.data[0] : null;
+        const itemStockId = row && typeof row.RowID === 'number' ? row.RowID : null;
+        if (itemStockId == null) continue;
+
+        const meta = rowDetails[index] || { reason: 'UNWRAPPED_UNUSED', note: '' };
+        items.push({
+          item_stock_id: itemStockId,
+          return_reason: meta.reason,
+          return_note: meta.note?.trim() || undefined,
         });
       }
-      toast.success('บันทึกการคืนเวชภัณฑ์สำเร็จ');
-      setSelectedUsageId(null);
-      setSupplyItems([]);
-      setReturnRows([]);
-      await fetchUsages(usagesPage);
-      fetchReturnHistory();
+
+      if (items.length === 0) {
+        toast.error('ไม่พบ RowID สำหรับรายการที่เลือก');
+        return;
+      }
+
+      const resp: any = await medicalSuppliesApi.recordStockReturn({
+        items,
+        return_by_user_id: user?.id?.toString(),
+      });
+
+      if (resp?.success) {
+        toast.success(resp.message || `บันทึกการคืนอุปกรณ์เข้าตู้สำเร็จ ${resp.updatedCount ?? items.length} รายการ`);
+        setSelectedIndices([]);
+        setRowDetails({});
+        await loadWillReturnItems();
+      } else {
+        toast.error(resp?.error || 'ไม่สามารถบันทึกการคืนอุปกรณ์เข้าตู้ได้');
+      }
     } catch (error: any) {
-      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+      toast.error(`เกิดข้อผิดพลาด: ${error.message || error}`);
     } finally {
       setLoading(false);
     }
@@ -263,68 +250,181 @@ export default function ReturnMedicalSuppliesPage() {
             <TabsContent value="return" className="space-y-4">
               <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
                 <CardHeader className="border-b bg-slate-50/50">
-                  <CardTitle className="text-lg font-semibold text-slate-800">บันทึกการคืนเวชภัณฑ์</CardTitle>
+                  <CardTitle className="text-lg font-semibold text-slate-800">คืนอุปกรณ์เข้าตู้จากรายการค้างคืน</CardTitle>
                   <CardDescription className="text-slate-500 mt-1">
-                    <span className="font-medium text-slate-600">ขั้นที่ 1</span> ค้นหาด้วยวันที่และชื่อรายการ → เลือกแถวจากตาราง (10 รายการ/หน้า) · <span className="font-medium text-slate-600">ขั้นที่ 2</span> ปรับจำนวน/สาเหตุ/หมายเหตุในตาราง → กดบันทึกการคืน
+                    เลือกรายการจากตู้ที่ยังไม่ได้บันทึกคืน แล้วกดปุ่มด้านล่างเพื่อบันทึกการคืนเข้าตู้
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <UsageSearchStep
-                    startDate={searchStartDate}
-                    endDate={searchEndDate}
-                    keyword={searchKeyword}
-                    usages={usages}
-                    selectedUsageId={selectedUsageId}
-                    loading={loadingUsages}
-                    page={usagesPage}
-                    total={usagesTotal}
-                    limit={USAGES_PAGE_SIZE}
-                    lastPage={usagesLastPage}
-                    onStartDateChange={setSearchStartDate}
-                    onEndDateChange={setSearchEndDate}
-                    onKeywordChange={setSearchKeyword}
-                    onSearch={handleSearch}
-                    onSelectUsage={handleSelectUsage}
-                    onPageChange={(p) => {
-                      setUsagesPage(p);
-                      fetchUsages(p);
-                    }}
-                    formatDate={formatDate}
-                  />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-slate-600">
+                        ข้อมูลมาจาก API <code className="font-mono text-[11px] bg-slate-100 px-1 py-0.5 rounded">/item-stocks/will-return</code>
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        แสดงรายการจากตู้ที่มีโอกาสต้องคืนเข้าตู้ Vending
+                      </p>
+                    </div>
+                    {willReturnItems.length > 0 && (
+                      <p className="text-sm text-slate-700">
+                        ทั้งหมด{' '}
+                        <span className="font-semibold">
+                          {willReturnItems.length.toLocaleString('th-TH')}
+                        </span>{' '}
+                        รายการ
+                      </p>
+                    )}
+                  </div>
 
-                  {selectedUsageId && (
-                    <div className="border-t border-slate-200 pt-6 mt-6">
-                      {loadingSupplyItems ? (
-                        <div className="flex items-center gap-3 text-slate-500 py-6">
-                          <span className="h-5 w-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                          กำลังโหลดรายการที่คืนได้...
-                        </div>
-                      ) : (
-                        <ReturnEditableTable
-                          rows={returnRows}
-                          loading={loading}
-                          onQtyChange={setReturnQty}
-                          onReasonChange={setReturnReason}
-                          onNoteChange={setReturnNote}
-                          onSubmit={handleSaveReturn}
-                        />
-                      )}
+                  <div className="rounded-xl border border-slate-200 overflow-x-auto">
+                    {loadingWillReturn ? (
+                      <div className="flex items-center justify-center py-10 text-slate-500">
+                        <span className="h-5 w-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mr-3" />
+                        กำลังโหลดรายการจากตู้...
+                      </div>
+                    ) : willReturnItems.length === 0 ? (
+                      <div className="py-10 text-center text-slate-500">
+                        ไม่มีรายการที่ต้องคืนจากตู้
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-b">
+                            <TableHead className="w-12" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                className="rounded border-slate-300"
+                                checked={
+                                  selectedIndices.length === willReturnItems.length &&
+                                  willReturnItems.length > 0
+                                }
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  toggleSelectAll();
+                                }}
+                              />
+                            </TableHead>
+                            <TableHead className="text-slate-600 font-medium">RFID</TableHead>
+                            <TableHead className="text-slate-600 font-medium">รหัส</TableHead>
+                            <TableHead className="text-slate-600 font-medium">ชื่อรายการ</TableHead>
+                            <TableHead className="text-slate-600 font-medium min-w-[180px]">
+                              กรณีการคืน
+                            </TableHead>
+                            <TableHead className="text-slate-600 font-medium min-w-[180px]">
+                              หมายเหตุ
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {willReturnItems.map((item, index) => {
+                            const meta = rowDetails[index] || {
+                              reason: 'UNWRAPPED_UNUSED',
+                              note: '',
+                            };
+                            return (
+                              <TableRow
+                                key={`will-return-${index}-${item.RfidCode}`}
+                                className={
+                                  selectedIndices.includes(index)
+                                    ? 'bg-emerald-50/60'
+                                    : ''
+                                }
+                              >
+                                <TableCell onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="checkbox"
+                                    className="rounded border-slate-300"
+                                    checked={selectedIndices.includes(index)}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      toggleSelectOne(index);
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <code className="text-xs bg-slate-100 px-2 py-1 rounded">
+                                    {item.RfidCode}
+                                  </code>
+                                </TableCell>
+                                <TableCell className="font-mono text-sm">{item.ItemCode}</TableCell>
+                                <TableCell className="text-sm">{item.itemname}</TableCell>
+                                <TableCell>
+                                  <Select
+                                    value={meta.reason}
+                                    onValueChange={(v) =>
+                                      setRowDetails((prev) => ({
+                                        ...prev,
+                                        [index]: {
+                                          reason: v,
+                                          note: prev[index]?.note ?? '',
+                                        },
+                                      }))
+                                    }
+                                  >
+                                    <SelectTrigger className="w-full min-w-[180px] rounded-lg border-slate-200">
+                                      <SelectValue placeholder="เลือกกรณีการคืน" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="UNWRAPPED_UNUSED">
+                                        ยังไม่ได้แกะซอง / อยู่ในสภาพเดิม
+                                      </SelectItem>
+                                      <SelectItem value="EXPIRED">อุปกรณ์หมดอายุ</SelectItem>
+                                      <SelectItem value="CONTAMINATED">
+                                        อุปกรณ์มีการปนเปื้อน
+                                      </SelectItem>
+                                      <SelectItem value="DAMAGED">อุปกรณ์ชำรุด</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    value={meta.note}
+                                    onChange={(e) =>
+                                      setRowDetails((prev) => ({
+                                        ...prev,
+                                        [index]: {
+                                          reason: prev[index]?.reason ?? 'UNWRAPPED_UNUSED',
+                                          note: e.target.value,
+                                        },
+                                      }))
+                                    }
+                                    placeholder="ใส่รายละเอียดเพิ่มเติม (ถ้ามี)"
+                                    className="w-full min-w-[180px] rounded-lg border-slate-200"
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+
+                  {willReturnItems.length > 0 && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-slate-600">
+                        เลือก {selectedIndices.length} / {willReturnItems.length} รายการ
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleReturnToCabinet}
+                        disabled={loading || selectedIndices.length === 0}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        {loading ? (
+                          <>
+                            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            กำลังบันทึก...
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw className="h-4 w-4" />
+                            คืนอุปกรณ์เข้าตู้
+                          </>
+                        )}
+                      </button>
                     </div>
                   )}
-
-                  <div className="rounded-xl bg-sky-50 border border-sky-100 p-4">
-                    <h4 className="font-semibold text-sky-800 mb-2 flex items-center gap-2">แนวทางการจัดการ</h4>
-                    <ul className="space-y-2 text-sm text-sky-700">
-                      <li className="flex gap-2">
-                        <span className="text-sky-500 shrink-0">•</span>
-                        <span>ยังไม่ได้แกะซอง / อยู่ในสภาพเดิม → นำกลับเข้าตู้ Vending (บันทึกการคืน)</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-sky-500 shrink-0">•</span>
-                        <span>Package ไม่เหมือนเดิม หรือนำไปใช้ในแผนก → ติดต่อแผนกที่เกี่ยวข้อง</span>
-                      </li>
-                    </ul>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

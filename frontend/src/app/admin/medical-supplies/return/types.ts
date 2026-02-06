@@ -28,6 +28,7 @@ export interface ReturnHistoryRecord {
   return_note?: string;
   return_by_user_id?: string;
   return_by_user_name?: string;
+  /** จาก SupplyUsageItem (เก่า) หรือ map จาก item_stock (ใหม่) */
   supply_item?: {
     order_item_code?: string;
     supply_code?: string;
@@ -42,6 +43,12 @@ export interface ReturnHistoryRecord {
       department_code?: string;
       created_at?: string;
     };
+  };
+  /** มีเมื่อบันทึกจาก item_stock (คืนจากตู้) — ไม่มี usage */
+  item_stock?: {
+    ItemCode?: string;
+    RfidCode?: string;
+    item?: { itemcode?: string; itemname?: string };
   };
 }
 

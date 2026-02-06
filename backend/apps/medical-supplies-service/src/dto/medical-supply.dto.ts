@@ -358,6 +358,30 @@ export class RecordItemReturnDto {
   return_note?: string;
 }
 
+// รายการเดียวสำหรับบันทึกคืนโดยอ้างอิง item_stock_id (RowID)
+export class RecordStockReturnItemDto {
+  @IsInt()
+  item_stock_id: number;
+
+  @IsEnum(ReturnReason)
+  return_reason: ReturnReason;
+
+  @IsOptional()
+  @IsString()
+  return_note?: string;
+}
+
+// DTO สำหรับบันทึกคืนอุปกรณ์เข้าตู้ (ลง SupplyItemReturnRecord + อัปเดต itemstock)
+export class RecordStockReturnDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RecordStockReturnItemDto)
+  items: RecordStockReturnItemDto[];
+
+  @IsString()
+  return_by_user_id: string;
+}
+
 // Query DTO สำหรับรายการที่รอดำเนินการ
 export class GetPendingItemsQueryDto {
   @IsOptional()

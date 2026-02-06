@@ -7,6 +7,7 @@ import {
   MedicalSupplyUsageResponse,
   RecordItemUsedWithPatientDto,
   RecordItemReturnDto,
+  RecordStockReturnDto,
   GetPendingItemsQueryDto,
   GetReturnHistoryQueryDto,
   ItemStatus,
@@ -783,11 +784,7 @@ export class MedicalSuppliesServiceService {
         this.prisma.medicalSupplyUsage.findMany({
           where,
           include: {
-            supply_items: {
-              include: {
-                return_items: true, // รวม return records ด้วย
-              },
-            },
+            supply_items: true,
           },
           skip,
           take: limit,
@@ -935,11 +932,7 @@ export class MedicalSuppliesServiceService {
       const usage = await this.prisma.medicalSupplyUsage.findUnique({
         where: { id },
         include: {
-          supply_items: {
-            include: {
-              return_items: true, // รวม return records ด้วย
-            },
-          },
+          supply_items: true,
         },
       });
 
@@ -1518,11 +1511,6 @@ export class MedicalSuppliesServiceService {
         where: { id: itemId },
         include: {
           usage: true,
-          return_items: {
-            orderBy: {
-              return_datetime: 'desc',
-            },
-          },
         },
       });
 
@@ -1566,13 +1554,6 @@ export class MedicalSuppliesServiceService {
     try {
       const items = await this.prisma.supplyUsageItem.findMany({
         where: { medical_supply_usage_id: usageId },
-        include: {
-          return_items: {
-            orderBy: {
-              return_datetime: 'desc',
-            },
-          },
-        },
         orderBy: {
           created_at: 'asc',
         },
@@ -1688,9 +1669,6 @@ export class MedicalSuppliesServiceService {
           qty_used_with_patient: newQtyUsed,
           item_status: newStatus,
         },
-        include: {
-          return_items: true,
-        },
       });
 
       // Create log
@@ -1702,7 +1680,7 @@ export class MedicalSuppliesServiceService {
         total_qty_used: newQtyUsed,
         item_status: newStatus,
         order_item_code: item.order_item_code,
-        patient_hn: item.usage.patient_hn,
+        patient_hn: (item as { usage?: { patient_hn?: string } }).usage?.patient_hn,
         recorded_by_user_id: data.recorded_by_user_id,
       });
 
@@ -1728,7 +1706,6 @@ export class MedicalSuppliesServiceService {
         where: { id: data.item_id },
         include: {
           usage: true,
-          return_items: true,
         },
       });
 
@@ -1744,7 +1721,7 @@ export class MedicalSuppliesServiceService {
         // Create return record
         const record = await tx.supplyItemReturnRecord.create({
           data: {
-            supply_usage_item_id: data.item_id,
+            item_stock_id: data.item_id,
             qty_returned: data.qty_returned,
             return_reason: data.return_reason,
             return_by_user_id: data.return_by_user_id,
@@ -1766,9 +1743,6 @@ export class MedicalSuppliesServiceService {
             qty_returned_to_cabinet: newQtyReturned,
             item_status: newStatus,
           },
-          include: {
-            return_items: true,
-          },
         });
 
         return [record, updated];
@@ -1785,7 +1759,7 @@ export class MedicalSuppliesServiceService {
         total_qty_returned: updatedItem.qty_returned_to_cabinet,
         item_status: updatedItem.item_status,
         order_item_code: item.order_item_code,
-        patient_hn: item.usage.patient_hn,
+        patient_hn: (item as { usage?: { patient_hn?: string } }).usage?.patient_hn,
         return_by_user_id: data.return_by_user_id,
       });
 
@@ -1846,7 +1820,6 @@ export class MedicalSuppliesServiceService {
           where,
           include: {
             usage: true,
-            return_items: true,
           },
           skip,
           take: limit,
@@ -1901,8 +1874,8 @@ export class MedicalSuppliesServiceService {
     limit: number;
   }> {
     try {
-      const page = query.page || 1;
-      const limit = query.limit || 10;
+      const page = Math.max(1, Number(query.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(query.limit) || 10));
       const skip = (page - 1) * limit;
 
       // Build where clause
@@ -1925,28 +1898,18 @@ export class MedicalSuppliesServiceService {
         }
       }
 
-      // Usage filters (via supply_item relation)
-      if (query.department_code || query.patient_hn) {
-        where.supply_item = {
-          usage: {},
-        };
-        if (query.department_code) {
-          where.supply_item.usage.department_code = query.department_code;
-        }
-        if (query.patient_hn) {
-          where.supply_item.usage.patient_hn = query.patient_hn;
-        }
-      }
-
+   
+      // SupplyItemReturnRecord มี item_stock (ไม่มี supply_item) — include item เพื่อเอา itemname
       const [records, total] = await Promise.all([
         this.prisma.supplyItemReturnRecord.findMany({
           where,
           include: {
-            supply_item: {
-              include: {
-                usage: true,
-              },
-            },
+            // item_stock: {
+            //   include: {
+            //     item: { select: { itemcode: true, itemname: true } },
+            //   },
+            // },
+            item_stock: true,
           },
           skip,
           take: limit,
@@ -1957,14 +1920,13 @@ export class MedicalSuppliesServiceService {
         this.prisma.supplyItemReturnRecord.count({ where }),
       ]);
 
-      // Resolve return_by_user_name for each record
+      // Resolve return_by_user_name และ map เป็น shape ที่ frontend ใช้ (supply_item จาก item_stock)
       const data = await Promise.all(records.map(async (record) => {
         let returnByName = 'ไม่ระบุ';
 
         if (record.return_by_user_id) {
           const userId = record.return_by_user_id;
 
-          // Check if it's in format "user:123" or "staff:456"
           if (userId.includes(':')) {
             const [userType, id] = userId.split(':');
             const userIdNum = parseInt(id, 10);
@@ -1974,20 +1936,15 @@ export class MedicalSuppliesServiceService {
                 where: { id: userIdNum },
                 select: { name: true },
               });
-              if (adminUser) {
-                returnByName = adminUser.name;
-              }
+              if (adminUser) returnByName = adminUser.name;
             } else if (userType === 'staff' && !isNaN(userIdNum)) {
               const staffUser = await this.prisma.staffUser.findUnique({
                 where: { id: userIdNum },
                 select: { fname: true, lname: true },
               });
-              if (staffUser) {
-                returnByName = `${staffUser.fname} ${staffUser.lname}`.trim();
-              }
+              if (staffUser) returnByName = `${staffUser.fname} ${staffUser.lname}`.trim();
             }
           } else {
-            // Try as number - check admin first, then staff
             const userIdNum = parseInt(userId, 10);
             if (!isNaN(userIdNum)) {
               const adminUser = await this.prisma.user.findUnique({
@@ -2001,17 +1958,34 @@ export class MedicalSuppliesServiceService {
                   where: { id: userIdNum },
                   select: { fname: true, lname: true },
                 });
-                if (staffUser) {
-                  returnByName = `${staffUser.fname} ${staffUser.lname}`.trim();
-                }
+                if (staffUser) returnByName = `${staffUser.fname} ${staffUser.lname}`.trim();
               }
             }
           }
         }
 
+        const ist = record.item_stock as { ItemCode?: string; RfidCode?: string; item?: { itemcode?: string; itemname?: string } } | null;
+        const itemName = ist?.item?.itemname ?? ist?.item?.itemcode ?? null;
+        const itemCode = ist?.ItemCode ?? ist?.item?.itemcode ?? null;
+
         return {
-          ...record,
+          id: record.id,
+          item_stock_id: record.item_stock_id,
+          qty_returned: record.qty_returned,
+          return_reason: record.return_reason,
+          return_datetime: record.return_datetime,
+          return_note: record.return_note,
+          return_by_user_id: record.return_by_user_id,
           return_by_user_name: returnByName,
+          created_at: record.created_at,
+          supply_item: {
+            order_item_code: itemCode ?? undefined,
+            supply_code: itemCode ?? undefined,
+            order_item_description: itemName ?? undefined,
+            supply_name: itemName ?? undefined,
+            usage: undefined,
+          },
+          item_stock: record.item_stock ? { ItemCode: ist?.ItemCode, RfidCode: ist?.RfidCode, item: ist?.item } : undefined,
         };
       }));
 
@@ -2092,16 +2066,10 @@ export class MedicalSuppliesServiceService {
         _count: true,
       });
 
-      // Get return reason counts
+      // Get return reason counts (SupplyItemReturnRecord ไม่มี supply_item แล้ว จึงไม่กรอง department)
       const returnReasonCounts = await this.prisma.supplyItemReturnRecord.groupBy({
         by: ['return_reason'],
-        where: departmentCode ? {
-          supply_item: {
-            usage: {
-              department_code: departmentCode,
-            },
-          },
-        } : {},
+        where: {},
         _count: true,
         _sum: {
           qty_returned: true,
@@ -3506,6 +3474,75 @@ export class MedicalSuppliesServiceService {
         filters: filters || {},
         error_message: error.message,
         error_code: error.code,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * บันทึกคืนอุปกรณ์ลง SupplyItemReturnRecord และอัปเดต itemstock (StockID = 1)
+   */
+  async recordStockReturns(data: RecordStockReturnDto) {
+    try {
+      if (!data.items || data.items.length === 0) {
+        throw new BadRequestException('items is required and must not be empty');
+      }
+      if (!data.return_by_user_id) {
+        throw new BadRequestException('return_by_user_id is required');
+      }
+
+      const userIdNum = parseInt(String(data.return_by_user_id), 10) || 0;
+
+      const rowIds = data.items.map((i) => i.item_stock_id);
+
+      await this.prisma.$transaction(async (tx) => {
+        for (const item of data.items) {
+          await tx.supplyItemReturnRecord.create({
+            data: {
+              item_stock_id: item.item_stock_id,
+              qty_returned: 1,
+              return_reason: item.return_reason,
+              return_by_user_id: data.return_by_user_id,
+              return_note: item.return_note ?? null,
+            },
+          });
+        }
+
+        if (rowIds.length > 0) {
+          await tx.$executeRaw`
+            UPDATE itemstock
+            SET 
+                -- StockID = 1,
+                CabinetUserID = ${userIdNum},
+                LastCabinetModify = NOW()
+            WHERE RowID IN (${Prisma.join(rowIds.map((id) => Prisma.sql`${id}`), ',')})
+              AND StockID = 0
+          `;
+        }
+      });
+
+      await this.createLog(null, {
+        type: 'CREATE',
+        status: 'SUCCESS',
+        action: 'recordStockReturns',
+        item_stock_ids: rowIds,
+        return_by_user_id: data.return_by_user_id,
+        count: data.items.length,
+      });
+
+      return {
+        success: true,
+        updatedCount: data.items.length,
+        message: `บันทึกการคืนอุปกรณ์เข้าตู้สำเร็จ ${data.items.length} รายการ`,
+      };
+    } catch (error: any) {
+      await this.createLog(null, {
+        type: 'CREATE',
+        status: 'ERROR',
+        action: 'recordStockReturns',
+        return_by_user_id: data?.return_by_user_id,
+        error_message: error?.message,
+        error_code: error?.code,
       });
       throw error;
     }

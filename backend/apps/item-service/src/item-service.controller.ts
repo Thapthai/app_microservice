@@ -95,4 +95,9 @@ export class ItemServiceController {
     const cabinet_id = query.cabinet_id;
     return this.itemServiceService.findAllItemStockInCabinet(page, limit, keyword, cabinet_id);
   }
+
+  @MessagePattern('itemStock.findAllWillReturn')
+  findAllItemStockWillReturn() {
+    return this.itemServiceService.findAllItemStockWillReturn();
+  }
 }

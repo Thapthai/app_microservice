@@ -1333,11 +1333,13 @@ export class GatewayApiController {
     @Query('return_reason') return_reason?: string,
     @Query('date_from') date_from?: string,
     @Query('date_to') date_to?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query('page') page?: string | number,
+    @Query('limit') limit?: string | number,
   ) {
     try {
-      const query = { department_code, patient_hn, return_reason, date_from, date_to, page, limit };
+      const pageNum = page != null ? Math.max(1, Number(page) || 1) : undefined;
+      const limitNum = limit != null ? Math.min(100, Math.max(1, Number(limit) || 10)) : undefined;
+      const query = { department_code, patient_hn, return_reason, date_from, date_to, page: pageNum, limit: limitNum };
       const result = await this.gatewayApiService.getReturnHistory(query);
       return result;
     } catch (error) {
@@ -1375,6 +1377,31 @@ export class GatewayApiController {
       throw new HttpException(
         error.message || 'Failed to get item stocks for return to cabinet',
         HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('medical-supply-items/record-stock-return')
+  @UseGuards(FlexibleAuthGuard)
+  async recordStockReturn(@Body() data: { items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }>; return_by_user_id?: string }, @Request() req: any) {
+    try {
+      if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
+        throw new HttpException('items is required and must not be empty', HttpStatus.BAD_REQUEST);
+      }
+      const returnByUserId = data.return_by_user_id || req.user?.user?.id || req.user?.id;
+      if (!returnByUserId) {
+        throw new HttpException('return_by_user_id is required', HttpStatus.UNAUTHORIZED);
+      }
+      const result = await this.gatewayApiService.recordStockReturns({
+        items: data.items,
+        return_by_user_id: String(returnByUserId),
+      });
+      return result;
+    } catch (error: any) {
+      const status = error?.status ?? error?.response?.status ?? HttpStatus.INTERNAL_SERVER_ERROR;
+      throw new HttpException(
+        error?.message || 'Failed to record stock return',
+        status,
       );
     }
   }
@@ -2652,6 +2679,21 @@ export class GatewayApiController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to fetch departments',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ==================================== Item Stock Return REST API ====================================
+  @Get('item-stocks/will-return')
+  @UseGuards(FlexibleAuthGuard)
+  async getItemStocksWillReturn() {
+    try {
+      const result = await this.gatewayApiService.findAllItemStockWillReturn();
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch item stocks will return',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

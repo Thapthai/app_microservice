@@ -417,7 +417,7 @@ model SupplyUsageItem {
 
   // Relations
   usage        MedicalSupplyUsage       @relation(fields: [medical_supply_usage_id], references: [id], onDelete: Cascade)
-  return_items SupplyItemReturnRecord[]
+  // return_items SupplyItemReturnRecord[]
 
   @@index([medical_supply_usage_id])
   @@index([order_item_code])
@@ -430,7 +430,8 @@ model SupplyUsageItem {
 // Supply Item Return Records - บันทึกรายการคืนอุปกรณ์แต่ละครั้ง
 model SupplyItemReturnRecord {
   id                   Int @id @default(autoincrement())
-  supply_usage_item_id Int @map("supply_usage_item_id")
+  // supply_usage_item_id Int @map("supply_usage_item_id")
+  item_stock_id Int @map("item_stock_id")
 
   // Return Details
   qty_returned      Int      @map("qty_returned") // จำนวนที่คืนในครั้งนี้
@@ -441,10 +442,11 @@ model SupplyItemReturnRecord {
 
   created_at DateTime @default(now()) @map("created_at")
 
-  // Relations
-  supply_item SupplyUsageItem @relation(fields: [supply_usage_item_id], references: [id], onDelete: Cascade)
+  // Relations (optional: บาง record อาจชี้ไป itemstock ที่ถูกลบหรืออยู่คนละ DB)
+  item_stock ItemStock? @relation(fields: [item_stock_id], references: [RowID], onDelete: Cascade)
 
-  @@index([supply_usage_item_id], map: "idx_return_supply_item")
+  // @@index([supply_usage_item_id], map: "idx_return_supply_item")
+  @@index([item_stock_id], map: "idx_return_item_stock")
   @@map("app_microservice_supply_item_return_records")
 }
 
@@ -542,6 +544,7 @@ model ItemStock {
   // Relations
   item    Item?    @relation(fields: [ItemCode], references: [itemcode], onDelete: SetNull)
   cabinet cabinet? @relation(fields: [StockID], references: [stock_id])
+  return_items SupplyItemReturnRecord[]
 
   @@map("itemstock")
 }

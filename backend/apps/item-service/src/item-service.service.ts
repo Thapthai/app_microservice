@@ -712,9 +712,9 @@ export class ItemServiceService {
       const itemsInfo =
         itemCodes.length > 0
           ? await this.prisma.item.findMany({
-              where: { itemcode: { in: itemCodes } },
-              select: { itemcode: true, itemname: true },
-            })
+            where: { itemcode: { in: itemCodes } },
+            select: { itemcode: true, itemname: true },
+          })
           : [];
       const itemNameMap = Object.fromEntries(itemsInfo.map((i) => [i.itemcode, i.itemname ?? i.itemcode]));
       const item_counts = itemCountsRaw.map((row) => ({
@@ -742,4 +742,61 @@ export class ItemServiceService {
     }
   }
 
+
+  // ====================================== Item Stock Return API ======================================
+  /**
+   * นับจำนวน itemstock ที่ StockID = 0
+   * และยังไม่มีรายการในตาราง app_microservice_supply_usage_items (ไม่ซ้ำ)
+   */
+  async findAllItemStockWillReturn() {
+    try {
+      const result: Array<{ itemcode: string }> = await this.prisma.$queryRaw`
+        -- SELECT
+        --     i.itemname,
+        --     ist.ItemCode,
+        --     ist.RfidCode 
+        -- FROM itemstock ist
+        -- LEFT JOIN item i 
+        --     ON i.itemcode = ist.ItemCode
+        -- WHERE ist.StockID = 0
+        -- AND NOT EXISTS (
+        --     SELECT 1
+        --     FROM app_microservice_supply_usage_items sui
+        --     WHERE sui.order_item_code = ist.ItemCode
+        -- );
+
+        SELECT
+            ist.ItemCode,
+            i.itemname,
+            ist.RowID,
+            ist.RfidCode 
+        FROM itemstock ist
+        LEFT JOIN item i ON i.itemcode = ist.ItemCode
+        WHERE ist.StockID = 0
+        AND NOT EXISTS (
+            SELECT 1
+            FROM app_microservice_supply_usage_items sui
+            WHERE sui.order_item_code = ist.ItemCode
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM app_microservice_supply_item_return_records srr
+            inner join itemstock on srr.item_stock_id = itemstock.RowID 
+            WHERE itemstock.ItemCode = ist.ItemCode
+        )
+        ORDER BY ist.ItemCode ASC;
+      `;
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch itemstock will return count',
+        error: (error as any)?.message ?? String(error),
+      };
+    }
+  }
 }

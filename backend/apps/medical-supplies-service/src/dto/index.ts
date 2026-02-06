@@ -5,6 +5,8 @@ export {
   ReturnReason,
   RecordItemUsedWithPatientDto,
   RecordItemReturnDto,
+  RecordStockReturnDto,
+  RecordStockReturnItemDto,
   GetPendingItemsQueryDto,
   GetReturnHistoryQueryDto,
   ReturnRecordResponse,

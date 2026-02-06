@@ -186,6 +186,11 @@ export const itemsApi = {
     return response.data;
   },
 
+  getItemStocksWillReturn: async (): Promise<{ success: boolean; data: any[] }> => {
+    const response = await api.get('/item-stocks/will-return');
+    return response.data as { success: boolean; data: any[] };
+  },
+
   getById: async (itemcode: string): Promise<ApiResponse<Item>> => {
     const response = await api.get(`/items/${itemcode}`);
     return response.data;
@@ -365,6 +370,14 @@ export const medicalSuppliesApi = {
     if (filters?.page) queryParams.append('page', filters.page.toString());
     if (filters?.limit) queryParams.append('limit', filters.limit.toString());
     const response = await api.get(`/medical-supply-items/return-to-cabinet?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  recordStockReturn: async (data: {
+    items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }>;
+    return_by_user_id?: string;
+  }): Promise<ApiResponse<any>> => {
+    const response = await api.post('/medical-supply-items/record-stock-return', data);
     return response.data;
   },
 

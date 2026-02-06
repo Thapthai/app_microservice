@@ -160,8 +160,8 @@ export class ReturnReportPdfService {
           doc.y += 18;
         }
 
-        // Table: 9 columns (ลำดับ, รหัส, ชื่อ, HN, EN, จำนวน, สาเหตุ, วันที่คืน, หมายเหตุ)
-        const colPct = [0.06, 0.10, 0.18, 0.08, 0.08, 0.08, 0.18, 0.12, 0.12];
+        // Table: 8 columns (ลำดับ, รหัส, ชื่อ, ชื่อผู้เติม, จำนวน, สาเหตุ, วันที่คืน, หมายเหตุ)
+        const colPct = [0.06, 0.12, 0.22, 0.14, 0.08, 0.18, 0.10, 0.10];
         const colWidths = colPct.map((p) => Math.floor(contentWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
         if (sumW < contentWidth) {
@@ -171,8 +171,7 @@ export class ReturnReportPdfService {
           'ลำดับ',
           'รหัสอุปกรณ์',
           'ชื่ออุปกรณ์',
-          'HN',
-          'EN',
+          'ชื่อผู้เติม',
           'จำนวน',
           'สาเหตุการคืน',
           'วันที่คืน',
@@ -225,8 +224,7 @@ export class ReturnReportPdfService {
               record.supply_item?.order_item_description ||
               record.supply_item?.supply_name ||
               '-';
-            const patientHn = record.supply_item?.usage?.patient_hn || '-';
-            const en = record.supply_item?.usage?.en || '-';
+            const returnByName = record.return_by_user_name ?? 'ไม่ระบุ';
             const returnDate =
               record.return_datetime instanceof Date
                 ? record.return_datetime.toLocaleDateString('th-TH')
@@ -236,8 +234,7 @@ export class ReturnReportPdfService {
               String(index + 1),
               String(itemCode).substring(0, 12),
               String(itemName).substring(0, 24),
-              String(patientHn).substring(0, 10),
-              String(en).substring(0, 10),
+              String(returnByName).substring(0, 14),
               String(record.qty_returned),
               this.getReturnReasonLabel(record.return_reason).substring(0, 18),
               returnDate,
@@ -245,14 +242,14 @@ export class ReturnReportPdfService {
             ];
 
             let xPos = margin;
-            for (let i = 0; i < 9; i++) {
-              const cw = colWidths[i];
+            for (let i = 0; i < 8; i++) {
+              const cw = colWidths[i] ?? 0;
               const w = Math.max(4, cw - cellPadding * 2);
               doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');
               doc.fillColor('#333333');
               doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
                 width: w,
-                align: i === 1 || i === 2 || i === 8 ? 'left' : 'center',
+                align: i === 1 || i === 2 || i === 3 || i === 7 ? 'left' : 'center',
               });
               xPos += cw;
             }

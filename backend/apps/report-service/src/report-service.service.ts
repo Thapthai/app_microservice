@@ -2362,11 +2362,7 @@ export class ReportServiceService {
         this.prisma.medicalSupplyUsage.findMany({
           where: baseWhere,
           include: {
-            supply_items: {
-              include: {
-                return_items: true, // รวม return records ด้วย
-              },
-            },
+            supply_items: true,
           },
           orderBy: {
             created_at: 'desc',
@@ -2376,17 +2372,20 @@ export class ReportServiceService {
       ]);
 
 
-      const reportData: DispensedItemsForPatientsReportData['data'] = data.map((usage, index) => ({
-        seq: index + 1,
-        patient_hn: usage.patient_hn ?? '-',
-        patient_name: usage.first_name ?? usage.lastname ?? usage.patient_name_th ?? usage.patient_name_en ?? '-',
-        en: usage.en ?? undefined,
-        department_code: usage.department_code ?? undefined,
-        itemcode: usage.supply_items[0]?.order_item_code ?? usage.supply_items[0]?.supply_code ?? '-',
-        itemname: usage.supply_items[0]?.order_item_description ?? usage.supply_items[0]?.supply_name ?? '-',
-        qty: Number(usage.supply_items[0]?.qty ?? usage.supply_items[0]?.quantity ?? 0),
-        dispensed_date: usage.usage_datetime ?? usage.created_at?.toISOString(),
-      }));
+      const reportData: DispensedItemsForPatientsReportData['data'] = data.map((usage, index) => {
+        const firstItem = (usage as { supply_items?: Array<{ order_item_code?: string; supply_code?: string; order_item_description?: string; supply_name?: string; qty?: number; quantity?: number }> }).supply_items?.[0];
+        return {
+          seq: index + 1,
+          patient_hn: usage.patient_hn ?? '-',
+          patient_name: usage.first_name ?? usage.lastname ?? usage.patient_name_th ?? usage.patient_name_en ?? '-',
+          en: usage.en ?? undefined,
+          department_code: usage.department_code ?? undefined,
+          itemcode: firstItem?.order_item_code ?? firstItem?.supply_code ?? '-',
+          itemname: firstItem?.order_item_description ?? firstItem?.supply_name ?? '-',
+          qty: Number(firstItem?.qty ?? firstItem?.quantity ?? 0),
+          dispensed_date: usage.usage_datetime ?? usage.created_at?.toISOString(),
+        };
+      });
 
       return {
         filters: {
@@ -2398,7 +2397,10 @@ export class ReportServiceService {
         },
         summary: {
           total_records: total,
-          total_qty: data.reduce((sum, usage) => sum + (Number(usage.supply_items[0]?.qty ?? usage.supply_items[0]?.quantity ?? 0)), 0),
+          total_qty: data.reduce((sum, usage) => {
+            const firstItem = (usage as { supply_items?: Array<{ qty?: number; quantity?: number }> }).supply_items?.[0];
+            return sum + (Number(firstItem?.qty ?? firstItem?.quantity ?? 0));
+          }, 0),
           total_patients: data.length,
         },
         data: reportData,
