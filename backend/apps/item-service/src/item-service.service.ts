@@ -768,7 +768,7 @@ export class ItemServiceService {
             LEFT JOIN item i 
                 ON i.itemcode = ist.ItemCode
             CROSS JOIN (SELECT @rn := 0, @prev_code := '') vars
-            WHERE ist.IsStock = 0 And date(ist.LastCabinetModify) = date(now())
+            WHERE ist.IsStock = 0 
             ORDER BY ist.ItemCode, ist.RowID
         ) s
         LEFT JOIN (
