@@ -1951,8 +1951,8 @@ export class ReportServiceService {
     endDate?: string;
     page?: number;
     limit?: number;
-    departmentCode?: string;
-    cabinetCode?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<any> {
     try {
       const response: any = await firstValueFrom(
@@ -1986,8 +1986,8 @@ export class ReportServiceService {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
-    departmentCode?: string;
-    cabinetCode?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<Buffer> {
     try {
       const returnedData = await this.getReturnToCabinetReportData({
@@ -2002,6 +2002,8 @@ export class ReportServiceService {
           itemTypeId: params.itemTypeId,
           startDate: params.startDate,
           endDate: params.endDate,
+          departmentId: params.departmentId,
+          cabinetId: params.cabinetId,
         },
         summary: {
           total_records: returnedData.total || returnedData.data?.length || 0,
@@ -2029,8 +2031,8 @@ export class ReportServiceService {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
-    departmentCode?: string;
-    cabinetCode?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<Buffer> {
     try {
       const returnedData = await this.getReturnToCabinetReportData({
@@ -2045,6 +2047,8 @@ export class ReportServiceService {
           itemTypeId: params.itemTypeId,
           startDate: params.startDate,
           endDate: params.endDate,
+          departmentId: params.departmentId,
+          cabinetId: params.cabinetId,
         },
         summary: {
           total_records: returnedData.total || returnedData.data?.length || 0,

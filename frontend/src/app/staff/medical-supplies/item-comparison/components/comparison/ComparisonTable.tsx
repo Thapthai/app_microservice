@@ -349,7 +349,7 @@ export function ComparisonTable({
                       if (isLoadingUsage) {
                         rows.push(
                           <TableRow key={`${item.itemcode}-loading`} className="bg-blue-50">
-                            <TableCell colSpan={9} className="text-center py-6">
+                            <TableCell colSpan={7} className="text-center py-6">
                               <RefreshCw className="h-5 w-5 animate-spin inline-block mr-2 text-blue-600" />
                               <span className="text-blue-700 font-medium">กำลังโหลดรายการผู้ป่วย...</span>
                             </TableCell>
@@ -358,7 +358,7 @@ export function ComparisonTable({
                       } else if (itemUsageData.length === 0) {
                         rows.push(
                           <TableRow key={`${item.itemcode}-empty`} className="bg-blue-50">
-                            <TableCell colSpan={9} className="text-center py-6">
+                            <TableCell colSpan={7} className="text-center py-6">
                               <Package className="h-5 w-5 inline-block mr-2 text-blue-400" />
                               <span className="text-blue-600 font-medium">ไม่พบรายการผู้ป่วยที่ใช้เวชภัณฑ์นี้</span>
                             </TableCell>
@@ -453,7 +453,7 @@ export function ComparisonTable({
                               key={`${item.itemcode}-see-more`}
                               className="bg-blue-100 hover:bg-blue-200 border-l-4 border-l-blue-400"
                             >
-                              <TableCell colSpan={8} className="text-center py-3">
+                              <TableCell colSpan={7} className="text-center py-3">
                                 <Button
                                   variant="ghost"
                                   size="sm"

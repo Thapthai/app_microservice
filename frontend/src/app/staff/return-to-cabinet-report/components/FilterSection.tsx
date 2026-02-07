@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Search, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { FilterState } from "../../dispense-from-cabinet/types";
+import type { FilterState } from "../types.ts";
 import SearchableSelect from "@/app/admin/items/components/SearchableSelect";
-import { staffDepartmentApi } from "@/lib/staffApi/departmentApi";
+import { cabinetApi, departmentApi, cabinetDepartmentApi } from "@/lib/api";
 import { staffCabinetApi, staffCabinetDepartmentApi } from "@/lib/staffApi/cabinetApi";
+import { staffDepartmentApi } from "@/lib/staffApi/departmentApi";
 
 interface Department {
   ID: number;
@@ -45,7 +46,7 @@ interface CabinetDepartmentMapping {
 interface FilterSectionProps {
   filters: FilterState;
   onFilterChange: (key: keyof FilterState, value: string) => void;
-  onSearch: (extra?: Partial<FilterState>) => void;
+  onSearch: () => void;
   onClear: () => void;
   onRefresh: () => void;
   itemTypes: Array<{ id: string; name: string }>;
@@ -64,7 +65,6 @@ export default function FilterSection({
   const [cabinets, setCabinets] = useState<Cabinet[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [loadingCabinets, setLoadingCabinets] = useState(false);
-  const hasInitialSearch = useRef(false);
 
   const loadDepartments = async (keyword?: string) => {
     try {
@@ -121,16 +121,17 @@ export default function FilterSection({
   const loadAllCabinets = async (keyword?: string) => {
     try {
       setLoadingCabinets(true);
-      const response = await staffCabinetApi.getAll({ page: 1, limit: 50, keyword });
-      const data = Array.isArray((response as any)?.data) ? (response as any).data : (response as any);
-      const allCabinets = (Array.isArray(data) ? data : []) as Cabinet[];
-      const filteredCabinets = allCabinets.filter((cabinet) => {
-        if (cabinet.cabinetDepartments && cabinet.cabinetDepartments.length > 0) {
-          return cabinet.cabinetDepartments.some((cd) => cd.status === "ACTIVE");
-        }
-        return cabinet.cabinet_status === "ACTIVE";
-      });
-      setCabinets(filteredCabinets);
+      const response = await cabinetApi.getAll({ page: 1, limit: 50, keyword });
+      if (response.success && response.data) {
+        const allCabinets = response.data as Cabinet[];
+        const filteredCabinets = allCabinets.filter((cabinet) => {
+          if (cabinet.cabinetDepartments && cabinet.cabinetDepartments.length > 0) {
+            return cabinet.cabinetDepartments.some((cd) => cd.status === "ACTIVE");
+          }
+          return cabinet.cabinet_status === "ACTIVE";
+        });
+        setCabinets(filteredCabinets);
+      }
     } catch (error) {
       console.error("Failed to load cabinets:", error);
     } finally {
@@ -146,43 +147,8 @@ export default function FilterSection({
     loadCabinetsByDepartment(filters.departmentId);
   }, [filters.departmentId]);
 
-  // ค้นหาครั้งแรกเมื่อโหลดแผนก/ตู้เสร็จ (ค่าเริ่มต้น 29/1) หรือหลังล้างแล้วกลับมา 29/1
-  useEffect(() => {
-    if (hasInitialSearch.current) {
-      return;
-    }
-    if (
-      !filters.departmentId ||
-      !filters.cabinetId ||
-      cabinets.length === 0 ||
-      loadingCabinets
-    ) {
-      return;
-    }
-    const selectedDept = departments.find((d) => d.ID.toString() === filters.departmentId);
-    const selectedCabinet = cabinets.find((c) => c.id.toString() === filters.cabinetId);
-    const resolvedDepartmentCode = selectedDept?.DepCode ?? "";
-    const resolvedCabinetCode = selectedCabinet?.cabinet_code ?? "";
-    const pageHasCodes = filters.departmentCode !== undefined || filters.cabinetCode !== undefined;
-    const codesMatch =
-      filters.departmentCode === resolvedDepartmentCode &&
-      filters.cabinetCode === resolvedCabinetCode;
-    if (pageHasCodes && codesMatch) return;
-    if (!resolvedDepartmentCode && !resolvedCabinetCode) return;
-    hasInitialSearch.current = true;
-    onSearch({
-      departmentCode: resolvedDepartmentCode,
-      cabinetCode: resolvedCabinetCode,
-    });
-  }, [cabinets, loadingCabinets, filters.departmentId, filters.cabinetId, filters.departmentCode, filters.cabinetCode]);
-
   const handleSearch = () => {
-    const selectedDept = departments.find((d) => d.ID.toString() === filters.departmentId);
-    const selectedCabinet = cabinets.find((c) => c.id.toString() === filters.cabinetId);
-    onSearch({
-      departmentCode: selectedDept?.DepCode ?? "",
-      cabinetCode: selectedCabinet?.cabinet_code ?? "",
-    });
+    onSearch();
   };
 
   return (

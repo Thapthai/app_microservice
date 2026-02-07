@@ -33,6 +33,7 @@ interface WillReturnItem {
   itemname: string;
   ItemCode: string;
   RfidCode: string;
+  RowID: number;
 }
 
 export default function ReturnMedicalSuppliesPage() {
@@ -128,6 +129,8 @@ export default function ReturnMedicalSuppliesPage() {
         });
       }
 
+      console.log('[ReturnToCabinet] items:', items);
+
       if (items.length === 0) {
         toast.error('ไม่พบ RowID สำหรับรายการที่เลือก');
         return;
@@ -139,7 +142,7 @@ export default function ReturnMedicalSuppliesPage() {
       });
 
       if (resp?.success) {
-        toast.success(resp.message || `บันทึกการคืนอุปกรณ์เข้าตู้สำเร็จ ${resp.updatedCount ?? items.length} รายการ`);
+        toast.success(resp.message || `บันทึกการแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / ชำรุดเข้าตู้สำเร็จ ${resp.updatedCount ?? items.length} รายการ`);
         setSelectedIndices([]);
         setRowDetails({});
         await loadWillReturnItems();
@@ -258,9 +261,6 @@ export default function ReturnMedicalSuppliesPage() {
                 <CardContent className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-slate-600">
-                        ข้อมูลมาจาก API <code className="font-mono text-[11px] bg-slate-100 px-1 py-0.5 rounded">/item-stocks/will-return</code>
-                      </p>
                       <p className="text-xs text-slate-500 mt-1">
                         แสดงรายการจากตู้ที่มีโอกาสต้องคืนเข้าตู้ Vending
                       </p>
@@ -355,7 +355,7 @@ export default function ReturnMedicalSuppliesPage() {
                                 </TableCell>
                                 <TableCell>
                                   <code className="text-xs bg-slate-100 px-2 py-1 rounded">
-                                    {item.RfidCode}
+                                    {item.RfidCode} || {item.RowID}
                                   </code>
                                 </TableCell>
                                 <TableCell className="font-mono text-sm">{item.ItemCode}</TableCell>

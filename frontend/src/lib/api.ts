@@ -876,16 +876,16 @@ export const vendingReportsApi = {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
-    departmentCode?: string;
-    cabinetCode?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<void> => {
     const queryParams = new URLSearchParams();
     if (params?.keyword) queryParams.append('keyword', params.keyword);
     if (params?.itemTypeId) queryParams.append('itemTypeId', params.itemTypeId.toString());
     if (params?.startDate) queryParams.append('startDate', params.startDate);
     if (params?.endDate) queryParams.append('endDate', params.endDate);
-    if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
-    if (params?.cabinetCode) queryParams.append('cabinetCode', params.cabinetCode);
+    if (params?.departmentId) queryParams.append('departmentId', params.departmentId);
+    if (params?.cabinetId) queryParams.append('cabinetId', params.cabinetId);
     const response = await api.get(`/reports/return-to-cabinet/excel?${queryParams.toString()}`, {
       responseType: 'blob',
     });
@@ -902,16 +902,16 @@ export const vendingReportsApi = {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
-    departmentCode?: string;
-    cabinetCode?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<void> => {
     const queryParams = new URLSearchParams();
     if (params?.keyword) queryParams.append('keyword', params.keyword);
     if (params?.itemTypeId) queryParams.append('itemTypeId', params.itemTypeId.toString());
     if (params?.startDate) queryParams.append('startDate', params.startDate);
     if (params?.endDate) queryParams.append('endDate', params.endDate);
-    if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
-    if (params?.cabinetCode) queryParams.append('cabinetCode', params.cabinetCode);
+    if (params?.departmentId) queryParams.append('departmentId', params.departmentId);
+    if (params?.cabinetId) queryParams.append('cabinetId', params.cabinetId);
     const response = await api.get(`/reports/return-to-cabinet/pdf?${queryParams.toString()}`, {
       responseType: 'blob',
     });

@@ -87,8 +87,8 @@ export default function DispensedTable({
                     <TableHead>รหัสอุปกรณ์</TableHead>
                     <TableHead>ชื่ออุปกรณ์</TableHead>
                     <TableHead>วันที่เบิก</TableHead>
-                    <TableHead className="text-right">จำนวน</TableHead>
-                    <TableHead>ประเภท</TableHead>
+                    <TableHead>แผนก</TableHead>
+                    {/* <TableHead>ประเภท</TableHead> */}
                     <TableHead>RFID Code</TableHead>
                     <TableHead>ชื่อผู้เบิก</TableHead>
                   </TableRow>
@@ -107,8 +107,8 @@ export default function DispensedTable({
                       <TableCell>
                         {formatThaiDateTime(item.modifyDate)}
                       </TableCell>
-                      <TableCell className="text-right font-medium">{item.qty}</TableCell>
-                      <TableCell>{item.itemCategory || '-'}</TableCell>
+                      <TableCell>{item.departmentName || '-'}</TableCell>
+                      {/* <TableCell>{item.itemCategory || '-'}</TableCell> */}
                       <TableCell>{item.RfidCode || '-'}</TableCell>
                       <TableCell>{item.cabinetUserName || 'ไม่ระบุ'}</TableCell>
                     </TableRow>

@@ -751,40 +751,42 @@ export class ItemServiceService {
   async findAllItemStockWillReturn() {
     try {
       const result: Array<{ itemcode: string }> = await this.prisma.$queryRaw`
-        -- SELECT
-        --     i.itemname,
-        --     ist.ItemCode,
-        --     ist.RfidCode 
-        -- FROM itemstock ist
-        -- LEFT JOIN item i 
-        --     ON i.itemcode = ist.ItemCode
-        -- WHERE ist.StockID = 0
-        -- AND NOT EXISTS (
-        --     SELECT 1
-        --     FROM app_microservice_supply_usage_items sui
-        --     WHERE sui.order_item_code = ist.ItemCode
-        -- );
-
         SELECT
-            ist.ItemCode,
-            i.itemname,
-            ist.RowID,
-            ist.RfidCode 
-        FROM itemstock ist
-        LEFT JOIN item i ON i.itemcode = ist.ItemCode
-        WHERE ist.StockID = 0
-        AND NOT EXISTS (
-            SELECT 1
+            s.ItemCode,
+            s.itemname,
+            s.RowID,
+            s.RfidCode
+        FROM (
+            SELECT
+                ist.RowID,
+                ist.ItemCode,
+                ist.RfidCode,
+                i.itemname,
+                @rn := IF(@prev_code = ist.ItemCode, @rn + 1, 1) AS rn,
+                @prev_code := ist.ItemCode
+            FROM itemstock ist
+            LEFT JOIN item i 
+                ON i.itemcode = ist.ItemCode
+            CROSS JOIN (SELECT @rn := 0, @prev_code := '') vars
+            WHERE ist.IsStock = 0 And date(ist.LastCabinetModify) = date(now())
+            ORDER BY ist.ItemCode, ist.RowID
+        ) s
+        LEFT JOIN (
+            SELECT
+                sui.order_item_code AS ItemCode,
+                SUM(sui.qty) AS used_qty
             FROM app_microservice_supply_usage_items sui
-            WHERE sui.order_item_code = ist.ItemCode
-        )
+            GROUP BY sui.order_item_code
+        ) u
+            ON u.ItemCode = s.ItemCode
+        WHERE s.rn > IFNULL(u.used_qty, 0)
         AND NOT EXISTS (
             SELECT 1
             FROM app_microservice_supply_item_return_records srr
-            inner join itemstock on srr.item_stock_id = itemstock.RowID 
-            WHERE itemstock.ItemCode = ist.ItemCode
+            WHERE srr.item_stock_id = s.RowID
         )
-        ORDER BY ist.ItemCode ASC;
+        ORDER BY s.ItemCode ASC, s.RowID;
+
       `;
 
       return {

@@ -147,12 +147,13 @@ export class DispensedItemsPdfService {
         const itemHeight = 18;
         const cellPadding = 4;
         const totalTableWidth = contentWidth;
-        // 8 columns: ลำดับ, รหัสอุปกรณ์, ชื่ออุปกรณ์, วันที่เบิก, จำนวน, ประเภท, RFID Code, ชื่อผู้เบิก (ไม่มี สถานะ RFID)
-        const colPct = [0.06, 0.12, 0.22, 0.14, 0.08, 0.10, 0.14, 0.14];
+        // 7 columns: ลำดับ, รหัสอุปกรณ์, ชื่ออุปกรณ์, วันที่เบิก, แผนก, RFID Code, ชื่อผู้เบิก (ไม่มี สถานะ RFID)
+        // ปรับสัดส่วนคอลัมน์ให้ใกล้เคียงกับ Excel version มากขึ้น
+        const colPct = [0.065, 0.117, 0.208, 0.13, 0.13, 0.208, 0.142];
         const colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
         if (sumW < totalTableWidth) colWidths[2] += totalTableWidth - sumW;
-        const headers = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่เบิก', 'จำนวน', 'ประเภท', 'RFID Code', 'ชื่อผู้เบิก'];
+        const headers = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่เบิก', 'แผนก', 'RFID Code', 'ชื่อผู้เบิก'];
 
         const drawTableHeader = (y: number) => {
           let x = margin;
@@ -198,14 +199,13 @@ export class DispensedItemsPdfService {
             const cellTexts = [
               String(idx + 1),
               (item?.itemcode ?? '-').toString().substring(0, 14),
-              (item?.itemname ?? '-').toString().substring(0, 24),
+              (item?.itemname ?? '-').toString().substring(0, 30),
               formatReportDateTime(item?.modifyDate as any).substring(0, 18),
-              item?.qty != null ? String(item.qty) : '0',
-              (item?.itemCategory ?? '-').toString().substring(0, 10),
-              (item?.RfidCode ?? '-').toString().substring(0, 14),
-              (item?.cabinetUserName ?? 'ไม่ระบุ').toString().substring(0, 14),
+              item?.departmentName ?? '-',
+              (item?.RfidCode ?? '-').toString().substring(0, 18),
+              (item?.cabinetUserName ?? 'ไม่ระบุ').toString().substring(0, 18),
             ];
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 7; i++) {
               const cw = colWidths[i];
               const w = Math.max(4, cw - cellPadding * 2);
               doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');

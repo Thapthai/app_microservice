@@ -324,8 +324,8 @@ export class GatewayApiService {
     endDate?: string;
     page?: number;
     limit?: number;
-    departmentCode?: string;
-    cabinetCode?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }) {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply.getReturnedItems' }, filters || {}).toPromise();
   }
@@ -866,8 +866,8 @@ export class GatewayApiService {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
-    departmentCode?: string;
-    cabinetCode?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<any> {
     return firstValueFrom(
       this.reportClient.send({ cmd: 'report.return_to_cabinet.excel' }, params)
@@ -879,8 +879,8 @@ export class GatewayApiService {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
-    departmentCode?: string;
-    cabinetCode?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<any> {
     return firstValueFrom(
       this.reportClient.send({ cmd: 'report.return_to_cabinet.pdf' }, params)

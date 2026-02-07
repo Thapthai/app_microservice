@@ -40,6 +40,7 @@ export interface DispensedItemsReportData {
     Istatus_rfid?: number;
     CabinetUserID?: number;
     cabinetUserName?: string;
+    departmentName?: string;
   }>;
 }
 
@@ -92,7 +93,7 @@ export class DispensedItemsExcelService {
     worksheet.getRow(2).height = 20;
     worksheet.getColumn(1).width = 12;
 
-    worksheet.mergeCells('B1:H2');
+    worksheet.mergeCells('B1:G2');
     const headerCell = worksheet.getCell('B1');
     headerCell.value = 'รายงานการเบิกอุปกรณ์\nDispensed Items Report';
     headerCell.font = { name: 'Tahoma', size: 14, bold: true, color: { argb: 'FF1A365D' } };
@@ -109,7 +110,7 @@ export class DispensedItemsExcelService {
     };
 
     // แถว 3: วันที่รายงาน
-    worksheet.mergeCells('A3:H3');
+    worksheet.mergeCells('A3:G3');
     const dateCell = worksheet.getCell('A3');
     dateCell.value = `วันที่รายงาน: ${reportDate}`;
     dateCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF6C757D' } };
@@ -119,7 +120,7 @@ export class DispensedItemsExcelService {
 
     // ---- ตารางข้อมูล (แสดงก่อน สรุปผล/เงื่อนไข) - ไม่มีคอลัมน์ สถานะ RFID ----
     const tableStartRow = 5;
-    const tableHeaders = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่เบิก', 'จำนวน', 'ประเภท', 'RFID Code', 'ชื่อผู้เบิก'];
+    const tableHeaders = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่เบิก', 'แผนก', 'RFID Code', 'ชื่อผู้เบิก'];
     const headerRow = worksheet.getRow(tableStartRow);
     tableHeaders.forEach((h, i) => {
       const cell = headerRow.getCell(i + 1);
@@ -140,15 +141,14 @@ export class DispensedItemsExcelService {
         item.itemcode,
         item.itemname ?? '-',
         formatReportDateTime(item.modifyDate),
-        item.qty,
-        item.itemCategory ?? '-',
+        item.departmentName ?? '-',
         item.RfidCode ?? '-',
         item.cabinetUserName ?? 'ไม่ระบุ',
-      ].forEach((val, colIndex) => {
-        const cell = excelRow.getCell(colIndex + 1);
-        cell.value = val;
-        cell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF212529' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+      ].forEach((val, colIndex: number) => {
+        const cell = excelRow.getCell(colIndex + 1 as any);
+        cell.value = val as any;
+        cell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF212529' } } as any;
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } } as any;
         cell.alignment = {
           horizontal: colIndex === 2 ? 'left' : 'center',
           vertical: 'middle',
@@ -201,10 +201,10 @@ export class DispensedItemsExcelService {
     worksheet.getColumn(2).width = 18;
     worksheet.getColumn(3).width = 32;
     worksheet.getColumn(4).width = 20;
-    worksheet.getColumn(5).width = 12;
-    worksheet.getColumn(6).width = 14;
+    worksheet.getColumn(5).width = 20;
+    worksheet.getColumn(6).width = 32;
     worksheet.getColumn(7).width = 22;
-    worksheet.getColumn(8).width = 22;
+ 
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);

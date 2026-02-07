@@ -637,6 +637,8 @@ export class MedicalSuppliesServiceService {
 
       // Build where clause - support both HN and patient_hn
       const baseWhere: any = {};
+    
+
       if (query.patient_hn || query.HN) {
         baseWhere.patient_hn = query.patient_hn || query.HN;
       }
@@ -681,17 +683,20 @@ export class MedicalSuppliesServiceService {
           { patient_name_th: { contains: keyword } },
           { patient_name_en: { contains: keyword } },
           { en: { contains: keyword } },
-          // Search in item names/descriptions
+          // Search in item names/descriptions เฉพาะรายการที่ order_item_status != 'Discontinue'
           {
             supply_items: {
               some: {
+                order_item_status: {
+                  not: 'Discontinue',
+                },
                 OR: [
                   { order_item_description: { contains: keyword } },
                   { supply_name: { contains: keyword } },
-                  { order_item_code: { contains: keyword } }
-                ]
-              }
-            }
+                  { order_item_code: { contains: keyword } },
+                ],
+              },
+            },
           }
         );
       }
@@ -874,13 +879,16 @@ export class MedicalSuppliesServiceService {
         const usagePlain = JSON.parse(JSON.stringify(usage));
 
         // Convert supply_items to plain objects as well
-        const supplyItemsPlain = usage.supply_items.map(item => {
-          const itemPlain = JSON.parse(JSON.stringify(item));
-          return {
-            ...itemPlain,
-            qty_pending: (item.qty || 0) - (item.qty_used_with_patient || 0) - (item.qty_returned_to_cabinet || 0),
-          };
-        });
+        // และตัดรายการที่ order_item_status === 'Discontinue' (ไม่ว่าจะตัวพิมพ์เล็ก/ใหญ่) ออกไม่ให้ส่งกลับไปหน้า UI
+        const supplyItemsPlain = usage.supply_items
+          .filter(item => (item.order_item_status || '').toLowerCase() !== 'discontinue')
+          .map(item => {
+            const itemPlain = JSON.parse(JSON.stringify(item));
+            return {
+              ...itemPlain,
+              qty_pending: (item.qty || 0) - (item.qty_used_with_patient || 0) - (item.qty_returned_to_cabinet || 0),
+            };
+          });
 
         const result: any = {
           ...usagePlain,
@@ -1898,7 +1906,7 @@ export class MedicalSuppliesServiceService {
         }
       }
 
-   
+
       // SupplyItemReturnRecord มี item_stock (ไม่มี supply_item) — include item เพื่อเอา itemname
       const [records, total] = await Promise.all([
         this.prisma.supplyItemReturnRecord.findMany({
@@ -2127,7 +2135,7 @@ export class MedicalSuppliesServiceService {
 
       // Build WHERE conditions for raw SQL
       const sqlConditions: Prisma.Sql[] = [
-        Prisma.sql`ist.StockID = 0`,
+        Prisma.sql`ist.IsStock = 0`,
         Prisma.sql`ist.RfidCode <> ''`,
       ];
 
@@ -2176,13 +2184,16 @@ export class MedicalSuppliesServiceService {
           ist.StockID,
           ist.Istatus_rfid,
           ist.CabinetUserID,
-          COALESCE(CONCAT(employee.FirstName, ' ', employee.LastName), 'ไม่ระบุ') AS cabinetUserName
+          COALESCE(CONCAT(employee.FirstName, ' ', employee.LastName), 'ไม่ระบุ') AS cabinetUserName,
+          department.DepName AS departmentName
         FROM itemstock ist
         LEFT JOIN item i ON ist.ItemCode = i.itemcode
         LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.cabinet_finger_id
         LEFT JOIN users ON user_cabinet.user_id = users.ID
         LEFT JOIN employee ON employee.EmpCode = users.EmpCode
         LEFT JOIN app_microservice_cabinets on app_microservice_cabinets.stock_id = ist.StockID
+        LEFT JOIN app_microservice_cabinet_departments on app_microservice_cabinet_departments.cabinet_id = app_microservice_cabinets.ID
+        LEFT JOIN department on department.ID = app_microservice_cabinet_departments.department_id
         WHERE ${whereClause}
         ORDER BY ist.LastCabinetModify DESC
         LIMIT ${limit}
@@ -2242,8 +2253,8 @@ export class MedicalSuppliesServiceService {
     endDate?: string;
     page?: number;
     limit?: number;
-    departmentCode?: string;
-    cabinetCode?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }) {
     try {
       const page = filters?.page || 1;
@@ -2252,7 +2263,7 @@ export class MedicalSuppliesServiceService {
 
       // Build WHERE conditions for raw SQL - Same as getDispensedItems but StockID = 1
       const sqlConditions: Prisma.Sql[] = [
-        Prisma.sql`ist.StockID != 0`,
+        Prisma.sql`ist.IsStock != 0`,
         Prisma.sql`ist.RfidCode <> ''`,
       ];
 
@@ -2273,17 +2284,17 @@ export class MedicalSuppliesServiceService {
 
       }
 
-      if (filters?.departmentCode) {
-        sqlConditions.push(Prisma.raw(`department.DepCode = '${filters.departmentCode}'`));
+      if (filters?.departmentId) {
+        sqlConditions.push(Prisma.raw(`department.id = '${filters.departmentId}'`));
       }
 
-      if (filters?.cabinetCode) {
-        sqlConditions.push(Prisma.raw(`app_microservice_cabinets.cabinet_code = '${filters.cabinetCode}'`));
+      if (filters?.cabinetId) {
+        sqlConditions.push(Prisma.raw(`app_microservice_cabinets.id = '${filters.cabinetId}'`));
       }
 
       // Combine WHERE conditions with AND
       const whereClause = Prisma.join(sqlConditions, ' AND ');
-
+    
       // Get total count first - Same structure as main query
       const countResult: any[] = await this.prisma.$queryRaw`
         SELECT count(ist.RowID) as total
@@ -2874,6 +2885,7 @@ export class MedicalSuppliesServiceService {
       // 1. Get Dispensed Items (from itemstock)
       const sqlConditionsDispensed: Prisma.Sql[] = [
         // Prisma.sql`ist.StockID = 0`,
+        Prisma.sql`IsStock = 0`,
         Prisma.sql`RfidCode <> ''`,
       ];
 
@@ -2894,14 +2906,7 @@ export class MedicalSuppliesServiceService {
         );
       }
 
-
-
-
       const sqlConditionsUsage: Prisma.Sql[] = [];
-
-      sqlConditionsUsage.push(
-        Prisma.raw(`order_item_status != 'Discontinue' AND order_item_status != 'discontinue' AND order_item_status != 'Discontinued' AND order_item_status != 'discontinued'`)
-      );
 
       if (filters?.startDate && filters?.endDate) {
 
@@ -2913,6 +2918,17 @@ export class MedicalSuppliesServiceService {
           Prisma.raw(`(DATE(LastCabinetModify) BETWEEN '${filters.startDate}' AND '${filters.endDate}')`)
         );
       }
+
+      sqlConditionsUsage.push(
+        Prisma.raw(`order_item_status != 'Discontinue' 
+          AND order_item_status != 'discontinue' 
+          AND order_item_status != 'Discontinued' 
+          AND order_item_status != 'discontinued'
+          AND order_item_status != 'Discontinue'
+          AND order_item_status != 'discontinue'
+          AND order_item_status != 'Discontinued'
+          AND order_item_status != 'discontinued'`)
+      );
 
 
       const whereClauseDispensed = Prisma.join(sqlConditionsDispensed, ' AND ');
@@ -3375,8 +3391,9 @@ export class MedicalSuppliesServiceService {
       const offset = (page - 1) * limit;
 
       // Build WHERE conditions for raw SQL
+      // ใช้ IsStock = 0 (เหมือน query findAllItemStockWillReturn) แทน StockID = 0
       const sqlConditions: Prisma.Sql[] = [
-        Prisma.sql`ist.StockID = 0`,
+        Prisma.sql`ist.IsStock = 0`,
         Prisma.sql`ist.RfidCode <> ''`,
       ];
 

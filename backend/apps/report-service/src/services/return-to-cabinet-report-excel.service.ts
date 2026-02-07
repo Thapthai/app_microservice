@@ -26,6 +26,8 @@ export interface ReturnToCabinetReportData {
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
+    departmentId?: string;
+    cabinetId?: string;
   };
   summary: {
     total_records: number;
@@ -120,10 +122,49 @@ export class ReturnToCabinetReportExcelService {
     dateCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF6C757D' } };
     dateCell.alignment = { horizontal: 'right', vertical: 'middle' };
     worksheet.getRow(3).height = 20;
-    worksheet.addRow([]);
+
+    let currentRow = 3;
+
+    // // แสดงเงื่อนไขการค้นหาให้สอดคล้องกับ params ที่ส่งมา
+    
+    // const filters = data.filters ?? {};
+    // if (
+    //   filters.keyword ||
+    //   filters.itemTypeId != null ||
+    //   filters.startDate ||
+    //   filters.endDate ||
+    //   filters.departmentId ||
+    //   filters.cabinetId
+    // ) {
+    //   currentRow += 1;
+    //   worksheet.mergeCells(`A${currentRow}:G${currentRow}`);
+    //   const filterCell = worksheet.getCell(`A${currentRow}`);
+    //   const parts: string[] = [];
+    //   if (filters.keyword) parts.push(`คำค้นหา: ${filters.keyword}`);
+    //   if (filters.startDate || filters.endDate) {
+    //     parts.push(`วันที่: ${filters.startDate ?? ''} ถึง ${filters.endDate ?? ''}`);
+    //   }
+    //   if (filters.departmentId) parts.push(`แผนก ID: ${filters.departmentId}`);
+    //   if (filters.cabinetId) parts.push(`ตู้ ID: ${filters.cabinetId}`);
+    //   if (filters.itemTypeId != null) parts.push(`ประเภทอุปกรณ์ ID: ${filters.itemTypeId}`);
+
+    //   filterCell.value = parts.join(' | ');
+    //   filterCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF495057' } };
+    //   filterCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+    //   filterCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
+    //   filterCell.border = {
+    //     top: { style: 'thin' },
+    //     left: { style: 'thin' },
+    //     right: { style: 'thin' },
+    //     bottom: { style: 'thin' },
+    //   };
+    // }
+
+    // เว้นบรรทัดก่อนตาราง
+    currentRow += 2;
 
     // ---- ตารางข้อมูล (รูปแบบเดียวกับ dispensed-items-for-patients) ----
-    const tableStartRow = 5;
+    const tableStartRow = currentRow;
     const tableHeaders = [
       'ลำดับ',
       'รหัสอุปกรณ์',

@@ -265,9 +265,6 @@ export default function ReturnMedicalSuppliesPage() {
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-600">
-                    ข้อมูลมาจาก API <code className="font-mono text-[11px] bg-slate-100 px-1 py-0.5 rounded">/item-stocks/will-return</code>
-                  </p>
                   <p className="text-xs text-slate-500 mt-1">
                     แสดงรายการจากตู้ที่มีโอกาสต้องคืนเข้าตู้ Vending
                   </p>

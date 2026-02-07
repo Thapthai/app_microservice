@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { RotateCcw } from 'lucide-react';
 import FilterSection from './components/FilterSection';
 import ReturnedTable from './components/ReturnedTable';
-import type { DispensedItem, FilterState, SummaryData } from '../dispense-from-cabinet/types';
+import type { DispensedItem, FilterState, SummaryData } from './types.ts';
 import { returnedItemsApi } from '@/lib/staffApi/returnedItemsApi';
 
 // Helper function to get today's date in YYYY-MM-DD format
@@ -21,7 +21,7 @@ export default function ReturnToCabinetReportPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [returnedList, setReturnedList] = useState<DispensedItem[]>([]);
 
-  // Filters (ค่าเริ่มต้นแผนก/ตู้เหมือน /items)
+  // Filters (ค่าเริ่มต้นแผนก/ตู้ = 29 / 1 ตามที่ตั้งไว้)
   const [filters, setFilters] = useState<FilterState>({
     searchItemCode: '',
     startDate: getTodayDate(),
@@ -37,10 +37,9 @@ export default function ReturnToCabinetReportPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  // โหลดข้อมูลเมื่อมี default แผนก/ตู้แต่ยังไม่มี code จะรอให้ FilterSection ส่ง code มาก่อน
+  // โหลดข้อมูลเมื่อมี user พร้อมค่าเริ่มต้นของแผนก/ตู้
   useEffect(() => {
-    const hasDefaultFilter = filters.departmentId && filters.cabinetId;
-    if (hasDefaultFilter && !filters.departmentCode && !filters.cabinetCode) return;
+
     fetchReturnedList(1);
   }, []);
 
@@ -58,15 +57,15 @@ export default function ReturnToCabinetReportPage() {
       if (activeFilters.itemTypeFilter && activeFilters.itemTypeFilter !== 'all') {
         params.itemTypeId = parseInt(activeFilters.itemTypeFilter);
       }
-      if (activeFilters.departmentCode) params.departmentCode = activeFilters.departmentCode;
-      if (activeFilters.cabinetCode) params.cabinetCode = activeFilters.cabinetCode;
+      if (activeFilters.departmentId) params.departmentId = activeFilters.departmentId;
+      if (activeFilters.cabinetId) params.cabinetId = activeFilters.cabinetId;
 
       const response = await returnedItemsApi.getReturnedItems(params) as any;
 
       if (response.success || response.data) {
         // Backend returns: { success: true, data: [...], total, page, limit, totalPages }
-        const returnedData = Array.isArray(response.data) 
-          ? response.data 
+        const returnedData = Array.isArray(response.data)
+          ? response.data
           : (response.data?.data || response.data || []);
 
         const total = response.total ?? 0;
@@ -94,27 +93,26 @@ export default function ReturnToCabinetReportPage() {
     }
   };
 
-  const handleSearch = (extra?: Partial<FilterState>) => {
-    const mergedFilters: FilterState = extra ? { ...filters, ...extra } : filters;
-    setFilters(mergedFilters);
+  const handleSearch = () => {
     setCurrentPage(1);
-    fetchReturnedList(1, mergedFilters);
+    fetchReturnedList(1);
   };
 
   const handleClearSearch = () => {
-    setFilters({
+    const resetFilters: FilterState = {
       searchItemCode: '',
       startDate: getTodayDate(),
       endDate: getTodayDate(),
       itemTypeFilter: 'all',
       departmentId: '29',
       cabinetId: '1',
-      departmentCode: '',
-      cabinetCode: '',
-    });
+    };
+    setFilters(resetFilters);
     setCurrentPage(1);
-    // ไม่ fetch ตรงนี้; FilterSection จะส่ง departmentCode/cabinetCode มาแล้วค่อย fetch
+    fetchReturnedList(1, resetFilters);
   };
+
+
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -129,8 +127,8 @@ export default function ReturnToCabinetReportPage() {
       }
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
-      if (filters.departmentCode) params.departmentCode = filters.departmentCode;
-      if (filters.cabinetCode) params.cabinetCode = filters.cabinetCode;
+      if (filters.departmentId) params.departmentId = filters.departmentId;
+      if (filters.cabinetId) params.cabinetId = filters.cabinetId;
 
       toast.info(`กำลังสร้างรายงาน ${format.toUpperCase()}...`);
 
@@ -174,21 +172,21 @@ export default function ReturnToCabinetReportPage() {
 
   return (
     <>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <RotateCcw className="h-6 w-6 text-green-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                รายงานคืนอุปกรณ์เข้าตู้
-              </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                รายการอุปกรณ์ทั้งหมดที่คืนเข้าตู้ SmartCabinet
-              </p>
-            </div>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-100 rounded-lg">
+            <RotateCcw className="h-6 w-6 text-green-600" />
           </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              รายงานเติมอุปกรณ์จากตู้
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              รายการอุปกรณ์ทั้งหมดที่เติมจากตู้
+            </p>
+          </div>
+        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

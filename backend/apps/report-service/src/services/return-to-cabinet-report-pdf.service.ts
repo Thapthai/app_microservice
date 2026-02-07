@@ -3,7 +3,7 @@ import * as PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ReturnToCabinetReportData } from './return-to-cabinet-report-excel.service';
-import { ReportConfig } from '../config/report.config';
+import { ReportConfig, resolveReportLogoPath } from '../config/report.config';
 
 function formatReportDate(value?: string) {
   if (!value) return '-';
@@ -67,23 +67,34 @@ export class ReturnToCabinetReportPdfService {
     }
   }
 
+  private getLogoBuffer(): Buffer | null {
+    const logoPath = resolveReportLogoPath();
+    if (!logoPath || !fs.existsSync(logoPath)) return null;
+    try {
+      return fs.readFileSync(logoPath);
+    } catch {
+      return null;
+    }
+  }
+
   async generateReport(data: ReturnToCabinetReportData): Promise<Buffer> {
     try {
       if (!data || !data.data || !Array.isArray(data.data)) {
         throw new Error('Invalid data structure: data.data must be an array');
       }
 
-      const doc = new PDFDocument({ 
+      const doc = new PDFDocument({
         size: 'A4',
         layout: 'portrait',
-        margin: 35,
+        margin: 40,
+        bufferPages: true,
       });
 
       const chunks: Buffer[] = [];
 
       let finalFontName = 'Helvetica';
       let finalFontBoldName = 'Helvetica-Bold';
-      
+
       try {
         const hasThaiFont = await this.registerThaiFont(doc);
         if (hasThaiFont) {
@@ -95,91 +106,102 @@ export class ReturnToCabinetReportPdfService {
         finalFontBoldName = 'Helvetica-Bold';
       }
 
+      const logoBuffer = this.getLogoBuffer();
+      const reportDate = new Date().toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'Asia/Bangkok',
+      });
+
       return new Promise((resolve, reject) => {
         doc.on('data', (chunk) => chunks.push(chunk));
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', (error) => reject(error));
 
         try {
-          // Header
-          const headerTop = 40;
-          doc.fontSize(20)
-             .font(finalFontBoldName)
-             .fillColor('#2C3E50')
-             .text('รายงานคืนอุปกรณ์เข้าตู้', 35, headerTop, { 
-               align: 'center', 
-               width: doc.page.width - 70 
-             });
-          
-          doc.fillColor('#000000');
-          doc.y = headerTop + 35;
+          const margin = 40;
+          const pageWidth = doc.page.width;
+          const pageHeight = doc.page.height;
+          const contentWidth = pageWidth - margin * 2;
+          const rows = data.data ?? [];
+          const filters = data.filters as (ReturnToCabinetReportData['filters'] & {
+            departmentId?: string;
+            cabinetId?: string;
+          }) | undefined;
 
-          // Filters Box
-          if (data.filters && (data.filters.keyword || data.filters.itemTypeId || data.filters.startDate || data.filters.endDate)) {
-            const filterBoxY = doc.y;
-            const filterBoxPadding = 10;
-            const filterHeaderHeight = 20;
-            const filterBoxHeight = 40;
-            doc.rect(35, filterBoxY, doc.page.width - 70, filterBoxHeight)
-               .fillAndStroke('#F8F9FA', '#E0E0E0');
-            
-            doc.rect(35, filterBoxY, doc.page.width - 70, filterHeaderHeight)
-               .fill('#F0F0F0');
-            
-            doc.fontSize(12)
-               .font(finalFontBoldName)
-               .fillColor('#2C3E50')
-               .text('เงื่อนไขการค้นหา', 35 + filterBoxPadding, filterBoxY + 5);
-            
-            doc.fontSize(10)
-               .font(finalFontName)
-               .fillColor('#000000');
-            
-            let filterY = filterBoxY + filterHeaderHeight + 5;
-            if (data.filters.keyword) {
-              doc.text(`คำค้นหา: ${data.filters.keyword}`, 35 + filterBoxPadding, filterY);
-              filterY += 12;
+          // ---- Header block with logo (ให้เหมือน dispensed-items / cabinet-stock) ----
+          const headerTop = 35;
+          const headerHeight = 48;
+          doc.rect(margin, headerTop, contentWidth, headerHeight)
+            .fillAndStroke('#F8F9FA', '#DEE2E6');
+
+          if (logoBuffer && logoBuffer.length > 0) {
+            try {
+              doc.image(logoBuffer, margin + 8, headerTop + 6, { fit: [70, 36] });
+            } catch {
+              try {
+                doc.image(logoBuffer, margin + 8, headerTop + 6, { width: 70 });
+              } catch {
+                // ignore logo error
+              }
             }
-            if (data.filters.itemTypeId) {
-              doc.text(`ประเภทอุปกรณ์: ID ${data.filters.itemTypeId}`, 35 + filterBoxPadding, filterY);
-              filterY += 12;
-            }
-            if (data.filters.startDate || data.filters.endDate) {
-              doc.text(`วันที่: ${data.filters.startDate || ''} ถึง ${data.filters.endDate || ''}`, 35 + filterBoxPadding, filterY);
-            }
-            
-            doc.y = filterBoxY + filterBoxHeight + 15;
           }
 
-          // Summary Box
-          const summaryBoxY = doc.y;
-          const summaryBoxPadding = 10;
-          const summaryHeaderHeight = 20;
-          const summaryBoxHeight = 60;
-          doc.rect(35, summaryBoxY, doc.page.width - 70, summaryBoxHeight)
-             .fillAndStroke('#E8F5E9', '#C8E6C9');
-          
-          doc.rect(35, summaryBoxY, doc.page.width - 70, summaryHeaderHeight)
-             .fill('#C8E6C9');
-          
-          doc.fontSize(12)
-             .font(finalFontBoldName)
-             .fillColor('#2C3E50')
-             .text('สรุปผล', 35 + summaryBoxPadding, summaryBoxY + 5);
-          
-          doc.fontSize(10)
-             .font(finalFontName)
-             .fillColor('#000000');
-          doc.text(`จำนวนรายการทั้งหมด: ${data.summary.total_records}`, 35 + summaryBoxPadding, summaryBoxY + summaryHeaderHeight + 5)
-             .text(`จำนวนรวม: ${data.summary.total_qty}`, 35 + summaryBoxPadding, summaryBoxY + summaryHeaderHeight + 17);
-          
-          doc.y = summaryBoxY + summaryBoxHeight + 20;
+          doc.fontSize(14).font(finalFontBoldName).fillColor('#1A365D');
+          doc.text('รายงานคืนอุปกรณ์เข้าตู้', margin, headerTop + 6, {
+            width: contentWidth,
+            align: 'center',
+          });
+          doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
+          doc.text('Return To Cabinet Report', margin, headerTop + 22, {
+            width: contentWidth,
+            align: 'center',
+          });
+          doc.fillColor('#000000');
+          doc.y = headerTop + headerHeight + 14;
 
-          // Table
-          const tableTop = doc.y;
-          const itemHeight = 20;
-          const cellPadding = 5;
-          // ให้หัวตารางและคอลัมน์ตรงกับ Excel (รายงานคืนอุปกรณ์เข้าตู้)
+          // วันที่รายงาน
+          doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
+          doc.text(`วันที่รายงาน: ${reportDate}`, margin, doc.y, {
+            width: contentWidth,
+            align: 'right',
+          });
+          doc.fillColor('#000000');
+          doc.y += 4;
+
+          // สรุปเงื่อนไข (inline แบบบรรทัดเดียวให้ดีไซน์เรียบเหมือนรายงานอื่น)
+          if (
+            filters &&
+            (filters.keyword ||
+              filters.itemTypeId != null ||
+              filters.startDate ||
+              filters.endDate ||
+              filters.departmentId ||
+              filters.cabinetId)
+          ) {
+            const parts: string[] = [];
+            if (filters.keyword) parts.push(`คำค้นหา: ${filters.keyword}`);
+            if (filters.startDate || filters.endDate) {
+              parts.push(`วันที่: ${filters.startDate ?? ''} ถึง ${filters.endDate ?? ''}`);
+            }
+            if (filters.departmentId) parts.push(`แผนก ID: ${filters.departmentId}`);
+            if (filters.cabinetId) parts.push(`ตู้ ID: ${filters.cabinetId}`);
+            if (filters.itemTypeId != null) parts.push(`ประเภทอุปกรณ์ ID: ${filters.itemTypeId}`);
+
+            doc.fontSize(8).font(finalFontName).fillColor('#6C757D');
+            doc.text(parts.join(' | '), margin, doc.y, {
+              width: contentWidth,
+              align: 'left',
+            });
+            doc.fillColor('#000000');
+            doc.y += 6;
+          }
+
+          // ---- ตารางข้อมูล ----
+          const itemHeight = 18;
+          const cellPadding = 4;
+          const totalTableWidth = contentWidth;
           const headers = [
             'ลำดับ',
             'รหัสอุปกรณ์',
@@ -190,75 +212,83 @@ export class ReturnToCabinetReportPdfService {
             'cabinet',
             'สถานะ RFID',
           ];
-          const totalTableWidth = doc.page.width - 70; // 35 margin on each side
-          
-          // Calculate proportional column widths (ให้ใกล้เคียง Excel)
-          const colPercentages = [0.07, 0.11, 0.24, 0.16, 0.14, 0.11, 0.09, 0.08];
-          const colWidths = colPercentages.map(p => Math.floor(totalTableWidth * p));
-          
-          // Adjust last column to fill remaining width
+
+          // สัดส่วนคอลัมน์ ใกล้เคียง Excel
+          const colPercentages = [0.07, 0.12, 0.23, 0.16, 0.14, 0.11, 0.09, 0.08];
+          const colWidths = colPercentages.map((p) => Math.floor(totalTableWidth * p));
           const totalCalculated = colWidths.reduce((sum, w) => sum + w, 0);
-          const remaining = totalTableWidth - totalCalculated;
-          if (remaining > 0) {
-            colWidths[colWidths.length - 1] += remaining;
+          if (totalCalculated < totalTableWidth) {
+            colWidths[2] += totalTableWidth - totalCalculated;
           }
-          
-          // Draw header
-          doc.fontSize(9).font(finalFontBoldName);
-          let xPos = 35;
-          headers.forEach((header, i) => {
-            doc.rect(xPos, tableTop, colWidths[i], itemHeight)
-               .fillAndStroke('#E8E8E8', '#CCCCCC');
-            doc.fillColor('#2C3E50')
-               .text(header, xPos + cellPadding, tableTop + 6, { width: colWidths[i] - cellPadding * 2, align: 'center' });
-            xPos += colWidths[i];
-          });
-          doc.fillColor('#000000');
-          
-          // Draw table rows
-          let yPos = tableTop + itemHeight;
-          doc.fontSize(8).font(finalFontName);
 
-          data.data.forEach((item, index) => {
-            if (yPos > doc.page.height - 120) {
-              doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
-              
-              doc.fontSize(9).font(finalFontBoldName);
-              let xPosHeader = 35;
-              headers.forEach((header, i) => {
-                doc.rect(xPosHeader, 35, colWidths[i], itemHeight)
-                   .fillAndStroke('#E8E8E8', '#CCCCCC');
-                doc.fillColor('#2C3E50')
-                   .text(header, xPosHeader + cellPadding, 43, { width: colWidths[i] - cellPadding * 2, align: 'center' });
-                xPosHeader += colWidths[i];
+          const drawTableHeader = (y: number) => {
+            let x = margin;
+            doc.fontSize(8).font(finalFontBoldName);
+            doc.rect(margin, y, totalTableWidth, itemHeight).fillAndStroke('#1A365D', '#1A365D');
+            doc.fillColor('#FFFFFF');
+            headers.forEach((h, i) => {
+              doc.text(h, x + cellPadding, y + 5, {
+                width: Math.max(2, colWidths[i] - cellPadding * 2),
+                align: 'center',
               });
-              doc.fillColor('#000000');
-              yPos = 35 + itemHeight;
-            }
-
-            const rowData = [
-              (index + 1).toString(),
-              item.itemcode || '-',
-              item.itemname || '-',
-              formatReportDate(item.modifyDate),
-              (item as any).cabinetUserName || 'ไม่ระบุ',
-              item.RfidCode || '-',
-              (item as any).cabinetName || '-',
-              (item as any).Istatus_rfid ?? '-',
-            ];
-
-            let xPos = 35;
-            rowData.forEach((cellData, i) => {
-              doc.rect(xPos, yPos, colWidths[i], itemHeight).stroke();
-              doc.text(cellData, xPos + cellPadding, yPos + 6, {
-                width: colWidths[i] - cellPadding * 2,
-                // ให้จัดชิดซ้ายเหมือน Excel ที่ column ชื่ออุปกรณ์ และชื่อผู้เบิก
-                align: i === 2 || i === 4 ? 'left' : 'center',
-              });
-              xPos += colWidths[i];
+              x += colWidths[i];
             });
-            yPos += itemHeight;
-          });
+            doc.fillColor('#000000');
+          };
+
+          const tableHeaderY = doc.y;
+          drawTableHeader(tableHeaderY);
+          doc.y = tableHeaderY + itemHeight;
+
+          doc.fontSize(8).font(finalFontName).fillColor('#000000');
+
+          if (rows.length === 0) {
+            const rowY = doc.y;
+            doc.rect(margin, rowY, totalTableWidth, itemHeight).fillAndStroke('#F8F9FA', '#DEE2E6');
+            doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 5, {
+              width: totalTableWidth - cellPadding * 2,
+              align: 'center',
+            });
+            doc.y = rowY + itemHeight;
+          } else {
+            rows.forEach((item, idx) => {
+              if (doc.y + itemHeight > pageHeight - 35) {
+                doc.addPage({ size: 'A4', layout: 'portrait', margin });
+                doc.y = margin;
+                const newHeaderY = doc.y;
+                drawTableHeader(newHeaderY);
+                doc.y = newHeaderY + itemHeight;
+              }
+
+              const rowY = doc.y;
+              const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
+              let xPos = margin;
+              const rowData = [
+                String(idx + 1),
+                item.itemcode || '-',
+                item.itemname || '-',
+                formatReportDate(item.modifyDate),
+                (item as any).cabinetUserName || 'ไม่ระบุ',
+                item.RfidCode || '-',
+                (item as any).cabinetName || '-',
+                (item as any).Istatus_rfid ?? '-',
+              ];
+
+              rowData.forEach((cellData, i) => {
+                const cw = colWidths[i];
+                const w = Math.max(4, cw - cellPadding * 2);
+                doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');
+                doc.fillColor('#000000');
+                doc.text(String(cellData), xPos + cellPadding, rowY + 5, {
+                  width: w,
+                  align: i === 2 || i === 4 ? 'left' : 'center',
+                });
+                xPos += cw;
+              });
+
+              doc.y = rowY + itemHeight;
+            });
+          }
 
           doc.end();
         } catch (error) {

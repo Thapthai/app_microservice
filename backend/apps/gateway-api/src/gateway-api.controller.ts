@@ -1561,8 +1561,8 @@ export class GatewayApiController {
     @Query('endDate') endDate?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-    @Query('departmentCode') departmentCode?: string,
-    @Query('cabinetCode') cabinetCode?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('cabinetId') cabinetId?: string,
   ) {
     try {
       const filters: any = {};
@@ -1571,8 +1571,8 @@ export class GatewayApiController {
       if (endDate) filters.endDate = endDate;
       if (page) filters.page = parseInt(page, 10);
       if (limit) filters.limit = parseInt(limit, 10);
-      if (departmentCode) filters.departmentCode = departmentCode;
-      if (cabinetCode) filters.cabinetCode = cabinetCode;
+      if (departmentId) filters.departmentId = departmentId;
+      if (cabinetId) filters.cabinetId = cabinetId;
       const result = await this.gatewayApiService.getReturnedItems(filters);
       return result;
     } catch (error) {
@@ -2494,8 +2494,8 @@ export class GatewayApiController {
     @Query('itemTypeId') itemTypeId?: number,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('departmentCode') departmentCode?: string,
-    @Query('cabinetCode') cabinetCode?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('cabinetId') cabinetId?: string,
   ) {
     try {
       const params: any = {};
@@ -2503,8 +2503,8 @@ export class GatewayApiController {
       if (itemTypeId) params.itemTypeId = Number(itemTypeId);
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
-      if (departmentCode) params.departmentCode = departmentCode;
-      if (cabinetCode) params.cabinetCode = cabinetCode;
+      if (departmentId) params.departmentId = departmentId;
+      if (cabinetId) params.cabinetId = cabinetId;
 
       const result = await this.gatewayApiService.generateReturnToCabinetReportExcel(params);
 
@@ -2537,8 +2537,8 @@ export class GatewayApiController {
     @Query('itemTypeId') itemTypeId?: number,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('departmentCode') departmentCode?: string,
-    @Query('cabinetCode') cabinetCode?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('cabinetId') cabinetId?: string,
   ) {
     try {
       const params: any = {};
@@ -2546,8 +2546,8 @@ export class GatewayApiController {
       if (itemTypeId) params.itemTypeId = Number(itemTypeId);
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
-      if (departmentCode) params.departmentCode = departmentCode;
-      if (cabinetCode) params.cabinetCode = cabinetCode;
+      if (departmentId) params.departmentId = departmentId;
+      if (cabinetId) params.cabinetId = cabinetId;
 
       const result = await this.gatewayApiService.generateReturnToCabinetReportPdf(params);
 

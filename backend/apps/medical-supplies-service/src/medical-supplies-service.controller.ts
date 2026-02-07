@@ -440,8 +440,8 @@ export class MedicalSuppliesServiceController {
     endDate?: string;
     page?: number;
     limit?: number;
-    departmentCode?: string;
-    cabinetCode?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }) {
     try {
       const result = await this.medicalSuppliesService.getReturnedItems(data);

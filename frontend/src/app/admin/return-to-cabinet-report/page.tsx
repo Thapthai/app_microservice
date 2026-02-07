@@ -25,7 +25,7 @@ export default function ReturnToCabinetReportPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [returnedList, setReturnedList] = useState<DispensedItem[]>([]);
 
-  // Filters (ค่าเริ่มต้นแผนก/ตู้เหมือน /items)
+  // Filters (ค่าเริ่มต้นแผนก/ตู้ = 29 / 1 ตามที่ตั้งไว้)
   const [filters, setFilters] = useState<FilterState>({
     searchItemCode: '',
     startDate: getTodayDate(),
@@ -41,11 +41,9 @@ export default function ReturnToCabinetReportPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  // โหลดข้อมูลเมื่อมี user; ถ้ามี default แผนก/ตู้แต่ยังไม่มี code จะรอให้ FilterSection ส่ง code มาก่อน
+  // โหลดข้อมูลเมื่อมี user พร้อมค่าเริ่มต้นของแผนก/ตู้
   useEffect(() => {
     if (!user?.id) return;
-    const hasDefaultFilter = filters.departmentId && filters.cabinetId;
-    if (hasDefaultFilter && !filters.departmentCode && !filters.cabinetCode) return;
     fetchReturnedList(1);
   }, [user?.id]);
 
@@ -63,8 +61,8 @@ export default function ReturnToCabinetReportPage() {
       if (activeFilters.itemTypeFilter && activeFilters.itemTypeFilter !== 'all') {
         params.itemTypeId = parseInt(activeFilters.itemTypeFilter);
       }
-      if (activeFilters.departmentCode) params.departmentCode = activeFilters.departmentCode;
-      if (activeFilters.cabinetCode) params.cabinetCode = activeFilters.cabinetCode;
+      if (activeFilters.departmentId) params.departmentId = activeFilters.departmentId;
+      if (activeFilters.cabinetId) params.cabinetId = activeFilters.cabinetId;
 
       const response = await medicalSuppliesApi.getReturnedItems(params) as any;
 
@@ -99,28 +97,27 @@ export default function ReturnToCabinetReportPage() {
     }
   };
 
-  const handleSearch = (extra?: Partial<FilterState>) => {
-    const mergedFilters: FilterState = extra ? { ...filters, ...extra } : filters;
-    setFilters(mergedFilters);
+  const handleSearch = () => {
     setCurrentPage(1);
-    fetchReturnedList(1, mergedFilters);
+    fetchReturnedList(1);
   };
 
   const handleClearSearch = () => {
-    setFilters({
+    const resetFilters: FilterState = {
       searchItemCode: '',
       startDate: getTodayDate(),
       endDate: getTodayDate(),
       itemTypeFilter: 'all',
       departmentId: '29',
       cabinetId: '1',
-      departmentCode: '',
-      cabinetCode: '',
-    });
+    };
+    setFilters(resetFilters);
     setCurrentPage(1);
-    // ไม่ fetch ตรงนี้; FilterSection จะส่ง departmentCode/cabinetCode มาแล้วค่อย fetch
+    fetchReturnedList(1, resetFilters);
   };
 
+
+  
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -134,8 +131,8 @@ export default function ReturnToCabinetReportPage() {
       }
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
-      if (filters.departmentCode) params.departmentCode = filters.departmentCode;
-      if (filters.cabinetCode) params.cabinetCode = filters.cabinetCode;
+      if (filters.departmentId) params.departmentId = filters.departmentId;
+      if (filters.cabinetId) params.cabinetId = filters.cabinetId;
 
       toast.info(`กำลังสร้างรายงาน ${format.toUpperCase()}...`);
 
