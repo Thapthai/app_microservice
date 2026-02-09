@@ -2328,7 +2328,7 @@ export class MedicalSuppliesServiceService {
           department.DepName AS departmentName
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
-        LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.user_id
+        LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.cabinet_finger_id
         LEFT JOIN users ON user_cabinet.user_id = users.ID
         LEFT JOIN employee ON employee.EmpCode = users.EmpCode
         LEFT JOIN app_microservice_cabinets on app_microservice_cabinets.stock_id = ist.StockID
