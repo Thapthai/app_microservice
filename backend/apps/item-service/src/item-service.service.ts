@@ -751,7 +751,7 @@ export class ItemServiceService {
   async findAllItemStockWillReturn() {
     try {
       const result: Array<{ itemcode: string }> = await this.prisma.$queryRaw`
-        SELECT
+         SELECT
             s.ItemCode,
             s.itemname,
             s.RowID,
@@ -768,7 +768,7 @@ export class ItemServiceService {
             LEFT JOIN item i 
                 ON i.itemcode = ist.ItemCode
             CROSS JOIN (SELECT @rn := 0, @prev_code := '') vars
-            WHERE ist.IsStock = 0 
+            WHERE ist.IsStock = 0 and DATE(ist.LastCabinetModify) = date(NOW())
             ORDER BY ist.ItemCode, ist.RowID
         ) s
         LEFT JOIN (
@@ -776,6 +776,7 @@ export class ItemServiceService {
                 sui.order_item_code AS ItemCode,
                 SUM(sui.qty) AS used_qty
             FROM app_microservice_supply_usage_items sui
+            where DATE(sui.created_at) = date(NOW())
             GROUP BY sui.order_item_code
         ) u
             ON u.ItemCode = s.ItemCode
@@ -786,7 +787,6 @@ export class ItemServiceService {
             WHERE srr.item_stock_id = s.RowID
         )
         ORDER BY s.ItemCode ASC, s.RowID;
-
       `;
 
       return {

@@ -92,9 +92,9 @@ export const staffMenuItems = [
                 icon: History,
             },
             {
-                name: 'แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / ชำรุด',
-                href: '/staff/medical-supplies/return',
-                description: 'แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / ชำรุด',
+                name: 'แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน',
+                href: '/staff/return',
+                description: 'แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน',
                 icon: RotateCcw,
             },
 

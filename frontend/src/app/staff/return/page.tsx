@@ -106,7 +106,7 @@ export default function ReturnMedicalSuppliesPage() {
 
   const handleReturnToCabinet = async () => {
     if (selectedIndices.length === 0) {
-      toast.error('กรุณาเลือกรายการที่ต้องการคืนเข้าตู้');
+      toast.error('กรุณาเลือกรายการที่ต้องการแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน');
       return;
     }
 
@@ -148,12 +148,12 @@ export default function ReturnMedicalSuppliesPage() {
       });
 
       if (resp?.success) {
-        toast.success(resp.message || `บันทึกการคืนอุปกรณ์เข้าตู้สำเร็จ ${resp.updatedCount ?? items.length} รายการ`);
+        toast.success(resp.message || `บันทึกการแจ้งอุปกรณ์ที่ไม่ถูกใช้งานสำเร็จ ${resp.updatedCount ?? items.length} รายการ`);
         setSelectedIndices([]);
         setRowDetails({});
         await loadWillReturnItems();
       } else {
-        toast.error(resp?.error || 'ไม่สามารถบันทึกการคืนอุปกรณ์เข้าตู้ได้');
+        toast.error(resp?.error || 'ไม่สามารถบันทึกการแจ้งอุปกรณ์ที่ไม่ถูกใช้งานได้');
       }
     } catch (error: any) {
       toast.error(`เกิดข้อผิดพลาด: ${error.message || error}`);
@@ -235,9 +235,9 @@ export default function ReturnMedicalSuppliesPage() {
           <RotateCcw className="h-7 w-7 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">คืนอุปกรณ์เข้าตู้</h1>
+          <h1 className="text-2xl font-bold text-slate-800">แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน</h1>
           <p className="text-slate-500 mt-1">
-            บันทึกการคืนเวชภัณฑ์ที่เบิกแล้วแต่ยังไม่ได้ใช้ กลับเข้าตู้ Vending
+            แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
           </p>
         </div>
       </div>
@@ -246,27 +246,27 @@ export default function ReturnMedicalSuppliesPage() {
         <TabsList className="grid w-full grid-cols-2 h-11 rounded-lg bg-slate-100 p-1">
           <TabsTrigger value="return" className="flex items-center gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
             <RotateCcw className="h-4 w-4" />
-            คืนอุปกรณ์
+            แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
             <History className="h-4 w-4" />
-            ประวัติการคืน
+            ประวัติการแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="return" className="space-y-4">
           <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
             <CardHeader className="border-b bg-slate-50/50">
-              <CardTitle className="text-lg font-semibold text-slate-800">คืนอุปกรณ์เข้าตู้จากรายการค้างคืน</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-800">แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน</CardTitle>
               <CardDescription className="text-slate-500 mt-1">
-                เลือกรายการจากตู้ที่ยังไม่ได้บันทึกคืน แล้วกดปุ่มด้านล่างเพื่อบันทึกการคืนเข้าตู้
+                เลือกรายการจากตู้ที่ยังไม่ได้แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน แล้วกดปุ่มด้านล่างเพื่อบันทึกการแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-slate-500 mt-1">
-                    แสดงรายการจากตู้ที่มีโอกาสต้องคืนเข้าตู้ Vending
+                    แสดงรายการจากตู้ที่มีโอกาสต้องแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -300,7 +300,7 @@ export default function ReturnMedicalSuppliesPage() {
                   </div>
                 ) : willReturnItems.length === 0 ? (
                   <div className="py-10 text-center text-slate-500">
-                    ไม่มีรายการที่ต้องคืนจากตู้
+                    ไม่มีรายการที่ต้องแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
                   </div>
                 ) : (
                   <Table>
@@ -324,7 +324,7 @@ export default function ReturnMedicalSuppliesPage() {
                         <TableHead className="text-slate-600 font-medium">รหัส</TableHead>
                         <TableHead className="text-slate-600 font-medium">ชื่อรายการ</TableHead>
                         <TableHead className="text-slate-600 font-medium min-w-[180px]">
-                          กรณีการคืน
+                          กรณีการแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
                         </TableHead>
                         <TableHead className="text-slate-600 font-medium min-w-[180px]">
                           หมายเหตุ
@@ -435,7 +435,7 @@ export default function ReturnMedicalSuppliesPage() {
                     ) : (
                       <>
                         <RotateCcw className="h-4 w-4" />
-                        คืนอุปกรณ์เข้าตู้
+                        แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
                       </>
                     )}
                   </button>
