@@ -35,11 +35,11 @@ spec:
               key: DATABASE_URL
         resources:
           requests:
-            memory: "32Mi"   # ลดจาก 64Mi (ใช้จริง 35MB)
-            cpu: "50m"
+            memory: "64Mi"   # ลดจาก 64Mi (ใช้จริง 35MB)
+            cpu: "100m"
           limits:
-            memory: "56Mi"   # ลดจาก 128Mi (ใช้จริง 35MB + buffer)
-            cpu: "200m"
+            memory: "128Mi"   # ลดจาก 128Mi (ใช้จริง 35MB + buffer)
+            cpu: "400m"
         livenessProbe:
           tcpSocket:
             port: 3008
