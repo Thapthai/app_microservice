@@ -28,11 +28,16 @@ interface CabinetDepartment {
   };
 }
 
-interface ItemCount {
-  itemcode: string;
-  itemname: string;
-  total_qty: number;
-  count_rows: number;
+interface ItemStock {
+  StockID: number;
+  RfidCode?: string;
+  ItemCode?: string;
+  Qty?: number;
+  LastCabinetModify?: string;
+  item?: {
+    itemcode?: string;
+    itemname?: string;
+  };
 }
 
 interface MappingTableProps {
@@ -45,9 +50,11 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<CabinetDepartment | null>(null);
   const [expandedDropdown, setExpandedDropdown] = useState<number | null>(null);
-  const [itemCounts, setItemCounts] = useState<{ [key: number]: ItemCount[] }>({});
+  const [itemStocks, setItemStocks] = useState<{ [key: number]: ItemStock[] }>({});
   const [loadingItemStock, setLoadingItemStock] = useState<number | null>(null);
+  const [dropdownPage, setDropdownPage] = useState<{ [key: number]: number }>({});
   const itemsPerPage = 5;
+  const itemsPerDropdown = 10;
 
   // Calculate pagination
   const totalPages = Math.ceil(mappings.length / itemsPerPage);
@@ -68,25 +75,26 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
     setExpandedDropdown(mapping.id);
 
     // If already loaded, don't fetch again
-    if (itemCounts[cabinetId]) {
+    if (itemStocks[cabinetId]) {
       return;
     }
 
-    // Fetch item counts
+    // Fetch item stocks
     try {
       setLoadingItemStock(cabinetId);
       const response = await cabinetDepartmentApi.getItemStocksByCabinet(cabinetId, {
         page: 1,
-        limit: 1, // Only need item_counts, not the full data list
+        limit: 1000, // Load all
       });
 
-      if (response.success && (response as any).item_counts) {
-        setItemCounts(prev => ({ ...prev, [cabinetId]: (response as any).item_counts }));
+      if (response.success && response.data) {
+        setItemStocks(prev => ({ ...prev, [cabinetId]: response.data }));
+        setDropdownPage(prev => ({ ...prev, [cabinetId]: 1 }));
       } else {
-        toast.error("ไม่สามารถโหลดข้อมูลสรุปอุปกรณ์ได้");
+        toast.error("ไม่สามารถโหลดข้อมูล ItemStock ได้");
       }
     } catch (error: any) {
-      console.error("Error loading item counts:", error);
+      console.error("Error loading item stocks:", error);
       toast.error(error.message || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setLoadingItemStock(null);
@@ -95,6 +103,13 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
 
   const handleRowClick = (mapping: CabinetDepartment) => {
     setSelectedRow(mapping);
+  };
+
+  const handleLoadMore = (cabinetId: number) => {
+    setDropdownPage(prev => ({
+      ...prev,
+      [cabinetId]: (prev[cabinetId] || 1) + 1
+    }));
   };
 
   return (
@@ -131,7 +146,7 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                   </TableRow>
                 ) : (
                   currentMappings.map((mapping, index) => (
-                    <Fragment key={`mapping-${mapping.id}-${startIndex + index}`}>
+                    <Fragment key={mapping.id}>
                       <TableRow
                         className={`cursor-pointer transition-colors ${
                           selectedRow?.id === mapping.id ? "bg-blue-50/80" : "hover:bg-slate-50/80"
@@ -185,51 +200,81 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                         </TableCell>
                       </TableRow>
 
-                      {/* Dropdown - Item Counts Summary */}
+                      {/* Dropdown - Item Stocks */}
                       {expandedDropdown === mapping.id && (
                         <TableRow>
-                          <TableCell colSpan={9} className="bg-gray-50 p-4" >
+                          <TableCell colSpan={9} className="bg-gray-50 p-4">
                             {loadingItemStock === mapping.cabinet_id ? (
                               <div className="flex items-center justify-center py-4">
                                 <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                                 <span className="ml-2 text-gray-600">กำลังโหลดข้อมูล...</span>
                               </div>
-                            ) : itemCounts[mapping.cabinet_id]?.length > 0 ? (
+                            ) : itemStocks[mapping.cabinet_id]?.length > 0 ? (
                               <div>
                                 <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
                                   <Package className="h-4 w-4" />
-                                  สรุปจำนวนอุปกรณ์ในตู้ ({itemCounts[mapping.cabinet_id].length} ชนิด)
+                                  รายการอุปกรณ์ในตู้ ({itemStocks[mapping.cabinet_id].length} รายการ)
                                 </h4>
-                                <div className="overflow-x-auto">
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="w-12">ลำดับ</TableHead>
-                                        <TableHead>รหัสอุปกรณ์</TableHead>
-                                        <TableHead>ชื่ออุปกรณ์</TableHead>
-                                        <TableHead className="text-center">จำนวน (ชิ้น)</TableHead>
-                                        <TableHead className="text-center">จำนวนรายการ</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {itemCounts[mapping.cabinet_id].map((itemCount, index) => (
-                                        <TableRow key={`mapping-${mapping.id}-count-${index}-${itemCount.itemcode ?? ""}`}>
-                                          <TableCell className="font-medium">{index + 1}</TableCell>
-                                          <TableCell className="font-semibold">{itemCount.itemcode}</TableCell>
-                                          <TableCell>{itemCount.itemname}</TableCell>
-                                          <TableCell className="text-center">
-                                            <span className="font-bold text-blue-600 text-lg">
-                                              {itemCount.total_qty}
+                                <div className="space-y-2">
+                                  {itemStocks[mapping.cabinet_id]
+                                    .slice(
+                                      0,
+                                      (dropdownPage[mapping.cabinet_id] || 1) * itemsPerDropdown
+                                    )
+                                    .map((stock, stockIndex) => (
+                                      <div
+                                        key={`mapping-${mapping.id}-stock-${stock.StockID}-${stockIndex}`}
+                                        className="border rounded-lg p-3 bg-white hover:shadow-sm transition-shadow"
+                                      >
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                          <div>
+                                            <span className="text-gray-500">ลำดับ:</span>
+                                            <span className="ml-2 font-medium">{stockIndex + 1}</span>
+                                          </div>
+                                          <div>
+                                            <span className="text-gray-500">RFID:</span>
+                                            <span className="ml-2 font-medium">
+                                              {stock.RfidCode || "-"}
                                             </span>
-                                          </TableCell>
-                                          <TableCell className="text-center text-gray-500">
-                                            {itemCount.count_rows}
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
+                                          </div>
+                                          <div>
+                                            <span className="text-gray-500">รหัส:</span>
+                                            <span className="ml-2 font-medium">
+                                              {stock.item?.itemcode || stock.ItemCode || "-"}
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <span className="text-gray-500">จำนวน:</span>
+                                            <span className="ml-2 font-medium">{stock.Qty || 0}</span>
+                                          </div>
+                                        </div>
+                                        <div className="mt-2 text-sm">
+                                          <span className="text-gray-500">ชื่ออุปกรณ์:</span>
+                                          <span className="ml-2">{stock.item?.itemname || "-"}</span>
+                                        </div>
+                                        <div className="mt-1 text-xs text-gray-500">
+                                          แก้ไขล่าสุด:{" "}
+                                          {stock.LastCabinetModify
+                                            ? new Date(stock.LastCabinetModify).toLocaleString("th-TH")
+                                            : "-"}
+                                        </div>
+                                      </div>
+                                    ))}
                                 </div>
+                                {itemStocks[mapping.cabinet_id].length >
+                                  (dropdownPage[mapping.cabinet_id] || 1) * itemsPerDropdown && (
+                                  <div className="mt-4 text-center">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleLoadMore(mapping.cabinet_id)}
+                                    >
+                                      ดูเพิ่มเติม ({itemStocks[mapping.cabinet_id].length -
+                                        (dropdownPage[mapping.cabinet_id] || 1) * itemsPerDropdown}{" "}
+                                      รายการ)
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <div className="text-center py-4 text-gray-500">
@@ -262,9 +307,9 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                   ก่อนหน้า
                 </Button>
                 <div className="flex items-center gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page, paginationIndex) => (
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <Button
-                      key={`pagination-${paginationIndex}-${page}`}
+                      key={page}
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(page)}

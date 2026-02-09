@@ -105,7 +105,11 @@ export class ItemComparisonExcelService {
       cell.value = h;
       cell.font = { name: 'Tahoma', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A365D' } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      // ชิดซ้ายสำหรับคอลัมน์ รหัสอุปกรณ์ (index 1) และ ชื่ออุปกรณ์ (index 2)
+      cell.alignment = {
+        horizontal: i === 1 || i === 2 ? 'left' : 'center',
+        vertical: 'middle',
+      };
       cell.border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
@@ -152,8 +156,9 @@ export class ItemComparisonExcelService {
             color: { argb: isMatch ? 'FF155724' : 'FF721C24' },
           };
         }
+        // ชิดซ้ายสำหรับคอลัมน์ รหัสอุปกรณ์ (index 1) และ ชื่ออุปกรณ์ (index 2)
         cell.alignment = {
-          horizontal: colIndex === 2 ? 'left' : 'center',
+          horizontal: colIndex === 1 || colIndex === 2 ? 'left' : 'center',
           vertical: 'middle',
         };
         cell.border = {
@@ -210,6 +215,97 @@ export class ItemComparisonExcelService {
     worksheet.getColumn(6).width = 12;
     worksheet.getColumn(7).width = 18;
     worksheet.getColumn(8).width = 16;
+
+    // =========================================================
+    // Sheet 2: สรุปรายการเบิก (รวมยอดเบิกตามเวชภัณฑ์ของช่วงวันที่)
+    // =========================================================
+    const summarySheet = workbook.addWorksheet('สรุปรายการเบิก', {
+      pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true },
+      properties: { defaultRowHeight: 20 },
+    });
+
+    // Header title
+    const summaryReportDate =
+      data.filters.startDate && data.filters.endDate && data.filters.startDate === data.filters.endDate
+        ? data.filters.startDate
+        : `${data.filters.startDate ?? ''} - ${data.filters.endDate ?? ''}`;
+
+    summarySheet.mergeCells('A1:F1');
+    const summaryTitleCell = summarySheet.getCell('A1');
+    summaryTitleCell.value = 'สรุปรายการเบิกตามเวชภัณฑ์ (ตามช่วงวันที่ที่เลือก)';
+    summaryTitleCell.font = {
+      name: 'Tahoma',
+      size: 14,
+      bold: true,
+      color: { argb: 'FF1A365D' },
+    };
+    summaryTitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    summarySheet.mergeCells('A2:F2');
+    const summaryDateCell = summarySheet.getCell('A2');
+    summaryDateCell.value = `ช่วงวันที่: ${summaryReportDate || '-'}`;
+    summaryDateCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF6C757D' } };
+    summaryDateCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    summarySheet.addRow([]);
+
+    // Table header
+    const summaryHeaderRow = summarySheet.addRow([
+      'ลำดับ',
+      'รหัสอุปกรณ์',
+      'ชื่ออุปกรณ์',
+      'จำนวนเบิก',
+      'จำนวนใช้',
+      'ส่วนต่าง',
+    ]);
+    summaryHeaderRow.eachCell((cell, colNumber) => {
+      cell.font = { name: 'Tahoma', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A365D' } };
+      cell.alignment = {
+        horizontal: colNumber === 1 || colNumber === 2 || colNumber === 3 ? 'left' : 'center',
+        vertical: 'middle',
+      };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      };
+    });
+
+    // Data rows (สรุปรายการเบิก/ใช้/ส่วนต่าง ของแต่ละ item)
+    comparisonData.forEach((item, idx) => {
+      const row = summarySheet.addRow([
+        idx + 1,
+        item.itemcode || '-',
+        item.itemname ?? '-',
+        item.total_dispensed ?? 0,
+        item.total_used ?? 0,
+        item.difference ?? 0,
+      ]);
+      const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA';
+      row.eachCell((cell, colNumber) => {
+        cell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF212529' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.alignment = {
+          horizontal: colNumber === 2 || colNumber === 3 ? 'left' : 'center',
+          vertical: 'middle',
+        };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' },
+        };
+      });
+    });
+
+    summarySheet.getColumn(1).width = 10;
+    summarySheet.getColumn(2).width = 18;
+    summarySheet.getColumn(3).width = 32;
+    summarySheet.getColumn(4).width = 14;
+    summarySheet.getColumn(5).width = 14;
+    summarySheet.getColumn(6).width = 14;
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);

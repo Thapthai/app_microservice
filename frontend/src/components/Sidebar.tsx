@@ -91,7 +91,7 @@ const mainMenuItems: MenuItem[] = [
         icon: ClipboardList,
         submenu: [
           {
-            name: "แจ้งอุปกรณ์ที่ไม่ถูกใขช้งาน",
+            name: "แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน",
             href: "/admin/medical-supplies/return",
             description: "แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / ชำรุด",
             icon: RotateCcw,
@@ -107,32 +107,32 @@ const mainMenuItems: MenuItem[] = [
 
     ],
   },
-  {
-    name: "รายงาน",
-    href: "/reports",
-    icon: FileBarChart,
-    description: "รายงานและสถิติต่างๆ",
-    submenu: [
-      {
-        name: "รายงาน Vending",
-        href: "/admin/reports/vending-reports",
-        description: "รายงานการ Mapping และการเบิกอุปกรณ์จาก Vending",
-        icon: TrendingUp,
-      },
-      {
-        name: "รายงานยกเลิก Bill",
-        href: "/admin/reports/cancel-bill-report",
-        description: "รายงานการยกเลิก Bill และใบเสร็จ",
-        icon: Receipt,
-      },
-      {
-        name: "คืนเวชภัณฑ์",
-        href: "/admin/reports/return-report",
-        description: "รายงานการคืนเวชภัณฑ์",
-        icon: RotateCcw,
-      },
-    ],
-  },
+  // {
+  //   name: "รายงาน",
+  //   href: "/reports",
+  //   icon: FileBarChart,
+  //   description: "รายงานและสถิติต่างๆ",
+  //   submenu: [
+  //     {
+  //       name: "รายงาน Vending",
+  //       href: "/admin/reports/vending-reports",
+  //       description: "รายงานการ Mapping และการเบิกอุปกรณ์จาก Vending",
+  //       icon: TrendingUp,
+  //     },
+  //     {
+  //       name: "รายงานยกเลิก Bill",
+  //       href: "/admin/reports/cancel-bill-report",
+  //       description: "รายงานการยกเลิก Bill และใบเสร็จ",
+  //       icon: Receipt,
+  //     },
+  //     {
+  //       name: "คืนเวชภัณฑ์",
+  //       href: "/admin/reports/return-report",
+  //       description: "รายงานการคืนเวชภัณฑ์",
+  //       icon: RotateCcw,
+  //     },
+  //   ],
+  // },
   {
     name: "การจัดการ",
     href: "/management",

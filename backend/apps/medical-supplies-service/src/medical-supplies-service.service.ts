@@ -2195,7 +2195,7 @@ export class MedicalSuppliesServiceService {
         LEFT JOIN app_microservice_cabinet_departments on app_microservice_cabinet_departments.cabinet_id = app_microservice_cabinets.ID
         LEFT JOIN department on department.ID = app_microservice_cabinet_departments.department_id
         WHERE ${whereClause}
-        ORDER BY ist.LastCabinetModify DESC
+        ORDER BY ist.LastCabinetModify DESC , i.itemname ASC
         LIMIT ${limit}
         OFFSET ${offset}
       `;
@@ -2335,7 +2335,7 @@ export class MedicalSuppliesServiceService {
         LEFT JOIN app_microservice_cabinet_departments on app_microservice_cabinet_departments.cabinet_id = app_microservice_cabinets.ID
         LEFT JOIN department on department.ID = app_microservice_cabinet_departments.department_id
         WHERE ${whereClause}
-        ORDER BY ist.LastCabinetModify DESC
+        ORDER BY ist.LastCabinetModify DESC , i.itemname ASC
         LIMIT ${limit}
         OFFSET ${offset}
       `;
@@ -2890,21 +2890,32 @@ export class MedicalSuppliesServiceService {
       ];
 
       if (filters?.itemCode) {
-        sqlConditionsDispensed.push(Prisma.sql`ist.ItemCode = ${filters.itemCode}`);
+        sqlConditionsDispensed.push(Prisma.sql`ItemCode = ${filters.itemCode}`);
       }
+      // itemTypeId and keyword applied on outer query (after JOIN item i)
+
+      const outerConditions: Prisma.Sql[] = [];
       if (filters?.itemTypeId) {
-        sqlConditionsDispensed.push(Prisma.sql`i.itemtypeID = ${filters.itemTypeId}`);
+        outerConditions.push(Prisma.sql`i.itemtypeID = ${filters.itemTypeId}`);
       }
-
-
-      if (filters?.keyword) {
-        // Escape single quotes to prevent SQL injection
-        const escapedKeyword = filters.keyword.replace(/'/g, "''");
+      if (filters?.keyword && filters.keyword.trim()) {
+        const escapedKeyword = filters.keyword
+          .trim()
+          .replace(/'/g, "''")
+          .replace(/\\/g, '\\\\')
+          .replace(/%/g, '\\%')
+          .replace(/_/g, '\\_');
         const keywordPattern = `%${escapedKeyword}%`;
-        sqlConditionsDispensed.push(
-          Prisma.raw(`(i.itemcode LIKE '${keywordPattern}' OR i.itemname LIKE '${keywordPattern}')`)
+        outerConditions.push(
+          Prisma.raw(
+            `(i.itemcode LIKE '${keywordPattern}' OR i.itemname LIKE '${keywordPattern}')`
+          )
         );
       }
+      const whereKeyword =
+        outerConditions.length > 0
+          ? Prisma.sql` WHERE ${Prisma.join(outerConditions, ' AND ')}`
+          : Prisma.sql``;
 
       const sqlConditionsUsage: Prisma.Sql[] = [];
 
@@ -2949,6 +2960,7 @@ export class MedicalSuppliesServiceService {
                   WHERE ${whereClauseUsage}
               ) x
               JOIN item i ON i.itemcode = x.itemcode
+              ${whereKeyword}
             `;
 
       // Apply pagination
@@ -2996,7 +3008,6 @@ export class MedicalSuppliesServiceService {
                           WHERE ${whereClauseUsage}
                       ) x
                       JOIN item i ON i.itemcode = x.itemcode
-                      
                       LEFT JOIN (
                             SELECT
                                 ItemCode,
@@ -3015,6 +3026,7 @@ export class MedicalSuppliesServiceService {
                             WHERE ${whereClauseUsage}
                             GROUP BY order_item_code
                         ) u ON u.order_item_code = x.itemcode
+                        ${whereKeyword}
 
                         ORDER BY i.itemcode
                         LIMIT ${limit}

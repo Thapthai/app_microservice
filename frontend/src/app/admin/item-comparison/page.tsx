@@ -119,10 +119,20 @@ export default function ItemComparisonPage() {
     }
   };
 
-  const handleSearch = () => {
+  const handleSearch = (keywordOverride?: string) => {
     setCurrentPage(1);
-    fetchComparisonList(1);
+    if (keywordOverride !== undefined) {
+      // ใช้ functional update เพื่อให้ได้ filters เวอร์ชันล่าสุดตอนยิง API
+      setFilters(prev => {
+        const updated = { ...prev, searchItemCode: keywordOverride };
+        fetchComparisonList(1, updated);
+        return updated;
+      });
+    } else {
+      fetchComparisonList(1);
+    }
   };
+
 
   const handleClearSearch = () => {
     const clearedFilters: FilterState = {

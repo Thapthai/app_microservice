@@ -159,7 +159,8 @@ export class ItemComparisonPdfService {
           headers.forEach((h, i) => {
             doc.text(h, x + cellPadding, y + 6, {
               width: Math.max(2, colWidths[i] - cellPadding * 2),
-              align: 'center',
+              // ชิดซ้ายสำหรับ รหัสอุปกรณ์ (index 1) และ ชื่ออุปกรณ์ (index 2)
+              align: i === 1 || i === 2 ? 'left' : 'center',
             });
             x += colWidths[i];
           });
@@ -213,7 +214,8 @@ export class ItemComparisonPdfService {
               doc.fillColor(i === 7 ? (isMatch ? '#155724' : '#721C24') : '#000000');
               doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
                 width: w,
-                align: i === 2 ? 'left' : 'center',
+                // ชิดซ้ายสำหรับ รหัสอุปกรณ์ (index 1) และ ชื่ออุปกรณ์ (index 2)
+                align: i === 1 || i === 2 ? 'left' : 'center',
               });
               xPos += cw;
             }
@@ -255,6 +257,98 @@ export class ItemComparisonPdfService {
                 doc.y = subY + itemHeight;
               });
             }
+          });
+        }
+
+        // =========================================================
+        // Summary Page: สรุปรายการเบิกตามเวชภัณฑ์ (แสดงเป็นหน้าใหม่)
+        // =========================================================
+        if (comparisonData.length > 0) {
+          doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
+          const sMargin = margin;
+          const sPageWidth = doc.page.width;
+          const sPageHeight = doc.page.height;
+          const sContentWidth = sPageWidth - sMargin * 2;
+          const sItemHeight = itemHeight;
+
+          doc.y = sMargin;
+          doc.fontSize(12).font(finalFontBoldName).fillColor('#1A365D');
+          doc.text('สรุปรายการเบิกตามเวชภัณฑ์', sMargin, doc.y, {
+            width: sContentWidth,
+            align: 'left',
+          });
+          doc.y += 10;
+          doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
+          doc.text('รวมจำนวนเบิกทั้งหมดของแต่ละรายการเวชภัณฑ์ ตามช่วงวันที่ที่เลือก', sMargin, doc.y, {
+            width: sContentWidth,
+            align: 'left',
+          });
+          doc.fillColor('#000000');
+          doc.y += 14;
+
+          // 6 columns: ลำดับ, รหัส, ชื่อ, จำนวนเบิก, จำนวนใช้, ส่วนต่าง
+          const sColPct = [0.07, 0.16, 0.35, 0.14, 0.14, 0.14];
+          const sColWidths = sColPct.map((p) => Math.floor(sContentWidth * p));
+          let sSumW = sColWidths.reduce((a, b) => a + b, 0);
+          if (sSumW < sContentWidth) {
+            sColWidths[2] += sContentWidth - sSumW;
+          }
+          const sHeaders = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'จำนวนเบิก', 'จำนวนใช้', 'ส่วนต่าง'];
+
+          const drawSummaryHeader = (y: number) => {
+            let x = sMargin;
+            doc.fontSize(8).font(finalFontBoldName);
+            doc.rect(sMargin, y, sContentWidth, sItemHeight).fillAndStroke('#1A365D', '#1A365D');
+            doc.fillColor('#FFFFFF');
+            sHeaders.forEach((h, i) => {
+              doc.text(h, x + cellPadding, y + 6, {
+                width: Math.max(2, sColWidths[i] - cellPadding * 2),
+                align: i === 1 || i === 2 ? 'left' : 'center',
+              });
+              x += sColWidths[i];
+            });
+            doc.fillColor('#000000');
+          };
+
+          const summaryHeaderY = doc.y;
+          drawSummaryHeader(summaryHeaderY);
+          doc.y = summaryHeaderY + sItemHeight;
+
+          let sIndex = 0;
+          doc.fontSize(8).font(finalFontName).fillColor('#000000');
+          comparisonData.forEach((item) => {
+            if (doc.y + sItemHeight > sPageHeight - 35) {
+              doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
+              doc.y = sMargin;
+              drawSummaryHeader(doc.y);
+              doc.y += sItemHeight;
+            }
+
+            const rowY = doc.y;
+            const bg = sIndex % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
+            let xPos = sMargin;
+            const sTexts = [
+              String(sIndex + 1),
+              (item.itemcode ?? '-').toString().substring(0, 18),
+              (item.itemname ?? '-').toString().substring(0, 40),
+              item.total_dispensed != null ? String(item.total_dispensed) : '0',
+              item.total_used != null ? String(item.total_used) : '0',
+              item.difference != null ? String(item.difference) : '0',
+            ];
+
+            for (let i = 0; i < 6; i++) {
+              const cw = sColWidths[i];
+              const w = Math.max(4, cw - cellPadding * 2);
+              doc.rect(xPos, rowY, cw, sItemHeight).fillAndStroke(bg, '#DEE2E6');
+              doc.fillColor('#000000');
+              doc.text(sTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
+                width: w,
+                align: i === 1 || i === 2 ? 'left' : 'center',
+              });
+              xPos += cw;
+            }
+            doc.y = rowY + sItemHeight;
+            sIndex++;
           });
         }
 

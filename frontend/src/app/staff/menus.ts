@@ -106,32 +106,32 @@ export const staffMenuItems = [
             },
         ],
     },
-    {
-        name: 'รายงาน',
-        href: '/reports',
-        icon: BarChart3,
-        description: 'รายงานและสถิติต่างๆ',
-        submenu: [
-            {
-                name: 'รายงาน Vending',
-                href: '/staff/reports/vending-reports',
-                description: 'รายงานการ Mapping และการเบิกอุปกรณ์จาก Vending',
-                icon: TrendingUp,
-            },
-            {
-                name: 'รายงานยกเลิก Bill',
-                href: '/staff/reports/cancel-bill-report',
-                description: 'รายงานการยกเลิก Bill และใบเสร็จ',
-                icon: TrendingUp,
-            },
-            {
-                name: 'คืนเวชภัณฑ์',
-                href: '/staff/reports/return-report',
-                description: 'รายงานการคืนเวชภัณฑ์',
-                icon: TrendingUp,
-            },
-        ],
-    },
+    // {
+    //     name: 'รายงาน',
+    //     href: '/reports',
+    //     icon: BarChart3,
+    //     description: 'รายงานและสถิติต่างๆ',
+    //     submenu: [
+    //         {
+    //             name: 'รายงาน Vending',
+    //             href: '/staff/reports/vending-reports',
+    //             description: 'รายงานการ Mapping และการเบิกอุปกรณ์จาก Vending',
+    //             icon: TrendingUp,
+    //         },
+    //         {
+    //             name: 'รายงานยกเลิก Bill',
+    //             href: '/staff/reports/cancel-bill-report',
+    //             description: 'รายงานการยกเลิก Bill และใบเสร็จ',
+    //             icon: TrendingUp,
+    //         },
+    //         {
+    //             name: 'คืนเวชภัณฑ์',
+    //             href: '/staff/reports/return-report',
+    //             description: 'รายงานการคืนเวชภัณฑ์',
+    //             icon: TrendingUp,
+    //         },
+    //     ],
+    // },
 
     {
         name: 'ตั้งค่า',
