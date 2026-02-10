@@ -439,6 +439,8 @@ export const medicalSuppliesApi = {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<ApiResponse<any> & {
     total?: number;
     page?: number;

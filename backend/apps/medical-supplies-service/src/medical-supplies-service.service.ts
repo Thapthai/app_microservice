@@ -878,11 +878,8 @@ export class MedicalSuppliesServiceService {
         // Convert Prisma object to plain object first to ensure all properties are included
         const usagePlain = JSON.parse(JSON.stringify(usage));
 
-        // Convert supply_items to plain objects as well
-        // และตัดรายการที่ order_item_status === 'Discontinue' (ไม่ว่าจะตัวพิมพ์เล็ก/ใหญ่) ออกไม่ให้ส่งกลับไปหน้า UI
-        const supplyItemsPlain = usage.supply_items
-          .filter(item => (item.order_item_status || '').toLowerCase() !== 'discontinue')
-          .map(item => {
+        // Convert supply_items to plain objects as well (รวมทั้ง Discontinue และอื่น ๆ)
+        const supplyItemsPlain = usage.supply_items.map(item => {
             const itemPlain = JSON.parse(JSON.stringify(item));
             return {
               ...itemPlain,
@@ -2127,6 +2124,8 @@ export class MedicalSuppliesServiceService {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentId?: string;
+    cabinetId?: string;
   }) {
     try {
       const page = filters?.page || 1;
@@ -2156,16 +2155,31 @@ export class MedicalSuppliesServiceService {
 
       }
 
+      if (filters?.departmentId) {
+        const deptId = parseInt(filters.departmentId, 10);
+        if (!Number.isNaN(deptId)) {
+          sqlConditions.push(Prisma.sql`app_microservice_cabinet_departments.department_id = ${deptId}`);
+        }
+      }
+
+      if (filters?.cabinetId) {
+        const cabId = parseInt(filters.cabinetId, 10);
+        if (!Number.isNaN(cabId)) {
+          sqlConditions.push(Prisma.sql`app_microservice_cabinets.ID = ${cabId}`);
+        }
+      }
+
       // Combine WHERE conditions with AND
       const whereClause = Prisma.join(sqlConditions, ' AND ');
 
-      // Get total count first
+      // Get total count first (include cabinet/department JOINs when filtering by them)
       const countResult: any[] = await this.prisma.$queryRaw`
-        -- SELECT COUNT(DISTINCT CONCAT(i.itemcode, '-', ist.LastCabinetModify)) as total
         SELECT COUNT(*) as total
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
         LEFT JOIN itemtype it ON i.itemtypeID = it.ID
+        LEFT JOIN app_microservice_cabinets ON app_microservice_cabinets.stock_id = ist.StockID
+        LEFT JOIN app_microservice_cabinet_departments ON app_microservice_cabinet_departments.cabinet_id = app_microservice_cabinets.ID
         WHERE ${whereClause}
       `;
       const totalCount = Number(countResult[0]?.total || 0);
@@ -2760,6 +2774,11 @@ export class MedicalSuppliesServiceService {
         };
       }
 
+      // item-comparison ไม่เอาแสดงค่า Discontinue
+      supplyItemsWhere.order_item_status = {
+        notIn: ['Discontinue', 'discontinue', 'Discontinued', 'discontinued'],
+      };
+
       // Get usage records (without pagination first to get all matching supply_items)
       const usageRecords = await this.prisma.medicalSupplyUsage.findMany({
         where: whereConditions,
@@ -2941,6 +2960,17 @@ export class MedicalSuppliesServiceService {
           AND order_item_status != 'discontinued'`)
       );
 
+      // จำนวนที่ยกเลิก ผ่าน app_microservice_supply_item_return_records (กรองวันที่ return_datetime ถ้ามี)
+      const sqlConditionsReturn: Prisma.Sql[] = [];
+      if (filters?.startDate && filters?.endDate) {
+        sqlConditionsReturn.push(
+          Prisma.raw(`(DATE(srr.return_datetime) BETWEEN '${filters.startDate.replace(/'/g, "''")}' AND '${filters.endDate.replace(/'/g, "''")}')`)
+        );
+      }
+      const whereClauseReturn =
+        sqlConditionsReturn.length > 0
+          ? Prisma.join(sqlConditionsReturn, ' AND ')
+          : Prisma.sql`1=1`;
 
       const whereClauseDispensed = Prisma.join(sqlConditionsDispensed, ' AND ');
       const whereClauseUsage = Prisma.join(sqlConditionsUsage, ' AND ');
@@ -2977,6 +3007,7 @@ export class MedicalSuppliesServiceService {
                     IFNULL(d.total_dispensed, 0) AS total_dispensed,
                     IFNULL(d.dispensed_records, 0) AS dispensed_records,
                     IFNULL(u.total_usage_items, 0) AS total_used,
+                    IFNULL(r.total_returned, 0) AS total_returned,
                     i.itemtypeID,
                     CASE
                         WHEN IFNULL(d.total_dispensed, 0) = 0
@@ -3026,6 +3057,16 @@ export class MedicalSuppliesServiceService {
                             WHERE ${whereClauseUsage}
                             GROUP BY order_item_code
                         ) u ON u.order_item_code = x.itemcode
+
+                        LEFT JOIN (
+                            SELECT
+                                ist.ItemCode,
+                                SUM(srr.qty_returned) AS total_returned
+                            FROM app_microservice_supply_item_return_records srr
+                            JOIN itemstock ist ON ist.RowID = srr.item_stock_id
+                            WHERE ${whereClauseReturn}
+                            GROUP BY ist.ItemCode
+                        ) r ON r.ItemCode = x.itemcode
                         ${whereKeyword}
 
                         ORDER BY i.itemcode
@@ -3038,9 +3079,11 @@ export class MedicalSuppliesServiceService {
       // Convert BigInt to Number for JSON serialization
       const result = paginatedDispensedItems.map(item => ({
         ...item,
-        difference: Number(item.total_dispensed) - Number(item.total_used),
+        difference: Number(item.total_dispensed) - Number(item.total_used) + Number(item.total_returned ?? 0),
         total_dispensed: Number(item.total_dispensed),
         dispensed_records: Number(item.dispensed_records),
+        total_used: Number(item.total_used),
+        total_returned: Number(item.total_returned ?? 0),
         dispensed_datetime: item.dispensed_datetime ? new Date(item.dispensed_datetime) : null,
         itemType: item.itemType || null,
         itemtypeID: item.itemtypeID ? Number(item.itemtypeID) : null,

@@ -25,7 +25,7 @@ export default function ReturnToCabinetReportPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [returnedList, setReturnedList] = useState<DispensedItem[]>([]);
 
-  // Filters (ค่าเริ่มต้นแผนก/ตู้ = 29 / 1 ตามที่ตั้งไว้)
+  // Filters (ค่าเริ่มต้นแผนก/ตู้ = ทั้งหมด เหมือน dispense-from-cabinet)
   const [filters, setFilters] = useState<FilterState>({
     searchItemCode: '',
     startDate: getTodayDate(),

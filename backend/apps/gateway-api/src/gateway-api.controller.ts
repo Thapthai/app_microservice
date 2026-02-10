@@ -971,6 +971,8 @@ export class GatewayApiController {
     @Query('endDate') endDate?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('cabinetId') cabinetId?: string,
   ) {
     try {
       const filters: any = {};
@@ -979,6 +981,8 @@ export class GatewayApiController {
       if (endDate) filters.endDate = endDate;
       if (page) filters.page = parseInt(page, 10);
       if (limit) filters.limit = parseInt(limit, 10);
+      if (departmentId) filters.departmentId = departmentId;
+      if (cabinetId) filters.cabinetId = cabinetId;
 
       const result = await this.gatewayApiService.getDispensedItems(filters);
       return result;

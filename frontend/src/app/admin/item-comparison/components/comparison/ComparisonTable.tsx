@@ -280,6 +280,7 @@ export function ComparisonTable({
                     const itemUsageData = usageData.get(item.itemcode) || [];
                     const isLoadingUsage = loadingUsage.has(item.itemcode);
                     const isSelected = selectedItemCode === item.itemcode;
+                    const difference = (item.total_dispensed ?? 0) - (item.total_used ?? 0) - (item.total_returned ?? 0);
 
                     const rows = [
                       // Main Item Row
@@ -327,13 +328,13 @@ export function ComparisonTable({
                           {item.total_used}
                         </TableCell>
                         <TableCell
-                          className={`text-right font-bold text-lg ${item.difference === 0 ? 'text-green-600' :
-                            item.difference > 0 ? 'text-orange-600' : 'text-red-600'
+                          className={`text-right font-bold text-lg ${difference === 0 ? 'text-green-600' :
+                            difference > 0 ? 'text-orange-600' : 'text-red-600'
                             }`}
                           onClick={() => onSelectItem(item.itemcode)}
                         >
-                          {item.difference > 0 && '+'}
-                          {item.difference}
+                          {difference > 0 && '+'}
+                          {difference}
                         </TableCell>
                         <TableCell
                           className="text-center"

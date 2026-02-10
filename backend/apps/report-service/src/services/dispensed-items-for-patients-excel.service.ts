@@ -17,6 +17,25 @@ function formatReportDateTime(value?: string) {
   });
 }
 
+/** รายการอุปกรณ์ในหนึ่ง usage (สำหรับ sub row) */
+export interface DispensedItemLine {
+  itemcode: string;
+  itemname: string;
+  qty: number;
+}
+
+/** หนึ่ง usage = หนึ่งคนไข้/หนึ่งครั้งเบิก มีหลาย supply_items */
+export interface DispensedUsageGroup {
+  usage_id: number;
+  seq: number;
+  patient_hn: string;
+  patient_name: string;
+  en?: string;
+  department_code?: string;
+  dispensed_date: string;
+  supply_items: DispensedItemLine[];
+}
+
 export interface DispensedItemsForPatientsReportData {
   filters?: {
     keyword?: string;
@@ -30,18 +49,8 @@ export interface DispensedItemsForPatientsReportData {
     total_qty: number;
     total_patients: number;
   };
-  data: Array<{
-    seq: number;
-    patient_hn: string;
-    patient_name: string;
-    en?: string;
-    department_code?: string;
-    itemcode: string;
-    itemname: string;
-    qty: number;
-    dispensed_date: string;
-    usage_datetime?: string;
-  }>;
+  /** แบบ grouped: แต่ละ element = 1 usage มี supply_items หลายรายการ (สำหรับ main row + sub rows) */
+  data: DispensedUsageGroup[];
 }
 
 @Injectable()
@@ -66,7 +75,7 @@ export class DispensedItemsForPatientsExcelService {
       timeZone: 'Asia/Bangkok',
     });
 
-    // ---- แถว 1-2: โลโก้ (A1:A2) + ชื่อรายงาน (B1:H2) ----
+    // ---- แถว 1-2: โลโก้ (A1:A2) + ชื่อรายงาน (B1:I2) ----
     worksheet.mergeCells('A1:A2');
     worksheet.getCell('A1').fill = {
       type: 'pattern',
@@ -118,7 +127,7 @@ export class DispensedItemsForPatientsExcelService {
     worksheet.getRow(3).height = 20;
     worksheet.addRow([]);
 
-    // ---- ตารางข้อมูล (แสดงก่อน สรุปผล/เงื่อนไข) ----
+    // ---- ตารางข้อมูล: main row ต่อ usage + sub rows ต่อ supply_item (เหมือน item-comparison) ----
     const tableStartRow = 5;
     const tableHeaders = ['ลำดับ', 'HN', 'ชื่อคนไข้', 'EN', 'แผนก', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'จำนวน', 'วันที่เบิก'];
     const headerRow = worksheet.getRow(tableStartRow);
@@ -127,26 +136,34 @@ export class DispensedItemsForPatientsExcelService {
       cell.value = h;
       cell.font = { name: 'Tahoma', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A365D' } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.alignment = {
+        horizontal: i === 2 || i === 6 ? 'left' : 'center',
+        vertical: 'middle',
+      };
       cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
     });
     headerRow.height = 26;
 
     let dataRowIndex = tableStartRow + 1;
-    data.data.forEach((row, idx) => {
-      const excelRow = worksheet.getRow(dataRowIndex);
+    data.data.forEach((usage, idx) => {
       const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA';
-      [
-        row.seq,
-        row.patient_hn ?? '-',
-        row.patient_name ?? '-',
-        row.en ?? '-',
-        row.department_code ?? '-',
-        row.itemcode,
-        row.itemname ?? '-',
-        row.qty,
-        formatReportDateTime(row.dispensed_date),
-      ].forEach((val, colIndex) => {
+      const items = usage.supply_items ?? [];
+      const totalQty = items.reduce((s, i) => s + i.qty, 0);
+
+      // Main row: ลำดับ, HN, ชื่อ, EN, แผนก, สรุปหรือว่าง, จำนวนรวม, วันที่เบิก — รายการอุปกรณ์แสดงใน sub rows ทั้งหมด
+      const excelRow = worksheet.getRow(dataRowIndex);
+      const mainCells = [
+        usage.seq,
+        usage.patient_hn ?? '-',
+        usage.patient_name ?? '-',
+        usage.en ?? '-',
+        usage.department_code ?? '-',
+        items.length > 0 ? `รายการอุปกรณ์ ${items.length} รายการ` : '-',
+        '',
+        totalQty,
+        formatReportDateTime(usage.dispensed_date),
+      ];
+      mainCells.forEach((val, colIndex) => {
         const cell = excelRow.getCell(colIndex + 1);
         cell.value = val;
         cell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF212529' } };
@@ -159,6 +176,25 @@ export class DispensedItemsForPatientsExcelService {
       });
       excelRow.height = 22;
       dataRowIndex++;
+
+      // Sub rows: ทุก supply_item (รวมรายการแรก) — ไม่หาย 1 แถว
+      items.forEach((item) => {
+        const subRow = worksheet.getRow(dataRowIndex);
+        const subBg = 'FFF0F8FF';
+        ['', '', '', '', '', '└ ' + (item.itemcode ?? '-'), item.itemname ?? '-', item.qty ?? 0, ''].forEach((val, colIndex) => {
+          const cell = subRow.getCell(colIndex + 1);
+          cell.value = val;
+          cell.font = { name: 'Tahoma', size: 9, color: { argb: 'FF212529' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: subBg } };
+          cell.alignment = {
+            horizontal: colIndex === 5 || colIndex === 6 ? 'left' : 'center',
+            vertical: 'middle',
+          };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        });
+        subRow.height = 20;
+        dataRowIndex++;
+      });
     });
 
     worksheet.addRow([]);

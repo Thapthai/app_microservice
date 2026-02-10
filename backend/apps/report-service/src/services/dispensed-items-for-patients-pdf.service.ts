@@ -102,7 +102,7 @@ export class DispensedItemsForPatientsPdfService {
         const pageHeight = doc.page.height;
         const contentWidth = pageWidth - margin * 2;
         const summary = data.summary ?? { total_records: 0, total_qty: 0, total_patients: 0 };
-        const rows = data.data ?? [];
+        const usages = data.data ?? [];
 
         // ---- Header block with logo (เหมือน dispensed-items-pdf) ----
         const headerTop = 35;
@@ -179,7 +179,7 @@ export class DispensedItemsForPatientsPdfService {
         doc.y = tableHeaderY + itemHeight;
 
         doc.fontSize(8).font(finalFontName).fillColor('#000000');
-        if (rows.length === 0) {
+        if (usages.length === 0) {
           const rowY = doc.y;
           doc.rect(margin, rowY, totalTableWidth, itemHeight).fillAndStroke('#F8F9FA', '#DEE2E6');
           doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 6, {
@@ -188,41 +188,62 @@ export class DispensedItemsForPatientsPdfService {
           });
           doc.y = rowY + itemHeight;
         } else {
-          rows.forEach((row, idx) => {
-            if (doc.y + itemHeight > pageHeight - 35) {
-              doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
-              doc.y = margin;
-              const newHeaderY = doc.y;
-              drawTableHeader(newHeaderY);
-              doc.y = newHeaderY + itemHeight;
-            }
+          usages.forEach((usage, idx) => {
+            const items = usage.supply_items ?? [];
+            const totalQty = items.reduce((s, i) => s + i.qty, 0);
 
-            const rowY = doc.y;
+            const drawRow = (cellTexts: string[], bg: string) => {
+              if (doc.y + itemHeight > pageHeight - 35) {
+                doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
+                doc.y = margin;
+                const newHeaderY = doc.y;
+                drawTableHeader(newHeaderY);
+                doc.y = newHeaderY + itemHeight;
+              }
+              const rowY = doc.y;
+              let xPos = margin;
+              for (let i = 0; i < 9; i++) {
+                const cw = colWidths[i];
+                const w = Math.max(4, cw - cellPadding * 2);
+                doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');
+                doc.fillColor('#000000');
+                doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
+                  width: w,
+                  align: i === 2 || i === 6 ? 'left' : 'center',
+                });
+                xPos += cw;
+              }
+              doc.y = rowY + itemHeight;
+            };
+
             const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
-            let xPos = margin;
-            const cellTexts = [
-              String(row.seq ?? idx + 1),
-              (row.patient_hn ?? '-').toString().substring(0, 12),
-              (row.patient_name ?? '-').toString().substring(0, 22),
-              (row.en ?? '-').toString().substring(0, 14),
-              (row.department_code ?? '-').toString().substring(0, 12),
-              (row.itemcode ?? '-').toString().substring(0, 14),
-              (row.itemname ?? '-').toString().substring(0, 24),
-              row.qty != null ? String(row.qty) : '0',
-              formatReportDateTime(row.dispensed_date).substring(0, 16),
+            const mainCellTexts = [
+              String(usage.seq ?? idx + 1),
+              (usage.patient_hn ?? '-').toString().substring(0, 12),
+              (usage.patient_name ?? '-').toString().substring(0, 22),
+              (usage.en ?? '-').toString().substring(0, 14),
+              (usage.department_code ?? '-').toString().substring(0, 12),
+              items.length > 0 ? `รายการ ${items.length} รายการ` : '-',
+              '',
+              String(totalQty),
+              formatReportDateTime(usage.dispensed_date).substring(0, 16),
             ];
-            for (let i = 0; i < 9; i++) {
-              const cw = colWidths[i];
-              const w = Math.max(4, cw - cellPadding * 2);
-              doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');
-              doc.fillColor('#000000');
-              doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
-                width: w,
-                align: i === 2 || i === 6 ? 'left' : 'center',
-              });
-              xPos += cw;
-            }
-            doc.y = rowY + itemHeight;
+            drawRow(mainCellTexts, bg);
+
+            items.forEach((item) => {
+              const subCellTexts = [
+                '',
+                '',
+                '',
+                '',
+                '',
+                ('└ ' + (item.itemcode ?? '-')).substring(0, 14),
+                (item.itemname ?? '-').toString().substring(0, 24),
+                String(item.qty ?? 0),
+                '',
+              ];
+              drawRow(subCellTexts, '#F0F8FF');
+            });
           });
         }
 

@@ -177,27 +177,98 @@ export class ItemServiceService {
         return true;
       });
 
-      // Add count_itemstock to each item (only count matching itemStocks)
-      const itemsWithCount = filteredItems.map((item: any) => {
-        // If department_id is provided, only count itemStocks that have cabinet with that department
+      // จัดลำดับรายการตามสถานะของ itemStocks:
+      // 1) มี stock หมดอายุ
+      // 2) มี stock ใกล้หมดอายุ (ภายใน 7 วัน)
+      // 3) จำนวนชิ้น (count_itemstock) ต่ำกว่า stock_min
+      const now = new Date();
+      const in7Days = new Date(now);
+      in7Days.setDate(in7Days.getDate() + 7);
+
+      const itemsWithMeta = filteredItems.map((item: any) => {
+        // จำกัด itemStocks ตาม department ถ้ามีระบุ
         let matchingItemStocks = item.itemStocks;
         if (department_id) {
           matchingItemStocks = item.itemStocks.filter((stock: any) =>
             stock.cabinet?.cabinetDepartments &&
-            stock.cabinet.cabinetDepartments.length > 0
+            stock.cabinet.cabinetDepartments.length > 0,
           );
         }
 
-        return {
+        const countItemStock = matchingItemStocks.length;
+
+        // วิเคราะห์วันหมดอายุ และสถานะหมดอายุ/ใกล้หมดอายุ
+        let earliestExpireDate: Date | null = null;
+        let hasExpired = false;
+        let hasNearExpire = false;
+
+        matchingItemStocks.forEach((stock: any) => {
+          if (!stock.ExpireDate) return;
+          const exp = new Date(stock.ExpireDate);
+
+          if (!earliestExpireDate || exp.getTime() < (earliestExpireDate as Date).getTime()) {
+            earliestExpireDate = exp;
+          }
+
+          if (exp < now) {
+            hasExpired = true;
+          } else if (exp >= now && exp <= in7Days) {
+            hasNearExpire = true;
+          }
+        });
+
+        const stockMin = item.stock_min ?? 0;
+        const isLowStock = stockMin > 0 && countItemStock < stockMin;
+
+        const itemWithCount = {
           ...item,
-          itemStocks: matchingItemStocks, // Replace with filtered itemStocks
-          count_itemstock: matchingItemStocks.length,
+          itemStocks: matchingItemStocks,
+          count_itemstock: countItemStock,
+        };
+
+        return {
+          item: itemWithCount,
+          hasExpired,
+          hasNearExpire,
+          isLowStock,
+          earliestExpireDate,
         };
       });
 
-      // Apply pagination after filtering
-      const total = itemsWithCount.length;
-      const paginatedItems = itemsWithCount.slice(skip, skip + limit);
+      const sortedItems = itemsWithMeta
+        .sort((a, b) => {
+          // 1) มี stock หมดอายุก่อน
+          if (a.hasExpired !== b.hasExpired) {
+            return a.hasExpired ? -1 : 1;
+          }
+
+          // 2) ถัดมา stock ใกล้หมดอายุ (ภายใน 7 วัน)
+          if (a.hasNearExpire !== b.hasNearExpire) {
+            return a.hasNearExpire ? -1 : 1;
+          }
+
+          // 3) ถัดมาคือ stock ที่จำนวนชิ้นต่ำกว่า MIN
+          if (a.isLowStock !== b.isLowStock) {
+            return a.isLowStock ? -1 : 1;
+          }
+
+          // 4) ถ้ามีวันหมดอายุทั้งคู่ ให้เรียงจากหมดอายุเร็วไปช้า
+          if (a.earliestExpireDate && b.earliestExpireDate) {
+            const aTime = (a.earliestExpireDate as Date).getTime();
+            const bTime = (b.earliestExpireDate as Date).getTime();
+            return aTime - bTime;
+          }
+
+          // 5) fallback: เรียงตาม itemcode (A-Z)
+          const codeA = a.item.itemcode || '';
+          const codeB = b.item.itemcode || '';
+          return codeA.localeCompare(codeB);
+        })
+        .map((x) => x.item);
+
+      // Apply pagination after sorting
+      const total = sortedItems.length;
+      const paginatedItems = sortedItems.slice(skip, skip + limit);
 
       return {
         success: true,

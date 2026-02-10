@@ -54,7 +54,7 @@ const mainMenuItems: MenuItem[] = [
   },
   {
     name: "อุปกรณ์",
-    href: "/equipment",
+    href: "/admin/items",
     icon: Box,
     description: "จัดการอุปกรณ์และสต๊อก",
     submenu: [
@@ -91,7 +91,7 @@ const mainMenuItems: MenuItem[] = [
         icon: ClipboardList,
         submenu: [
           {
-            name: "แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน",
+            name: "แจ้งอุปกรณ์ที่ไม่ถูกใขช้งาน",
             href: "/admin/medical-supplies/return",
             description: "แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / ชำรุด",
             icon: RotateCcw,
@@ -135,7 +135,7 @@ const mainMenuItems: MenuItem[] = [
   // },
   {
     name: "การจัดการ",
-    href: "/management",
+    href: "/admin/management",
     icon: Settings,
     description: "จัดการระบบ",
     submenu: [
@@ -152,10 +152,10 @@ const mainMenuItems: MenuItem[] = [
         description: "จัดการ Staff Users และ Client Credentials",
       },
       {
-        name: "Staff Premission Role",
-        href: "/admin/management/staff-users/premission-role",
+        name: "Staff Permission Role",
+        href: "/admin/management/permission-role",
         icon: Users,
-        description: "จัดการ Staff Premission Role",
+        description: "จัดการ Staff Permission Role",
       },
     ],
   },

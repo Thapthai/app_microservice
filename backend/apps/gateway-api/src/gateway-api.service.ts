@@ -459,6 +459,8 @@ export class GatewayApiService {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentId?: string;
+    cabinetId?: string;
   }) {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply.getDispensedItems' }, filters || {}).toPromise();
   }

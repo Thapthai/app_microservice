@@ -1,8 +1,45 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Search, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { FilterState } from '../types';
+import SearchableSelect from '@/app/admin/items/components/SearchableSelect';
+import { cabinetApi, departmentApi, cabinetDepartmentApi } from '@/lib/api';
+
+interface Department {
+  ID: number;
+  DepName?: string;
+  DepName2?: string;
+  DepCode?: string;
+}
+
+interface Cabinet {
+  id: number;
+  cabinet_name?: string;
+  cabinet_code?: string;
+  cabinet_status?: string;
+  cabinetDepartments?: Array<{
+    id: number;
+    department_id: number;
+    status: string;
+  }>;
+}
+
+interface CabinetDepartmentMapping {
+  id: number;
+  cabinet_id: number;
+  department_id: number;
+  status?: string;
+  cabinet?: {
+    id: number;
+    cabinet_name?: string;
+    cabinet_code?: string;
+    cabinet_status?: string;
+  };
+}
 
 interface FilterSectionProps {
   filters: FilterState;
@@ -21,6 +58,92 @@ export default function FilterSection({
   onRefresh,
   loading,
 }: FilterSectionProps) {
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [cabinets, setCabinets] = useState<Cabinet[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [loadingCabinets, setLoadingCabinets] = useState(false);
+
+  const loadDepartments = async (keyword?: string) => {
+    try {
+      setLoadingDepartments(true);
+      const response = await departmentApi.getAll({ limit: 50, keyword });
+      if (response.success && response.data) {
+        setDepartments(response.data as Department[]);
+      }
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
+  const loadCabinetsByDepartment = async (departmentId: string, keyword?: string) => {
+    if (!departmentId || departmentId === '') {
+      loadAllCabinets(keyword);
+      return;
+    }
+    try {
+      setLoadingCabinets(true);
+      const response = await cabinetDepartmentApi.getAll({
+        departmentId: parseInt(departmentId),
+        keyword: keyword || undefined,
+      });
+      if (response.success && response.data) {
+        const mappings = response.data as CabinetDepartmentMapping[];
+        const uniqueCabinets = new Map<number, Cabinet>();
+        mappings
+          .filter((mapping) => mapping.status === 'ACTIVE')
+          .forEach((mapping) => {
+            if (mapping.cabinet && !uniqueCabinets.has(mapping.cabinet.id)) {
+              uniqueCabinets.set(mapping.cabinet.id, {
+                id: mapping.cabinet.id,
+                cabinet_name: mapping.cabinet.cabinet_name,
+                cabinet_code: mapping.cabinet.cabinet_code,
+                cabinet_status: mapping.cabinet.cabinet_status,
+              });
+            }
+          });
+        setCabinets(Array.from(uniqueCabinets.values()));
+      } else {
+        setCabinets([]);
+      }
+    } catch (error) {
+      console.error('Failed to load cabinets by department:', error);
+      setCabinets([]);
+    } finally {
+      setLoadingCabinets(false);
+    }
+  };
+
+  const loadAllCabinets = async (keyword?: string) => {
+    try {
+      setLoadingCabinets(true);
+      const response = await cabinetApi.getAll({ page: 1, limit: 50, keyword });
+      if (response.success && response.data) {
+        const allCabinets = response.data as Cabinet[];
+        const filteredCabinets = allCabinets.filter((cabinet) => {
+          if (cabinet.cabinetDepartments && cabinet.cabinetDepartments.length > 0) {
+            return cabinet.cabinetDepartments.some((cd) => cd.status === 'ACTIVE');
+          }
+          return cabinet.cabinet_status === 'ACTIVE';
+        });
+        setCabinets(filteredCabinets);
+      }
+    } catch (error) {
+      console.error('Failed to load cabinets:', error);
+    } finally {
+      setLoadingCabinets(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDepartments();
+  }, []);
+
+  useEffect(() => {
+    loadCabinetsByDepartment(filters.departmentId);
+  }, [filters.departmentId]);
+
   return (
     <Card>
       <CardHeader>
@@ -29,25 +152,20 @@ export default function FilterSection({
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {/* Row 1: Search and Item Type */}
-          <div className="grid grid-cols-1 md:grid-cols-1 ">
-            {/* Search by Item Code */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">รหัส/ชื่อเวชภัณฑ์</label>
-              <Input
-                placeholder="ค้นหา..."
-                value={filters.searchItemCode}
-                onChange={(e) => onFilterChange('searchItemCode', e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && onSearch()}
-                className="w-full"
-              />
-            </div>
-
+          {/* รหัส/ชื่อเวชภัณฑ์ */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">รหัส/ชื่อเวชภัณฑ์</label>
+            <Input
+              placeholder="ค้นหา..."
+              value={filters.searchItemCode}
+              onChange={(e) => onFilterChange('searchItemCode', e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+              className="w-full"
+            />
           </div>
 
-          {/* Row 2: Date Range */}
+          {/* ช่วงวันที่ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Start Date */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">วันที่เริ่มต้น</label>
               <Input
@@ -56,8 +174,6 @@ export default function FilterSection({
                 onChange={(e) => onFilterChange('startDate', e.target.value)}
               />
             </div>
-
-            {/* End Date */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">วันที่สิ้นสุด</label>
               <Input
@@ -66,6 +182,54 @@ export default function FilterSection({
                 onChange={(e) => onFilterChange('endDate', e.target.value)}
               />
             </div>
+          </div>
+
+          {/* แผนก & ตู้ Cabinet */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SearchableSelect
+              label="แผนก"
+              placeholder="เลือกแผนก"
+              value={filters.departmentId}
+              onValueChange={(value) => {
+                onFilterChange('departmentId', value);
+                onFilterChange('cabinetId', '');
+              }}
+              options={[
+                { value: '', label: 'ทั้งหมด' },
+                ...departments.map((dept) => ({
+                  value: dept.ID.toString(),
+                  label: dept.DepName || '',
+                  subLabel: dept.DepName2 || '',
+                })),
+              ]}
+              loading={loadingDepartments}
+              onSearch={loadDepartments}
+              searchPlaceholder="ค้นหาชื่อแผนก..."
+            />
+            <SearchableSelect
+              label="ตู้ Cabinet"
+              placeholder={filters.departmentId ? 'เลือกตู้ Cabinet' : 'กรุณาเลือกแผนกก่อน'}
+              value={filters.cabinetId}
+              onValueChange={(value) => onFilterChange('cabinetId', value)}
+              options={[
+                { value: '', label: 'ทั้งหมด' },
+                ...cabinets.map((cabinet) => ({
+                  value: cabinet.id.toString(),
+                  label: cabinet.cabinet_name || '',
+                  subLabel: cabinet.cabinet_code || '',
+                })),
+              ]}
+              loading={loadingCabinets}
+              onSearch={(searchKeyword) => {
+                if (filters.departmentId) {
+                  loadCabinetsByDepartment(filters.departmentId, searchKeyword);
+                } else {
+                  loadAllCabinets(searchKeyword);
+                }
+              }}
+              searchPlaceholder={filters.departmentId ? 'ค้นหารหัสหรือชื่อตู้...' : 'กรุณาเลือกแผนกก่อน'}
+              disabled={!filters.departmentId}
+            />
           </div>
         </div>
 

@@ -31,6 +31,8 @@ export default function DispenseFromCabinetPage() {
     startDate: getTodayDate(),
     endDate: getTodayDate(),
     itemTypeFilter: 'all',
+    departmentId: '29',
+    cabinetId: '1',
   });
 
   // Pagination
@@ -56,6 +58,8 @@ export default function DispenseFromCabinetPage() {
       if (activeFilters.startDate) params.startDate = activeFilters.startDate;
       if (activeFilters.endDate) params.endDate = activeFilters.endDate;
       if (activeFilters.searchItemCode) params.keyword = activeFilters.searchItemCode;
+      if (activeFilters.departmentId) params.departmentId = activeFilters.departmentId;
+      if (activeFilters.cabinetId) params.cabinetId = activeFilters.cabinetId;
 
       const response = await medicalSuppliesApi.getDispensedItems(params);
 
@@ -101,6 +105,8 @@ export default function DispenseFromCabinetPage() {
       startDate: getTodayDate(),
       endDate: getTodayDate(),
       itemTypeFilter: 'all',
+      departmentId: '29',
+      cabinetId: '1',
     };
     setFilters(clearedFilters);
     setCurrentPage(1);
@@ -119,6 +125,8 @@ export default function DispenseFromCabinetPage() {
         keyword: filters.searchItemCode || undefined,
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
+        departmentId: filters.departmentId || undefined,
+        cabinetId: filters.cabinetId || undefined,
       };
 
       if (format === 'excel') {

@@ -2377,19 +2377,25 @@ export class ReportServiceService {
 
 
       const reportData: DispensedItemsForPatientsReportData['data'] = data.map((usage, index) => {
-        const firstItem = (usage as { supply_items?: Array<{ order_item_code?: string; supply_code?: string; order_item_description?: string; supply_name?: string; qty?: number; quantity?: number }> }).supply_items?.[0];
+        const supplyItems = (usage as { supply_items?: Array<{ order_item_code?: string; supply_code?: string; order_item_description?: string; supply_name?: string; qty?: number; quantity?: number }> }).supply_items ?? [];
+        const supply_items: DispensedItemsForPatientsReportData['data'][0]['supply_items'] = supplyItems.map((item) => ({
+          itemcode: item?.order_item_code ?? item?.supply_code ?? '-',
+          itemname: item?.order_item_description ?? item?.supply_name ?? '-',
+          qty: Number(item?.qty ?? item?.quantity ?? 0),
+        }));
         return {
+          usage_id: usage.id,
           seq: index + 1,
           patient_hn: usage.patient_hn ?? '-',
           patient_name: usage.first_name ?? usage.lastname ?? usage.patient_name_th ?? usage.patient_name_en ?? '-',
           en: usage.en ?? undefined,
           department_code: usage.department_code ?? undefined,
-          itemcode: firstItem?.order_item_code ?? firstItem?.supply_code ?? '-',
-          itemname: firstItem?.order_item_description ?? firstItem?.supply_name ?? '-',
-          qty: Number(firstItem?.qty ?? firstItem?.quantity ?? 0),
-          dispensed_date: usage.usage_datetime ?? usage.created_at?.toISOString(),
+          dispensed_date: usage.usage_datetime ?? usage.created_at?.toISOString() ?? '',
+          supply_items,
         };
       });
+
+      const totalQty = reportData.reduce((sum, u) => sum + u.supply_items.reduce((s, i) => s + i.qty, 0), 0);
 
       return {
         filters: {
@@ -2401,10 +2407,7 @@ export class ReportServiceService {
         },
         summary: {
           total_records: total,
-          total_qty: data.reduce((sum, usage) => {
-            const firstItem = (usage as { supply_items?: Array<{ qty?: number; quantity?: number }> }).supply_items?.[0];
-            return sum + (Number(firstItem?.qty ?? firstItem?.quantity ?? 0));
-          }, 0),
+          total_qty: totalQty,
           total_patients: data.length,
         },
         data: reportData,

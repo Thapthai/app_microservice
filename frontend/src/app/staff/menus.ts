@@ -56,7 +56,7 @@ export const staffMenuItems = [
     },
     {
         name: 'อุปกรณ์',
-        href: '/equipment',
+        href: '/staff/items',
         icon: Box,
         description: 'จัดการอุปกรณ์และสต๊อก',
         submenu: [
@@ -135,7 +135,7 @@ export const staffMenuItems = [
 
     {
         name: 'ตั้งค่า',
-        href: '/management',
+        href: '/staff/management',
         icon: Settings,
         description: 'ตั้งค่าระบบ',
         submenu: [

@@ -5,6 +5,7 @@ export interface ComparisonItem {
   itemTypeName: string;
   total_dispensed: number;
   total_used: number;
+  total_returned?: number;
   difference: number;
   status: string;
   first_dispensed?: string | null;

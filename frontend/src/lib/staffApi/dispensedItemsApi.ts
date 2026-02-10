@@ -18,6 +18,8 @@ export const DispensedItemsApi = {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<ApiResponse<any> & {
     total?: number;
     page?: number;
@@ -33,11 +35,15 @@ export const DispensedItemsApi = {
     keyword?: string;
     startDate?: string;
     endDate?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<void> => {
     const queryParams = new URLSearchParams();
     if (params?.keyword) queryParams.append('keyword', params.keyword);
     if (params?.startDate) queryParams.append('startDate', params.startDate);
     if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.departmentId) queryParams.append('departmentId', params.departmentId);
+    if (params?.cabinetId) queryParams.append('cabinetId', params.cabinetId);
     const response = await staffApi.get(
       `/medical-supplies-dispensed-items/export/excel?${queryParams.toString()}`,
       { responseType: 'blob' },
@@ -56,11 +62,15 @@ export const DispensedItemsApi = {
     keyword?: string;
     startDate?: string;
     endDate?: string;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<void> => {
     const queryParams = new URLSearchParams();
     if (params?.keyword) queryParams.append('keyword', params.keyword);
     if (params?.startDate) queryParams.append('startDate', params.startDate);
     if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.departmentId) queryParams.append('departmentId', params.departmentId);
+    if (params?.cabinetId) queryParams.append('cabinetId', params.cabinetId);
     const response = await staffApi.get(
       `/medical-supplies-dispensed-items/export/pdf?${queryParams.toString()}`,
       { responseType: 'blob' },

@@ -246,6 +246,9 @@ export default function MedicalSuppliesPage() {
 
           {/* Search Filters */}
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+            <div className="flex items-center space-x-2 font-bold text-lg mb-4">
+            วันที่เบิกอุปกรณ์ใช้กับคนไข้
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">วันที่เริ่มต้น</Label>
