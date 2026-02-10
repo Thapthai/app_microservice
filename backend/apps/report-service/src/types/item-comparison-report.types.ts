@@ -23,6 +23,7 @@ export interface ComparisonItem {
   item_type: string;
   total_dispensed: number;
   total_used: number;
+  total_returned?: number;
   difference: number;
   status: 'MATCHED' | 'DISPENSED_NOT_USED' | 'USED_WITHOUT_DISPENSE' | 'DISPENSE_EXCEEDS_USAGE' | 'USAGE_EXCEEDS_DISPENSE';
   usageItems?: UsageDetail[];

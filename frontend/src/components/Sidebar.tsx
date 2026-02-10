@@ -91,7 +91,7 @@ const mainMenuItems: MenuItem[] = [
         icon: ClipboardList,
         submenu: [
           {
-            name: "แจ้งอุปกรณ์ที่ไม่ถูกใขช้งาน",
+            name: "แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน",
             href: "/admin/medical-supplies/return",
             description: "แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / ชำรุด",
             icon: RotateCcw,

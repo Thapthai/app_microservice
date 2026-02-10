@@ -637,7 +637,7 @@ export class MedicalSuppliesServiceService {
 
       // Build where clause - support both HN and patient_hn
       const baseWhere: any = {};
-    
+
 
       if (query.patient_hn || query.HN) {
         baseWhere.patient_hn = query.patient_hn || query.HN;
@@ -880,12 +880,12 @@ export class MedicalSuppliesServiceService {
 
         // Convert supply_items to plain objects as well (รวมทั้ง Discontinue และอื่น ๆ)
         const supplyItemsPlain = usage.supply_items.map(item => {
-            const itemPlain = JSON.parse(JSON.stringify(item));
-            return {
-              ...itemPlain,
-              qty_pending: (item.qty || 0) - (item.qty_used_with_patient || 0) - (item.qty_returned_to_cabinet || 0),
-            };
-          });
+          const itemPlain = JSON.parse(JSON.stringify(item));
+          return {
+            ...itemPlain,
+            qty_pending: (item.qty || 0) - (item.qty_used_with_patient || 0) - (item.qty_returned_to_cabinet || 0),
+          };
+        });
 
         const result: any = {
           ...usagePlain,
@@ -2202,7 +2202,15 @@ export class MedicalSuppliesServiceService {
           department.DepName AS departmentName
         FROM itemstock ist
         LEFT JOIN item i ON ist.ItemCode = i.itemcode
-        LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.cabinet_finger_id
+        LEFT JOIN (
+              SELECT uc.*
+              FROM user_cabinet uc
+              INNER JOIN (
+                  SELECT cabinet_finger_id, MAX(id) AS max_id
+                  FROM user_cabinet
+                  GROUP BY cabinet_finger_id
+              ) x ON x.max_id = uc.id
+          ) user_cabinet ON ist.CabinetUserID = user_cabinet.cabinet_finger_id
         LEFT JOIN users ON user_cabinet.user_id = users.ID
         LEFT JOIN employee ON employee.EmpCode = users.EmpCode
         LEFT JOIN app_microservice_cabinets on app_microservice_cabinets.stock_id = ist.StockID
@@ -2271,6 +2279,7 @@ export class MedicalSuppliesServiceService {
     cabinetId?: string;
   }) {
     try {
+
       const page = filters?.page || 1;
       const limit = filters?.limit || 10;
       const offset = (page - 1) * limit;
@@ -2299,7 +2308,7 @@ export class MedicalSuppliesServiceService {
       }
 
       if (filters?.departmentId) {
-        sqlConditions.push(Prisma.raw(`department.id = '${filters.departmentId}'`));
+        sqlConditions.push(Prisma.raw(`department.ID = '${filters.departmentId}'`));
       }
 
       if (filters?.cabinetId) {
@@ -2308,7 +2317,7 @@ export class MedicalSuppliesServiceService {
 
       // Combine WHERE conditions with AND
       const whereClause = Prisma.join(sqlConditions, ' AND ');
-    
+
       // Get total count first - Same structure as main query
       const countResult: any[] = await this.prisma.$queryRaw`
         SELECT count(ist.RowID) as total
@@ -2319,7 +2328,7 @@ export class MedicalSuppliesServiceService {
         LEFT JOIN employee ON employee.EmpCode = users.EmpCode
         LEFT JOIN app_microservice_cabinets on app_microservice_cabinets.stock_id = ist.StockID
         LEFT JOIN app_microservice_cabinet_departments on app_microservice_cabinet_departments.cabinet_id = app_microservice_cabinets.ID
-        LEFT JOIN department on department.ID = app_microservice_cabinet_departments.department_id
+        LEFT JOIN department on department.id = app_microservice_cabinet_departments.department_id
         WHERE ${whereClause}
       `;
       const totalCount = Number(countResult[0]?.total || 0);
@@ -2342,7 +2351,15 @@ export class MedicalSuppliesServiceService {
           department.DepName AS departmentName
         FROM itemstock ist
         INNER JOIN item i ON ist.ItemCode = i.itemcode
-        LEFT JOIN user_cabinet ON ist.CabinetUserID = user_cabinet.cabinet_finger_id
+        LEFT JOIN (
+              SELECT uc.*
+              FROM user_cabinet uc
+              INNER JOIN (
+                  SELECT cabinet_finger_id, MAX(id) AS max_id
+                  FROM user_cabinet
+                  GROUP BY cabinet_finger_id
+              ) x ON x.max_id = uc.id
+          ) user_cabinet ON ist.CabinetUserID = user_cabinet.cabinet_finger_id
         LEFT JOIN users ON user_cabinet.user_id = users.ID
         LEFT JOIN employee ON employee.EmpCode = users.EmpCode
         LEFT JOIN app_microservice_cabinets on app_microservice_cabinets.stock_id = ist.StockID
@@ -2353,6 +2370,7 @@ export class MedicalSuppliesServiceService {
         LIMIT ${limit}
         OFFSET ${offset}
       `;
+ 
 
       // Convert BigInt to Number for JSON serialization
       const result = returnedItems.map(item => ({

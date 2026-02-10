@@ -116,7 +116,7 @@ export default function ReturnToCabinetReportPage() {
     fetchReturnedList(1, resetFilters);
   };
 
-
+console.log(filters);
   
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));

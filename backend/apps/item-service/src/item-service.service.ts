@@ -91,6 +91,7 @@ export class ItemServiceService {
         RfidCode: {
           not: '',
         },
+        IsStock: true, // เฉพาะแถวที่เป็นสต็อกปัจจุบัน (IsStock = 1)
       };
 
       // Filter by cabinet_id if provided
@@ -128,6 +129,7 @@ export class ItemServiceService {
               Qty: true,
               RfidCode: true,
               ExpireDate: true,
+              IsStock: true,
               cabinet: {
                 select: {
                   id: true,

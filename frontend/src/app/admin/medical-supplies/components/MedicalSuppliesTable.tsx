@@ -250,7 +250,7 @@ export default function MedicalSuppliesTable({
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">ลำดับ</TableHead>
-                  <TableHead>ผู้เบิก</TableHead>
+                  <TableHead>HN / EN คนไข้</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
                   <TableHead className="text-center">จำนวนอุปกรณ์</TableHead>
@@ -308,7 +308,10 @@ export default function MedicalSuppliesTable({
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm text-gray-700">{recordedByName}</span>
+                        <div className="text-sm text-gray-700 leading-tight">
+                          <div>HN {supplyData.patient_hn || '-'}</div>
+                          <div className="text-xs text-gray-500">EN {supplyData.en || '-'}</div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         {formatDate(supply.created_at || supplyData.created_at || supplyData.usage_datetime)}

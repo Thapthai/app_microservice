@@ -237,7 +237,7 @@ export default function ItemsTable({
                               <div>
                                 <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
                                   <Package className="h-4 w-4" />
-                                  รายการ Item Stock ในอุปกรณ์ ({itemStocks.length} รายการ)
+                                  รายการสต็อกอุปกรณ์ในตู้ ({itemStocks.length} รายการ)
                                 </h4>
                                 <div className="overflow-x-auto">
                                   <Table>

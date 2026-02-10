@@ -192,6 +192,7 @@ export class ItemComparisonPdfService {
 
             const rowY = doc.y;
             const bg = rowIndex % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
+            const difference = (item.total_dispensed ?? 0) - (item.total_used ?? 0) - (item.total_returned ?? 0);
             const isMatch = item.status === 'MATCHED';
             let xPos = margin;
             const cellTexts = [
@@ -200,7 +201,7 @@ export class ItemComparisonPdfService {
               (item.itemname ?? '-').toString().substring(0, 28),
               item.total_dispensed != null ? String(item.total_dispensed) : '0',
               item.total_used != null ? String(item.total_used) : '0',
-              item.difference != null ? String(item.difference) : '0',
+              String(difference),
               this.getStatusText(item.status || 'UNKNOWN').substring(0, 14),
               isMatch ? 'ตรงกัน' : 'ไม่ตรงกัน',
             ];
@@ -208,7 +209,7 @@ export class ItemComparisonPdfService {
               const cw = colWidths[i];
               const w = Math.max(4, cw - cellPadding * 2);
               let fillColor = bg;
-              if (i === 5 && (item.difference ?? 0) !== 0) fillColor = '#FFF3CD';
+              if (i === 5 && difference !== 0) fillColor = '#FFF3CD';
               if (i === 7) fillColor = isMatch ? '#D4EDDA' : '#F8D7DA';
               doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(fillColor, '#DEE2E6');
               doc.fillColor(i === 7 ? (isMatch ? '#155724' : '#721C24') : '#000000');
@@ -324,6 +325,7 @@ export class ItemComparisonPdfService {
               doc.y += sItemHeight;
             }
 
+            const difference = (item.total_dispensed ?? 0) - (item.total_used ?? 0) - (item.total_returned ?? 0);
             const rowY = doc.y;
             const bg = sIndex % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
             let xPos = sMargin;
@@ -333,7 +335,7 @@ export class ItemComparisonPdfService {
               (item.itemname ?? '-').toString().substring(0, 40),
               item.total_dispensed != null ? String(item.total_dispensed) : '0',
               item.total_used != null ? String(item.total_used) : '0',
-              item.difference != null ? String(item.difference) : '0',
+              String(difference),
             ];
 
             for (let i = 0; i < 6; i++) {

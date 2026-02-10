@@ -122,6 +122,7 @@ export class ItemComparisonExcelService {
 
     let dataRowIndex = tableStartRow + 1;
     comparisonData.forEach((item, idx) => {
+      const difference = (item.total_dispensed ?? 0) - (item.total_used ?? 0) - (item.total_returned ?? 0);
       const excelRow = worksheet.getRow(dataRowIndex);
       const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA';
       const isMatch = item.status === 'MATCHED';
@@ -131,7 +132,7 @@ export class ItemComparisonExcelService {
         item.itemname ?? '-',
         item.total_dispensed ?? 0,
         item.total_used ?? 0,
-        item.difference ?? 0,
+        difference,
         this.getStatusText(item.status || 'UNKNOWN'),
         isMatch ? '✓ ตรงกัน' : '✗ ไม่ตรงกัน',
       ];
@@ -140,7 +141,7 @@ export class ItemComparisonExcelService {
         cell.value = val;
         cell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF212529' } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-        if (colIndex === 5 && (item.difference ?? 0) !== 0) {
+        if (colIndex === 5 && difference !== 0) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
           cell.font = { name: 'Tahoma', size: 10, bold: true, color: { argb: 'FF856404' } };
         }
@@ -306,6 +307,7 @@ export class ItemComparisonExcelService {
     // Data rows (สรุปรายการเบิก/ใช้/ส่วนต่าง ของแต่ละ item)
     let summaryDataRowIndex = summaryTableStartRow + 1;
     comparisonData.forEach((item, idx) => {
+      const difference = (item.total_dispensed ?? 0) - (item.total_used ?? 0) - (item.total_returned ?? 0);
       const excelRow = summarySheet.getRow(summaryDataRowIndex);
       const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA';
       const cells = [
@@ -314,7 +316,7 @@ export class ItemComparisonExcelService {
         item.itemname ?? '-',
         item.total_dispensed ?? 0,
         item.total_used ?? 0,
-        item.difference ?? 0,
+        difference,
       ];
       cells.forEach((val, colIndex) => {
         const cell = excelRow.getCell(colIndex + 1);
