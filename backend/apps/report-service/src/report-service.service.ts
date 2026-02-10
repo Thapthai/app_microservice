@@ -2077,6 +2077,8 @@ export class ReportServiceService {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<{ buffer: Buffer; filename: string }> {
     try {
       // Get dispensed items data from medical-supplies-service
@@ -2089,6 +2091,8 @@ export class ReportServiceService {
             endDate: params.endDate,
             page: params.page || 1,
             limit: params.limit || 10000, // Get all records for report
+            departmentId: params.departmentId,
+            cabinetId: params.cabinetId,
           }
         )
       );
@@ -2105,7 +2109,9 @@ export class ReportServiceService {
           keyword: params.keyword,
           startDate: params.startDate,
           endDate: params.endDate,
-        },
+          departmentId: params.departmentId,
+          cabinetId: params.cabinetId,
+        } as DispensedItemsReportData['filters'],
         summary: {
           total_records: response.total || dispensedItems.length,
           total_qty: dispensedItems.reduce((sum: number, item: any) => sum + (item.qty || 0), 0),
@@ -2135,6 +2141,8 @@ export class ReportServiceService {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentId?: string;
+    cabinetId?: string;
   }): Promise<{ buffer: Buffer; filename: string }> {
     try {
       // Get dispensed items data from medical-supplies-service
@@ -2147,6 +2155,8 @@ export class ReportServiceService {
             endDate: params.endDate,
             page: params.page || 1,
             limit: params.limit || 10000, // Get all records for report
+            departmentId: params.departmentId,
+            cabinetId: params.cabinetId,
           }
         )
       );
@@ -2163,7 +2173,9 @@ export class ReportServiceService {
           keyword: params.keyword,
           startDate: params.startDate,
           endDate: params.endDate,
-        },
+          departmentId: params.departmentId,
+          cabinetId: params.cabinetId,
+        } as DispensedItemsReportData['filters'],
         summary: {
           total_records: response.total || dispensedItems.length,
           total_qty: dispensedItems.reduce((sum: number, item: any) => sum + (item.qty || 0), 0),

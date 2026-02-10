@@ -719,6 +719,9 @@ export class ItemServiceService {
       const where: any = {};
       const skip = (page - 1) * limit;
 
+      // แสดงเฉพาะสต็อกปัจจุบันในตู้ (IsStock = 1)
+      where.IsStock = true;
+
       if (cabinet_id) {
         // Get stock_id from cabinet table
         const cabinet = await this.prisma.cabinet.findUnique({

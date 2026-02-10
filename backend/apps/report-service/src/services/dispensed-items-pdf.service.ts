@@ -196,14 +196,15 @@ export class DispensedItemsPdfService {
             const rowY = doc.y;
             const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
             let xPos = margin;
+            // ใช้ค่า field แบบเดียวกับ Excel (ไม่ตัด substring) เพื่อให้ data ตรงกัน
             const cellTexts = [
               String(idx + 1),
-              (item?.itemcode ?? '-').toString().substring(0, 14),
-              (item?.itemname ?? '-').toString().substring(0, 30),
-              formatReportDateTime(item?.modifyDate as any).substring(0, 18),
+              item?.itemcode ?? '-',
+              item?.itemname ?? '-',
+              formatReportDateTime(item?.modifyDate as any),
               item?.departmentName ?? '-',
-              (item?.RfidCode ?? '-').toString().substring(0, 18),
-              (item?.cabinetUserName ?? 'ไม่ระบุ').toString().substring(0, 18),
+              item?.RfidCode ?? '-',
+              item?.cabinetUserName ?? 'ไม่ระบุ',
             ];
             for (let i = 0; i < 7; i++) {
               const cw = colWidths[i];
@@ -221,28 +222,6 @@ export class DispensedItemsPdfService {
         }
 
         doc.y += 6;
-
-        // // ---- สรุปผล (หลังตาราง) ----
-        // doc.rect(margin, doc.y, contentWidth, 44).fillAndStroke('#E9ECEF', '#DEE2E6');
-        // doc.fontSize(10).font(finalFontBoldName).fillColor('#1A365D');
-        // doc.text('สรุปผล', margin + 8, doc.y + 4);
-        // doc.fontSize(9).font(finalFontName).fillColor('#000000');
-        // doc
-        //   .text(`จำนวนรายการทั้งหมด: ${summary.total_records}`, margin + 8, doc.y + 14)
-        //   .text(`จำนวนรวม: ${summary.total_qty}`, margin + 8, doc.y + 26);
-        // doc.y += 46;
-
-        // // ---- เงื่อนไขการค้นหา (หลังตาราง) ----
-        // const filters = data.filters ?? {};
-        // if (filters.keyword || filters.startDate || filters.endDate) {
-        //   doc.rect(margin, doc.y, contentWidth, 36).fillAndStroke('#E9ECEF', '#DEE2E6');
-        //   doc.fontSize(10).font(finalFontBoldName).fillColor('#1A365D');
-        //   doc.text('เงื่อนไขการค้นหา', margin + 8, doc.y + 4);
-        //   doc.fontSize(9).font(finalFontName).fillColor('#000000');
-        //   doc.text(`คำค้นหา: ${filters.keyword ?? 'ทั้งหมด'}`, margin + 8, doc.y + 14);
-        //   doc.text(`วันที่: ${filters.startDate ?? ''} ถึง ${filters.endDate ?? ''}`, margin + 8, doc.y + 24);
-        //   doc.y += 40;
-        // }
 
         doc.end();
       } catch (err) {

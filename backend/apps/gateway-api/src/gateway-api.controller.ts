@@ -1000,6 +1000,8 @@ export class GatewayApiController {
     @Query('keyword') keyword?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('cabinetId') cabinetId?: string,
     @Res() res?: any,
   ) {
     try {
@@ -1007,6 +1009,8 @@ export class GatewayApiController {
       if (keyword) params.keyword = keyword;
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
+      if (departmentId) params.departmentId = departmentId;
+      if (cabinetId) params.cabinetId = cabinetId;
       // Get all items for export (no pagination)
       params.page = 1;
       params.limit = 100000;
@@ -1034,6 +1038,8 @@ export class GatewayApiController {
     @Query('keyword') keyword?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('cabinetId') cabinetId?: string,
     @Res() res?: any,
   ) {
     try {
@@ -1041,6 +1047,8 @@ export class GatewayApiController {
       if (keyword) params.keyword = keyword;
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
+      if (departmentId) params.departmentId = departmentId;
+      if (cabinetId) params.cabinetId = cabinetId;
       // Get all items for export (no pagination)
       params.page = 1;
       params.limit = 100000;

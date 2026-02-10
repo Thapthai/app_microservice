@@ -463,6 +463,7 @@ export class DepartmentServiceService {
           const itemStockCount = await this.prisma.itemStock.count({
             where: {
               StockID: stockId,
+              IsStock: true, // นับเฉพาะสต็อกที่สถานะ IsStock = 1
             },
           });
 

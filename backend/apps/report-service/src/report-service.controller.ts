@@ -156,6 +156,8 @@ export class ReportServiceController {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentId?: string;
+    cabinetId?: string;
   }) {
     try {
       const result = await this.reportServiceService.generateDispensedItemsExcel(data);
@@ -183,6 +185,8 @@ export class ReportServiceController {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentId?: string;
+    cabinetId?: string;
   }) {
     try {
       const result = await this.reportServiceService.generateDispensedItemsPDF(data);

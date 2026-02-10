@@ -471,6 +471,8 @@ export class GatewayApiService {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentId?: string;
+    cabinetId?: string;
   }) {
     return this.reportClient.send({ cmd: 'report.dispensed_items.excel' }, params).toPromise();
   }
@@ -481,6 +483,8 @@ export class GatewayApiService {
     endDate?: string;
     page?: number;
     limit?: number;
+    departmentId?: string;
+    cabinetId?: string;
   }) {
     return this.reportClient.send({ cmd: 'report.dispensed_items.pdf' }, params).toPromise();
   }

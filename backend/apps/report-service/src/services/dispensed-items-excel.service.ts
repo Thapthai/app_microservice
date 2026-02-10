@@ -22,6 +22,8 @@ export interface DispensedItemsReportData {
     keyword?: string;
     startDate?: string;
     endDate?: string;
+    departmentId?: string;
+    cabinetId?: string;
   };
   summary: {
     total_records: number;
