@@ -79,7 +79,7 @@ export default function ReturnEditableTable({
               <TableHead className="text-right text-slate-600 font-medium w-16">คืนแล้ว</TableHead>
               <TableHead className="text-right text-slate-600 font-medium w-20">คืนได้</TableHead>
               <TableHead className="text-slate-600 font-medium w-28">จำนวนที่คืน</TableHead>
-              <TableHead className="text-slate-600 font-medium min-w-[180px]">สาเหตุการคืน</TableHead>
+              <TableHead className="text-slate-600 font-medium min-w-[180px]">สาเหตุ</TableHead>
               <TableHead className="text-slate-600 font-medium min-w-[140px]">หมายเหตุ</TableHead>
             </TableRow>
           </TableHeader>

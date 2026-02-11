@@ -163,6 +163,22 @@ export default function FilterSection({ onSearch, onBeforeSearch }: FilterSectio
     loadCabinetsByDepartment(formFilters.departmentId);
   }, [formFilters.departmentId]);
 
+  // Validate cabinetId when cabinets list changes (reset if not in new list)
+  useEffect(() => {
+    if (formFilters.cabinetId && cabinets.length > 0) {
+      const cabinetExists = cabinets.some(
+        (cabinet) => cabinet.id.toString() === formFilters.cabinetId
+      );
+      if (!cabinetExists) {
+        // Cabinet ID not in new list, reset it
+        setFormFilters((prev) => ({
+          ...prev,
+          cabinetId: "",
+        }));
+      }
+    }
+  }, [cabinets, formFilters.cabinetId]);
+
   // Trigger initial search with default values after cabinets are loaded
   useEffect(() => {
     if (

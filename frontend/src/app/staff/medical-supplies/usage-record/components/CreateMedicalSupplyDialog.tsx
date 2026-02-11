@@ -130,10 +130,10 @@ export default function CreateMedicalSupplyDialog({
                 <FormField
                   control={form.control}
                   name="patient_name"
-                  rules={{ required: 'กรุณากรอกชื่อผู้ป่วย' }}
+                  rules={{ required: 'กรุณากรอกชื่อคนไข้' }}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>ชื่อผู้ป่วย *</FormLabel>
+                      <FormLabel>ชื่อคนไข้ *</FormLabel>
                       <FormControl>
                         <Input placeholder="ชื่อ-นามสกุล" {...field} />
                       </FormControl>

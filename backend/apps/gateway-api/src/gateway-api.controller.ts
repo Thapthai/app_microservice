@@ -2590,11 +2590,13 @@ export class GatewayApiController {
     @Res() res: any,
     @Query('cabinetId') cabinetId?: string,
     @Query('cabinetCode') cabinetCode?: string,
+    @Query('departmentId') departmentId?: string,
   ) {
     try {
       const params: any = {};
       if (cabinetId) params.cabinetId = Number(cabinetId);
       if (cabinetCode) params.cabinetCode = cabinetCode;
+      if (departmentId) params.departmentId = Number(departmentId);
 
       const result = await this.gatewayApiService.generateCabinetStockReportExcel(params);
 
@@ -2627,11 +2629,13 @@ export class GatewayApiController {
     @Res() res: any,
     @Query('cabinetId') cabinetId?: string,
     @Query('cabinetCode') cabinetCode?: string,
+    @Query('departmentId') departmentId?: string,
   ) {
     try {
       const params: any = {};
       if (cabinetId) params.cabinetId = Number(cabinetId);
       if (cabinetCode) params.cabinetCode = cabinetCode;
+      if (departmentId) params.departmentId = Number(departmentId);
 
       const result = await this.gatewayApiService.generateCabinetStockReportPdf(params);
 

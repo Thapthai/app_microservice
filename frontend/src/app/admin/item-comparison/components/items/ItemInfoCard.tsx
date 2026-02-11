@@ -1,4 +1,4 @@
-import { Download, RefreshCw } from 'lucide-react';
+import { FileText, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '../common/StatusBadge';
@@ -30,7 +30,7 @@ export function ItemInfoCard({
               variant="outline"
               size="sm"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" />
               Excel
             </Button>
             <Button 
@@ -38,7 +38,7 @@ export function ItemInfoCard({
               variant="outline"
               size="sm"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" />
               PDF
             </Button>
             <Button

@@ -145,7 +145,7 @@ export default function ViewMedicalSupplyDialog({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <InfoItem label="HN" value={supply.patient_hn} />
                 <InfoItem label="EN" value={supply.en} />
-                <InfoItem label="ชื่อผู้ป่วย" value={patientName} className="md:col-span-2" />
+                <InfoItem label="ชื่อคนไข้" value={patientName} className="md:col-span-2" />
                 <InfoItem label="โรงพยาบาล" value={supply.hospital} />
                 <InfoItem label="TWU" value={supply.twu} />
               </div>

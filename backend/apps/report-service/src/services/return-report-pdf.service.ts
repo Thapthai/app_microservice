@@ -113,7 +113,7 @@ export class ReturnReportPdfService {
         }
 
         doc.fontSize(14).font(finalFontBoldName).fillColor('#1A365D');
-        doc.text('รายงานการคืนเวชภัณฑ์', margin, headerTop + 6, {
+        doc.text('รายงานอุปกรณ์ที่ไม่ถูกใช้งาน', margin, headerTop + 6, {
           width: contentWidth,
           align: 'center',
         });
@@ -160,7 +160,7 @@ export class ReturnReportPdfService {
           doc.y += 18;
         }
 
-        // Table: 8 columns (ลำดับ, รหัส, ชื่อ, ชื่อผู้เติม, จำนวน, สาเหตุ, วันที่คืน, หมายเหตุ)
+        // Table: 8 columns (ลำดับ, รหัส, ชื่อ, ชื่อผู้เติม, จำนวน, สาเหตุ, วันที่, หมายเหตุ)
         const colPct = [0.06, 0.12, 0.22, 0.14, 0.08, 0.18, 0.10, 0.10];
         const colWidths = colPct.map((p) => Math.floor(contentWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
@@ -173,8 +173,8 @@ export class ReturnReportPdfService {
           'ชื่ออุปกรณ์',
           'ชื่อผู้เติม',
           'จำนวน',
-          'สาเหตุการคืน',
-          'วันที่คืน',
+          'สาเหตุ',
+          'วันที่',
           'หมายเหตุ',
         ];
 
@@ -232,11 +232,11 @@ export class ReturnReportPdfService {
 
             const cellTexts = [
               String(index + 1),
-              String(itemCode).substring(0, 12),
+              String(itemCode).substring(0, 24),
               String(itemName).substring(0, 24),
               String(returnByName).substring(0, 14),
               String(record.qty_returned),
-              this.getReturnReasonLabel(record.return_reason).substring(0, 18),
+              this.getReturnReasonLabel(record.return_reason).substring(0, 38),
               returnDate,
               (record.return_note || '-').substring(0, 14),
             ];

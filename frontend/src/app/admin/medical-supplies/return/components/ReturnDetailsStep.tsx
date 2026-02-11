@@ -54,7 +54,7 @@ export default function ReturnDetailsStep({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="return-reason">สาเหตุการคืน</Label>
+          <Label htmlFor="return-reason">สาเหตุ</Label>
           <Select value={returnReason} onValueChange={(value) => onReasonChange(value as ReturnReason)}>
             <SelectTrigger>
               <SelectValue />

@@ -896,6 +896,7 @@ export class GatewayApiService {
   async generateCabinetStockReportExcel(params: {
     cabinetId?: number;
     cabinetCode?: string;
+    departmentId?: number;
   }): Promise<any> {
     return firstValueFrom(
       this.reportClient.send({ cmd: 'report.cabinet_stock.excel' }, params)
@@ -905,6 +906,7 @@ export class GatewayApiService {
   async generateCabinetStockReportPdf(params: {
     cabinetId?: number;
     cabinetCode?: string;
+    departmentId?: number;
   }): Promise<any> {
     return firstValueFrom(
       this.reportClient.send({ cmd: 'report.cabinet_stock.pdf' }, params)
@@ -914,6 +916,7 @@ export class GatewayApiService {
   async getCabinetStockReportData(params: {
     cabinetId?: number;
     cabinetCode?: string;
+    departmentId?: number;
   }): Promise<any> {
     return firstValueFrom(
       this.reportClient.send({ cmd: 'report.cabinet_stock.data' }, params)

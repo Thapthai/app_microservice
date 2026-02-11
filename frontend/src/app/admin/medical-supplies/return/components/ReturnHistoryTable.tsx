@@ -93,7 +93,7 @@ export default function ReturnHistoryTable({
               size="sm"
               onClick={handleDownloadExcel}
               disabled={exportLoading !== null}
-              className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+
             >
               {exportLoading === 'excel' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -107,7 +107,6 @@ export default function ReturnHistoryTable({
               size="sm"
               onClick={handleDownloadPdf}
               disabled={exportLoading !== null}
-              className="gap-2 border-sky-200 text-sky-700 hover:bg-sky-50"
             >
               {exportLoading === 'pdf' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -130,7 +129,7 @@ export default function ReturnHistoryTable({
                 <TableHead className="text-slate-600 font-medium">ชื่อผู้เติม</TableHead>
                 <TableHead className="text-center text-slate-600 font-medium w-24">จำนวน</TableHead>
                 <TableHead className="text-slate-600 font-medium">สาเหตุ</TableHead>
-                <TableHead className="text-center text-slate-600 font-medium">วันที่คืน</TableHead>
+                <TableHead className="text-center text-slate-600 font-medium">วันที่</TableHead>
                 <TableHead className="text-slate-600 font-medium">หมายเหตุ</TableHead>
               </TableRow>
             </TableHeader>
@@ -178,7 +177,7 @@ export default function ReturnHistoryTable({
               <FileText className="h-8 w-8 text-slate-400" />
             </div>
             <p className="text-slate-600 font-medium">ไม่พบประวัติการคืน</p>
-            <p className="text-slate-500 text-sm mt-1">ลองปรับช่วงวันที่หรือสาเหตุการคืน</p>
+            <p className="text-slate-500 text-sm mt-1">ลองปรับช่วงวันที่หรือสาเหตุ</p>
           </div>
         )}
 

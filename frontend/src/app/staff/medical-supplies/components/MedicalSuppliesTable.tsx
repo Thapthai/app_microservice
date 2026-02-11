@@ -49,33 +49,33 @@ export default function MedicalSuppliesTable({
   exportLoading,
   filters,
 }: MedicalSuppliesTableProps) {
-  
+
   const canShowCancelBill = (supply: any): boolean => {
     const supplyData = supply.data || supply;
     const createdDate = supplyData.created_at || supply.created_at;
     const billingStatus = supplyData.billing_status || supply.billing_status;
-    
+
     // ถ้า cancel แล้ว ไม่แสดงปุ่ม
     if (billingStatus && billingStatus.toLowerCase() === 'cancelled') {
       return false;
     }
-    
+
     if (!createdDate) {
       return false;
     }
-    
+
     try {
       const created = new Date(createdDate);
       const today = new Date();
-      
+
       // เอาแค่วันที่ ไม่เอาเวลา
       const createdDay = new Date(created.getFullYear(), created.getMonth(), created.getDate());
       const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      
+
       // คำนวณความแตกต่างของวัน (วันเบิก - วันนี้)
       const diffTime = todayDay.getTime() - createdDay.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      
+
       // แสดงปุ่มเฉพาะเมื่อวันเบิก - วันนี้ ไม่เกิน 1 วัน (0 หรือ 1 วัน)
       return diffDays >= 0 && diffDays <= 1;
     } catch (e) {
@@ -175,87 +175,85 @@ export default function MedicalSuppliesTable({
 
   return (
     <Card>
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4 pb-2">
-          <div className="space-y-1.5">
-            <CardTitle>รายการเบิกอุปกรณ์</CardTitle>
-            <CardDescription>
-              ทั้งหมด {totalItems} รายการ
-              {filters.startDate && filters.endDate && (
-                <span className="ml-2">
-                  (วันที่ {new Date(filters.startDate).toLocaleDateString('th-TH')} - {new Date(filters.endDate).toLocaleDateString('th-TH')})
-                </span>
-              )}
-            </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4 pb-2">
+        <div className="space-y-1.5">
+          <CardTitle>รายการเบิกอุปกรณ์</CardTitle>
+          <CardDescription>
+            ทั้งหมด {totalItems} รายการ
+            {filters.startDate && filters.endDate && (
+              <span className="ml-2">
+                (วันที่ {new Date(filters.startDate).toLocaleDateString('th-TH')} - {new Date(filters.endDate).toLocaleDateString('th-TH')})
+              </span>
+            )}
+          </CardDescription>
+        </div>
+        {(onExportExcel ?? onExportPdf) && (
+          <div className="flex shrink-0 items-center gap-2">
+            {onExportExcel && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onExportExcel}
+                disabled={exportLoading !== undefined && exportLoading !== null}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+                {exportLoading === 'excel' ? 'กำลังโหลด...' : 'Excel'}
+              </Button>
+            )}
+            {onExportPdf && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onExportPdf}
+                disabled={exportLoading !== undefined && exportLoading !== null}
+              >
+                <FileText className="h-4 w-4 mr-1.5" />
+                {exportLoading === 'pdf' ? 'กำลังโหลด...' : 'PDF'}
+              </Button>
+            )}
           </div>
-          {(onExportExcel ?? onExportPdf) && (
-            <div className="flex shrink-0 items-center gap-2">
-              {onExportExcel && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onExportExcel}
-                  disabled={exportLoading !== undefined && exportLoading !== null}
-                >
-                  <FileSpreadsheet className="h-4 w-4 mr-1.5" />
-                  {exportLoading === 'excel' ? 'กำลังโหลด...' : 'Excel'}
-                </Button>
-              )}
-              {onExportPdf && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onExportPdf}
-                  disabled={exportLoading !== undefined && exportLoading !== null}
-                >
-                  <FileText className="h-4 w-4 mr-1.5" />
-                  {exportLoading === 'pdf' ? 'กำลังโหลด...' : 'PDF'}
-                </Button>
-              )}
-            </div>
-          )}
-        </CardHeader>
-        <CardContent className="px-4 py-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>กำลังโหลดข้อมูล...</p>
-                </TooltipContent>
-              </Tooltip>
-              <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
-            </div>
-          ) : supplies.length === 0 ? (
-            <div className="text-center py-12">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="inline-block">
-                    <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>ไม่พบรายการเบิก</p>
-                </TooltipContent>
-              </Tooltip>
-              <p className="text-gray-500">ไม่พบรายการเบิก</p>
-              <p className="text-sm text-gray-400 mt-2">ลองเปลี่ยนเงื่อนไขการค้นหา</p>
-            </div>
-          ) : (
+        )}
+      </CardHeader>
+      <CardContent className="px-4 py-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>กำลังโหลดข้อมูล...</p>
+              </TooltipContent>
+            </Tooltip>
+            <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
+          </div>
+        ) : supplies.length === 0 ? (
+          <div className="text-center py-12">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="inline-block">
+                  <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>ไม่พบรายการเบิก</p>
+              </TooltipContent>
+            </Tooltip>
+            <p className="text-gray-500">ไม่พบรายการเบิก</p>
+            <p className="text-sm text-gray-400 mt-2">ลองเปลี่ยนเงื่อนไขการค้นหา</p>
+          </div>
+        ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">ลำดับ</TableHead>
-                  {/* <TableHead>HN</TableHead> */}
-                  {/* <TableHead>ชื่อผู้ป่วย</TableHead> */}
-                  {/* <TableHead>Assession No</TableHead> */}
                   <TableHead>ผู้เบิก</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
+                  <TableHead className="text-center">จำนวนอุปกรณ์ที่ถูกใช้งาน</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead className="text-center">จัดการ</TableHead>
                 </TableRow>
@@ -264,62 +262,39 @@ export default function MedicalSuppliesTable({
                 {supplies.map((supply, index) => {
                   const supplyData = supply.data || supply;
                   const id = supply.id || supplyData.id;
-                  const patientName = `${supplyData.first_name || ''} ${supplyData.lastname || ''}`.trim() || 
-                                     supplyData.patient_name_th || '-';
+                  const patientName = `${supplyData.first_name || ''} ${supplyData.lastname || ''}`.trim() ||
+                    supplyData.patient_name_th || '-';
                   const recordedByName = supplyData.recorded_by_display ||
-                                        supply.recorded_by_display ||
-                                        supply.recorded_by_name || 
-                                        supplyData.recorded_by_name || '-';
-                  
+                    supply.recorded_by_display ||
+                    supply.recorded_by_name ||
+                    supplyData.recorded_by_name || '-';
+
+                  const supplyItems = supplyData.supply_items || supply.supply_items || [];
+                  const activeItems = supplyItems.filter((item: any) => {
+                    const status = item.order_item_status?.toLowerCase() || '';
+                    return status !== 'discontinue' && status !== 'discontinued';
+                  });
+                  const totalQtyPending = activeItems.reduce((sum: number, item: any) => {
+                    const qty = item.qty || 0;
+                    const qtyUsed = item.qty_used_with_patient || 0;
+                    const qtyReturned = item.qty_returned_to_cabinet || 0;
+                    const qtyPending = qty - qtyUsed - qtyReturned;
+                    return sum + (qtyPending > 0 ? qtyPending : 0);
+                  }, 0);
+
                   const isSelected = selectedSupplyId === id;
-                  
+
                   return (
-                    <TableRow 
+                    <TableRow
                       key={id || index}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected ? 'bg-purple-100 hover:bg-purple-100' : 'hover:bg-gray-50'
-                      }`}
+                      className={`cursor-pointer transition-colors ${isSelected ? 'bg-purple-100 hover:bg-purple-100' : 'hover:bg-gray-50'
+                        }`}
                       onClick={() => onSelectSupply && onSelectSupply(supply)}
                     >
                       <TableCell className="text-center">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </TableCell>
-                      {/* <TableCell className="font-mono font-medium">
-                        {supplyData.patient_hn || '-'}
-                      </TableCell> */}
-                      {/* <TableCell>
-                        {patientName}
-                      </TableCell> */}
-                      {/* <TableCell>
-                        {(() => {
-                          const supplyItems = supplyData.supply_items || supply.supply_items || [];
-                          const assessionNos = supplyItems
-                            .map((item: any) => item.assession_no)
-                            .filter((no: string) => no && no.trim() !== '');
-                          
-                          if (assessionNos.length === 0) {
-                            return <span className="text-gray-400">-</span>;
-                          }
-                          
-                          // Show first assession_no, or multiple if there are few
-                          if (assessionNos.length === 1) {
-                            return (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
-                                {assessionNos[0]}
-                              </Badge>
-                            );
-                          }
-                          
-                          // If multiple, show first one with count
-                          return (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
-                              {assessionNos[0]} {assessionNos.length > 1 && `(+${assessionNos.length - 1})`}
-                            </Badge>
-                          );
-                        })()}
-                      </TableCell> */}
+
                       <TableCell>
                         <span className="text-sm text-gray-700">{recordedByName}</span>
                       </TableCell>
@@ -328,7 +303,12 @@ export default function MedicalSuppliesTable({
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold">
-                          {supply.supplies_count || supplyData.supplies_count || (supplyData.supply_items || []).length || 0}
+                          {activeItems.length || 0}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold">
+                          {totalQtyPending || 0}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -387,7 +367,7 @@ export default function MedicalSuppliesTable({
               >
                 ก่อนหน้า
               </Button>
-              
+
               {generatePageNumbers().map((page, idx) =>
                 page === '...' ? (
                   <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>

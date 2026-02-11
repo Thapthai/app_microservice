@@ -49,7 +49,7 @@ export class ReturnReportExcelService {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Report Service';
     workbook.created = new Date();
-    const worksheet = workbook.addWorksheet('รายงานการคืนเวชภัณฑ์', {
+    const worksheet = workbook.addWorksheet('รายงานอุปกรณ์ที่ไม่ถูกใช้งาน', {
       pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true },
       properties: { defaultRowHeight: 20 },
     });
@@ -91,7 +91,7 @@ export class ReturnReportExcelService {
     worksheet.mergeCells('B1:H2');
     const headerCell = worksheet.getCell('B1');
     headerCell.value =
-      'รายงานการคืนเวชภัณฑ์\nReturn Report';
+      'รายงานอุปกรณ์ที่ไม่ถูกใช้งาน\nReturn Report';
     headerCell.font = { name: 'Tahoma', size: 14, bold: true, color: { argb: 'FF1A365D' } };
     headerCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     headerCell.fill = {
@@ -113,26 +113,6 @@ export class ReturnReportExcelService {
     dateCell.alignment = { horizontal: 'right', vertical: 'middle' };
     worksheet.getRow(3).height = 20;
 
-    // แถว 4: เงื่อนไข + สรุป (ถ้ามี)
-    // let tableStartRow = 5;
-    // if (data.filters && (data.filters.date_from || data.filters.date_to || data.filters.return_reason)) {
-    //   worksheet.mergeCells(`A4:I4`);
-    //   const filterParts: string[] = [];
-    //   if (data.filters.date_from || data.filters.date_to) {
-    //     filterParts.push(`วันที่: ${data.filters.date_from || ''} ถึง ${data.filters.date_to || ''}`);
-    //   }
-    //   if (data.filters.return_reason) {
-    //     filterParts.push(`สาเหตุ: ${this.getReturnReasonLabel(data.filters.return_reason)}`);
-    //   }
-    //   const summaryStr = `สรุป: ${data.summary.total_records} รายการ, ${data.summary.total_qty_returned} ชิ้น`;
-    //   const filterCell = worksheet.getCell('A4');
-    //   filterCell.value = [...filterParts, summaryStr].join(' | ');
-    //   filterCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF495057' } };
-    //   filterCell.alignment = { horizontal: 'left', vertical: 'middle' };
-    //   worksheet.getRow(4).height = 20;
-    //   tableStartRow = 6;
-    // }
-
     // ---- ตารางข้อมูล ----
     const tableHeaders = [
       'ลำดับ',
@@ -140,8 +120,8 @@ export class ReturnReportExcelService {
       'ชื่ออุปกรณ์',
       'ชื่อผู้เติม',
       'จำนวนที่คืน',
-      'สาเหตุการคืน',
-      'วันที่คืน',
+      'สาเหตุ',
+      'วันที่',
       'หมายเหตุ',
     ];
     const headerRow = worksheet.getRow(5);

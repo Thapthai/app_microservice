@@ -296,7 +296,7 @@ export default function MedicalSuppliesPage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">ชื่อผู้ป่วย</p>
+                    <p className="text-sm text-gray-500">ชื่อคนไข้</p>
                     <p className="font-semibold">
                       {selectedSupply.data?.first_name || selectedSupply.first_name || ''} {selectedSupply.data?.lastname || selectedSupply.lastname || ''}
                     </p>

@@ -37,7 +37,7 @@ export class ReturnToCabinetReportPdfService {
       ];
 
       let basePath: string | null = null;
-      
+
       for (const testPath of possiblePaths) {
         const testFile = path.join(testPath, 'THSarabunNew.ttf');
         if (fs.existsSync(testFile)) {
@@ -54,7 +54,7 @@ export class ReturnToCabinetReportPdfService {
       const boldFont = path.join(basePath, 'THSarabunNew Bold.ttf');
 
       doc.registerFont('ThaiFont', regularFont);
-      
+
       if (fs.existsSync(boldFont)) {
         doc.registerFont('ThaiFontBold', boldFont);
       } else {
@@ -120,7 +120,7 @@ export class ReturnToCabinetReportPdfService {
         doc.on('error', (error) => reject(error));
 
         try {
-          const margin = 40;
+          const margin = 28;
           const pageWidth = doc.page.width;
           const pageHeight = doc.page.height;
           const contentWidth = pageWidth - margin * 2;
@@ -128,20 +128,22 @@ export class ReturnToCabinetReportPdfService {
           const filters = data.filters as (ReturnToCabinetReportData['filters'] & {
             departmentId?: string;
             cabinetId?: string;
+            departmentName?: string;
+            cabinetName?: string;
           }) | undefined;
 
           // ---- Header block with logo (ให้เหมือน dispensed-items / cabinet-stock) ----
-          const headerTop = 35;
-          const headerHeight = 48;
+          const headerTop = 28;
+          const headerHeight = 40;
           doc.rect(margin, headerTop, contentWidth, headerHeight)
             .fillAndStroke('#F8F9FA', '#DEE2E6');
 
           if (logoBuffer && logoBuffer.length > 0) {
             try {
-              doc.image(logoBuffer, margin + 8, headerTop + 6, { fit: [70, 36] });
+              doc.image(logoBuffer, margin + 6, headerTop + 4, { fit: [56, 32] });
             } catch {
               try {
-                doc.image(logoBuffer, margin + 8, headerTop + 6, { width: 70 });
+                doc.image(logoBuffer, margin + 6, headerTop + 4, { width: 56 });
               } catch {
                 // ignore logo error
               }
@@ -159,48 +161,27 @@ export class ReturnToCabinetReportPdfService {
             align: 'center',
           });
           doc.fillColor('#000000');
-          doc.y = headerTop + headerHeight + 14;
+          doc.y = headerTop + headerHeight + 8;
 
-          // วันที่รายงาน
-          doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
-          doc.text(`วันที่รายงาน: ${reportDate}`, margin, doc.y, {
-            width: contentWidth,
+          // แถวเงื่อนไข: ด้านซ้าย แผนก, ตู้, วันที่เริ่ม, วันที่สิ้นสุด | ด้านขวา วันที่รายงาน (เหมือน dispensed-items)
+          doc.text(`วันที่รายงาน: ${reportDate}`, margin + contentWidth / 2, doc.y, {
+            width: contentWidth / 2,
             align: 'right',
           });
           doc.fillColor('#000000');
-          doc.y += 4;
+          const deptLabel = filters?.departmentName ? `แผนก: ${filters.departmentName}` : (filters?.departmentId ? `แผนก: ${filters.departmentId}` : 'แผนก: ทั้งหมด');
+          const cabLabel = filters?.cabinetName ? `ตู้: ${filters.cabinetName}` : (filters?.cabinetId ? `ตู้: ${filters.cabinetId}` : 'ตู้: ทั้งหมด');
+          const startLabel = filters?.startDate ? `วันที่เริ่ม: ${filters.startDate}` : 'วันที่เริ่ม: ทั้งหมด';
+          const endLabel = filters?.endDate ? `วันที่สิ้นสุด: ${filters.endDate}` : 'วันที่สิ้นสุด: ทั้งหมด';
+          const leftConditionStr = `${deptLabel}    ${cabLabel}    ${startLabel}    ${endLabel}`;
+          doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
+          doc.text(leftConditionStr, margin, doc.y, { width: contentWidth / 2, align: 'left' });
 
-          // สรุปเงื่อนไข (inline แบบบรรทัดเดียวให้ดีไซน์เรียบเหมือนรายงานอื่น)
-          if (
-            filters &&
-            (filters.keyword ||
-              filters.itemTypeId != null ||
-              filters.startDate ||
-              filters.endDate ||
-              filters.departmentId ||
-              filters.cabinetId)
-          ) {
-            const parts: string[] = [];
-            if (filters.keyword) parts.push(`คำค้นหา: ${filters.keyword}`);
-            if (filters.startDate || filters.endDate) {
-              parts.push(`วันที่: ${filters.startDate ?? ''} ถึง ${filters.endDate ?? ''}`);
-            }
-            if (filters.departmentId) parts.push(`แผนก ID: ${filters.departmentId}`);
-            if (filters.cabinetId) parts.push(`ตู้ ID: ${filters.cabinetId}`);
-            if (filters.itemTypeId != null) parts.push(`ประเภทอุปกรณ์ ID: ${filters.itemTypeId}`);
-
-            doc.fontSize(8).font(finalFontName).fillColor('#6C757D');
-            doc.text(parts.join(' | '), margin, doc.y, {
-              width: contentWidth,
-              align: 'left',
-            });
-            doc.fillColor('#000000');
-            doc.y += 6;
-          }
+          doc.y += 2;
 
           // ---- ตารางข้อมูล ----
-          const itemHeight = 18;
-          const cellPadding = 4;
+          const itemHeight = 14;
+          const cellPadding = 3;
           const totalTableWidth = contentWidth;
           const headers = [
             'ลำดับ',
@@ -209,27 +190,33 @@ export class ReturnToCabinetReportPdfService {
             'วันที่แก้ไขล่าสุด',
             'ชื่อผู้เบิก',
             'RFID Code',
-            'cabinet',
-            'สถานะ RFID',
+            'แผนก',
+            'ตู้',
           ];
 
-          // สัดส่วนคอลัมน์ ใกล้เคียง Excel
-          const colPercentages = [0.07, 0.12, 0.23, 0.16, 0.14, 0.11, 0.09, 0.08];
-          const colWidths = colPercentages.map((p) => Math.floor(totalTableWidth * p));
-          const totalCalculated = colWidths.reduce((sum, w) => sum + w, 0);
+          // สัดส่วนคอลัมน์ (รวม 1.0) ให้ไม่ล้นความกว้างกระดาษ
+          const colPercentages = [0.045, 0.117, 0.208, 0.10, 0.13, 0.26, 0.10, 0.10];
+          let colWidths = colPercentages.map((p) => Math.floor(totalTableWidth * p));
+          let totalCalculated = colWidths.reduce((sum, w) => sum + w, 0);
+          if (totalCalculated > totalTableWidth) {
+            colWidths = colWidths.map((w) => Math.floor((w * totalTableWidth) / totalCalculated));
+            totalCalculated = colWidths.reduce((sum, w) => sum + w, 0);
+          }
           if (totalCalculated < totalTableWidth) {
             colWidths[2] += totalTableWidth - totalCalculated;
           }
 
           const drawTableHeader = (y: number) => {
             let x = margin;
-            doc.fontSize(8).font(finalFontBoldName);
+            doc.fontSize(7).font(finalFontBoldName);
             doc.rect(margin, y, totalTableWidth, itemHeight).fillAndStroke('#1A365D', '#1A365D');
             doc.fillColor('#FFFFFF');
             headers.forEach((h, i) => {
-              doc.text(h, x + cellPadding, y + 5, {
+              doc.text(h, x + cellPadding, y + 3, {
                 width: Math.max(2, colWidths[i] - cellPadding * 2),
+                height: itemHeight - 6,
                 align: 'center',
+                ellipsis: true,
               });
               x += colWidths[i];
             });
@@ -240,20 +227,22 @@ export class ReturnToCabinetReportPdfService {
           drawTableHeader(tableHeaderY);
           doc.y = tableHeaderY + itemHeight;
 
-          doc.fontSize(8).font(finalFontName).fillColor('#000000');
+          doc.fontSize(7).font(finalFontName).fillColor('#000000');
 
           if (rows.length === 0) {
             const rowY = doc.y;
             doc.rect(margin, rowY, totalTableWidth, itemHeight).fillAndStroke('#F8F9FA', '#DEE2E6');
-            doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 5, {
+            doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 3, {
               width: totalTableWidth - cellPadding * 2,
+              height: itemHeight - 6,
               align: 'center',
+              ellipsis: true,
             });
             doc.y = rowY + itemHeight;
           } else {
             rows.forEach((item, idx) => {
-              if (doc.y + itemHeight > pageHeight - 35) {
-                doc.addPage({ size: 'A4', layout: 'portrait', margin });
+              if (doc.y + itemHeight > pageHeight - 32) {
+                doc.addPage({ size: 'A4', layout: 'portrait', margin: 28 });
                 doc.y = margin;
                 const newHeaderY = doc.y;
                 drawTableHeader(newHeaderY);
@@ -270,8 +259,8 @@ export class ReturnToCabinetReportPdfService {
                 formatReportDate(item.modifyDate),
                 (item as any).cabinetUserName || 'ไม่ระบุ',
                 item.RfidCode || '-',
+                (item as any).departmentName ?? '-',
                 (item as any).cabinetName || '-',
-                (item as any).Istatus_rfid ?? '-',
               ];
 
               rowData.forEach((cellData, i) => {
@@ -279,9 +268,11 @@ export class ReturnToCabinetReportPdfService {
                 const w = Math.max(4, cw - cellPadding * 2);
                 doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');
                 doc.fillColor('#000000');
-                doc.text(String(cellData), xPos + cellPadding, rowY + 5, {
+                doc.text(String(cellData), xPos + cellPadding, rowY + 3, {
                   width: w,
+                  height: itemHeight - 6,
                   align: i === 2 || i === 4 ? 'left' : 'center',
+                  ellipsis: true,
                 });
                 xPos += cw;
               });

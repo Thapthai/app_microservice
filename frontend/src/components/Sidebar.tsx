@@ -128,7 +128,7 @@ const mainMenuItems: MenuItem[] = [
   //     {
   //       name: "คืนเวชภัณฑ์",
   //       href: "/admin/reports/return-report",
-  //       description: "รายงานการคืนเวชภัณฑ์",
+  //       description: "รายงานอุปกรณ์ที่ไม่ถูกใช้งาน",
   //       icon: RotateCcw,
   //     },
   //   ],

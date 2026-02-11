@@ -253,7 +253,7 @@ export default function MedicalSuppliesTable({
                   <TableHead>HN / EN คนไข้</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
-                  <TableHead className="text-center">จำนวนอุปกรณ์</TableHead>
+                  <TableHead className="text-center">จำนวนอุปกรณ์ที่ถูกใช้งาน</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead className="text-center">จัดการ</TableHead>
                 </TableRow>

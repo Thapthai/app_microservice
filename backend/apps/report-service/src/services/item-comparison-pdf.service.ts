@@ -133,23 +133,32 @@ export class ItemComparisonPdfService {
         doc.fillColor('#000000');
         doc.y += 4;
 
-        // Table: 8 columns
-        const colPct = [0.06, 0.12, 0.22, 0.12, 0.12, 0.12, 0.12, 0.10];
-        const colWidths = colPct.map((p) => Math.floor(contentWidth * p));
-        let sumW = colWidths.reduce((a, b) => a + b, 0);
-        if (sumW < contentWidth) {
-          colWidths[2] += contentWidth - sumW;
-        }
+        // Table: 10 columns
         const headers = [
           'ลำดับ',
+          'HN/EN',
+          'ชื่อคนไข้',
           'รหัสอุปกรณ์',
           'ชื่ออุปกรณ์',
           'จำนวนเบิก',
           'จำนวนใช้',
           'ส่วนต่าง',
+          'วันที่',
           'สถานะ',
-          'ผลตรวจสอบ',
         ];
+        // ปรับสัดส่วนความกว้างคอลัมน์ให้เหมาะสมกับความยาวข้อมูลแต่ละช่อง
+        // ขยาย HN/EN (index 1) ให้กว้างขึ้นเล็กน้อย
+        const colPct = [0.05, 0.13, 0.15, 0.10, 0.18, 0.07, 0.07, 0.07, 0.09, 0.08];
+        let colWidths = colPct.map((p) => Math.floor(contentWidth * p));
+        let sumW = colWidths.reduce((a, b) => a + b, 0);
+        if (sumW < contentWidth) {
+          colWidths[2] += contentWidth - sumW;
+        }
+        // ป้องกัน NaN / ค่าไม่ถูกต้องใน colWidths (กัน error unsupported number: NaN ของ PDFKit)
+        const defaultColWidth = Math.floor(contentWidth / headers.length);
+        colWidths = colWidths.map((w) =>
+          !Number.isFinite(w) || w <= 0 ? defaultColWidth : w,
+        );
 
         const drawTableHeader = (y: number) => {
           let x = margin;
@@ -159,8 +168,8 @@ export class ItemComparisonPdfService {
           headers.forEach((h, i) => {
             doc.text(h, x + cellPadding, y + 6, {
               width: Math.max(2, colWidths[i] - cellPadding * 2),
-              // ชิดซ้ายสำหรับ รหัสอุปกรณ์ (index 1) และ ชื่ออุปกรณ์ (index 2)
-              align: i === 1 || i === 2 ? 'left' : 'center',
+              // ให้ header ทุกคอลัมน์อยู่กึ่งกลาง
+              align: 'center',
             });
             x += colWidths[i];
           });
@@ -195,28 +204,31 @@ export class ItemComparisonPdfService {
             const difference = (item.total_dispensed ?? 0) - (item.total_used ?? 0) - (item.total_returned ?? 0);
             const isMatch = item.status === 'MATCHED';
             let xPos = margin;
+            const statusText = this.getStatusText(item.status || 'UNKNOWN').substring(0, 14);
             const cellTexts = [
-              String(rowIndex + 1),
-              (item.itemcode ?? '-').toString().substring(0, 14),
-              (item.itemname ?? '-').toString().substring(0, 28),
-              item.total_dispensed != null ? String(item.total_dispensed) : '0',
-              item.total_used != null ? String(item.total_used) : '0',
-              String(difference),
-              this.getStatusText(item.status || 'UNKNOWN').substring(0, 14),
-              isMatch ? 'ตรงกัน' : 'ไม่ตรงกัน',
+              String(rowIndex + 1), // ลำดับ
+              '-', // HN/EN (รายละเอียดอยู่ในแถวย่อย)
+              '-', // ชื่อคนไข้ (รายละเอียดอยู่ในแถวย่อย)
+              (item.itemcode ?? '-').toString().substring(0, 40), // รหัสอุปกรณ์
+              (item.itemname ?? '-').toString().substring(0, 28), // ชื่ออุปกรณ์
+              item.total_dispensed != null ? String(item.total_dispensed) : '0', // จำนวนเบิก
+              item.total_used != null ? String(item.total_used) : '0', // จำนวนใช้
+              String(difference), // ส่วนต่าง
+              '-', // วันที่ (รายละเอียดอยู่ในแถวย่อย)
+              statusText, // สถานะ (สรุปต่อรายการอุปกรณ์)
             ];
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < headers.length; i++) {
               const cw = colWidths[i];
               const w = Math.max(4, cw - cellPadding * 2);
               let fillColor = bg;
               if (i === 5 && difference !== 0) fillColor = '#FFF3CD';
-              if (i === 7) fillColor = isMatch ? '#D4EDDA' : '#F8D7DA';
+              if (i === 9) fillColor = isMatch ? '#D4EDDA' : '#F8D7DA';
               doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(fillColor, '#DEE2E6');
-              doc.fillColor(i === 7 ? (isMatch ? '#155724' : '#721C24') : '#000000');
+              doc.fillColor(i === 9 ? (isMatch ? '#155724' : '#721C24') : '#000000');
               doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
                 width: w,
-                // ชิดซ้ายสำหรับ รหัสอุปกรณ์ (index 1) และ ชื่ออุปกรณ์ (index 2)
-                align: i === 1 || i === 2 ? 'left' : 'center',
+                // ชิดซ้ายสำหรับ รหัสอุปกรณ์ (1), ชื่ออุปกรณ์ (2), HN/EN (3), ชื่อคนไข้ (4)
+                align: i === 1 || i === 2 || i === 3 || i === 4 ? 'left' : 'center',
               });
               xPos += cw;
             }
@@ -235,23 +247,56 @@ export class ItemComparisonPdfService {
                 }
                 const subY = doc.y;
                 xPos = margin;
+                const usageDate =
+                  usage.created_at != null
+                    ? new Date(usage.created_at).toLocaleDateString('th-TH')
+                    : '-';
+                const hnEn = `${usage.patient_hn ?? '-'} / ${usage.patient_en ?? '-'}`;
+                const usageStatus = this.getUsageOrderStatusText(usage.order_item_status);
                 const subTexts = [
-                  '└',
-                  (usage.patient_hn ?? '-').toString().substring(0, 12),
-                  (usage.patient_name ?? '-').toString().substring(0, 24),
-                  '-',
-                  (usage.qty_used ?? 0).toString(),
-                  (usage.qty_returned ?? '-').toString(),
-                  (usage.order_item_status ?? '-').toString().substring(0, 10),
-                  '-',
+                  ' ', // ลำดับ (ว่างในแถวลูก)
+
+                  hnEn.substring(0, 38), // HN/EN
+                  (usage.patient_name ?? '-').toString().substring(0, 24), // ชื่อคนไข้
+                  ' ', // รหัสอุปกรณ์
+                  '', // ชื่ออุปกรณ์
+                  ' ', // จำนวนเบิก
+                  (usage.qty_used ?? 0).toString(), // จำนวนใช้
+                  ' ', // ส่วนต่าง
+                  usageDate, // วันที่
+                  usageStatus, // สถานะ (แปลงให้เหมือนเว็บ)
                 ];
-                for (let i = 0; i < 8; i++) {
+                for (let i = 0; i < headers.length; i++) {
                   const cw = colWidths[i];
-                  doc.rect(xPos, subY, cw, itemHeight).fillAndStroke('#F0F8FF', '#DEE2E6');
-                  doc.fillColor('#000000');
+                  // ใส่สีสถานะในคอลัมน์สุดท้ายให้เหมือนเว็บ
+                  let cellBg = '#F0F8FF';
+                  let textColor = '#000000';
+                  if (i === 9) {
+                    const lower = usageStatus.toLowerCase();
+                    if (lower === 'ยืนยันแล้ว' || lower === 'verified') {
+                      cellBg = '#D4EDDA'; // เขียวอ่อน
+                      textColor = '#155724'; // เขียวเข้ม
+                    } else if (
+                      lower === 'ยกเลิก' ||
+                      lower === 'discontinue' ||
+                      lower === 'discontinued'
+                    ) {
+                      cellBg = '#F8D7DA'; // แดงอ่อน
+                      textColor = '#721C24'; // แดงเข้ม
+                    } else if (usageStatus === '-') {
+                      cellBg = '#F8F9FA'; // เทาอ่อน
+                      textColor = '#6C757D'; // เทากลาง
+                    } else {
+                      cellBg = '#E0E7FF'; // น้ำเงินอ่อน (เทียบ badge ฟ้าในเว็บ)
+                      textColor = '#3730A3'; // น้ำเงินเข้ม
+                    }
+                  }
+                  doc.rect(xPos, subY, cw, itemHeight).fillAndStroke(cellBg, '#DEE2E6');
+                  doc.fillColor(textColor);
                   doc.text(subTexts[i] ?? '-', xPos + cellPadding, subY + 6, {
                     width: Math.max(4, cw - cellPadding * 2),
-                    align: i === 2 || i === 1 ? 'left' : 'center',
+                    // ชิดซ้ายสำหรับ รหัสอุปกรณ์ (1), ชื่ออุปกรณ์ (2), HN/EN (3), ชื่อคนไข้ (4)
+                    align: i === 1 || i === 2 || i === 3 || i === 4 ? 'left' : 'center',
                   });
                   xPos += cw;
                 }
@@ -288,13 +333,18 @@ export class ItemComparisonPdfService {
           doc.y += 14;
 
           // 6 columns: ลำดับ, รหัส, ชื่อ, จำนวนเบิก, จำนวนใช้, ส่วนต่าง
+          const sHeaders = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'จำนวนเบิก', 'จำนวนใช้', 'ส่วนต่าง'];
           const sColPct = [0.07, 0.16, 0.35, 0.14, 0.14, 0.14];
-          const sColWidths = sColPct.map((p) => Math.floor(sContentWidth * p));
+          let sColWidths = sColPct.map((p) => Math.floor(sContentWidth * p));
           let sSumW = sColWidths.reduce((a, b) => a + b, 0);
           if (sSumW < sContentWidth) {
             sColWidths[2] += sContentWidth - sSumW;
           }
-          const sHeaders = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'จำนวนเบิก', 'จำนวนใช้', 'ส่วนต่าง'];
+          // ป้องกัน NaN / ค่าไม่ถูกต้องใน sColWidths
+          const sDefaultColWidth = Math.floor(sContentWidth / sHeaders.length);
+          sColWidths = sColWidths.map((w) =>
+            !Number.isFinite(w) || w <= 0 ? sDefaultColWidth : w,
+          );
 
           const drawSummaryHeader = (y: number) => {
             let x = sMargin;
@@ -304,7 +354,8 @@ export class ItemComparisonPdfService {
             sHeaders.forEach((h, i) => {
               doc.text(h, x + cellPadding, y + 6, {
                 width: Math.max(2, sColWidths[i] - cellPadding * 2),
-                align: i === 1 || i === 2 ? 'left' : 'center',
+                // align: i === 1 || i === 2 ? 'left' : 'center',
+                align: 'center',
               });
               x += sColWidths[i];
             });
@@ -379,5 +430,14 @@ export class ItemComparisonPdfService {
       default:
         return status || '-';
     }
+  }
+
+  /** แปลง usage.order_item_status ให้เหมือนบนเว็บ: discontinue→ยกเลิก, verified→ยืนยันแล้ว, ค่าว่าง→'-' */
+  private getUsageOrderStatusText(status?: string): string {
+    if (status == null || status === '') return '-';
+    const lower = status.toLowerCase();
+    if (lower === 'discontinue' || lower === 'discontinued') return 'ยกเลิก';
+    if (lower === 'verified') return 'ยืนยันแล้ว';
+    return status;
   }
 }

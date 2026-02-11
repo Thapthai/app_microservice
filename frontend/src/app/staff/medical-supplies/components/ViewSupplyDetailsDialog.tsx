@@ -38,7 +38,7 @@ export default function ViewSupplyDetailsDialog({
           {/* Patient Info */}
           <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
             <div>
-              <p className="text-sm text-gray-500">ชื่อผู้ป่วย</p>
+              <p className="text-sm text-gray-500">ชื่อคนไข้</p>
               <p className="font-medium">
                 {supplyData.first_name || ''} {supplyData.lastname || ''}
               </p>

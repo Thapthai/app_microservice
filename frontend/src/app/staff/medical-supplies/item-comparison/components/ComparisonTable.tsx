@@ -1,4 +1,4 @@
-import { Download, RefreshCw, Package, ChevronDown, ChevronRight } from 'lucide-react';
+import { RefreshCw, Package, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -218,7 +218,7 @@ export default function ComparisonTable({
               variant="outline"
               size="sm"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" />
               Excel
             </Button>
             <Button
@@ -226,7 +226,7 @@ export default function ComparisonTable({
               variant="outline"
               size="sm"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" />
               PDF
             </Button>
           </div>

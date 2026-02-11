@@ -127,7 +127,7 @@ export const staffMenuItems = [
     //         {
     //             name: 'คืนเวชภัณฑ์',
     //             href: '/staff/reports/return-report',
-    //             description: 'รายงานการคืนเวชภัณฑ์',
+    //             description: 'รายงานอุปกรณ์ที่ไม่ถูกใช้งาน',
     //             icon: TrendingUp,
     //         },
     //     ],

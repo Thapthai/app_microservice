@@ -69,7 +69,7 @@ export class CancelBillReportExcelService {
       'ลำดับ',
       'EN',
       'HN',
-      'ชื่อผู้ป่วย',
+      'ชื่อคนไข้',
       'วันที่ Print',
       'วันที่ยกเลิก',
       'รหัสอุปกรณ์',

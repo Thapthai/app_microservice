@@ -84,14 +84,14 @@ export default function ReportsPage() {
     },
     {
       id: 'return-report',
-      title: 'รายงานการคืนเวชภัณฑ์',
-      description: 'รายงานการคืนเวชภัณฑ์ทั้งหมด',
+      title: 'รายงานอุปกรณ์ที่ไม่ถูกใช้งาน',
+      description: 'รายงานอุปกรณ์ที่ไม่ถูกใช้งานทั้งหมด',
       icon: RotateCcw,
       color: 'green',
       href: '/medical-supplies/reports/return-report',
       features: [
         'แสดงประวัติการคืนเวชภัณฑ์',
-        'กรองตามวันที่และสาเหตุการคืน',
+        'กรองตามวันที่และสาเหตุ',
         'แสดงรายละเอียดการคืน',
         'Export เป็น Excel หรือ PDF'
       ]

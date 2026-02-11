@@ -67,7 +67,7 @@ http://localhost:3000
 }
 ```
 
-**Return Reasons (สาเหตุการคืน):**
+**Return Reasons (สาเหตุ):**
 - `UNWRAPPED_UNUSED` - แกะห่อแล้วไม่ได้ใช้
 - `EXPIRED` - อุปกรณ์หมดอายุ
 - `CONTAMINATED` - อุปกรณ์มีการปนเปื้อน
@@ -163,7 +163,7 @@ GET /medical-supply-items/pending?department_code=ER&page=1&limit=10
 **Query Parameters:**
 - `department_code` (optional) - รหัสแผนก
 - `patient_hn` (optional) - HN ของคนไข้
-- `return_reason` (optional) - สาเหตุการคืน
+- `return_reason` (optional) - สาเหตุ
 - `date_from` (optional) - วันที่เริ่มต้น (YYYY-MM-DD)
 - `date_to` (optional) - วันที่สิ้นสุด (YYYY-MM-DD)
 - `page` (optional, default: 1) - หน้าที่ต้องการ

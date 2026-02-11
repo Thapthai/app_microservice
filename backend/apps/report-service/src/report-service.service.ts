@@ -1996,6 +1996,8 @@ export class ReportServiceService {
         limit: 10000,
       });
 
+      const labels = await this.getCabinetDepartmentLabels(params.cabinetId, params.departmentId);
+
       const reportData: ReturnToCabinetReportData = {
         filters: {
           keyword: params.keyword,
@@ -2004,6 +2006,8 @@ export class ReportServiceService {
           endDate: params.endDate,
           departmentId: params.departmentId,
           cabinetId: params.cabinetId,
+          departmentName: labels.departmentName,
+          cabinetName: labels.cabinetName,
         },
         summary: {
           total_records: returnedData.total || returnedData.data?.length || 0,
@@ -2041,6 +2045,8 @@ export class ReportServiceService {
         limit: 10000,
       });
 
+      const labels = await this.getCabinetDepartmentLabels(params.cabinetId, params.departmentId);
+
       const reportData: ReturnToCabinetReportData = {
         filters: {
           keyword: params.keyword,
@@ -2049,6 +2055,8 @@ export class ReportServiceService {
           endDate: params.endDate,
           departmentId: params.departmentId,
           cabinetId: params.cabinetId,
+          departmentName: labels.departmentName,
+          cabinetName: labels.cabinetName,
         },
         summary: {
           total_records: returnedData.total || returnedData.data?.length || 0,
@@ -2065,6 +2073,31 @@ export class ReportServiceService {
     } catch (error) {
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
       throw new Error(`Failed to generate Return To Cabinet Report PDF: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * ดึงชื่อแผนกและชื่อตู้จาก app_microservice_cabinet_departments + cabinets + department
+   */
+  private async getCabinetDepartmentLabels(
+    cabinetId?: string,
+    departmentId?: string,
+  ): Promise<{ cabinetName?: string; departmentName?: string }> {
+    if (!cabinetId || !departmentId) return {};
+    const cabId = parseInt(cabinetId, 10);
+    const deptId = parseInt(departmentId, 10);
+    if (Number.isNaN(cabId) || Number.isNaN(deptId)) return {};
+    try {
+      const cd = await this.prisma.cabinetDepartment.findFirst({
+        where: { cabinet_id: cabId, department_id: deptId },
+        include: { cabinet: true, department: true },
+      });
+      return {
+        cabinetName: cd?.cabinet?.cabinet_name ?? undefined,
+        departmentName: cd?.department?.DepName ?? undefined,
+      };
+    } catch {
+      return {};
     }
   }
 
@@ -2103,6 +2136,8 @@ export class ReportServiceService {
 
       const dispensedItems = Array.isArray(response.data) ? response.data : [];
 
+      const labels = await this.getCabinetDepartmentLabels(params.cabinetId, params.departmentId);
+
       // Prepare report data
       const reportData: DispensedItemsReportData = {
         filters: {
@@ -2111,6 +2146,8 @@ export class ReportServiceService {
           endDate: params.endDate,
           departmentId: params.departmentId,
           cabinetId: params.cabinetId,
+          departmentName: labels.departmentName,
+          cabinetName: labels.cabinetName,
         } as DispensedItemsReportData['filters'],
         summary: {
           total_records: response.total || dispensedItems.length,
@@ -2167,6 +2204,8 @@ export class ReportServiceService {
 
       const dispensedItems = Array.isArray(response.data) ? response.data : [];
 
+      const labels = await this.getCabinetDepartmentLabels(params.cabinetId, params.departmentId);
+
       // Prepare report data
       const reportData: DispensedItemsReportData = {
         filters: {
@@ -2175,6 +2214,8 @@ export class ReportServiceService {
           endDate: params.endDate,
           departmentId: params.departmentId,
           cabinetId: params.cabinetId,
+          departmentName: labels.departmentName,
+          cabinetName: labels.cabinetName,
         } as DispensedItemsReportData['filters'],
         summary: {
           total_records: response.total || dispensedItems.length,
@@ -2204,6 +2245,7 @@ export class ReportServiceService {
   async getCabinetStockData(params: {
     cabinetId?: number;
     cabinetCode?: string;
+    departmentId?: number;
   }): Promise<CabinetStockReportData> {
     try {
       let whereClause = Prisma.sql`ist.StockID > 0 AND ist.StockID = c.stock_id`;
@@ -2214,30 +2256,65 @@ export class ReportServiceService {
         whereClause = Prisma.sql`${whereClause} AND c.cabinet_code = ${params.cabinetCode}`;
       }
 
-      const rows = await this.prisma.$queryRaw<any[]>`
-        SELECT
-          c.id AS cabinet_id,
-          c.cabinet_name,
-          c.cabinet_code,
-          dept.DepName AS department_name,
-          ist.ItemCode AS item_code,
-          i.itemname AS item_name,
-          SUM(ist.Qty) AS balance_qty,
-          i.stock_max,
-          i.stock_min
-        FROM itemstock ist
-        INNER JOIN item i ON ist.ItemCode = i.itemcode
-        INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id
-        LEFT JOIN (
-          SELECT cd.cabinet_id, MIN(d.DepName) AS DepName
-          FROM app_microservice_cabinet_departments cd
-          INNER JOIN department d ON d.ID = cd.department_id
-          GROUP BY cd.cabinet_id
-        ) dept ON dept.cabinet_id = c.id
-        WHERE ${whereClause}
-        GROUP BY c.id, c.cabinet_name, c.cabinet_code, dept.DepName, ist.ItemCode, i.itemname, i.stock_max, i.stock_min
-        ORDER BY dept.DepName, c.cabinet_name, ist.ItemCode
-      `;
+      // Build query with optional department filter (เหมือนเว็บ)
+      let query;
+      if (params?.departmentId != null) {
+        // Filter by department_id: เพิ่ม JOIN เพื่อ filter cabinets ที่มี department_id นี้
+        query = this.prisma.$queryRaw<any[]>`
+          SELECT
+            c.id AS cabinet_id,
+            c.cabinet_name,
+            c.cabinet_code,
+            dept.DepName AS department_name,
+            ist.ItemCode AS item_code,
+            i.itemname AS item_name,
+            SUM(ist.Qty) AS balance_qty,
+            i.stock_max,
+            i.stock_min
+          FROM itemstock ist
+          INNER JOIN item i ON ist.ItemCode = i.itemcode
+          INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id
+          INNER JOIN app_microservice_cabinet_departments cd_filter ON cd_filter.cabinet_id = c.id AND cd_filter.department_id = ${params.departmentId} AND cd_filter.status = 'ACTIVE'
+          LEFT JOIN (
+            SELECT cd.cabinet_id, MIN(d.DepName) AS DepName
+            FROM app_microservice_cabinet_departments cd
+            INNER JOIN department d ON d.ID = cd.department_id
+            WHERE cd.department_id = ${params.departmentId} AND cd.status = 'ACTIVE'
+            GROUP BY cd.cabinet_id
+          ) dept ON dept.cabinet_id = c.id
+          WHERE ${whereClause}
+          GROUP BY c.id, c.cabinet_name, c.cabinet_code, dept.DepName, ist.ItemCode, i.itemname, i.stock_max, i.stock_min
+          ORDER BY dept.DepName, c.cabinet_name, ist.ItemCode
+        `;
+      } else {
+        // No department filter: query เดิม
+        query = this.prisma.$queryRaw<any[]>`
+          SELECT
+            c.id AS cabinet_id,
+            c.cabinet_name,
+            c.cabinet_code,
+            dept.DepName AS department_name,
+            ist.ItemCode AS item_code,
+            i.itemname AS item_name,
+            SUM(ist.Qty) AS balance_qty,
+            i.stock_max,
+            i.stock_min
+          FROM itemstock ist
+          INNER JOIN item i ON ist.ItemCode = i.itemcode
+          INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id
+          LEFT JOIN (
+            SELECT cd.cabinet_id, MIN(d.DepName) AS DepName
+            FROM app_microservice_cabinet_departments cd
+            INNER JOIN department d ON d.ID = cd.department_id
+            GROUP BY cd.cabinet_id
+          ) dept ON dept.cabinet_id = c.id
+          WHERE ${whereClause}
+          GROUP BY c.id, c.cabinet_name, c.cabinet_code, dept.DepName, ist.ItemCode, i.itemname, i.stock_max, i.stock_min
+          ORDER BY dept.DepName, c.cabinet_name, ist.ItemCode
+        `;
+      }
+
+      const rows = await query;
 
       const data: CabinetStockReportData['data'] = [];
       let seq = 1;
@@ -2270,7 +2347,11 @@ export class ReportServiceService {
       });
 
       return {
-        filters: { cabinetId: params?.cabinetId, cabinetCode: params?.cabinetCode },
+        filters: { 
+          cabinetId: params?.cabinetId, 
+          cabinetCode: params?.cabinetCode,
+          departmentId: params?.departmentId,
+        },
         summary: {
           total_rows: data.length,
           total_qty: totalQty,
@@ -2291,6 +2372,7 @@ export class ReportServiceService {
   async generateCabinetStockExcel(params: {
     cabinetId?: number;
     cabinetCode?: string;
+    departmentId?: number;
   }): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const reportData = await this.getCabinetStockData(params);
@@ -2311,6 +2393,7 @@ export class ReportServiceService {
   async generateCabinetStockPdf(params: {
     cabinetId?: number;
     cabinetCode?: string;
+    departmentId?: number;
   }): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const reportData = await this.getCabinetStockData(params);
@@ -2389,17 +2472,21 @@ export class ReportServiceService {
 
 
       const reportData: DispensedItemsForPatientsReportData['data'] = data.map((usage, index) => {
-        const supplyItems = (usage as { supply_items?: Array<{ order_item_code?: string; supply_code?: string; order_item_description?: string; supply_name?: string; qty?: number; quantity?: number }> }).supply_items ?? [];
+        const supplyItems = (usage as { supply_items?: Array<{ order_item_code?: string; supply_code?: string; order_item_description?: string; supply_name?: string; qty?: number; quantity?: number; assession_no?: string; order_item_status?: string }> }).supply_items ?? [];
         const supply_items: DispensedItemsForPatientsReportData['data'][0]['supply_items'] = supplyItems.map((item) => ({
           itemcode: item?.order_item_code ?? item?.supply_code ?? '-',
           itemname: item?.order_item_description ?? item?.supply_name ?? '-',
           qty: Number(item?.qty ?? item?.quantity ?? 0),
+          assession_no: item?.assession_no ?? undefined,
+          order_item_status: item?.order_item_status ?? undefined,
         }));
+        const patientName = [usage.first_name, usage.lastname].filter(Boolean).join(' ').trim()
+          || (usage.patient_name_th ?? usage.patient_name_en ?? '-');
         return {
           usage_id: usage.id,
           seq: index + 1,
           patient_hn: usage.patient_hn ?? '-',
-          patient_name: usage.first_name ?? usage.lastname ?? usage.patient_name_th ?? usage.patient_name_en ?? '-',
+          patient_name: patientName,
           en: usage.en ?? undefined,
           department_code: usage.department_code ?? undefined,
           dispensed_date: usage.usage_datetime ?? usage.created_at?.toISOString() ?? '',

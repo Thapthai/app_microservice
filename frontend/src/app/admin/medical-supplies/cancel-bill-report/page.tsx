@@ -229,7 +229,7 @@ export default function CancelBillReportPage() {
                           <TableHead className="w-[80px]">ลำดับ</TableHead>
                           <TableHead>EN</TableHead>
                           <TableHead>HN</TableHead>
-                          <TableHead>ชื่อผู้ป่วย</TableHead>
+                          <TableHead>ชื่อคนไข้</TableHead>
                           <TableHead className="text-center">วันที่ Print</TableHead>
                           <TableHead className="text-center">วันที่ยกเลิก</TableHead>
                           <TableHead className="text-center">จำนวนรายการ</TableHead>

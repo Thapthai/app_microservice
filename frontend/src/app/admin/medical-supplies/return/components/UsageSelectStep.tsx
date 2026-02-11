@@ -86,7 +86,7 @@ export default function UsageSelectStep({
               <span className="font-semibold text-blue-900">HN:</span> {usageData.patient_hn || '-'}
             </div>
             <div className="col-span-2">
-              <span className="font-semibold text-blue-900">ชื่อผู้ป่วย:</span> {usageData.first_name || ''} {usageData.lastname || ''}
+              <span className="font-semibold text-blue-900">ชื่อคนไข้:</span> {usageData.first_name || ''} {usageData.lastname || ''}
             </div>
             <div>
               <span className="font-semibold text-blue-900">แผนก:</span> {usageData.department_code || '-'}

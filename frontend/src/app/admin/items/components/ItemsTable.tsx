@@ -247,6 +247,7 @@ export default function ItemsTable({
                                         <TableHead>RowID</TableHead>
                                         <TableHead>ตู้ (Cabinet)</TableHead>
                                         <TableHead>RFID</TableHead>
+                                        <TableHead>แผนก</TableHead>
                                         <TableHead>หมดอายุ</TableHead>
                                       </TableRow>
                                     </TableHeader>
@@ -271,6 +272,9 @@ export default function ItemsTable({
                                             </TableCell>
                                             <TableCell className="text-xs font-mono">
                                               {stock.RfidCode || "-"}
+                                            </TableCell>
+                                            <TableCell>
+                                              {stock.cabinet?.cabinetDepartments?.map((cd) => cd.department?.DepName || cd.department?.DepName2 || "-").join(", ") || "-"}
                                             </TableCell>
                                             <TableCell>
                                               {expireDisplay}

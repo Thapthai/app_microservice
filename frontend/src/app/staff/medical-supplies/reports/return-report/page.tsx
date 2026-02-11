@@ -93,10 +93,10 @@ export default function ReturnReportPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                รายงานการคืนเวชภัณฑ์
+                รายงานอุปกรณ์ที่ไม่ถูกใช้งาน
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                ดูและดาวน์โหลดรายงานการคืนเวชภัณฑ์
+                ดูและดาวน์โหลดรายงานอุปกรณ์ที่ไม่ถูกใช้งาน
               </p>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function ReturnReportPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="history-reason">สาเหตุการคืน</Label>
+                  <Label htmlFor="history-reason">สาเหตุ</Label>
                   <Select value={returnHistoryReason || 'ALL'} onValueChange={setReturnHistoryReason}>
                     <SelectTrigger>
                       <SelectValue placeholder="ทั้งหมด" />
@@ -252,8 +252,8 @@ export default function ReturnReportPage() {
                           <TableHead>ชื่ออุปกรณ์</TableHead>
                           <TableHead>HN</TableHead>
                           <TableHead className="text-center">จำนวนที่คืน</TableHead>
-                          <TableHead>สาเหตุการคืน</TableHead>
-                          <TableHead className="text-center">วันที่คืน</TableHead>
+                          <TableHead>สาเหตุ</TableHead>
+                          <TableHead className="text-center">วันที่</TableHead>
                           <TableHead>หมายเหตุ</TableHead>
                         </TableRow>
                       </TableHeader>

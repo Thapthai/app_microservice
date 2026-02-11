@@ -63,12 +63,18 @@ export default function ItemsPage() {
           status: 'ACTIVE',
         };
 
-        if (activeFilters.departmentId) {
-          params.department_id = parseInt(activeFilters.departmentId);
+        if (activeFilters.departmentId && activeFilters.departmentId !== "") {
+          const deptId = parseInt(activeFilters.departmentId);
+          if (!isNaN(deptId)) {
+            params.department_id = deptId;
+          }
         }
 
-        if (activeFilters.cabinetId) {
-          params.cabinet_id = parseInt(activeFilters.cabinetId);
+        if (activeFilters.cabinetId && activeFilters.cabinetId !== "") {
+          const cabId = parseInt(activeFilters.cabinetId);
+          if (!isNaN(cabId)) {
+            params.cabinet_id = cabId;
+          }
         }
  
         const response = await itemsApi.getAll(params);
@@ -134,7 +140,8 @@ export default function ItemsPage() {
     try {
       setReportLoading('excel');
       const cabinetId = activeFilters.cabinetId ? parseInt(activeFilters.cabinetId, 10) : undefined;
-      await reportsApi.downloadCabinetStockExcel({ cabinetId });
+      const departmentId = activeFilters.departmentId ? parseInt(activeFilters.departmentId, 10) : undefined;
+      await reportsApi.downloadCabinetStockExcel({ cabinetId, departmentId });
       toast.success('ดาวน์โหลดรายงาน Excel สำเร็จ');
     } catch (e) {
       console.error(e);
@@ -148,7 +155,8 @@ export default function ItemsPage() {
     try {
       setReportLoading('pdf');
       const cabinetId = activeFilters.cabinetId ? parseInt(activeFilters.cabinetId, 10) : undefined;
-      await reportsApi.downloadCabinetStockPdf({ cabinetId });
+      const departmentId = activeFilters.departmentId ? parseInt(activeFilters.departmentId, 10) : undefined;
+      await reportsApi.downloadCabinetStockPdf({ cabinetId, departmentId });
       toast.success('ดาวน์โหลดรายงาน PDF สำเร็จ');
     } catch (e) {
       console.error(e);

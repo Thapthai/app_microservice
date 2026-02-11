@@ -589,7 +589,7 @@ export class ReportServiceController {
 
   // Cabinet Stock Report (สต๊อกอุปกรณ์ในตู้)
   @MessagePattern({ cmd: 'report.cabinet_stock.excel' })
-  async generateCabinetStockExcel(@Payload() data: { cabinetId?: number; cabinetCode?: string }) {
+  async generateCabinetStockExcel(@Payload() data: { cabinetId?: number; cabinetCode?: string; departmentId?: number }) {
     try {
       const result = await this.reportServiceService.generateCabinetStockExcel(data);
       return {
@@ -609,7 +609,7 @@ export class ReportServiceController {
   }
 
   @MessagePattern({ cmd: 'report.cabinet_stock.pdf' })
-  async generateCabinetStockPdf(@Payload() data: { cabinetId?: number; cabinetCode?: string }) {
+  async generateCabinetStockPdf(@Payload() data: { cabinetId?: number; cabinetCode?: string; departmentId?: number }) {
     try {
       const result = await this.reportServiceService.generateCabinetStockPdf(data);
       return {
@@ -629,7 +629,7 @@ export class ReportServiceController {
   }
 
   @MessagePattern({ cmd: 'report.cabinet_stock.data' })
-  async getCabinetStockData(@Payload() data: { cabinetId?: number; cabinetCode?: string }) {
+  async getCabinetStockData(@Payload() data: { cabinetId?: number; cabinetCode?: string; departmentId?: number }) {
     try {
       const result = await this.reportServiceService.getCabinetStockData(data);
       return {

@@ -214,7 +214,7 @@ export class CancelBillReportPdfService {
         30,   // ลำดับ
         50,   // EN
         50,   // HN
-        80,   // ชื่อผู้ป่วย
+        80,   // ชื่อคนไข้
         60,   // วันที่ Print
         60,   // วันที่ยกเลิก
         60,   // รหัสอุปกรณ์
@@ -230,7 +230,7 @@ export class CancelBillReportPdfService {
         colWidths[6] += diff; // Adjust item code column
       }
       
-      const headers = ['ลำดับ', 'EN', 'HN', 'ชื่อผู้ป่วย', 'วันที่ Print', 'วันที่ยกเลิก', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'จำนวน', 'สถานะ'];
+      const headers = ['ลำดับ', 'EN', 'HN', 'ชื่อคนไข้', 'วันที่ Print', 'วันที่ยกเลิก', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'จำนวน', 'สถานะ'];
 
       // Draw table header - clean styling with consistent padding
       const cellPadding = 3;

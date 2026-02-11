@@ -36,9 +36,9 @@ export default function ReturnHistoryFilter({
             <Filter className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
-            <CardTitle className="text-lg font-semibold text-slate-800">กรองประวัติการคืน</CardTitle>
+            <CardTitle className="text-lg font-semibold text-slate-800">ประวัติอุปกรณ์ที่ไม่ถูกใช้งาน</CardTitle>
             <CardDescription className="text-slate-500 mt-0.5">
-              กำหนดช่วงวันที่และสาเหตุการคืน แล้วกดค้นหา
+              กำหนดช่วงวันที่และสาเหตุ แล้วกดค้นหา
             </CardDescription>
           </div>
         </div>
@@ -71,7 +71,7 @@ export default function ReturnHistoryFilter({
           </div>
           <div className="space-y-2">
             <Label htmlFor="history-reason" className="text-slate-600 font-medium">
-              สาเหตุการคืน
+              สาเหตุ
             </Label>
             <Select value={reason || 'ALL'} onValueChange={onReasonChange}>
               <SelectTrigger id="history-reason" className="rounded-lg border-slate-200 w-full">
@@ -90,7 +90,6 @@ export default function ReturnHistoryFilter({
             <Button
               onClick={onSearch}
               disabled={loading}
-              className="w-full sm:w-auto gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-6"
             >
               {loading ? (
                 <>

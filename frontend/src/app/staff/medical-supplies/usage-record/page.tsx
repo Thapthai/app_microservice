@@ -286,9 +286,11 @@ export default function MedicalSuppliesPage() {
                   HN: {selectedSupply.data?.patient_hn || selectedSupply.patient_hn || '-'} |
                   Assession No: {(() => {
                     const supplyItems = selectedSupply.data?.supply_items || selectedSupply.supply_items || [];
-                    const assessionNos = supplyItems
-                      .map((item: any) => item.assession_no)
-                      .filter((no: string) => no && no.trim() !== '');
+                    const assessionNos = [...new Set(
+                      supplyItems
+                        .map((item: any) => item.assession_no)
+                        .filter((no: string) => no && no.trim() !== '')
+                    )];
                     return assessionNos.length > 0 ? assessionNos.join(', ') : '-';
                   })()}
                 </CardDescription>
@@ -296,7 +298,7 @@ export default function MedicalSuppliesPage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">ชื่อผู้ป่วย</p>
+                    <p className="text-sm text-gray-500">ชื่อคนไข้</p>
                     <p className="font-semibold">
                       {selectedSupply.data?.first_name || selectedSupply.first_name || ''} {selectedSupply.data?.lastname || selectedSupply.lastname || ''}
                     </p>

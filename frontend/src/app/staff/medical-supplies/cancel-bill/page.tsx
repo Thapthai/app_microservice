@@ -351,7 +351,7 @@ export default function CancelBillPage() {
                       <span className="font-semibold text-blue-900">HN:</span> {selectedUsage.patient_hn || '-'}
                     </div>
                     <div className="col-span-2">
-                      <span className="font-semibold text-blue-900">ชื่อผู้ป่วย:</span> {selectedUsage.first_name || ''} {selectedUsage.lastname || ''}
+                      <span className="font-semibold text-blue-900">ชื่อคนไข้:</span> {selectedUsage.first_name || ''} {selectedUsage.lastname || ''}
                     </div>
                     <div>
                       <span className="font-semibold text-blue-900">แผนก:</span> {selectedUsage.department_code || '-'}

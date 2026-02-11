@@ -1,4 +1,4 @@
-import { Download, RefreshCw, Package, ChevronDown, ChevronRight } from 'lucide-react';
+import { Download, RefreshCw, Package, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,10 +32,10 @@ const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return '';
   try {
     // Handle ISO 8601 format (2025-12-23T02:00:12.260Z) or YYYY-MM-DD format
-    const dateOnly = dateString.includes('T') 
+    const dateOnly = dateString.includes('T')
       ? dateString.split('T')[0]  // Extract date part before T
       : dateString.split(' ')[0];  // Or extract before space
-    
+
     const [year, month, day] = dateOnly.split('-');
     return `${day}/${month}/${year}`;
   } catch {
@@ -87,7 +87,7 @@ export default function ComparisonTable({
 
     try {
       setLoadingUsage(prev => new Set(prev).add(itemCode));
-      
+
       // If fetching page 1, clear existing data first to prevent accumulation
       if (page === 1) {
         setUsageData(prev => {
@@ -149,7 +149,7 @@ export default function ComparisonTable({
 
   const toggleItemExpanded = (itemCode: string) => {
     const newExpanded = new Set(expandedItems);
-    
+
     if (newExpanded.has(itemCode)) {
       // Collapsing - remove from expanded set
       newExpanded.delete(itemCode);
@@ -157,10 +157,10 @@ export default function ComparisonTable({
       // Expanding - add to expanded set
       newExpanded.add(itemCode);
     }
-    
+
     // Update expanded items first (this controls visibility)
     setExpandedItems(newExpanded);
-    
+
     // If collapsing, clean up all associated data
     if (newExpanded.has(itemCode) === false) {
       // Clear usage data
@@ -218,7 +218,7 @@ export default function ComparisonTable({
               variant="outline"
               size="sm"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" />
               Excel
             </Button>
             <Button
@@ -226,7 +226,7 @@ export default function ComparisonTable({
               variant="outline"
               size="sm"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" />
               PDF
             </Button>
           </div>
@@ -417,7 +417,7 @@ export default function ComparisonTable({
                                 {(() => {
                                   const status = usage.order_item_status || '-';
                                   const statusLower = status.toLowerCase();
-                                  
+
                                   if (statusLower === 'discontinue') {
                                     return (
                                       <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">

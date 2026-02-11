@@ -1909,12 +1909,12 @@ export class MedicalSuppliesServiceService {
         this.prisma.supplyItemReturnRecord.findMany({
           where,
           include: {
-            // item_stock: {
-            //   include: {
-            //     item: { select: { itemcode: true, itemname: true } },
-            //   },
-            // },
-            item_stock: true,
+            item_stock: {
+              include: {
+                item: { select: { itemcode: true, itemname: true } },
+              },
+            },
+            // item_stock: true,
           },
           skip,
           take: limit,
@@ -2199,7 +2199,9 @@ export class MedicalSuppliesServiceService {
           ist.Istatus_rfid,
           ist.CabinetUserID,
           COALESCE(CONCAT(employee.FirstName, ' ', employee.LastName), 'ไม่ระบุ') AS cabinetUserName,
-          department.DepName AS departmentName
+          department.DepName AS departmentName,
+          app_microservice_cabinets.cabinet_name AS cabinetName,
+          app_microservice_cabinets.cabinet_code AS cabinetCode
         FROM itemstock ist
         LEFT JOIN item i ON ist.ItemCode = i.itemcode
         LEFT JOIN (

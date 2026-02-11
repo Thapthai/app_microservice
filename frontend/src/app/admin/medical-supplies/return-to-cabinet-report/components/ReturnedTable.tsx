@@ -87,7 +87,7 @@ export default function ReturnedTable({
                     <TableHead>ชื่ออุปกรณ์</TableHead>
                     <TableHead>ชื่อผู้เติม</TableHead>
                     <TableHead className="text-right">จำนวนคืน</TableHead>
-                    <TableHead>วันที่คืน</TableHead>
+                    <TableHead>วันที่</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

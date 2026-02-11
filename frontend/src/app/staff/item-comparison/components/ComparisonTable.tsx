@@ -1,4 +1,4 @@
-import { Download, RefreshCw, Package, ChevronDown, ChevronRight } from 'lucide-react';
+import { Download, RefreshCw, Package, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,10 +32,10 @@ const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return '';
   try {
     // Handle ISO 8601 format (2025-12-23T02:00:12.260Z) or YYYY-MM-DD format
-    const dateOnly = dateString.includes('T') 
+    const dateOnly = dateString.includes('T')
       ? dateString.split('T')[0]  // Extract date part before T
       : dateString.split(' ')[0];  // Or extract before space
-    
+
     const [year, month, day] = dateOnly.split('-');
     return `${day}/${month}/${year}`;
   } catch {
@@ -87,7 +87,7 @@ export default function ComparisonTable({
 
     try {
       setLoadingUsage(prev => new Set(prev).add(itemCode));
-      
+
       // If fetching page 1, clear existing data first to prevent accumulation
       if (page === 1) {
         setUsageData(prev => {
@@ -149,7 +149,7 @@ export default function ComparisonTable({
 
   const toggleItemExpanded = (itemCode: string) => {
     const newExpanded = new Set(expandedItems);
-    
+
     if (newExpanded.has(itemCode)) {
       // Collapsing - remove from expanded set
       newExpanded.delete(itemCode);
@@ -157,10 +157,10 @@ export default function ComparisonTable({
       // Expanding - add to expanded set
       newExpanded.add(itemCode);
     }
-    
+
     // Update expanded items first (this controls visibility)
     setExpandedItems(newExpanded);
-    
+
     // If collapsing, clean up all associated data
     if (newExpanded.has(itemCode) === false) {
       // Clear usage data
@@ -218,7 +218,7 @@ export default function ComparisonTable({
               variant="outline"
               size="sm"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" />
               Excel
             </Button>
             <Button
@@ -226,7 +226,7 @@ export default function ComparisonTable({
               variant="outline"
               size="sm"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" />
               PDF
             </Button>
           </div>
@@ -253,8 +253,6 @@ export default function ComparisonTable({
                     <TableHead className="w-[40px] font-bold text-purple-900"></TableHead>
                     <TableHead className="w-[120px] font-bold text-purple-900">รหัสเวชภัณฑ์</TableHead>
                     <TableHead className="font-bold text-purple-900">ชื่อเวชภัณฑ์</TableHead>
-                    {/* <TableHead className="font-bold text-purple-900">วันที่</TableHead> */}
-                    {/* <TableHead className="font-bold text-purple-900">ประเภท</TableHead> */}
                     <TableHead className="text-right font-bold text-purple-900">จำนวนเบิก</TableHead>
                     <TableHead className="text-right font-bold text-purple-900">จำนวนใช้</TableHead>
                     <TableHead className="text-right font-bold text-purple-900">ผลต่าง</TableHead>
@@ -300,20 +298,7 @@ export default function ComparisonTable({
                         >
                           {item.itemname || '-'}
                         </TableCell>
-                        {/* <TableCell onClick={() => onSelectItem(item.itemcode)}>
-                          <span className="text-gray-600 text-sm">
-                            {item.first_dispensed && item.last_dispensed
-                              ? `${formatDate(item.first_dispensed)} - ${formatDate(item.last_dispensed)}`
-                              : item.first_used && item.last_used
-                              ? `${formatDate(item.first_used)} - ${formatDate(item.last_used)}`
-                              : '-'}
-                          </span>
-                        </TableCell> */}
-                        {/* <TableCell onClick={() => onSelectItem(item.itemcode)}>
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                            {item.itemTypeName || '-'}
-                          </Badge>
-                        </TableCell> */}
+
                         <TableCell
                           className="text-right font-semibold text-gray-900"
                           onClick={() => onSelectItem(item.itemcode)}
@@ -417,7 +402,7 @@ export default function ComparisonTable({
                                 {(() => {
                                   const status = usage.order_item_status || '-';
                                   const statusLower = status.toLowerCase();
-                                  
+
                                   if (statusLower === 'discontinue') {
                                     return (
                                       <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">

@@ -16,7 +16,7 @@ export interface CabinetStockRow {
 }
 
 export interface CabinetStockReportData {
-  filters?: { cabinetId?: number; cabinetCode?: string };
+  filters?: { cabinetId?: number; cabinetCode?: string; departmentId?: number };
   summary: { total_rows: number; total_qty: number; total_refill_qty: number };
   data: CabinetStockRow[];
 }
