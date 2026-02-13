@@ -13,6 +13,8 @@ export interface StaffMenuItem {
     description?: string;
     submenu?: StaffMenuSubItem[];
     roles?: string[];
+    /** เมื่อเป็น true กดแล้วไม่นำทาง แค่เปิด/ปิด submenu */
+    noHref?: boolean;
 }
 // Utility to filter menu and submenu by permissions
 export function filterMenuByPermissions(
@@ -36,15 +38,12 @@ import {
     Package,
     History,
     FileBarChart,
-    BarChart3,
-    ClipboardList,
-    FileText,
-    TrendingUp,
     Settings,
     Users,
     Shield,
     Network,
     RotateCcw,
+    ClipboardList,
 } from 'lucide-react';
 
 export const staffMenuItems = [
@@ -59,6 +58,7 @@ export const staffMenuItems = [
         href: '/staff/items',
         icon: Box,
         description: 'จัดการอุปกรณ์และสต๊อก',
+        noHref: true,
         submenu: [
 
             {
@@ -138,6 +138,7 @@ export const staffMenuItems = [
         href: '/staff/management',
         icon: Settings,
         description: 'ตั้งค่าระบบ',
+        noHref: true,
         submenu: [
             {
                 name: 'จัดการตู้ Cabinet',
@@ -160,6 +161,12 @@ export const staffMenuItems = [
                 roles: ['it1'],
             },
         ],
+    },
+    {
+        name: 'ประวัติการใช้งาน',
+        href: '/staff/logs',
+        icon: ClipboardList,
+        description: 'ประวัติการใช้งานระบบ',
     },
 
 

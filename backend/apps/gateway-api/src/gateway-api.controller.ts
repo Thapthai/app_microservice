@@ -861,6 +861,28 @@ export class GatewayApiController {
     }
   }
 
+  @Get('medical-supplies/logs')
+  @UseGuards(FlexibleAuthGuard)
+  async getMedicalSupplyUsageLogs(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('usage_id') usage_id?: number,
+    @Query('action') action?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const query = { page, limit, usage_id, action, startDate, endDate };
+      const result = await this.gatewayApiService.getMedicalSupplyUsageLogs(query);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to get medical supply usage logs',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get('medical-supplies/:id')
   @UseGuards(FlexibleAuthGuard)
   async getMedicalSupplyUsageById(@Param('id') id: string) {

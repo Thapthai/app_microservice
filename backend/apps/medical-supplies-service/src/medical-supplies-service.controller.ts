@@ -5,6 +5,7 @@ import {
   CreateMedicalSupplyUsageDto,
   UpdateMedicalSupplyUsageDto,
   GetMedicalSupplyUsagesQueryDto,
+  GetMedicalSupplyUsageLogsQueryDto,
   RecordItemUsedWithPatientDto,
   RecordItemReturnDto,
   RecordStockReturnDto,
@@ -33,6 +34,16 @@ export class MedicalSuppliesServiceController {
 
   
       const result = await this.medicalSuppliesService.findAll(query);
+      return { success: true, ...result };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  @MessagePattern({ cmd: 'medical_supply_usage_logs.findAll' })
+  async findAllLogs(@Payload() query: GetMedicalSupplyUsageLogsQueryDto) {
+    try {
+      const result = await this.medicalSuppliesService.findAllLogs(query);
       return { success: true, ...result };
     } catch (error) {
       return { success: false, message: error.message };

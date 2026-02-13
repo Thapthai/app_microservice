@@ -96,7 +96,7 @@ export default function MedicalSuppliesPage() {
         } else if (response.data && typeof response.data === 'object') {
           dataArray = [response.data];
         }
-        
+
 
         setSupplies(dataArray);
 
@@ -247,7 +247,7 @@ export default function MedicalSuppliesPage() {
           {/* Search Filters */}
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
             <div className="flex items-center space-x-2 font-bold text-lg mb-4">
-            วันที่เบิกอุปกรณ์ใช้กับคนไข้
+              วันที่เบิกอุปกรณ์ใช้กับคนไข้
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -336,78 +336,104 @@ export default function MedicalSuppliesPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">ชื่อคนไข้</p>
-                      <p className="font-semibold">
-                        {selectedSupply.data?.first_name || selectedSupply.first_name || ''} {selectedSupply.data?.lastname || selectedSupply.lastname || ''}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">ผู้เบิก</p>
-                      <p className="font-semibold">
-                        {selectedSupply.data?.recorded_by_display ||
-                          selectedSupply.recorded_by_display ||
-                          selectedSupply.recorded_by_name ||
-                          selectedSupply.data?.recorded_by_name || '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">เวลาที่เบิก</p>
-                      <p className="font-semibold">
-                        {formatDate(selectedSupply.created_at || selectedSupply.data?.created_at || selectedSupply.data?.usage_datetime)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">จำนวนรายการ</p>
-                      <p className="font-semibold">
-                        {selectedSupply.supplies_count || selectedSupply.data?.supplies_count || (selectedSupply.data?.supply_items || selectedSupply.supply_items || []).length || 0} รายการ
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">สถานะใบเสร็จ</p>
-                      <div className="mt-1">
-                        {(() => {
-                          const status = selectedSupply.data?.billing_status || selectedSupply.billing_status;
-                          if (!status) {
-                            return (
-                              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-gray-500"></span>
-                                ไม่ระบุ
-                              </Badge>
-                            );
-                          }
-                          const statusLower = status.toLowerCase();
-                          if (statusLower === 'cancelled') {
-                            return (
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>
-                                ยกเลิก
-                              </Badge>
-                            );
-                          } else if (statusLower === 'paid') {
-                            return (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-green-500"></span>
-                                ชำระแล้ว
-                              </Badge>
-                            );
-                          } else if (statusLower === 'pending') {
-                            return (
-                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-yellow-500"></span>
-                                รอชำระ
-                              </Badge>
-                            );
-                          } else {
+                  <div className="space-y-5">
+                    {/* ข้อมูลผู้ป่วยและผู้เบิก */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">ชื่อคนไข้</p>
+                        <p className="font-semibold">
+                          {selectedSupply.data?.first_name || selectedSupply.first_name || ''}{' '}
+                          {selectedSupply.data?.lastname || selectedSupply.lastname || ''}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">ผู้เบิก</p>
+                        <p className="font-semibold">
+                          {selectedSupply.data?.recorded_by_display ||
+                            selectedSupply.recorded_by_display ||
+                            selectedSupply.recorded_by_name ||
+                            selectedSupply.data?.recorded_by_name || '-'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">จำนวนรายการ</p>
+                        <p className="font-semibold">
+                          {selectedSupply.supplies_count || selectedSupply.data?.supplies_count ||
+                            (selectedSupply.data?.supply_items || selectedSupply.supply_items || []).length || 0}{' '}
+                          รายการ
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">สถานะใบเสร็จ</p>
+                        <div className="mt-1">
+                          {(() => {
+                            const status = selectedSupply.data?.billing_status || selectedSupply.billing_status;
+                            if (!status) {
+                              return (
+                                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-gray-500" />
+                                  ไม่ระบุ
+                                </Badge>
+                              );
+                            }
+                            const statusLower = status.toLowerCase();
+                            if (statusLower === 'cancelled') {
+                              return (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500" />
+                                  ยกเลิก
+                                </Badge>
+                              );
+                            }
+                            if (statusLower === 'paid') {
+                              return (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-green-500" />
+                                  ชำระแล้ว
+                                </Badge>
+                              );
+                            }
+                            if (statusLower === 'pending') {
+                              return (
+                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-yellow-500" />
+                                  รอชำระ
+                                </Badge>
+                              );
+                            }
                             return (
                               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
+                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500" />
                                 {status}
                               </Badge>
                             );
-                          }
-                        })()}
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* วันเวลา — อยู่ด้านล่าง */}
+                    <div className="pt-3 border-t border-gray-100">
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">วันเวลา</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">เวลาที่เบิก</p>
+                          <p className="font-semibold">
+                            {formatDate(
+                              selectedSupply.created_at ||
+                                selectedSupply.data?.created_at ||
+                                selectedSupply.data?.usage_datetime
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">วันที่แก้ไขล่าสุด</p>
+                          <p className="font-semibold">
+                            {(selectedSupply.updated_at || selectedSupply.data?.updated_at)
+                              ? formatDate(selectedSupply.updated_at || selectedSupply.data?.updated_at)
+                              : '-'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>

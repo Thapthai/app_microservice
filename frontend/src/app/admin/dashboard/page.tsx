@@ -44,8 +44,8 @@ export default function DashboardPage() {
             const data = response.data as any;
             const d = data.details ?? data;
             setStats({
-              totalItems: d.total_items ?? 0,
-              activeItems: d.active_items ?? 0,
+              totalItems: d.total_item_types ?? d.total_items ?? 0,
+              activeItems: d.item_types_with_stock ?? d.active_items ?? 0,
               inactiveItems: d.inactive_items ?? 0,
               lowStockItems: d.low_stock_items ?? 0,
             });

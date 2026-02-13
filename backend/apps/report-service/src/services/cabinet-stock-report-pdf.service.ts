@@ -107,7 +107,7 @@ export class CabinetStockReportPdfService {
         }
 
         doc.fontSize(14).font(finalFontBoldName).fillColor('#1A365D');
-        doc.text('รายงานต๊อกอุปกรณ์ในตู้', margin, headerTop + 6, {
+        doc.text('รายงานสต็อกอุปกรณ์ในตู้', margin, headerTop + 6, {
           width: contentWidth,
           align: 'center',
         });

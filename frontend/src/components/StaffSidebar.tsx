@@ -217,22 +217,44 @@ export default function StaffSidebar({ staffUser, onLogout, isAdmin = false }: S
                         isCollapsed && 'lg:justify-center lg:px-2'
                       )}
                     >
-                      <Link
-                        href={item.href}
-                        onClick={() => setIsMobileOpen(false)}
-                        className={cn(
-                          'flex flex-1 min-w-0 items-center px-3 py-3 text-sm font-medium rounded-xl text-inherit',
-                          isActive && 'text-white',
-                          isCollapsed && 'lg:justify-center lg:px-2'
-                        )}
-                        title={isCollapsed ? item.name : undefined}
-                      >
-                        {isActive && !isCollapsed && (
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
-                        )}
-                        <Icon className={cn('h-5 w-5 flex-shrink-0', isCollapsed ? 'lg:mx-auto' : 'mr-3')} />
-                        {!isCollapsed && <span className="flex-1 truncate text-left">{item.name}</span>}
-                      </Link>
+                      {item.noHref && hasSubmenu ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenSubmenus((p) => ({ ...p, [item.href]: !open }));
+                            setIsMobileOpen(false);
+                          }}
+                          className={cn(
+                            'flex flex-1 min-w-0 items-center px-3 py-3 text-sm font-medium rounded-xl text-inherit text-left cursor-pointer',
+                            isActive && 'text-white',
+                            isCollapsed && 'lg:justify-center lg:px-2'
+                          )}
+                          title={isCollapsed ? item.name : undefined}
+                        >
+                          {isActive && !isCollapsed && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
+                          )}
+                          <Icon className={cn('h-5 w-5 flex-shrink-0', isCollapsed ? 'lg:mx-auto' : 'mr-3')} />
+                          {!isCollapsed && <span className="flex-1 truncate text-left">{item.name}</span>}
+                        </button>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          onClick={() => setIsMobileOpen(false)}
+                          className={cn(
+                            'flex flex-1 min-w-0 items-center px-3 py-3 text-sm font-medium rounded-xl text-inherit',
+                            isActive && 'text-white',
+                            isCollapsed && 'lg:justify-center lg:px-2'
+                          )}
+                          title={isCollapsed ? item.name : undefined}
+                        >
+                          {isActive && !isCollapsed && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
+                          )}
+                          <Icon className={cn('h-5 w-5 flex-shrink-0', isCollapsed ? 'lg:mx-auto' : 'mr-3')} />
+                          {!isCollapsed && <span className="flex-1 truncate text-left">{item.name}</span>}
+                        </Link>
+                      )}
                       {hasSubmenu && !isCollapsed && (
                         <button
                           type="button"

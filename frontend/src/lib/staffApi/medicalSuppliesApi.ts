@@ -92,10 +92,10 @@ export const staffMedicalSuppliesApi = {
         date_to?: string;
         page?: number;
         limit?: number;
-      }): Promise<ApiResponse<any>> => {
+    }): Promise<ApiResponse<any>> => {
         const response = await staffApi.get('/medical-supply-items/return-history', { params: query });
         return response.data;
-      },
+    },
 
     recordItemReturn: async (data: {
         item_id: number;
@@ -103,10 +103,10 @@ export const staffMedicalSuppliesApi = {
         return_reason: string;
         return_by_user_id?: string;
         return_note?: string;
-      }): Promise<ApiResponse<any>> => {
+    }): Promise<ApiResponse<any>> => {
         const response = await staffApi.post('/medical-supply-items/record-return', data);
         return response.data;
-      },
+    },
 
     getItemStocksForReturnToCabinet: async (filters?: {
         itemCode?: string;
@@ -116,7 +116,7 @@ export const staffMedicalSuppliesApi = {
         endDate?: string;
         page?: number;
         limit?: number;
-      }): Promise<ApiResponse<any>> => {
+    }): Promise<ApiResponse<any>> => {
         const queryParams = new URLSearchParams();
         if (filters?.itemCode) queryParams.append('itemCode', filters.itemCode);
         if (filters?.itemTypeId) queryParams.append('itemTypeId', String(filters.itemTypeId));
@@ -127,15 +127,29 @@ export const staffMedicalSuppliesApi = {
         if (filters?.limit) queryParams.append('limit', String(filters.limit));
         const response = await staffApi.get(`/medical-supply-items/return-to-cabinet?${queryParams.toString()}`);
         return response.data;
-      },
+    },
 
     recordStockReturn: async (data: {
         items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }>;
         return_by_user_id?: string;
-      }): Promise<ApiResponse<any>> => {
+    }): Promise<ApiResponse<any>> => {
         const response = await staffApi.post('/medical-supply-items/record-stock-return', data);
         return response.data;
-      },
+    },
+
+
+
+    getLogs: async (query?: {
+        page?: number;
+        limit?: number;
+        usage_id?: number;
+        action?: string;
+        startDate?: string;
+        endDate?: string;
+    }): Promise<{ success: boolean; data: any[]; total: number; page: number; limit: number; totalPages: number }> => {
+        const response = await staffApi.get('/medical-supplies/logs', { params: query });
+        return response.data;
+    },
 };
 
 

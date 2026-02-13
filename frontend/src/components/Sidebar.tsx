@@ -42,6 +42,8 @@ type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
   description: string;
   submenu?: SubMenuItem[];
+  /** เมื่อเป็น true กดแล้วไม่นำทาง แค่เปิด/ปิด submenu */
+  noHref?: boolean;
 };
 
 
@@ -57,6 +59,7 @@ const mainMenuItems: MenuItem[] = [
     href: "/admin/items",
     icon: Box,
     description: "จัดการอุปกรณ์และสต๊อก",
+    noHref: true,
     submenu: [
 
       {
@@ -138,6 +141,7 @@ const mainMenuItems: MenuItem[] = [
     href: "/admin/management",
     icon: Settings,
     description: "จัดการระบบ",
+    noHref: true,
     submenu: [
       {
         name: "จัดการตู้ Cabinet",
@@ -159,6 +163,13 @@ const mainMenuItems: MenuItem[] = [
       },
     ],
   },
+  {
+    name: "ประวัติการใช้งาน",
+    href: "/admin/logs",
+    icon: ClipboardList,
+    description: "ประวัติการใช้งานระบบ",
+
+  }
 ];
 
 
@@ -275,18 +286,36 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                       isCollapsed && "lg:justify-center lg:px-2"
                     )}
                   >
-                    <Link
-                      href={item.href}
-                      onClick={() => setIsMobileOpen(false)}
-                      className={cn(
-                        "flex items-center flex-1 min-w-0 px-3 py-3 text-sm font-medium rounded-xl",
-                        isActive ? "text-white" : "text-inherit hover:text-white",
-                        isCollapsed && "lg:justify-center lg:px-2"
-                      )}
-                    >
-                      <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-slate-300", isCollapsed ? "lg:mx-auto" : "mr-3")} />
-                      {!isCollapsed && <span className="flex-1 text-left truncate">{item.name}</span>}
-                    </Link>
+                    {item.noHref && hasSubmenu ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenSubmenus((p) => ({ ...p, [item.href]: !open }));
+                          setIsMobileOpen(false);
+                        }}
+                        className={cn(
+                          "flex items-center flex-1 min-w-0 px-3 py-3 text-sm font-medium rounded-xl text-left cursor-pointer",
+                          isActive ? "text-white" : "text-inherit hover:text-white",
+                          isCollapsed && "lg:justify-center lg:px-2"
+                        )}
+                      >
+                        <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-slate-300", isCollapsed ? "lg:mx-auto" : "mr-3")} />
+                        {!isCollapsed && <span className="flex-1 text-left truncate">{item.name}</span>}
+                      </button>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        onClick={() => setIsMobileOpen(false)}
+                        className={cn(
+                          "flex items-center flex-1 min-w-0 px-3 py-3 text-sm font-medium rounded-xl",
+                          isActive ? "text-white" : "text-inherit hover:text-white",
+                          isCollapsed && "lg:justify-center lg:px-2"
+                        )}
+                      >
+                        <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-slate-300", isCollapsed ? "lg:mx-auto" : "mr-3")} />
+                        {!isCollapsed && <span className="flex-1 text-left truncate">{item.name}</span>}
+                      </Link>
+                    )}
                     {hasSubmenu && !isCollapsed && (
                       <button
                         type="button"

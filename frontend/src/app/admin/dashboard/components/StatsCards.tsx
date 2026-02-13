@@ -40,10 +40,10 @@ export default function StatsCards({
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 mb-6">
-      {/* อุปกรณ์ทั้งหมด */}
+      {/* ชนิดอุปกรณ์ทั้งหมด (จาก Item) */}
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">อุปกรณ์ทั้งหมด</CardTitle>
+          <CardTitle className="text-sm font-medium">ชนิดอุปกรณ์ทั้งหมด</CardTitle>
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
             <Box className="h-5 w-5 text-white" />
           </div>
@@ -53,21 +53,15 @@ export default function StatsCards({
             {stats.totalItems.toLocaleString()}
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            ใช้งาน {stats.activeItems.toLocaleString()} | ไม่ใช้งาน {stats.inactiveItems.toLocaleString()}
+            จากชนิดอุปกรณ์ในระบบ
           </p>
-          <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-blue-500 transition-all"
-              style={{ width: stats.totalItems > 0 ? `${(stats.activeItems / stats.totalItems) * 100}%` : '0%' }}
-            />
-          </div>
         </CardContent>
       </Card>
 
-      {/* อุปกรณ์ที่ใช้งาน */}
+      {/* ชนิดอุปกรณ์ที่มีในสต็อก (จาก ItemStock) */}
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">อุปกรณ์ที่ใช้งาน</CardTitle>
+          <CardTitle className="text-sm font-medium">ชนิดอุปกรณ์ที่มีในสต็อก</CardTitle>
           <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
             <CheckCircle className="h-5 w-5 text-white" />
           </div>
@@ -77,16 +71,8 @@ export default function StatsCards({
             {stats.activeItems.toLocaleString()}
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            {stats.totalItems > 0
-              ? `${((stats.activeItems / stats.totalItems) * 100).toFixed(1)}% ของทั้งหมด`
-              : 'ไม่มีอุปกรณ์'}
+            จากชนิดอุปกรณ์ที่มีในสต็อก
           </p>
-          <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-green-500 transition-all"
-              style={{ width: stats.totalItems > 0 ? `${(stats.activeItems / stats.totalItems) * 100}%` : '0%' }}
-            />
-          </div>
         </CardContent>
       </Card>
 

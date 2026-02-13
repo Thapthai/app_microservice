@@ -324,6 +324,36 @@ export class GetMedicalSupplyUsagesQueryDto {
   limit?: number;
 }
 
+// Query DTO for Medical Supply Usage Logs
+export class GetMedicalSupplyUsageLogsQueryDto {
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  usage_id?: number;
+
+  @IsOptional()
+  @IsString()
+  action?: string; // filter by action type (e.g. create_medical_supply_usage, discontinue_item)
+
+  @IsOptional()
+  @IsString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  page?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  limit?: number;
+}
+
 // DTO สำหรับบันทึกการใช้กับคนไข้
 export class RecordItemUsedWithPatientDto {
   @IsInt()

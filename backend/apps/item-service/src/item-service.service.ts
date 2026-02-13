@@ -310,11 +310,12 @@ export class ItemServiceService {
         }
       }
 
-      // Get all items with itemStocks (รวม ExpireDate สำหรับนับใกล้หมดอายุ)
+      // ชนิดอุปกรณ์ทั้งหมด (จากตาราง Item)
+      const totalItemTypes = await this.prisma.item.count();
+
+      // Get all items with itemStocks (รวม ExpireDate สำหรับนับใกล้หมดอายุ) — ไม่กรอง item_status เพื่อนับชนิดที่มีในสต็อกได้ครบ
       const allItemsQuery = await this.prisma.item.findMany({
-        where: {
-          item_status: 0, // Only active items
-        },
+        where: {},
         select: {
           itemcode: true,
           itemname: true,
@@ -449,6 +450,8 @@ export class ItemServiceService {
         success: true,
         data: {
           details: {
+            total_item_types: totalItemTypes,
+            item_types_with_stock: filteredItems.length,
             total_items: totalItems,
             active_items: activeItems,
             inactive_items: inactiveItems,

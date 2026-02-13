@@ -4,6 +4,7 @@ import {
   CreateMedicalSupplyUsageDto,
   UpdateMedicalSupplyUsageDto,
   GetMedicalSupplyUsagesQueryDto,
+  GetMedicalSupplyUsageLogsQueryDto,
   MedicalSupplyUsageResponse,
   RecordItemUsedWithPatientDto,
   RecordItemReturnDto,
@@ -206,6 +207,7 @@ export class MedicalSuppliesServiceService {
         const itemsToUpdate: Array<{ item: any; newStatus: string }> = [];
         const itemsToCreate: typeof orderItems = [];
         const discontinueItemsInOrder: typeof orderItems = [];
+        const discontinueAffectedUsageIds = new Set<number>();
 
         for (const orderItem of orderItems) {
           // Check if this is a discontinue item (both "discontinue" and "discontinued" are valid)
@@ -229,6 +231,7 @@ export class MedicalSuppliesServiceService {
 
             // Update all items with the same AssessionNo to Discontinue
             for (const item of allItemsWithSameAssessionNo) {
+              discontinueAffectedUsageIds.add(item.medical_supply_usage_id);
               await this.prisma.supplyUsageItem.update({
                 where: { id: item.id },
                 data: {
@@ -371,6 +374,16 @@ export class MedicalSuppliesServiceService {
               billing_total: data.billing_total ?? existingUsage.billing_total,
               billing_currency: data.billing_currency || existingUsage.billing_currency || 'THB',
             },
+          });
+        }
+
+        // กรณีมีการยกเลิก (Discontinue) อัปเดต updated_at ของ MedicalSupplyUsage ที่ได้รับผลกระทบ
+        const usageIdsToTouch = new Set(discontinueAffectedUsageIds);
+        usageIdsToTouch.add(existingUsage.id);
+        if (usageIdsToTouch.size > 0) {
+          await this.prisma.medicalSupplyUsage.updateMany({
+            where: { id: { in: Array.from(usageIdsToTouch) } },
+            data: { updated_at: new Date() },
           });
         }
 
@@ -975,6 +988,51 @@ export class MedicalSuppliesServiceService {
       });
       throw error;
     }
+  }
+
+  // Get Logs (MedicalSupplyUsageLog) with pagination and filters
+  async findAllLogs(query: GetMedicalSupplyUsageLogsQueryDto): Promise<{
+    data: Array<{ id: number; usage_id: number | null; action: any; created_at: Date }>;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const page = Math.max(1, query.page || 1);
+    const limit = Math.min(100, Math.max(1, query.limit || 20));
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (query.usage_id != null) {
+      where.usage_id = query.usage_id;
+    }
+    if (query.startDate || query.endDate) {
+      where.created_at = {};
+      if (query.startDate) {
+        where.created_at.gte = new Date(query.startDate + 'T00:00:00.000Z');
+      }
+      if (query.endDate) {
+        where.created_at.lte = new Date(query.endDate + 'T23:59:59.999Z');
+      }
+    }
+
+    const [logs, total] = await Promise.all([
+      this.prisma.medicalSupplyUsageLog.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.medicalSupplyUsageLog.count({ where }),
+    ]);
+
+    return {
+      data: logs,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   // Get by HN
@@ -2870,10 +2928,12 @@ export class MedicalSuppliesServiceService {
       ];
       if (filters?.startDate && filters?.endDate) {
         sqlConditionsDispensed.push(
-          Prisma.raw(`(DATE(LastCabinetModify) BETWEEN '${filters.startDate.replace(/'/g, "''")}' AND '${filters.endDate.replace(/'/g, "''")}')`),
+          // Prisma.raw(`(DATE(LastCabinetModify) BETWEEN '${filters.startDate.replace(/'/g, "''")}' AND '${filters.endDate.replace(/'/g, "''")}')`),
+          Prisma.raw(`(DATE(LastCabinetModify) BETWEEN '${filters.startDate}' AND '${filters.endDate}')`),
         );
         sqlConditionsUsage.push(
-          Prisma.raw(`(DATE(created_at) BETWEEN '${filters.startDate.replace(/'/g, "''")}' AND '${filters.endDate.replace(/'/g, "''")}')`),
+          // Prisma.raw(`(DATE(created_at) BETWEEN '${filters.startDate.replace(/'/g, "''")}' AND '${filters.endDate.replace(/'/g, "''")}')`),
+          Prisma.raw(`(DATE(created_at) BETWEEN '${filters.startDate}' AND '${filters.endDate}')`),
         );
       }
       const whereDispensed = Prisma.join(sqlConditionsDispensed, ' AND ');
@@ -2890,6 +2950,10 @@ export class MedicalSuppliesServiceService {
       const total_used = Number(usageRow?.total_used ?? 0);
       const difference = total_dispensed - total_used;
 
+
+      console.log('total_dispensed', total_dispensed);
+      console.log('total_used', total_used);
+      console.log('difference', difference);
       return {
         success: true,
         data: {

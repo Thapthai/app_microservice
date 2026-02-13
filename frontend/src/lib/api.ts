@@ -297,6 +297,18 @@ export const medicalSuppliesApi = {
     return response.data;
   },
 
+  getLogs: async (query?: {
+    page?: number;
+    limit?: number;
+    usage_id?: number;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ success: boolean; data: any[]; total: number; page: number; limit: number; totalPages: number }> => {
+    const response = await api.get('/medical-supplies/logs', { params: query });
+    return response.data;
+  },
+
   // Quantity Management APIs
   getSupplyItemById: async (itemId: number): Promise<ApiResponse<any>> => {
     const response = await api.get(`/medical-supply-items/${itemId}`);
