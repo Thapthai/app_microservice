@@ -165,7 +165,7 @@ const mainMenuItems: MenuItem[] = [
   },
   {
     name: "ประวัติการใช้งาน",
-    href: "/admin/logs",
+    href: "/admin/logs-history",
     icon: ClipboardList,
     description: "ประวัติการใช้งานระบบ",
 

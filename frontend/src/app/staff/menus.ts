@@ -164,7 +164,7 @@ export const staffMenuItems = [
     },
     {
         name: 'ประวัติการใช้งาน',
-        href: '/staff/logs',
+        href: '/staff/logs-history',
         icon: ClipboardList,
         description: 'ประวัติการใช้งานระบบ',
     },

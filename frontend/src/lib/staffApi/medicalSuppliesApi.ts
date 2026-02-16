@@ -138,7 +138,7 @@ export const staffMedicalSuppliesApi = {
     },
 
 
-
+    // ------------------------------- Logs History -------------------------------
     getLogs: async (query?: {
         page?: number;
         limit?: number;
@@ -150,6 +150,7 @@ export const staffMedicalSuppliesApi = {
         const response = await staffApi.get('/medical-supplies/logs', { params: query });
         return response.data;
     },
+
 };
 
 
