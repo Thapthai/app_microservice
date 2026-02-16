@@ -10,13 +10,70 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { User, LogOut, Settings, ChevronDown, ZoomIn, ZoomOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { signOut } from 'next-auth/react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function Navbar() {
   const { user, isAuthenticated } = useAuth();
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  const [zoomLevel, setZoomLevel] = useState<number>(100);
+  const hasUserInteracted = useRef(false);
+
+  // Load zoom level from localStorage on mount (per user)
+  useEffect(() => {
+    if (!user?.id && !user?.email) {
+      // No user yet, initialize to 100%
+      document.documentElement.style.setProperty('--admin-zoom', '1');
+      setZoomLevel(100);
+      return;
+    }
+    
+    const userKey = user.id ? `admin_zoom_level_${user.id}` : `admin_zoom_level_${user.email}`;
+    const savedZoom = localStorage.getItem(userKey);
+    
+    if (savedZoom) {
+      const zoom = parseInt(savedZoom, 10);
+      setZoomLevel(zoom);
+      document.documentElement.style.setProperty('--admin-zoom', `${zoom / 100}`);
+    } else {
+      // No saved value, initialize to 100%
+      document.documentElement.style.setProperty('--admin-zoom', '1');
+      setZoomLevel(100);
+    }
+  }, [user?.id, user?.email]);
+
+  // Apply zoom when zoomLevel changes
+  useEffect(() => {
+    // Always update CSS variable for zoom to work
+    document.documentElement.style.setProperty('--admin-zoom', `${zoomLevel / 100}`);
+    
+    // Only save to localStorage if user has interacted and user exists
+    if (!hasUserInteracted.current || (!user?.id && !user?.email)) {
+      return;
+    }
+    
+    const userKey = user.id ? `admin_zoom_level_${user.id}` : `admin_zoom_level_${user.email}`;
+    localStorage.setItem(userKey, zoomLevel.toString());
+  }, [zoomLevel, user?.id, user?.email]);
+
+  const handleZoomIn = () => {
+    hasUserInteracted.current = true;
+    const newZoom = Math.min(zoomLevel + 10, 200); // Max 200%
+    setZoomLevel(newZoom);
+  };
+
+  const handleZoomOut = () => {
+    hasUserInteracted.current = true;
+    const newZoom = Math.max(zoomLevel - 10, 50); // Min 50%
+    setZoomLevel(newZoom);
+  };
+
+  const handleResetZoom = () => {
+    hasUserInteracted.current = true;
+    setZoomLevel(100);
+  };
 
   const logout = async () => {
     // ใช้ basePath ในการ redirect หลัง logout
@@ -35,8 +92,38 @@ export default function Navbar() {
             </h2>
           </div>
 
-          {/* Right side - User menu */}
+          {/* Right side - Zoom Control & User menu */}
           <div className="flex items-center ml-auto space-x-4">
+            {/* Zoom Control */}
+            <div className="flex items-center gap-1 border rounded-md p-1 bg-white mr-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={handleZoomOut}
+                title="Zoom Out"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs min-w-[50px]"
+                onClick={handleResetZoom}
+                title={`Reset Zoom: ${zoomLevel}%`}
+              >
+                {zoomLevel}%
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={handleZoomIn}
+                title="Zoom In"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </div>
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

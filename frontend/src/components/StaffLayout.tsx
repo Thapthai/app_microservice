@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode, useState, useEffect, useRef } from 'react';
 import StaffSidebar from './StaffSidebar';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface StaffLayoutProps {
   children: ReactNode;
@@ -26,6 +26,84 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
   const [staffUser, setStaffUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState<number>(100);
+  const hasUserInteracted = useRef(false);
+
+  // Load zoom level from localStorage on mount (per user)
+  useEffect(() => {
+    if (!staffUser) {
+      // No user yet, initialize to 100%
+      document.documentElement.style.setProperty('--staff-zoom', '1');
+      setZoomLevel(100);
+      return;
+    }
+    
+    const userKey = staffUser.id 
+      ? `staff_zoom_level_${staffUser.id}` 
+      : staffUser.email 
+        ? `staff_zoom_level_${staffUser.email}`
+        : staffUser.client_id
+          ? `staff_zoom_level_${staffUser.client_id}`
+          : null;
+    
+    if (!userKey) {
+      document.documentElement.style.setProperty('--staff-zoom', '1');
+      setZoomLevel(100);
+      return;
+    }
+    
+    const savedZoom = localStorage.getItem(userKey);
+    
+    if (savedZoom) {
+      const zoom = parseInt(savedZoom, 10);
+      setZoomLevel(zoom);
+      document.documentElement.style.setProperty('--staff-zoom', `${zoom / 100}`);
+    } else {
+      // No saved value, initialize to 100%
+      document.documentElement.style.setProperty('--staff-zoom', '1');
+      setZoomLevel(100);
+    }
+  }, [staffUser]);
+
+  // Apply zoom when zoomLevel changes
+  useEffect(() => {
+    // Always update CSS variable for zoom to work
+    document.documentElement.style.setProperty('--staff-zoom', `${zoomLevel / 100}`);
+    
+    // Only save to localStorage if user has interacted and staffUser exists
+    if (!hasUserInteracted.current || !staffUser) {
+      return;
+    }
+    
+    const userKey = staffUser.id 
+      ? `staff_zoom_level_${staffUser.id}` 
+      : staffUser.email 
+        ? `staff_zoom_level_${staffUser.email}`
+        : staffUser.client_id
+          ? `staff_zoom_level_${staffUser.client_id}`
+          : null;
+    
+    if (userKey) {
+      localStorage.setItem(userKey, zoomLevel.toString());
+    }
+  }, [zoomLevel, staffUser]);
+
+  const handleZoomIn = () => {
+    hasUserInteracted.current = true;
+    const newZoom = Math.min(zoomLevel + 10, 200); // Max 200%
+    setZoomLevel(newZoom);
+  };
+
+  const handleZoomOut = () => {
+    hasUserInteracted.current = true;
+    const newZoom = Math.max(zoomLevel - 10, 50); // Min 50%
+    setZoomLevel(newZoom);
+  };
+
+  const handleResetZoom = () => {
+    hasUserInteracted.current = true;
+    setZoomLevel(100);
+  };
 
   // Get page title from pathname
   const getPageTitle = () => {
@@ -135,6 +213,37 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
               </h1>
             </div>
             
+            {/* Zoom Control */}
+            <div className="flex items-center gap-1 border rounded-md p-1 bg-white mr-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={handleZoomOut}
+                title="Zoom Out"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs min-w-[50px]"
+                onClick={handleResetZoom}
+                title={`Reset Zoom: ${zoomLevel}%`}
+              >
+                {zoomLevel}%
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={handleZoomIn}
+                title="Zoom In"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </div>
+
             {/* User Menu */}
             {staffUser && (
               <DropdownMenu>
@@ -208,7 +317,7 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
         </header>
         
         {/* Main Content Area - เต็มความกว้างเหมือน admin */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">
+        <main className="flex-1 overflow-y-auto bg-gray-50" style={{ zoom: zoomLevel / 100 }}>
           <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 py-6">
             {children}
           </div>
