@@ -68,8 +68,8 @@ export default function ReturnToCabinetReportPage() {
 
       if (response.success || response.data) {
         // Backend returns: { success: true, data: [...], total, page, limit, totalPages }
-        const returnedData = Array.isArray(response.data) 
-          ? response.data 
+        const returnedData = Array.isArray(response.data)
+          ? response.data
           : (response.data?.data || response.data || []);
 
         const total = response.total ?? 0;
@@ -116,8 +116,6 @@ export default function ReturnToCabinetReportPage() {
     fetchReturnedList(1, resetFilters);
   };
 
-console.log(filters);
-  
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };

@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-// import { medicalSuppliesApi } from '@/lib/api';
 import { DispensedItemsApi } from '@/lib/staffApi/dispensedItemsApi';
 import { toast } from 'sonner';
 import { Package } from 'lucide-react';
@@ -61,8 +59,6 @@ export default function DispenseFromCabinetPage() {
       if (activeFilters.cabinetId) params.cabinetId = activeFilters.cabinetId;
 
       const response = await DispensedItemsApi.getDispensedItems(params);
-
-      console.log(response);
 
       // ให้โครงสร้างเหมือนกับฝั่ง admin:
       // { success: boolean, data: [...], total, page, limit, totalPages, ... }

@@ -1782,9 +1782,10 @@ export class MedicalSuppliesServiceService {
       // Create return record and update item in transaction
       const [returnRecord, updatedItem] = await this.prisma.$transaction(async (tx) => {
         // Create return record
+        const itemCode = item.order_item_code ?? item.supply_code ?? '';
         const record = await tx.supplyItemReturnRecord.create({
           data: {
-            item_stock_id: data.item_id,
+            itemCode,
             qty_returned: data.qty_returned,
             return_reason: data.return_reason,
             return_by_user_id: data.return_by_user_id,
@@ -1962,18 +1963,10 @@ export class MedicalSuppliesServiceService {
       }
 
 
-      // SupplyItemReturnRecord มี item_stock (ไม่มี supply_item) — include item เพื่อเอา itemname
+      // SupplyItemReturnRecord เก็บ itemCode (อ้างอิง) — ไม่มี relation ไป ItemStock
       const [records, total] = await Promise.all([
         this.prisma.supplyItemReturnRecord.findMany({
           where,
-          include: {
-            item_stock: {
-              include: {
-                item: { select: { itemcode: true, itemname: true } },
-              },
-            },
-            // item_stock: true,
-          },
           skip,
           take: limit,
           orderBy: {
@@ -1982,6 +1975,22 @@ export class MedicalSuppliesServiceService {
         }),
         this.prisma.supplyItemReturnRecord.count({ where }),
       ]);
+
+      // โหลด ItemStock ตาม itemCode (อาจมีหลายแถว ใช้แถวแรก)
+      const itemCodes = [...new Set(records.map((r) => r.itemCode).filter(Boolean))];
+      const stocks =
+        itemCodes.length > 0
+          ? await this.prisma.itemStock.findMany({
+              where: { ItemCode: { in: itemCodes } },
+              include: { item: { select: { itemcode: true, itemname: true } } },
+            })
+          : [];
+      const stockByCode = new Map<string | null, (typeof stocks)[0]>();
+      for (const s of stocks) {
+        if (s.ItemCode != null && !stockByCode.has(s.ItemCode)) {
+          stockByCode.set(s.ItemCode, s);
+        }
+      }
 
       // Resolve return_by_user_name และ map เป็น shape ที่ frontend ใช้ (supply_item จาก item_stock)
       const data = await Promise.all(records.map(async (record) => {
@@ -2027,13 +2036,14 @@ export class MedicalSuppliesServiceService {
           }
         }
 
-        const ist = record.item_stock as { ItemCode?: string; RfidCode?: string; item?: { itemcode?: string; itemname?: string } } | null;
+        const ist = stockByCode.get(record.itemCode) ?? null;
         const itemName = ist?.item?.itemname ?? ist?.item?.itemcode ?? null;
-        const itemCode = ist?.ItemCode ?? ist?.item?.itemcode ?? null;
+        const itemCodeVal = ist?.ItemCode ?? ist?.item?.itemcode ?? record.itemCode ?? null;
 
         return {
           id: record.id,
-          item_stock_id: record.item_stock_id,
+          item_stock_id: ist?.RowID ?? undefined,
+          item_code: record.itemCode,
           qty_returned: record.qty_returned,
           return_reason: record.return_reason,
           return_datetime: record.return_datetime,
@@ -2042,13 +2052,13 @@ export class MedicalSuppliesServiceService {
           return_by_user_name: returnByName,
           created_at: record.created_at,
           supply_item: {
-            order_item_code: itemCode ?? undefined,
-            supply_code: itemCode ?? undefined,
+            order_item_code: itemCodeVal ?? undefined,
+            supply_code: itemCodeVal ?? undefined,
             order_item_description: itemName ?? undefined,
             supply_name: itemName ?? undefined,
             usage: undefined,
           },
-          item_stock: record.item_stock ? { ItemCode: ist?.ItemCode, RfidCode: ist?.RfidCode, item: ist?.item } : undefined,
+          item_stock: ist ? { ItemCode: ist.ItemCode, RfidCode: ist.RfidCode, item: ist.item } : undefined,
         };
       }));
 
@@ -2405,6 +2415,7 @@ export class MedicalSuppliesServiceService {
           ist.RfidCode,
           ist.StockID,
           ist.Istatus_rfid,
+          ist.IsStock,
           ist.CabinetUserID,
           COALESCE(CONCAT(employee.FirstName, ' ', employee.LastName), 'ไม่ระบุ') AS cabinetUserName,
           app_microservice_cabinets.cabinet_name AS cabinetName,
@@ -3144,12 +3155,11 @@ export class MedicalSuppliesServiceService {
 
                         LEFT JOIN (
                             SELECT
-                                ist.ItemCode,
+                                srr.item_code AS ItemCode,
                                 SUM(srr.qty_returned) AS total_returned
                             FROM app_microservice_supply_item_return_records srr
-                            JOIN itemstock ist ON ist.RowID = srr.item_stock_id
                             WHERE ${whereClauseReturn}
-                            GROUP BY ist.ItemCode
+                            GROUP BY srr.item_code
                         ) r ON r.ItemCode = x.itemcode
                         ${whereKeyword}
 
@@ -3657,9 +3667,14 @@ export class MedicalSuppliesServiceService {
 
       await this.prisma.$transaction(async (tx) => {
         for (const item of data.items) {
+          const stock = await tx.itemStock.findUnique({
+            where: { RowID: item.item_stock_id },
+            select: { ItemCode: true },
+          });
+          const itemCode = stock?.ItemCode ?? '';
           await tx.supplyItemReturnRecord.create({
             data: {
-              item_stock_id: item.item_stock_id,
+              itemCode,
               qty_returned: 1,
               return_reason: item.return_reason,
               return_by_user_id: data.return_by_user_id,

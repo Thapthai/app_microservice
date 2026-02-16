@@ -192,10 +192,11 @@ export class ReturnToCabinetReportPdfService {
             'RFID Code',
             'แผนก',
             'ตู้',
+            'สถานะสต็อก',
           ];
 
           // สัดส่วนคอลัมน์ (รวม 1.0) ให้ไม่ล้นความกว้างกระดาษ
-          const colPercentages = [0.045, 0.117, 0.208, 0.10, 0.13, 0.26, 0.10, 0.10];
+          const colPercentages = [0.04, 0.10, 0.17, 0.09, 0.11, 0.21, 0.09, 0.09, 0.08];
           let colWidths = colPercentages.map((p) => Math.floor(totalTableWidth * p));
           let totalCalculated = colWidths.reduce((sum, w) => sum + w, 0);
           if (totalCalculated > totalTableWidth) {
@@ -252,6 +253,8 @@ export class ReturnToCabinetReportPdfService {
               const rowY = doc.y;
               const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
               let xPos = margin;
+              const inCabinet = item.IsStock === true || item.IsStock === 1;
+              const statusText = inCabinet ? 'อยู่ในตู้' : 'ถูกเบิก';
               const rowData = [
                 String(idx + 1),
                 item.itemcode || '-',
@@ -261,6 +264,7 @@ export class ReturnToCabinetReportPdfService {
                 item.RfidCode || '-',
                 (item as any).departmentName ?? '-',
                 (item as any).cabinetName || '-',
+                statusText,
               ];
 
               rowData.forEach((cellData, i) => {

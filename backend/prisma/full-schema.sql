@@ -475,7 +475,7 @@ CREATE TABLE IF NOT EXISTS `app_microservice_supply_usage_items` (
 CREATE TABLE IF NOT EXISTS `app_microservice_supply_item_return_records` (
   `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
   -- `supply_usage_item_id` INTEGER NOT NULL,
-  `item_stock_id` INTEGER NOT NULL,
+  `item_code` VARCHAR(191) NOT NULL,
   `qty_returned` INTEGER NOT NULL,
   `return_reason` VARCHAR(191) NOT NULL,
   `return_datetime` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),

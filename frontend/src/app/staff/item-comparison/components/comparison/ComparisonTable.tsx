@@ -268,9 +268,10 @@ export function ComparisonTable({
                     <TableHead className="w-[40px] font-bold text-purple-900"></TableHead>
                     <TableHead className="w-[120px] font-bold text-purple-900">รหัสเวชภัณฑ์</TableHead>
                     <TableHead className="font-bold text-purple-900">ชื่อเวชภัณฑ์</TableHead>
-                    <TableHead className="text-right font-bold text-purple-900">จำนวนเบิก</TableHead>
-                    <TableHead className="text-right font-bold text-purple-900">จำนวนใช้</TableHead>
-                    <TableHead className="text-right font-bold text-purple-900">ผลต่าง</TableHead>
+                    <TableHead className="text-center font-bold text-purple-900">จำนวนเบิก</TableHead>
+                    <TableHead className="text-center font-bold text-purple-900">จำนวนใช้</TableHead>
+                    <TableHead className="text-center font-bold text-purple-900">จำนวนแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน</TableHead>
+                    <TableHead className="text-center font-bold text-purple-900">ผลต่าง</TableHead>
                     <TableHead className="text-center font-bold text-purple-900">สถานะ</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -316,19 +317,25 @@ export function ComparisonTable({
                         </TableCell>
                         
                         <TableCell
-                          className="text-right font-semibold text-gray-900"
+                          className="text-center font-semibold text-gray-900"
                           onClick={() => onSelectItem(item.itemcode)}
                         >
                           {item.total_dispensed}
                         </TableCell>
                         <TableCell
-                          className="text-right font-semibold text-gray-900"
+                          className="text-center font-semibold text-gray-900"
                           onClick={() => onSelectItem(item.itemcode)}
                         >
                           {item.total_used}
                         </TableCell>
                         <TableCell
-                          className={`text-right font-bold text-lg ${difference === 0 ? 'text-green-600' :
+                          className="text-center font-semibold text-gray-900"
+                          onClick={() => onSelectItem(item.itemcode)}
+                        >
+                          {item.total_returned ?? 0}
+                        </TableCell>
+                        <TableCell
+                          className={`text-center font-bold text-lg ${difference === 0 ? 'text-green-600' :
                             difference > 0 ? 'text-orange-600' : 'text-red-600'
                             }`}
                           onClick={() => onSelectItem(item.itemcode)}
@@ -350,7 +357,7 @@ export function ComparisonTable({
                       if (isLoadingUsage) {
                         rows.push(
                           <TableRow key={`${item.itemcode}-loading`} className="bg-blue-50">
-                            <TableCell colSpan={7} className="text-center py-6">
+                            <TableCell colSpan={8} className="text-center py-6">
                               <RefreshCw className="h-5 w-5 animate-spin inline-block mr-2 text-blue-600" />
                               <span className="text-blue-700 font-medium">กำลังโหลดรายการผู้ป่วย...</span>
                             </TableCell>
@@ -359,7 +366,7 @@ export function ComparisonTable({
                       } else if (itemUsageData.length === 0) {
                         rows.push(
                           <TableRow key={`${item.itemcode}-empty`} className="bg-blue-50">
-                            <TableCell colSpan={7} className="text-center py-6">
+                            <TableCell colSpan={8} className="text-center py-6">
                               <Package className="h-5 w-5 inline-block mr-2 text-blue-400" />
                               <span className="text-blue-600 font-medium">ไม่พบรายการผู้ป่วยที่ใช้เวชภัณฑ์นี้</span>
                             </TableCell>
@@ -400,10 +407,11 @@ export function ComparisonTable({
                               {/* <TableCell className="text-right text-sm text-gray-400">
                                 -
                               </TableCell> */}
-                              <TableCell className="text-right font-semibold text-sm text-indigo-700">
+                              <TableCell className="text-center font-semibold text-sm text-indigo-700">
                                 {usage.qty_used}
                               </TableCell>
-                              <TableCell className="text-right text-sm">
+                              <TableCell className="text-center text-sm text-gray-400">-</TableCell>
+                              <TableCell className="text-center text-sm">
                                 {usage.qty_returned ? (
                                   <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300 text-xs">
                                     คืน {usage.qty_returned}
@@ -454,7 +462,7 @@ export function ComparisonTable({
                               key={`${item.itemcode}-see-more`}
                               className="bg-blue-100 hover:bg-blue-200 border-l-4 border-l-blue-400"
                             >
-                              <TableCell colSpan={7} className="text-center py-3">
+                              <TableCell colSpan={8} className="text-center py-3">
                                 <Button
                                   variant="ghost"
                                   size="sm"

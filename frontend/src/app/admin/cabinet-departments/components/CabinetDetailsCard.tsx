@@ -32,6 +32,7 @@ interface ItemStock {
   RfidCode?: string;
   ItemCode?: string;
   Qty?: number;
+  IsStock?: boolean;
   LastCabinetModify?: string;
   item?: {
     itemcode?: string;
@@ -162,6 +163,7 @@ export default function CabinetDetailsCard({ selectedRow, onClose }: CabinetDeta
                       <TableHead>รหัสอุปกรณ์</TableHead>
                       <TableHead>ชื่ออุปกรณ์</TableHead>
                       <TableHead>จำนวน</TableHead>
+                      <TableHead>สถานะสต็อก</TableHead>
                       <TableHead>วันที่แก้ไข</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -173,6 +175,17 @@ export default function CabinetDetailsCard({ selectedRow, onClose }: CabinetDeta
                         <TableCell>{stock.item?.itemcode || stock.ItemCode || "-"}</TableCell>
                         <TableCell>{stock.item?.itemname || "-"}</TableCell>
                         <TableCell>{stock.Qty || 0}</TableCell>
+                        <TableCell>
+                          {stock.IsStock === true || (stock as { IsStock?: boolean | number }).IsStock === 1 ? (
+                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
+                              อยู่ในตู้
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                              ถูกเบิก
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {stock.LastCabinetModify
                             ? new Date(stock.LastCabinetModify).toLocaleString("th-TH")

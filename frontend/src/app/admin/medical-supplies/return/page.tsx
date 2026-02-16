@@ -1,20 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
-import { RotateCcw, History, RefreshCw } from 'lucide-react';
+import { RotateCcw, History, RefreshCw, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
@@ -25,15 +18,21 @@ import {
 import { Input } from '@/components/ui/input';
 import { medicalSuppliesApi, itemsApi } from '@/lib/api';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import ReturnHistoryFilter from './components/ReturnHistoryFilter';
 import ReturnHistoryTable from './components/ReturnHistoryTable';
 import type { ReturnHistoryData } from './types';
 
+const ITEM_PAGE_SIZE = 15;
+
+/** รายการสรุปตาม ItemCode จาก GET /item-stocks/will-return */
 interface WillReturnItem {
-  itemname: string;
   ItemCode: string;
-  RfidCode: string;
-  RowID: number;
+  itemname: string | null;
+  withdraw_qty: number;
+  used_qty: number;
+  return_qty: number;
+  max_available_qty: number;
 }
 
 export default function ReturnMedicalSuppliesPage() {
@@ -42,13 +41,84 @@ export default function ReturnMedicalSuppliesPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('return');
 
-  // รายการจาก /item-stocks/will-return (เลือกตาม index เพื่อไม่ให้ RfidCode ซ้ำแล้วเช็คทั้งหมด)
+  // รายการจาก /item-stocks/will-return (สรุปตาม ItemCode: max_available_qty)
   const [willReturnItems, setWillReturnItems] = useState<WillReturnItem[]>([]);
-  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [loadingWillReturn, setLoadingWillReturn] = useState(false);
-  const [rowDetails, setRowDetails] = useState<
-    Record<number, { reason: string; note: string }>
-  >({});
+  // ฟอร์มแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
+  const [selectedItemCode, setSelectedItemCode] = useState<string>('');
+  const [qty, setQty] = useState<number>(1);
+  const [reason, setReason] = useState<string>('UNWRAPPED_UNUSED');
+  const [note, setNote] = useState<string>('');
+  // Dropdown รายการอุปกรณ์: ค้นหา + แบ่งหน้า
+  const [itemSearch, setItemSearch] = useState('');
+  const [itemDropdownPage, setItemDropdownPage] = useState(0);
+  const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
+  const itemTriggerRef = useRef<HTMLButtonElement>(null);
+  const itemPanelRef = useRef<HTMLDivElement>(null);
+  const [itemDropdownRect, setItemDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  const filteredItems = useMemo(() => {
+    const q = itemSearch.trim().toLowerCase();
+    if (!q) return willReturnItems;
+    return willReturnItems.filter(
+      (i) =>
+        (i.itemname ?? '').toLowerCase().includes(q) ||
+        (i.ItemCode ?? '').toLowerCase().includes(q),
+    );
+  }, [willReturnItems, itemSearch]);
+
+  const totalItemPages = Math.max(1, Math.ceil(filteredItems.length / ITEM_PAGE_SIZE));
+  const paginatedItems = useMemo(
+    () =>
+      filteredItems.slice(
+        itemDropdownPage * ITEM_PAGE_SIZE,
+        itemDropdownPage * ITEM_PAGE_SIZE + ITEM_PAGE_SIZE,
+      ),
+    [filteredItems, itemDropdownPage],
+  );
+
+  // ปิด dropdown เมื่อคลิกนอกปุ่มหรือนอก panel (panel อยู่ใน portal)
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        itemDropdownOpen &&
+        itemTriggerRef.current &&
+        !itemTriggerRef.current.contains(target) &&
+        itemPanelRef.current &&
+        !itemPanelRef.current.contains(target)
+      ) {
+        setItemDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [itemDropdownOpen]);
+
+  // อัปเดตตำแหน่ง dropdown เมื่อเปิด หรือเมื่อ scroll/resize
+  useEffect(() => {
+    if (!itemDropdownOpen || !itemTriggerRef.current) {
+      setItemDropdownRect(null);
+      return;
+    }
+    const updateRect = () => {
+      if (itemTriggerRef.current) {
+        const r = itemTriggerRef.current.getBoundingClientRect();
+        setItemDropdownRect({ top: r.bottom + 4, left: r.left, width: r.width });
+      }
+    };
+    updateRect();
+    window.addEventListener('scroll', updateRect, true);
+    window.addEventListener('resize', updateRect);
+    return () => {
+      window.removeEventListener('scroll', updateRect, true);
+      window.removeEventListener('resize', updateRect);
+    };
+  }, [itemDropdownOpen]);
+
+  useEffect(() => {
+    setItemDropdownPage(0);
+  }, [itemSearch]);
 
   // Return history (default date from/to = today)
   const [returnHistoryDateFrom, setReturnHistoryDateFrom] = useState(() =>
@@ -82,59 +152,45 @@ export default function ReturnMedicalSuppliesPage() {
     loadWillReturnItems();
   }, [loadWillReturnItems]);
 
-  const toggleSelectAll = () => {
-    if (selectedIndices.length === willReturnItems.length) {
-      setSelectedIndices([]);
-    } else {
-      setSelectedIndices(willReturnItems.map((_, i) => i));
+  const selectedItem = willReturnItems.find((i) => i.ItemCode === selectedItemCode);
+  const maxQty = selectedItem?.max_available_qty ?? 0;
+
+  const handleReturnSubmit = async () => {
+    if (!selectedItemCode || !selectedItem) {
+      toast.error('กรุณาเลือกรายการอุปกรณ์');
+      return;
     }
-  };
-
-  const toggleSelectOne = (index: number) => {
-    setSelectedIndices((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
-    );
-  };
-
-  const handleReturnToCabinet = async () => {
-    if (selectedIndices.length === 0) {
-      toast.error('กรุณาเลือกรายการที่ต้องการคืนเข้าตู้');
+    const qtyToSubmit = Math.min(Math.max(1, qty), maxQty);
+    if (qtyToSubmit < 1 || maxQty < 1) {
+      toast.error('จำนวนที่แจ้งต้องอยู่ระหว่าง 1 ถึงจำนวนสูงสุดที่สามารถใส่ได้');
       return;
     }
 
     try {
       setLoading(true);
 
-      const items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }> = [];
+      const listRes: any = await medicalSuppliesApi.getItemStocksForReturnToCabinet({
+        itemCode: selectedItemCode,
+        page: 1,
+        limit: qtyToSubmit,
+      });
 
-      for (const index of selectedIndices) {
-        const item = willReturnItems[index];
-        if (!item) continue;
+      const rows = listRes?.success && Array.isArray(listRes.data) ? listRes.data : [];
+      const rowIds = rows
+        .slice(0, qtyToSubmit)
+        .map((r: { RowID?: number }) => r.RowID)
+        .filter((id: unknown): id is number => typeof id === 'number');
 
-        const result: any = await medicalSuppliesApi.getItemStocksForReturnToCabinet({
-          rfidCode: item.RfidCode,
-          page: 1,
-          limit: 1,
-        });
-
-        const row = result?.success && Array.isArray(result.data) ? result.data[0] : null;
-        const itemStockId = row && typeof row.RowID === 'number' ? row.RowID : null;
-        if (itemStockId == null) continue;
-
-        const meta = rowDetails[index] || { reason: 'UNWRAPPED_UNUSED', note: '' };
-        items.push({
-          item_stock_id: itemStockId,
-          return_reason: meta.reason,
-          return_note: meta.note?.trim() || undefined,
-        });
-      }
-
-      console.log('[ReturnToCabinet] items:', items);
-
-      if (items.length === 0) {
-        toast.error('ไม่พบ RowID สำหรับรายการที่เลือก');
+      if (rowIds.length === 0) {
+        toast.error('ไม่พบรายการ stock สำหรับรหัสนี้ในตู้ที่รอแจ้ง');
         return;
       }
+
+      const items = rowIds.map((item_stock_id: number) => ({
+        item_stock_id,
+        return_reason: reason,
+        return_note: note?.trim() || undefined,
+      }));
 
       const resp: any = await medicalSuppliesApi.recordStockReturn({
         items,
@@ -142,12 +198,16 @@ export default function ReturnMedicalSuppliesPage() {
       });
 
       if (resp?.success) {
-        toast.success(resp.message || `บันทึกการแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / ชำรุดสำเร็จ ${resp.updatedCount ?? items.length} รายการ`);
-        setSelectedIndices([]);
-        setRowDetails({});
+        toast.success(
+          resp.message ||
+            `บันทึกการแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / ชำรุดสำเร็จ ${resp.updatedCount ?? items.length} รายการ`,
+        );
+        setSelectedItemCode('');
+        setQty(1);
+        setNote('');
         await loadWillReturnItems();
       } else {
-        toast.error(resp?.error || 'ไม่สามารถบันทึกการคืนอุปกรณ์เข้าตู้ได้');
+        toast.error(resp?.error || 'ไม่สามารถบันทึกการแจ้งอุปกรณ์ได้');
       }
     } catch (error: any) {
       toast.error(`เกิดข้อผิดพลาด: ${error.message || error}`);
@@ -260,168 +320,202 @@ export default function ReturnMedicalSuppliesPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-500 mt-1">
-                        แสดงรายการจากตู้ที่มีโอกาสต้องแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {willReturnItems.length > 0 && (
-                        <p className="text-sm text-slate-700">
-                          ทั้งหมด{' '}
-                          <span className="font-semibold">
-                            {willReturnItems.length.toLocaleString('th-TH')}
-                          </span>{' '}
-                          รายการ
-                        </p>
-                      )}
-                      <button
-                        type="button"
-                        onClick={loadWillReturnItems}
-                        disabled={loadingWillReturn}
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                        title="โหลดรายการใหม่"
-                      >
-                        <RefreshCw className={`h-4 w-4 ${loadingWillReturn ? 'animate-spin' : ''}`} />
-                        รีเฟรช
-                      </button>
-                    </div>
+                    <p className="text-xs text-slate-500">
+                      เลือกรายการอุปกรณ์ (สรุปตามรหัส) แล้วระบุจำนวนสูงสุดที่แจ้งได้ตามค่าที่แสดง
+                    </p>
+                    <button
+                      type="button"
+                      onClick={loadWillReturnItems}
+                      disabled={loadingWillReturn}
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                      title="โหลดรายการใหม่"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${loadingWillReturn ? 'animate-spin' : ''}`} />
+                      รีเฟรช
+                    </button>
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 overflow-x-auto">
-                    {loadingWillReturn ? (
-                      <div className="flex items-center justify-center py-10 text-slate-500">
-                        <span className="h-5 w-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mr-3" />
-                        กำลังโหลดรายการจากตู้...
-                      </div>
-                    ) : willReturnItems.length === 0 ? (
-                      <div className="py-10 text-center text-slate-500">
-                        ไม่มีรายการที่ต้องแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-b">
-                            <TableHead className="w-12" onClick={(e) => e.stopPropagation()}>
-                              <input
-                                type="checkbox"
-                                className="rounded border-slate-300"
-                                checked={
-                                  selectedIndices.length === willReturnItems.length &&
-                                  willReturnItems.length > 0
-                                }
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  toggleSelectAll();
+                  {loadingWillReturn ? (
+                    <div className="flex items-center justify-center py-10 text-slate-500">
+                      <span className="h-5 w-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mr-3" />
+                      กำลังโหลดรายการ...
+                    </div>
+                  ) : willReturnItems.length === 0 ? (
+                    <div className="py-10 text-center text-slate-500">
+                      ไม่มีรายการที่ต้องแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-end gap-4">
+                      {/* รายการอุปกรณ์ 40% */}
+                      <div className="w-[40%] min-w-0 shrink-0">
+                        <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                          รายการอุปกรณ์
+                        </label>
+                        <div>
+                          <button
+                            ref={itemTriggerRef}
+                            type="button"
+                            onClick={() => setItemDropdownOpen((o) => !o)}
+                            className={cn(
+                              'flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm transition-colors hover:border-slate-300',
+                              itemDropdownOpen && 'border-emerald-400 ring-2 ring-emerald-500/20',
+                            )}
+                          >
+                            <span className="min-w-0 flex-1 truncate text-slate-800">
+                              {selectedItem
+                                ? selectedItem.itemname ?? selectedItem.ItemCode
+                                : 'เลือกรายการอุปกรณ์'}
+                            </span>
+                            <ChevronDown
+                              className={cn('h-4 w-4 shrink-0 text-slate-400 transition-transform', itemDropdownOpen && 'rotate-180')}
+                            />
+                          </button>
+                          {typeof document !== 'undefined' &&
+                            itemDropdownOpen &&
+                            itemDropdownRect &&
+                            createPortal(
+                              <div
+                                ref={itemPanelRef}
+                                className="fixed z-[9999] w-[320px] rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
+                                style={{
+                                  top: itemDropdownRect.top,
+                                  left: itemDropdownRect.left,
                                 }}
-                              />
-                            </TableHead>
-                            <TableHead className="text-slate-600 font-medium">RFID</TableHead>
-                            <TableHead className="text-slate-600 font-medium">รหัส</TableHead>
-                            <TableHead className="text-slate-600 font-medium">ชื่อรายการ</TableHead>
-                            <TableHead className="text-slate-600 font-medium min-w-[180px]">
-                              กรณีการแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
-                            </TableHead>
-                            <TableHead className="text-slate-600 font-medium min-w-[180px]">
-                              หมายเหตุ
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {willReturnItems.map((item, index) => {
-                            const meta = rowDetails[index] || {
-                              reason: 'UNWRAPPED_UNUSED',
-                              note: '',
-                            };
-                            return (
-                              <TableRow
-                                key={`will-return-${index}-${item.RfidCode}`}
-                                className={
-                                  selectedIndices.includes(index)
-                                    ? 'bg-emerald-50/60'
-                                    : ''
-                                }
                               >
-                                <TableCell onClick={(e) => e.stopPropagation()}>
-                                  <input
-                                    type="checkbox"
-                                    className="rounded border-slate-300"
-                                    checked={selectedIndices.includes(index)}
-                                    onChange={(e) => {
-                                      e.stopPropagation();
-                                      toggleSelectOne(index);
-                                    }}
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <code className="text-xs bg-slate-100 px-2 py-1 rounded">
-                                    {item.RfidCode}
-                                  </code>
-                                </TableCell>
-                                <TableCell className="font-mono text-sm">{item.ItemCode}</TableCell>
-                                <TableCell className="text-sm">{item.itemname}</TableCell>
-                                <TableCell>
-                                  <Select
-                                    value={meta.reason}
-                                    onValueChange={(v) =>
-                                      setRowDetails((prev) => ({
-                                        ...prev,
-                                        [index]: {
-                                          reason: v,
-                                          note: prev[index]?.note ?? '',
-                                        },
-                                      }))
-                                    }
-                                  >
-                                    <SelectTrigger className="w-full min-w-[180px] rounded-lg border-slate-200">
-                                      <SelectValue placeholder="เลือกกรณีการคืน" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="UNWRAPPED_UNUSED">
-                                        ยังไม่ได้แกะซอง / อยู่ในสภาพเดิม
-                                      </SelectItem>
-                                      <SelectItem value="EXPIRED">อุปกรณ์หมดอายุ</SelectItem>
-                                      <SelectItem value="CONTAMINATED">
-                                        อุปกรณ์มีการปนเปื้อน
-                                      </SelectItem>
-                                      <SelectItem value="DAMAGED">อุปกรณ์ชำรุด</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
-                                <TableCell>
-                                  <Input
-                                    value={meta.note}
-                                    onChange={(e) =>
-                                      setRowDetails((prev) => ({
-                                        ...prev,
-                                        [index]: {
-                                          reason: prev[index]?.reason ?? 'UNWRAPPED_UNUSED',
-                                          note: e.target.value,
-                                        },
-                                      }))
-                                    }
-                                    placeholder="ใส่รายละเอียดเพิ่มเติม (ถ้ามี)"
-                                    className="w-full min-w-[180px] rounded-lg border-slate-200"
-                                  />
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </div>
+                                <div className="sticky top-0 w-full border-b border-slate-100 bg-white px-2 py-2">
+                                  <div className="relative w-full">
+                                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                      placeholder="ค้นหาชื่อหรือรหัส..."
+                                      value={itemSearch}
+                                      onChange={(e) => setItemSearch(e.target.value)}
+                                      className="h-9 w-full border-slate-200 bg-slate-50/50 pl-9 text-sm focus-visible:ring-2"
+                                      autoFocus
+                                    />
+                                  </div>
+                                </div>
+                                <div className="max-h-[280px] overflow-y-auto overscroll-contain">
+                                  {paginatedItems.length === 0 ? (
+                                    <div className="px-3 py-8 text-center text-sm text-slate-500">
+                                      ไม่พบรายการ
+                                    </div>
+                                  ) : (
+                                    <ul className="py-1">
+                                      {paginatedItems.map((item) => (
+                                        <li key={item.ItemCode}>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setSelectedItemCode(item.ItemCode);
+                                              setQty(Math.min(qty, item.max_available_qty || 1));
+                                              setItemDropdownOpen(false);
+                                              setItemSearch('');
+                                              setItemDropdownPage(0);
+                                            }}
+                                            className={cn(
+                                              'flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left transition-colors hover:bg-slate-50',
+                                              selectedItemCode === item.ItemCode && 'bg-emerald-50 hover:bg-emerald-50',
+                                            )}
+                                          >
+                                            <span className="line-clamp-2 text-sm font-medium text-slate-800">
+                                              {item.itemname ?? item.ItemCode}
+                                            </span>
+                                            <span className="text-xs text-slate-500">
+                                              {item.ItemCode} · สูงสุด {item.max_available_qty}
+                                            </span>
+                                          </button>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                                {totalItemPages > 1 && (
+                                  <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-3 py-2 text-xs text-slate-500">
+                                    <span>
+                                      หน้า {itemDropdownPage + 1} / {totalItemPages} ({filteredItems.length} รายการ)
+                                    </span>
+                                    <div className="flex gap-0.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => setItemDropdownPage((p) => Math.max(0, p - 1))}
+                                        disabled={itemDropdownPage === 0}
+                                        className="rounded p-1.5 hover:bg-slate-200 disabled:opacity-40"
+                                      >
+                                        <ChevronLeft className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setItemDropdownPage((p) => Math.min(totalItemPages - 1, p + 1))
+                                        }
+                                        disabled={itemDropdownPage >= totalItemPages - 1}
+                                        className="rounded p-1.5 hover:bg-slate-200 disabled:opacity-40"
+                                      >
+                                        <ChevronRight className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>,
+                              document.body,
+                            )}
+                        </div>
+                      </div>
 
-                  {willReturnItems.length > 0 && (
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-slate-600">
-                        เลือก {selectedIndices.length} / {willReturnItems.length} รายการ
-                      </p>
+                      {/* จำนวน 10% */}
+                      <div className="w-[10%] min-w-0 shrink-0">
+                        <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                          จำนวน (สูงสุด {maxQty})
+                        </label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={maxQty}
+                          value={qty}
+                          onChange={(e) =>
+                            setQty(Math.min(maxQty, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                          }
+                          className="rounded-lg border-slate-200"
+                        />
+                      </div>
+
+                      {/* สาเหตุ 20% */}
+                      <div className="w-[20%] min-w-0 shrink-0 [&_[data-slot=select-trigger]]:w-full">
+                        <label className="mb-1.5 block text-sm font-medium text-slate-700">สาเหตุ</label>
+                        <Select value={reason} onValueChange={setReason}>
+                          <SelectTrigger className="w-full rounded-lg border-slate-200">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="UNWRAPPED_UNUSED">
+                              ยังไม่ได้แกะซอง / อยู่ในสภาพเดิม
+                            </SelectItem>
+                            <SelectItem value="EXPIRED">อุปกรณ์หมดอายุ</SelectItem>
+                            <SelectItem value="CONTAMINATED">อุปกรณ์มีการปนเปื้อน</SelectItem>
+                            <SelectItem value="DAMAGED">อุปกรณ์ชำรุด</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* หมายเหตุ (ถ้ามี) 20% */}
+                      <div className="w-[15%] min-w-0 shrink-0">
+                        <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                          หมายเหตุ (ถ้ามี)
+                        </label>
+                        <Input
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          placeholder="รายละเอียดเพิ่มเติม"
+                          className="w-full rounded-lg border-slate-200"
+                        />
+                      </div>
+
+                      {/* ปุ่มบันทึก 10% */}
                       <button
                         type="button"
-                        onClick={handleReturnToCabinet}
-                        disabled={loading || selectedIndices.length === 0}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                        onClick={handleReturnSubmit}
+                        disabled={loading || !selectedItemCode || maxQty < 1}
+                        className="inline-flex w-[10%] min-w-0 shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-2 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
                       >
                         {loading ? (
                           <>
@@ -431,7 +525,7 @@ export default function ReturnMedicalSuppliesPage() {
                         ) : (
                           <>
                             <RotateCcw className="h-4 w-4" />
-                            แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
+                            แจ้งอุปกรณ์
                           </>
                         )}
                       </button>

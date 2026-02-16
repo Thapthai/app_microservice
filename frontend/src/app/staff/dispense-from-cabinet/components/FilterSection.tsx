@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { FilterState } from '../types';
 import SearchableSelect from '@/app/admin/items/components/SearchableSelect';
-import { cabinetApi, departmentApi, cabinetDepartmentApi } from '@/lib/api';
+import { staffCabinetApi } from '@/lib/staffApi/cabinetApi';
+import { staffDepartmentApi } from '@/lib/staffApi/departmentApi';
+import { staffCabinetDepartmentApi } from '@/lib/staffApi/cabinetApi';
 
 interface Department {
   ID: number;
@@ -66,7 +68,7 @@ export default function FilterSection({
   const loadDepartments = async (keyword?: string) => {
     try {
       setLoadingDepartments(true);
-      const response = await departmentApi.getAll({ limit: 50, keyword });
+      const response = await staffDepartmentApi.getAll({ limit: 50, keyword });
       if (response.success && response.data) {
         setDepartments(response.data as Department[]);
       }
@@ -84,7 +86,7 @@ export default function FilterSection({
     }
     try {
       setLoadingCabinets(true);
-      const response = await cabinetDepartmentApi.getAll({
+      const response = await staffCabinetDepartmentApi.getAll({
         departmentId: parseInt(departmentId),
         keyword: keyword || undefined,
       });
@@ -118,7 +120,7 @@ export default function FilterSection({
   const loadAllCabinets = async (keyword?: string) => {
     try {
       setLoadingCabinets(true);
-      const response = await cabinetApi.getAll({ page: 1, limit: 50, keyword });
+      const response = await staffCabinetApi.getAll({ page: 1, limit: 50, keyword });
       if (response.success && response.data) {
         const allCabinets = response.data as Cabinet[];
         const filteredCabinets = allCabinets.filter((cabinet) => {

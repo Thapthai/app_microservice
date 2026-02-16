@@ -96,6 +96,8 @@ export interface Item {
   // Item stocks (from API when included, e.g. findAllItems)
   itemStocks?: ItemStockRow[];
   count_itemstock?: number;
+  /** จำนวนอุปกรณ์ที่ถูกใช้งานในปัจจุบัน (จาก supply_usage_items) */
+  qty_in_use?: number;
 }
 
 export interface ItemStockRow {
@@ -104,6 +106,8 @@ export interface ItemStockRow {
   Qty?: number;
   RfidCode?: string;
   ExpireDate?: string; // ISO date string
+  /** true = อยู่ในตู้, false = ถูกเบิก */
+  IsStock?: boolean;
   cabinet?: {
     id?: number;
     cabinet_name?: string;

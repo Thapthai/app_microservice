@@ -43,6 +43,8 @@ export interface ReturnToCabinetReportData {
     RfidCode: string;
     StockID: number;
     Istatus_rfid?: number;
+    /** true/1 = อยู่ในตู้, false/0 = ถูกเบิก */
+    IsStock?: boolean | number;
   }>;
 }
 
@@ -97,7 +99,7 @@ export class ReturnToCabinetReportExcelService {
     worksheet.getRow(2).height = 20;
     worksheet.getColumn(1).width = 12;
 
-    worksheet.mergeCells('B1:H2');
+    worksheet.mergeCells('B1:I2');
     const headerCell = worksheet.getCell('B1');
     headerCell.value = 'รายงานคืนอุปกรณ์เข้าตู้\nReturn To Cabinet Report';
     headerCell.font = { name: 'Tahoma', size: 14, bold: true, color: { argb: 'FF1A365D' } };
@@ -124,7 +126,7 @@ export class ReturnToCabinetReportExcelService {
     leftCell.value = `${deptLabel}    ${cabLabel}    ${startLabel}    ${endLabel}`;
     leftCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF6C757D' } };
     leftCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: false };
-    worksheet.mergeCells('F3:H3');
+    worksheet.mergeCells('F3:I3');
     const dateCell = worksheet.getCell('F3');
     dateCell.value = `วันที่รายงาน: ${reportDate}`;
     dateCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF6C757D' } };
@@ -143,6 +145,7 @@ export class ReturnToCabinetReportExcelService {
       'RFID Code',
       'แผนก',
       'ตู้',
+      'สถานะสต็อก',
     ];
     const headerRow = worksheet.getRow(tableStartRow);
     tableHeaders.forEach((h, i) => {
@@ -164,6 +167,8 @@ export class ReturnToCabinetReportExcelService {
     data.data.forEach((item, idx) => {
       const excelRow = worksheet.getRow(dataRowIndex);
       const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA';
+      const inCabinet = item.IsStock === true || item.IsStock === 1;
+      const statusText = inCabinet ? 'อยู่ในตู้' : 'ถูกเบิก';
       const rowValues = [
         idx + 1,
         item.itemcode,
@@ -173,6 +178,7 @@ export class ReturnToCabinetReportExcelService {
         item.RfidCode || '-',
         (item as any).departmentName ?? '-',
         (item as any).cabinetName || '-',
+        statusText,
       ];
 
       rowValues.forEach((val, colIndex) => {
@@ -204,8 +210,9 @@ export class ReturnToCabinetReportExcelService {
     worksheet.getColumn(4).width = 22; // วันที่แก้ไขล่าสุด
     worksheet.getColumn(5).width = 22; // ชื่อผู้เบิก
     worksheet.getColumn(6).width = 22; // RFID Code
-    worksheet.getColumn(7).width = 20; // ตู้
-    worksheet.getColumn(8).width = 20; // แผนก
+    worksheet.getColumn(7).width = 20; // แผนก
+    worksheet.getColumn(8).width = 20; // ตู้
+    worksheet.getColumn(9).width = 14; // สถานะสต็อก
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);

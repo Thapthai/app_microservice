@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from './prisma.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
@@ -86,12 +87,11 @@ export class ItemServiceService {
       const orderBy: any = {};
       orderBy[field] = order;
 
-      // Build itemStocks where clause
+      // Build itemStocks where clause (count_itemstock คำนวณจาก IsStock = 1 ในขั้นตอน map)
       const itemStocksWhere: any = {
         RfidCode: {
           not: '',
         },
-        IsStock: true, // เฉพาะแถวที่เป็นสต็อกปัจจุบัน (IsStock = 1)
       };
 
       // Filter by cabinet_id if provided
@@ -179,6 +179,49 @@ export class ItemServiceService {
         return true;
       });
 
+      // จำนวนอุปกรณ์ที่ถูกใช้งานในปัจจุบัน (จาก supply_usage_items: qty - qty_used_with_patient - qty_returned_to_cabinet)
+      const itemCodes = filteredItems.map((i: any) => i.itemcode).filter(Boolean);
+      const qtyInUseMap = new Map<string, number>();
+      if (itemCodes.length > 0) {
+        const qtyInUseRows = await this.prisma.$queryRaw<
+          { order_item_code: string; qty_in_use: bigint }[]
+        >` SELECT
+            sui.order_item_code,
+            SUM(COALESCE(sui.qty, 0) - COALESCE(sui.qty_used_with_patient, 0) - COALESCE(sui.qty_returned_to_cabinet, 0)) AS qty_in_use
+          FROM app_microservice_supply_usage_items sui
+          WHERE sui.order_item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
+            AND sui.order_item_code IS NOT NULL
+            AND sui.order_item_code != ''
+            AND date(sui.created_at) = date(now())    
+          GROUP BY sui.order_item_code
+        `;
+        qtyInUseRows.forEach((row) => {
+          const val = Number(row.qty_in_use ?? 0);
+          if (val > 0) qtyInUseMap.set(row.order_item_code, val);
+        });
+      }
+
+      // จำนวนที่แจ้งชำรุด/ไม่ถูกใช้งาน (จาก app_microservice_supply_item_return_records - รวมทุกวันที่)
+      // รวมเฉพาะ DAMAGED (ชำรุด) และ CONTAMINATED (ปนเปื้อน)
+      const damagedReturnMap = new Map<string, number>();
+      if (itemCodes.length > 0) {
+        const damagedRows = await this.prisma.$queryRaw<
+          { item_code: string; total_returned: bigint }[]
+        >` SELECT
+            srr.item_code,
+            SUM(COALESCE(srr.qty_returned, 0)) AS total_returned
+          FROM app_microservice_supply_item_return_records srr
+          WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
+            AND srr.item_code IS NOT NULL
+            AND srr.item_code != ''
+          GROUP BY srr.item_code
+        `;
+        damagedRows.forEach((row) => {
+          const val = Number(row.total_returned ?? 0);
+          if (val > 0) damagedReturnMap.set(row.item_code, val);
+        });
+      }
+
       // จัดลำดับรายการตามสถานะของ itemStocks:
       // 1) มี stock หมดอายุ
       // 2) มี stock ใกล้หมดอายุ (ภายใน 7 วัน)
@@ -197,7 +240,10 @@ export class ItemServiceService {
           );
         }
 
-        const countItemStock = matchingItemStocks.length;
+        // count_itemstock = จำนวนที่ IsStock = true/1 (schema เป็น Boolean, DB อาจเป็น 0/1)
+        const countItemStock = matchingItemStocks.filter(
+          (s: any) => s.IsStock === true || s.IsStock === 1,
+        ).length;
 
         // วิเคราะห์วันหมดอายุ และสถานะหมดอายุ/ใกล้หมดอายุ
         let earliestExpireDate: Date | null = null;
@@ -222,10 +268,16 @@ export class ItemServiceService {
         const stockMin = item.stock_min ?? 0;
         const isLowStock = stockMin > 0 && countItemStock < stockMin;
 
+        // จำนวนที่แจ้งชำรุด/ไม่ถูกใช้งาน (จาก app_microservice_supply_item_return_records)
+        // ใช้ qty_returned จาก return_records โดยรวมทุกวันที่ (หรือเฉพาะ DAMAGED/CONTAMINATED ถ้าต้องการ)
+        const damagedQty = damagedReturnMap.get(item.itemcode) ?? 0;
+
         const itemWithCount = {
           ...item,
           itemStocks: matchingItemStocks,
           count_itemstock: countItemStock,
+          qty_in_use: qtyInUseMap.get(item.itemcode) ?? 0,
+          damaged_qty: damagedQty,
         };
 
         return {
@@ -824,53 +876,75 @@ export class ItemServiceService {
 
   // ====================================== Item Stock Return API ======================================
   /**
-   * นับจำนวน itemstock ที่ StockID = 0
-   * และยังไม่มีรายการในตาราง app_microservice_supply_usage_items (ไม่ซ้ำ)
+   * สรุปตาม ItemCode: ถอนวันนี้ - ใช้วันนี้ - คืนวันนี้ = max_available_qty
+   * ใช้ item_code จาก supply_item_return_records (อ้างอิงตามรหัสสินค้า)
    */
   async findAllItemStockWillReturn() {
     try {
-      const result: Array<{ itemcode: string }> = await this.prisma.$queryRaw`
-         SELECT
-            s.ItemCode,
-            s.itemname,
-            s.RowID,
-            s.RfidCode
+      type Row = {
+        ItemCode: string;
+        itemname: string | null;
+        withdraw_qty: number;
+        used_qty: number;
+        return_qty: number;
+        max_available_qty: number;
+      };
+      const result = await this.prisma.$queryRaw<Row[]>`
+    SELECT *
         FROM (
             SELECT
-                ist.RowID,
-                ist.ItemCode,
-                ist.RfidCode,
+                w.ItemCode,
                 i.itemname,
-                @rn := IF(@prev_code = ist.ItemCode, @rn + 1, 1) AS rn,
-                @prev_code := ist.ItemCode
-            FROM itemstock ist
-            LEFT JOIN item i 
-                ON i.itemcode = ist.ItemCode
-            CROSS JOIN (SELECT @rn := 0, @prev_code := '') vars
-            WHERE ist.IsStock = 0 and DATE(ist.LastCabinetModify) = date(NOW())
-            ORDER BY ist.ItemCode, ist.RowID
-        ) s
-        LEFT JOIN (
-            SELECT
-                sui.order_item_code AS ItemCode,
-                SUM(sui.qty) AS used_qty
-            FROM app_microservice_supply_usage_items sui
-            where DATE(sui.created_at) = date(NOW())
-            GROUP BY sui.order_item_code
-        ) u
-            ON u.ItemCode = s.ItemCode
-        WHERE s.rn > IFNULL(u.used_qty, 0)
-        AND NOT EXISTS (
-            SELECT 1
-            FROM app_microservice_supply_item_return_records srr
-            WHERE srr.item_stock_id = s.RowID
-        )
-        ORDER BY s.ItemCode ASC, s.RowID;
-      `;
+                w.withdraw_qty,
+                COALESCE(u.used_qty, 0) AS used_qty,
+                COALESCE(r.return_qty, 0) AS return_qty,
+                (w.withdraw_qty
+                    - COALESCE(u.used_qty, 0)
+                    - COALESCE(r.return_qty, 0)) AS max_available_qty
+            FROM (
+                SELECT
+                    ist.ItemCode,
+                    COUNT(*) AS withdraw_qty
+                FROM itemstock ist
+                WHERE ist.IsStock = 0
+                  AND DATE(ist.LastCabinetModify) = DATE(NOW())
+                GROUP BY ist.ItemCode
+            ) w
+            LEFT JOIN (
+                SELECT
+                    sui.order_item_code AS ItemCode,
+                    SUM(sui.qty) AS used_qty
+                FROM app_microservice_supply_usage_items sui
+                WHERE DATE(sui.created_at) = DATE(NOW()) 
+                  AND sui.order_item_status != 'Discontinue'
+                GROUP BY sui.order_item_code
+            ) u ON u.ItemCode = w.ItemCode
+            LEFT JOIN (
+                SELECT
+                    srr.item_code AS ItemCode,
+                    SUM(srr.qty_returned) AS return_qty
+                FROM app_microservice_supply_item_return_records srr
+                WHERE DATE(srr.return_datetime) = DATE(NOW())
+                GROUP BY srr.item_code
+            ) r ON r.ItemCode = w.ItemCode
+            LEFT JOIN item i ON i.itemcode = w.ItemCode
+        ) x
+        WHERE x.max_available_qty > 0
+        ORDER BY x.ItemCode; `;
+
+      // แปลง BigInt เป็น Number เพื่อให้ serialize ผ่าน TCP ได้ (JSON.stringify ไม่รองรับ BigInt)
+      const data = result.map((row) => ({
+        ItemCode: row.ItemCode,
+        itemname: row.itemname,
+        withdraw_qty: Number(row.withdraw_qty),
+        used_qty: Number(row.used_qty),
+        return_qty: Number(row.return_qty),
+        max_available_qty: Number(row.max_available_qty),
+      }));
 
       return {
         success: true,
-        data: result,
+        data,
       };
     } catch (error) {
       return {

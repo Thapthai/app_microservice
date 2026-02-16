@@ -10,6 +10,8 @@ export interface CabinetStockRow {
   item_code: string;
   item_name: string;
   balance_qty: number;
+  qty_in_use: number;
+  damaged_qty: number;
   stock_max: number | null;
   stock_min: number | null;
   refill_qty: number;
@@ -66,7 +68,7 @@ export class CabinetStockReportExcelService {
     worksheet.getRow(2).height = 20;
     worksheet.getColumn(1).width = 12;
 
-    worksheet.mergeCells('B1:H2');
+    worksheet.mergeCells('B1:I2');
     const headerCell = worksheet.getCell('B1');
     headerCell.value = 'รายงานสต๊อกอุปกรณ์ในตู้\nCabinet Stock Report';
     headerCell.font = { name: 'Tahoma', size: 14, bold: true, color: { argb: 'FF1A365D' } };
@@ -83,7 +85,7 @@ export class CabinetStockReportExcelService {
     };
 
     // แถว 3: วันที่รายงาน
-    worksheet.mergeCells('A3:H3');
+    worksheet.mergeCells('A3:I3');
     const dateCell = worksheet.getCell('A3');
     dateCell.value = `วันที่รายงาน: ${reportDate}`;
     dateCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF6C757D' } };
@@ -93,7 +95,7 @@ export class CabinetStockReportExcelService {
 
     // ---- ตารางข้อมูล (แสดงก่อน สรุปผล/เงื่อนไข) ----
     const tableStartRow = 5;
-    const headers = ['ลำดับ', 'แผนก', 'รหัสอุปกรณ์', 'อุปกรณ์', 'คงเหลือ', 'Stock Max', 'Stock Min', 'จำนวนที่ต้องเติม'];
+    const headers = ['ลำดับ', 'แผนก', 'รหัสอุปกรณ์', 'อุปกรณ์', 'จำนวนในตู้', 'จำนวนอุปกรณ์ที่ถูกใช้งาน', 'ชำรุด', 'Min / Max', 'จำนวนที่ต้องเติม'];
     const headerRow = worksheet.getRow(tableStartRow);
     headers.forEach((h, i) => {
       const cell = headerRow.getCell(i + 1);
@@ -111,14 +113,23 @@ export class CabinetStockReportExcelService {
       const excelRow = worksheet.getRow(dataRowIndex);
       const hasRefill = (row.refill_qty ?? 0) > 0;
       const bg = hasRefill ? LIGHT_RED : (idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA');
+      const minMaxStr =
+        row.stock_min != null && row.stock_max != null
+          ? `${row.stock_min} / ${row.stock_max}`
+          : row.stock_min != null
+            ? `${row.stock_min} / -`
+            : row.stock_max != null
+              ? `- / ${row.stock_max}`
+              : '-';
       [
         row.seq,
         row.department_name ?? '-',
         row.item_code,
         row.item_name ?? '-',
         row.balance_qty,
-        row.stock_max ?? '-',
-        row.stock_min ?? '-',
+        row.qty_in_use ?? 0,
+        row.damaged_qty ?? 0,
+        minMaxStr,
         row.refill_qty,
       ].forEach((val, colIndex) => {
         const cell = excelRow.getCell(colIndex + 1);
@@ -136,63 +147,31 @@ export class CabinetStockReportExcelService {
     });
 
     worksheet.addRow([]);
-
-    // ---- สรุปผล (หลังตารางข้อมูล) ----
-    // const summaryStartRow = dataRowIndex + 1;
-    // worksheet.mergeCells(`A${summaryStartRow}:H${summaryStartRow}`);
-    // worksheet.getCell(`A${summaryStartRow}`).value = 'สรุปผล';
-    // worksheet.getCell(`A${summaryStartRow}`).font = { name: 'Tahoma', size: 11, bold: true, color: { argb: 'FF1A365D' } };
-    // worksheet.getCell(`A${summaryStartRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
-    // worksheet.getCell(`A${summaryStartRow}`).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-    // worksheet.getRow(summaryStartRow).height = 22;
-
-    // worksheet.getCell(`A${summaryStartRow + 1}`).value = 'จำนวนรายการ';
-    // worksheet.getCell(`A${summaryStartRow + 1}`).font = { name: 'Tahoma', size: 10, bold: true };
-    // worksheet.getCell(`B${summaryStartRow + 1}`).value = data.summary.total_rows;
-    // worksheet.getCell(`A${summaryStartRow + 2}`).value = 'จำนวนรวม (ชิ้น)';
-    // worksheet.getCell(`A${summaryStartRow + 2}`).font = { name: 'Tahoma', size: 10, bold: true };
-    // worksheet.getCell(`B${summaryStartRow + 2}`).value = data.summary.total_qty;
-    // worksheet.getCell(`A${summaryStartRow + 3}`).value = 'จำนวนรวมที่ต้องเติม';
-    // worksheet.getCell(`A${summaryStartRow + 3}`).font = { name: 'Tahoma', size: 10, bold: true };
-    // worksheet.getCell(`B${summaryStartRow + 3}`).value = data.summary.total_refill_qty;
-    // worksheet.getRow(summaryStartRow + 1).height = 18;
-    // worksheet.getRow(summaryStartRow + 2).height = 18;
-    // worksheet.getRow(summaryStartRow + 3).height = 18;
-    // worksheet.addRow([]);
-
-    // ---- เงื่อนไขการค้นหา (หลังตารางข้อมูล) ----
-    // const filters = data.filters || {};
-    // const filterStartRow = summaryStartRow + 5;
-    // worksheet.mergeCells(`A${filterStartRow}:H${filterStartRow}`);
-    // worksheet.getCell(`A${filterStartRow}`).value = 'เงื่อนไขการค้นหา';
-    // worksheet.getCell(`A${filterStartRow}`).font = { name: 'Tahoma', size: 11, bold: true, color: { argb: 'FF1A365D' } };
-    // worksheet.getCell(`A${filterStartRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
-    // worksheet.getCell(`A${filterStartRow}`).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-    // worksheet.getRow(filterStartRow).height = 22;
-    // worksheet.getCell(`A${filterStartRow + 1}`).value = 'ตู้ที่เลือก';
-    // worksheet.getCell(`A${filterStartRow + 1}`).font = { name: 'Tahoma', size: 10, bold: true };
-    // worksheet.getCell(`B${filterStartRow + 1}`).value = filters.cabinetId ? `ID: ${filters.cabinetId}` : filters.cabinetCode || 'ทั้งหมด';
-    // worksheet.getCell(`B${filterStartRow + 1}`).font = { name: 'Tahoma', size: 10 };
-    // worksheet.getRow(filterStartRow + 1).height = 18;
-
-    // Footer
-    // const footerRow = filterStartRow + 2;
+    // Footer + หมายเหตุ
     const footerRow = dataRowIndex + 1;
-    worksheet.mergeCells(`A${footerRow}:H${footerRow}`);
+    worksheet.mergeCells(`A${footerRow}:I${footerRow}`);
     const footerCell = worksheet.getCell(`A${footerRow}`);
     footerCell.value = 'เอกสารนี้สร้างจากระบบรายงานอัตโนมัติ';
     footerCell.font = { name: 'Tahoma', size: 9, color: { argb: 'FFADB5BD' } };
     footerCell.alignment = { horizontal: 'center', vertical: 'middle' };
     worksheet.getRow(footerRow).height = 18;
+    const noteRow = footerRow + 1;
+    worksheet.mergeCells(`A${noteRow}:I${noteRow}`);
+    const noteCell = worksheet.getCell(`A${noteRow}`);
+    noteCell.value = 'หมายเหตุ: จำนวนในตู้ = จำนวนชิ้นในตู้ (IsStock=1) เท่านั้น | จำนวนอุปกรณ์ที่ถูกใช้งาน = จาก supply_usage_items วันที่รายงาน';
+    noteCell.font = { name: 'Tahoma', size: 8, color: { argb: 'FF6C757D' } };
+    noteCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getRow(noteRow).height = 16;
 
-    worksheet.getColumn(1).width = 12;
-    worksheet.getColumn(2).width = 22;
-    worksheet.getColumn(3).width = 18;
-    worksheet.getColumn(4).width = 36;
+    worksheet.getColumn(1).width = 10;
+    worksheet.getColumn(2).width = 18;
+    worksheet.getColumn(3).width = 16;
+    worksheet.getColumn(4).width = 26;
     worksheet.getColumn(5).width = 12;
-    worksheet.getColumn(6).width = 12;
+    worksheet.getColumn(6).width = 18;
     worksheet.getColumn(7).width = 12;
-    worksheet.getColumn(8).width = 18;
+    worksheet.getColumn(8).width = 14;
+    worksheet.getColumn(9).width = 16;
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);

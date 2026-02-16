@@ -23,34 +23,7 @@ export function ItemInfoCard({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>ข้อมูลเวชภัณฑ์ (รหัส: {item.itemcode})</CardTitle>
-          <div className="flex gap-2">
-            <Button 
-              onClick={onExportExcel} 
-              variant="outline"
-              size="sm"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Excel
-            </Button>
-            <Button 
-              onClick={onExportPdf} 
-              variant="outline"
-              size="sm"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              PDF
-            </Button>
-            <Button
-              onClick={onRefresh}
-              variant="outline"
-              size="sm"
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              รีเฟรช
-            </Button>
-          </div>
+          <CardTitle>ข้อมูลเวชภัณฑ์(รหัส: {item.itemcode})</CardTitle>
         </div>
       </CardHeader>
       <CardContent>

@@ -211,8 +211,8 @@ export default function ItemsPage() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onUpdateMinMax={handleUpdateMinMax}
-          onPageChange={handlePageChange}
-          headerActions={
+            onPageChange={handlePageChange}
+            headerActions={
             <div className="flex flex-wrap items-center gap-2">
               {/* <span className="text-sm text-gray-600">รายงานสต๊อกอุปกรณ์ในตู้:</span> */}
               <Button

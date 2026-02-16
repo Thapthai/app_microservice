@@ -181,7 +181,6 @@ export default function ItemsPage() {
                 <p className="text-sm text-gray-500">รายการอุปกรณ์ทั้งหมดในระบบ</p>
               </div>
             </div>
-
           </div>
 
           {/* Filter Section */}

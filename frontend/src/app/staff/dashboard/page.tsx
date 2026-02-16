@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react';
 import { staffItemsApi } from '@/lib/staffApi/itemsApi';
 import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
 import { staffCabinetDepartmentApi } from '@/lib/staffApi/cabinetApi';
-import type { ItemWithExpiry } from '../../admin/dashboard/components/ItemsWithExpirySidebar';
-import StatsCards from '../../admin/dashboard/components/StatsCards';
-import DashboardMappingsTable, { type CabinetDepartment } from '../../admin/dashboard/components/DashboardMappingsTable';
-import DispensedVsUsageChartCard from '../../admin/dashboard/components/DispensedVsUsageChartCard';
-import ItemsWithExpirySidebar from '../../admin/dashboard/components/ItemsWithExpirySidebar';
+import type { ItemWithExpiry } from './components/ItemsWithExpirySidebar';
+import StatsCards from './components/StatsCards';
+import DashboardMappingsTable, { type CabinetDepartment } from './components/DashboardMappingsTable';
+import DispensedVsUsageChartCard from './components/DispensedVsUsageChartCard';
+import ItemsWithExpirySidebar from './components/ItemsWithExpirySidebar';
 
-export default function StaffDashboardPage() {
-  const [staffUser, setStaffUser] = useState<any>(null);
+export default function DashboardPage() {
   const [mappings, setMappings] = useState<CabinetDepartment[]>([]);
   const [loadingMappings, setLoadingMappings] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -31,40 +30,27 @@ export default function StaffDashboardPage() {
   } | null>(null);
   const [loadingDispensedVsUsage, setLoadingDispensedVsUsage] = useState(false);
 
-  useEffect(() => {
-    const user = localStorage.getItem('staff_user');
-    if (user) {
-      try {
-        setStaffUser(JSON.parse(user));
-      } catch {
-        setStaffUser(null);
-      }
-    }
-  }, []);
-
   // Fetch stats from backend
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        if (staffUser) {
-          setLoadingStats(true);
-          const response = await staffItemsApi.getStats();
+        setLoadingStats(true);
+        const response = await staffItemsApi.getStats();
 
-          if (response.success && response.data) {
-            const data = response.data as any;
-            const d = data.details ?? data;
-            setStats({
-              totalItems: d.total_items ?? 0,
-              activeItems: d.active_items ?? 0,
-              inactiveItems: d.inactive_items ?? 0,
-              lowStockItems: d.low_stock_items ?? 0,
-            });
-            const itemStock = data.item_stock;
-            if (itemStock) {
-              setNearExpire7Days(itemStock.expire?.near_expire_7_days ?? 0);
-              setNearExpire3Days(itemStock.expire?.near_expire_3_days ?? 0);
-              setItemsWithExpiry(Array.isArray(itemStock.items_with_expiry) ? itemStock.items_with_expiry : []);
-            }
+        if (response.success && response.data) {
+          const data = response.data as any;
+          const d = data.details ?? data;
+          setStats({
+            totalItems: d.total_item_types ?? d.total_items ?? 0,
+            activeItems: d.item_types_with_stock ?? d.active_items ?? 0,
+            inactiveItems: d.inactive_items ?? 0,
+            lowStockItems: d.low_stock_items ?? 0,
+          });
+          const itemStock = data.item_stock;
+          if (itemStock) {
+            setNearExpire7Days(itemStock.expire?.near_expire_7_days ?? 0);
+            setNearExpire3Days(itemStock.expire?.near_expire_3_days ?? 0);
+            setItemsWithExpiry(Array.isArray(itemStock.items_with_expiry) ? itemStock.items_with_expiry : []);
           }
         }
       } catch (error) {
@@ -75,13 +61,12 @@ export default function StaffDashboardPage() {
     };
 
     fetchStats();
-  }, [staffUser]);
+  }, []);
 
-  // Fetch เบิก vs ใช้ โดยรวม
+  // Fetch เบิก vs ใช้ โดยรวม (สำหรับกราฟ)
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        if (!staffUser) return;
         setLoadingDispensedVsUsage(true);
         const response = await staffMedicalSuppliesApi.getDispensedVsUsageSummary();
         if (response.success && response.data) {
@@ -97,20 +82,18 @@ export default function StaffDashboardPage() {
       }
     };
     fetchSummary();
-  }, [staffUser]);
+  }, []);
 
-  // Fetch รายการเชื่อมโยง (ตู้-แผนก)
+  // Fetch รายการเชื่อมโยง (ตู้-แผนก) - ข้อมูลเดียวกับ cabinet-departments
   useEffect(() => {
     const fetchMappings = async () => {
       try {
-        if (staffUser) {
-          setLoadingMappings(true);
-          const response = await staffCabinetDepartmentApi.getAll();
-          if (response.success && response.data) {
-            setMappings(response.data as CabinetDepartment[]);
-          } else {
-            setMappings([]);
-          }
+        setLoadingMappings(true);
+        const response = await staffCabinetDepartmentApi.getAll();
+        if (response.success && response.data) {
+          setMappings(response.data as CabinetDepartment[]);
+        } else {
+          setMappings([]);
         }
       } catch (error) {
         console.error('Failed to fetch cabinet-department mappings:', error);
@@ -121,14 +104,12 @@ export default function StaffDashboardPage() {
     };
 
     fetchMappings();
-  }, [staffUser]);
-
-  if (!staffUser) {
-    return null;
-  }
+  }, []);
 
   return (
-    <>
+    < >
+      {/* <DashboardHeader userName={user?.name} /> */}
+
       <StatsCards
         loading={loadingStats}
         stats={stats}
@@ -158,6 +139,6 @@ export default function StaffDashboardPage() {
           />
         </div>
       </div>
-    </>
+    </  >
   );
 }

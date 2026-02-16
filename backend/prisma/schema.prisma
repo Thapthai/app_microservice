@@ -416,7 +416,7 @@ model SupplyUsageItem {
   updated_at DateTime @updatedAt @map("updated_at")
 
   // Relations
-  usage        MedicalSupplyUsage       @relation(fields: [medical_supply_usage_id], references: [id], onDelete: Cascade)
+  usage MedicalSupplyUsage @relation(fields: [medical_supply_usage_id], references: [id], onDelete: Cascade)
   // return_items SupplyItemReturnRecord[]
 
   @@index([medical_supply_usage_id])
@@ -429,9 +429,9 @@ model SupplyUsageItem {
 
 // Supply Item Return Records - บันทึกรายการคืนอุปกรณ์แต่ละครั้ง
 model SupplyItemReturnRecord {
-  id                   Int @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   // supply_usage_item_id Int @map("supply_usage_item_id")
-  item_stock_id Int @map("item_stock_id")
+  itemCode String @map("item_code")
 
   // Return Details
   qty_returned      Int      @map("qty_returned") // จำนวนที่คืนในครั้งนี้
@@ -442,11 +442,7 @@ model SupplyItemReturnRecord {
 
   created_at DateTime @default(now()) @map("created_at")
 
-  // Relations (optional: บาง record อาจชี้ไป itemstock ที่ถูกลบหรืออยู่คนละ DB)
-  item_stock ItemStock? @relation(fields: [item_stock_id], references: [RowID], onDelete: Cascade)
-
-  // @@index([supply_usage_item_id], map: "idx_return_supply_item")
-  @@index([item_stock_id], map: "idx_return_item_stock")
+  @@index([itemCode], map: "idx_return_itemCode")
   @@map("app_microservice_supply_item_return_records")
 }
 
@@ -544,7 +540,6 @@ model ItemStock {
   // Relations
   item    Item?    @relation(fields: [ItemCode], references: [itemcode], onDelete: SetNull)
   cabinet cabinet? @relation(fields: [StockID], references: [stock_id])
-  return_items SupplyItemReturnRecord[]
 
   @@map("itemstock")
 }
@@ -605,7 +600,7 @@ model cabinet {
   cabinet_code       String?             @map("cabinet_code") @db.VarChar(255)
   cabinet_type       String?             @map("cabinet_type") @db.VarChar(255)
   cabinet_status     String?             @default("ACTIVE") @map("cabinet_status") @db.VarChar(255)
-  stock_id           Int?                @map("stock_id") @unique()
+  stock_id           Int?                @unique() @map("stock_id")
   created_at         DateTime            @default(now()) @map("created_at")
   updated_at         DateTime            @updatedAt @map("updated_at")
   cabinetDepartments cabinetDepartment[]

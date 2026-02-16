@@ -131,11 +131,11 @@ export class CabinetStockReportPdfService {
         const itemHeight = 18;
         const cellPadding = 4;
         const totalTableWidth = contentWidth;
-        const colPct = [0.07, 0.14, 0.12, 0.26, 0.10, 0.10, 0.10, 0.11];
+        const colPct = [0.05, 0.11, 0.09, 0.20, 0.09, 0.13, 0.09, 0.11, 0.13];
         const colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
         if (sumW < totalTableWidth) colWidths[3] += totalTableWidth - sumW;
-        const headers = ['ลำดับ', 'แผนก', 'รหัสอุปกรณ์', 'อุปกรณ์', 'คงเหลือ', 'Stock Max', 'Stock Min', 'จำนวนที่ต้องเติม'];
+        const headers = ['ลำดับ', 'แผนก', 'รหัสอุปกรณ์', 'อุปกรณ์', 'จำนวนในตู้', 'จำนวนอุปกรณ์ที่ถูกใช้งาน', 'ชำรุด', 'Min / Max', 'จำนวนที่ต้องเติม'];
 
         const drawTableHeader = (y: number) => {
           let x = margin;
@@ -185,20 +185,31 @@ export class CabinetStockReportPdfService {
             const code = (row as { item_code?: string }).item_code ?? '-';
             const name = (row as { item_name?: string }).item_name ?? '-';
             const bal = (row as { balance_qty?: number }).balance_qty ?? 0;
+            const qtyInUse = (row as { qty_in_use?: number }).qty_in_use ?? 0;
+            const damagedQty = (row as { damaged_qty?: number }).damaged_qty ?? 0;
             const smax = (row as { stock_max?: number | null }).stock_max;
             const smin = (row as { stock_min?: number | null }).stock_min;
             const refill = (row as { refill_qty?: number }).refill_qty ?? 0;
+            const minMaxStr =
+              smin != null && smax != null
+                ? `${smin} / ${smax}`
+                : smin != null
+                  ? `${smin} / -`
+                  : smax != null
+                    ? `- / ${smax}`
+                    : '-';
             const cellTexts = [
               String(seq),
               String(dept).substring(0, 18),
               String(code).substring(0, 14),
               String(name).substring(0, 28),
               String(bal),
-              smax != null ? String(smax) : '-',
-              smin != null ? String(smin) : '-',
+              String(qtyInUse),
+              String(damagedQty),
+              minMaxStr,
               String(refill),
             ];
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 9; i++) {
               const cw = colWidths[i];
               const w = Math.max(4, cw - cellPadding * 2);
               doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');
@@ -213,34 +224,13 @@ export class CabinetStockReportPdfService {
           }
         }
 
-        // doc.y += 3;
-
-        // // ---- สรุปผล (แสดงหลังตารางข้อมูล) ----
-        // doc.rect(margin, doc.y, contentWidth, 48).fillAndStroke('#E9ECEF', '#DEE2E6');
-        // doc.fontSize(10).font(finalFontBoldName).fillColor('#1A365D');
-        // doc.text('สรุปผล', margin + 8, doc.y );
-        // doc.fontSize(9).font(finalFontName).fillColor('#000000');
-        // doc
-        //   .text(`จำนวนรายการ: ${summary.total_rows}`, margin + 8, doc.y)
-        //   .text(`จำนวนรวม (ชิ้น): ${summary.total_qty}`, margin + 8, doc.y)
-        //   .text(`จำนวนรวมที่ต้องเติม: ${summary.total_refill_qty}`, margin + 8, doc.y);
-        // doc.y += 46;
-
-        // // ---- เงื่อนไขการค้นหา (แสดงหลังตาราง) ----
-        // const filters = data?.filters ?? {};
-        // if (filters.cabinetId != null || filters.cabinetCode) {
-        //   doc.rect(margin, doc.y, contentWidth, 20).fillAndStroke('#E9ECEF', '#DEE2E6');
-        //   doc.fontSize(10).font(finalFontBoldName).fillColor('#1A365D');
-        //   doc.text('เงื่อนไขการค้นหา', margin + 8, doc.y + 4);
-        //   doc.fillColor('#000000');
-        //   doc.fontSize(9).font(finalFontName);
-        //   doc.text(
-        //     `ตู้ที่เลือก: ${filters.cabinetId != null ? `ID ${filters.cabinetId}` : filters.cabinetCode ?? '-'}`,
-        //     margin + 8,
-        //     doc.y + 12
-        //   );
-        //   doc.y += 22;
-        // }
+        // หมายเหตุ: คงเหลือ = จำนวนชิ้นในตู้ (IsStock=1)
+        doc.fontSize(8).font(finalFontName).fillColor('#6C757D');
+        doc.text('หมายเหตุ: คงเหลือ = จำนวนชิ้นในตู้ (IsStock=1, อยู่ในตู้) เท่านั้น', margin, doc.y + 6, {
+          width: contentWidth,
+          align: 'center',
+        });
+        doc.fillColor('#000000');
 
         doc.end();
       } catch (err) {

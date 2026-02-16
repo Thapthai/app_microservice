@@ -2240,7 +2240,8 @@ export class ReportServiceService {
   /**
    * Get Cabinet Stock Report Data (สต๊อกอุปกรณ์ในตู้)
    * คอลัมน์: ลำดับ, แผนก, รหัสอุปกรณ์, อุปกรณ์, คงเหลือ, Stock Max, Stock Min, จำนวนที่ต้องเติม
-   * จำนวนที่ต้องเติม = Max - (Min - คงเหลือ) (แสดงเป็น 0 ถ้าเป็นลบ)
+   * คงเหลือ = จำนวนชิ้นในตู้ (นับเฉพาะ itemstock ที่ IsStock = 1 เท่านั้น)
+   * จำนวนที่ต้องเติม = Max - คงเหลือ (แสดงเป็น 0 ถ้าเป็นลบ)
    */
   async getCabinetStockData(params: {
     cabinetId?: number;
@@ -2248,7 +2249,7 @@ export class ReportServiceService {
     departmentId?: number;
   }): Promise<CabinetStockReportData> {
     try {
-      let whereClause = Prisma.sql`ist.StockID > 0 AND ist.StockID = c.stock_id`;
+      let whereClause = Prisma.sql`ist.StockID > 0 AND ist.StockID = c.stock_id AND (ist.IsStock = 1 OR ist.IsStock = true)`;
       if (params?.cabinetId != null) {
         whereClause = Prisma.sql`${whereClause} AND c.id = ${params.cabinetId}`;
       }
@@ -2268,7 +2269,7 @@ export class ReportServiceService {
             dept.DepName AS department_name,
             ist.ItemCode AS item_code,
             i.itemname AS item_name,
-            SUM(ist.Qty) AS balance_qty,
+            COUNT(*) AS balance_qty,
             i.stock_max,
             i.stock_min
           FROM itemstock ist
@@ -2296,7 +2297,7 @@ export class ReportServiceService {
             dept.DepName AS department_name,
             ist.ItemCode AS item_code,
             i.itemname AS item_name,
-            SUM(ist.Qty) AS balance_qty,
+            COUNT(*) AS balance_qty,
             i.stock_max,
             i.stock_min
           FROM itemstock ist
@@ -2316,6 +2317,49 @@ export class ReportServiceService {
 
       const rows = await query;
 
+      // จำนวนอุปกรณ์ที่ถูกใช้งานวันนี้ (จาก supply_usage_items)
+      const itemCodes = [...new Set((rows as any[]).map((r) => r.item_code).filter(Boolean))];
+      const qtyInUseMap = new Map<string, number>();
+      if (itemCodes.length > 0) {
+        const qtyInUseRows = await this.prisma.$queryRaw<{ order_item_code: string; qty_in_use: bigint }[]>`
+          SELECT
+            sui.order_item_code,
+            SUM(COALESCE(sui.qty, 0) - COALESCE(sui.qty_used_with_patient, 0) - COALESCE(sui.qty_returned_to_cabinet, 0)) AS qty_in_use
+          FROM app_microservice_supply_usage_items sui
+          WHERE sui.order_item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
+            AND sui.order_item_code IS NOT NULL
+            AND sui.order_item_code != ''
+            AND DATE(sui.created_at) = CURDATE()
+          GROUP BY sui.order_item_code
+        `;
+        qtyInUseRows.forEach((r) => {
+          const val = Number(r.qty_in_use ?? 0);
+          if (val > 0) qtyInUseMap.set(r.order_item_code, val);
+        });
+      }
+
+      // จำนวนที่แจ้งชำรุด/ปนเปื้อน (จาก app_microservice_supply_item_return_records - รวมทุกวันที่)
+      const damagedReturnMap = new Map<string, number>();
+      if (itemCodes.length > 0) {
+        const damagedRows = await this.prisma.$queryRaw<
+          { item_code: string; total_returned: bigint }[]
+        >`
+          SELECT
+            srr.item_code,
+            SUM(COALESCE(srr.qty_returned, 0)) AS total_returned
+          FROM app_microservice_supply_item_return_records srr
+          WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
+            AND srr.item_code IS NOT NULL
+            AND srr.item_code != ''
+            AND srr.return_reason IN ('DAMAGED', 'CONTAMINATED')
+          GROUP BY srr.item_code
+        `;
+        damagedRows.forEach((row) => {
+          const val = Number(row.total_returned ?? 0);
+          if (val > 0) damagedReturnMap.set(row.item_code, val);
+        });
+      }
+
       const data: CabinetStockReportData['data'] = [];
       let seq = 1;
       let totalQty = 0;
@@ -2334,6 +2378,8 @@ export class ReportServiceService {
           item_code: row.item_code,
           item_name: row.item_name,
           balance_qty: balanceQty,
+          qty_in_use: qtyInUseMap.get(row.item_code) ?? 0,
+          damaged_qty: damagedReturnMap.get(row.item_code) ?? 0,
           stock_max: row.stock_max != null ? Number(row.stock_max) : null,
           stock_min: stockMin,
           refill_qty: refillQty,

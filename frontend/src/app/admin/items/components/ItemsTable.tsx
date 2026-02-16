@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import type { Item } from "@/types/item";
 
+/** itemcode -> max_available_qty (แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / รอแจ้ง) จาก will-return */
 interface ItemsTableProps {
   items: Item[];
   loading: boolean;
@@ -22,7 +23,7 @@ interface ItemsTableProps {
   headerActions?: React.ReactNode;
 }
 
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 11;
 const NEAR_EXPIRY_DAYS = 30;
 
 function isExpired(expireStr: string | null | undefined): boolean {
@@ -146,8 +147,11 @@ export default function ItemsTable({
                     <TableHead>ชื่อสินค้า</TableHead>
                     <TableHead>แผนก</TableHead>
                     <TableHead className="text-center">จำนวนในตู้</TableHead>
+                    <TableHead className="text-center">จำนวนอุปกรณ์ที่ถูกใช้งานในปัจจุบัน</TableHead>
                     <TableHead className="text-center">Min/Max</TableHead>
+                    <TableHead className="text-center">ชำรุด</TableHead>
                     <TableHead>สถานะ</TableHead>
+
                     <TableHead className="text-right">จัดการ</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -198,11 +202,11 @@ export default function ItemsTable({
                             </code>
                           </TableCell>
                           <TableCell className={cn("font-medium", hasExpired && "text-red-600 font-semibold")}>
-                              {item.itemname || "-"}
-                              {hasExpired && (
-                                <span className="ml-2 text-xs font-medium text-red-600">(มีอุปกรณ์หมดอายุ)</span>
-                              )}
-                            </TableCell>
+                            {item.itemname || "-"}
+                            {hasExpired && (
+                              <span className="ml-2 text-xs font-medium text-red-600">(มีอุปกรณ์หมดอายุ)</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-muted-foreground">{getItemDepartmentDisplay(item)}</TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-1">
@@ -213,9 +217,20 @@ export default function ItemsTable({
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
+                            <span className="font-medium text-slate-700">{item.qty_in_use ?? 0}</span>
+                          </TableCell>
+                          <TableCell className="text-center">
                             <span className="text-gray-600">{item.stock_min ?? 0}</span>
                             <span className="text-gray-400 mx-1">/</span>
                             <span className="text-gray-600">{item.stock_max ?? 0}</span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className={cn(
+                              "font-medium",
+                              ((item as any).damaged_qty ?? 0) > 0 && "text-amber-700"
+                            )}>
+                              {(item as any).damaged_qty ?? 0}
+                            </span>
                           </TableCell>
                           <TableCell>{getStatusBadge(item.item_status)}</TableCell>
                           <TableCell className="text-right">
@@ -244,10 +259,9 @@ export default function ItemsTable({
                                     <TableHeader>
                                       <TableRow>
                                         <TableHead className="w-12">ลำดับ</TableHead>
-                                        <TableHead>RowID</TableHead>
                                         <TableHead>ตู้ (Cabinet)</TableHead>
-                                        <TableHead>RFID</TableHead>
                                         <TableHead>แผนก</TableHead>
+                                        <TableHead>สถานะสต็อก</TableHead>
                                         <TableHead>หมดอายุ</TableHead>
                                       </TableRow>
                                     </TableHeader>
@@ -266,15 +280,22 @@ export default function ItemsTable({
                                             className={expired ? "bg-red-100 hover:bg-red-100" : nearExpiry ? "bg-amber-50 hover:bg-amber-50" : ""}
                                           >
                                             <TableCell className="font-medium">{idx + 1}</TableCell>
-                                            <TableCell>{stock.RowID ?? "-"}</TableCell>
                                             <TableCell>
                                               {stock.cabinet?.cabinet_name || stock.cabinet?.cabinet_code || "-"}
                                             </TableCell>
-                                            <TableCell className="text-xs font-mono">
-                                              {stock.RfidCode || "-"}
-                                            </TableCell>
                                             <TableCell>
                                               {stock.cabinet?.cabinetDepartments?.map((cd) => cd.department?.DepName || cd.department?.DepName2 || "-").join(", ") || "-"}
+                                            </TableCell>
+                                            <TableCell>
+                                              {stock.IsStock === true || (stock as { IsStock?: boolean | number }).IsStock === 1 ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
+                                                  อยู่ในตู้
+                                                </span>
+                                              ) : (
+                                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                                  ถูกเบิก
+                                                </span>
+                                              )}
                                             </TableCell>
                                             <TableCell>
                                               {expireDisplay}

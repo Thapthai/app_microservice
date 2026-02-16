@@ -33,6 +33,7 @@ interface ItemStock {
   RfidCode?: string;
   ItemCode?: string;
   Qty?: number;
+  IsStock?: boolean;
   LastCabinetModify?: string;
   item?: {
     itemcode?: string;
@@ -246,6 +247,20 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                                           <div>
                                             <span className="text-gray-500">จำนวน:</span>
                                             <span className="ml-2 font-medium">{stock.Qty || 0}</span>
+                                          </div>
+                                          <div>
+                                            <span className="text-gray-500">สถานะสต็อก:</span>
+                                            <span className="ml-2">
+                                              {stock.IsStock === true || (stock as { IsStock?: boolean | number }).IsStock === 1 ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
+                                                  อยู่ในตู้
+                                                </span>
+                                              ) : (
+                                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                                  ถูกเบิก
+                                                </span>
+                                              )}
+                                            </span>
                                           </div>
                                         </div>
                                         <div className="mt-2 text-sm">
