@@ -441,6 +441,7 @@ model SupplyItemReturnRecord {
   return_note       String?  @map("return_note") // หมายเหตุเพิ่มเติม
 
   created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   @@index([itemCode], map: "idx_return_itemCode")
   @@map("app_microservice_supply_item_return_records")

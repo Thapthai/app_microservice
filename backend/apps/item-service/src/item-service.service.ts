@@ -214,6 +214,7 @@ export class ItemServiceService {
           WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
             AND srr.item_code IS NOT NULL
             AND srr.item_code != ''
+            AND date(srr.return_datetime) = date(now())
           GROUP BY srr.item_code
         `;
         damagedRows.forEach((row) => {

@@ -2368,8 +2368,10 @@ export class ReportServiceService {
         const balanceQty = Number(row.balance_qty ?? 0);
         const stockMax = row.stock_max != null ? Number(row.stock_max) : null;
         const stockMin = row.stock_min != null ? Number(row.stock_min) : null;
-        const refillQty =
-          stockMax != null ? Math.max(0, stockMax - balanceQty) : 0;
+        const qtyInUse = qtyInUseMap.get(row.item_code) ?? 0;
+        const damagedQty = damagedReturnMap.get(row.item_code) ?? 0;
+        // จำนวนที่ต้องเติม = จำนวนอุปกรณ์ที่ถูกใช้งาน + ชำรุด
+        const refillQty = qtyInUse + damagedQty;
         totalQty += balanceQty;
         totalRefillQty += refillQty;
         data.push({
@@ -2378,8 +2380,8 @@ export class ReportServiceService {
           item_code: row.item_code,
           item_name: row.item_name,
           balance_qty: balanceQty,
-          qty_in_use: qtyInUseMap.get(row.item_code) ?? 0,
-          damaged_qty: damagedReturnMap.get(row.item_code) ?? 0,
+          qty_in_use: qtyInUse,
+          damaged_qty: damagedQty,
           stock_max: row.stock_max != null ? Number(row.stock_max) : null,
           stock_min: stockMin,
           refill_qty: refillQty,
