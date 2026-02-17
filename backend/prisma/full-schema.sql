@@ -165,6 +165,7 @@ CREATE TABLE IF NOT EXISTS `app_microservice_staff_users` (
   `email` VARCHAR(191) NOT NULL UNIQUE,
   `fname` VARCHAR(191) NOT NULL,
   `lname` VARCHAR(191) NOT NULL,
+  `department_id` INTEGER,
   `role_id` INTEGER NOT NULL,
   `password` VARCHAR(191) NOT NULL,
   `client_id` VARCHAR(191) NOT NULL UNIQUE,

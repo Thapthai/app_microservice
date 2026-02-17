@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { medicalSuppliesApi, vendingReportsApi } from '@/lib/api';
+import { medicalSuppliesApi, vendingReportsApi, departmentApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import { toast } from 'sonner';
@@ -15,6 +15,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import MedicalSuppliesTable from './components/MedicalSuppliesTable';
 import CancelBillDialog from './components/CancelBillDialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 export default function MedicalSuppliesPage() {
   const { user } = useAuth();
@@ -25,6 +31,11 @@ export default function MedicalSuppliesPage() {
   const [cancelBillDialogOpen, setCancelBillDialogOpen] = useState(false);
   const [selectedSupplyForCancel, setSelectedSupplyForCancel] = useState<any>(null);
   const [exportLoading, setExportLoading] = useState<'excel' | 'pdf' | null>(null);
+
+  // Departments for search dropdown (admin)
+  const [departments, setDepartments] = useState<Array<{ ID: number; DepName: string | null; DepName2: string | null }>>([]);
+  const [departmentSearch, setDepartmentSearch] = useState('');
+  const [departmentDropdownOpen, setDepartmentDropdownOpen] = useState(false);
 
   // Get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
@@ -46,7 +57,7 @@ export default function MedicalSuppliesPage() {
     lastName: '',
     assessionNo: '',
     itemName: '',
-    departmentName: '',
+    departmentCode: '',
     printDate: '',
     timePrintDate: '',
   });
@@ -62,7 +73,7 @@ export default function MedicalSuppliesPage() {
     lastName: '',
     assessionNo: '',
     itemName: '',
-    departmentName: '',
+    departmentCode: '',
     printDate: '',
     timePrintDate: '',
   });
@@ -93,7 +104,7 @@ export default function MedicalSuppliesPage() {
       if (filtersToUse.firstName?.trim()) params.first_name = filtersToUse.firstName.trim();
       if (filtersToUse.lastName?.trim()) params.lastname = filtersToUse.lastName.trim();
       if (filtersToUse.assessionNo?.trim()) params.assession_no = filtersToUse.assessionNo.trim();
-      if (filtersToUse.departmentName?.trim()) params.department_name = filtersToUse.departmentName.trim();
+      if (filtersToUse.departmentCode?.trim()) params.department_code = filtersToUse.departmentCode.trim();
       if (filtersToUse.printDate?.trim()) params.print_date = filtersToUse.printDate.trim();
       if (filtersToUse.timePrintDate?.trim()) params.time_print_date = filtersToUse.timePrintDate.trim();
 
@@ -131,6 +142,19 @@ export default function MedicalSuppliesPage() {
     }
   };
 
+  // Load departments for admin filter dropdown
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await departmentApi.getAll({ limit: 500 });
+        if (res?.data && Array.isArray(res.data)) setDepartments(res.data);
+      } catch {
+        // ignore
+      }
+    };
+    load();
+  }, []);
+
   // Update fetchSupplies when activeFilters or currentPage change
   useEffect(() => {
     if (user?.id) {
@@ -162,7 +186,7 @@ export default function MedicalSuppliesPage() {
       lastName: '',
       assessionNo: '',
       itemName: '',
-      departmentName: '',
+      departmentCode: '',
       printDate: '',
       timePrintDate: '',
     };
@@ -171,6 +195,7 @@ export default function MedicalSuppliesPage() {
     setCurrentPage(1);
     setSelectedSupply(null);
     setSelectedSupplyId(null);
+    setDepartmentSearch('');
     // useEffect will trigger fetchSupplies when activeFilters and currentPage change
   };
 
@@ -298,14 +323,70 @@ export default function MedicalSuppliesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="departmentName">ชื่อแผนก</Label>
-                <Input
-                  id="departmentName"
-                  placeholder="กรอกชื่อแผนก..."
-                  value={formFilters.departmentName}
-                  onChange={(e) => setFormFilters({ ...formFilters, departmentName: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
+                <Label>แผนก</Label>
+                <DropdownMenu open={departmentDropdownOpen} onOpenChange={setDepartmentDropdownOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between font-normal"
+                      type="button"
+                    >
+                      <span className="truncate">
+                        {formFilters.departmentCode
+                          ? (departments.find((d) => String(d.ID) === formFilters.departmentCode)?.DepName ||
+                            departments.find((d) => String(d.ID) === formFilters.departmentCode)?.DepName2 ||
+                            `แผนก ${formFilters.departmentCode}`)
+                          : 'เลือกแผนก...'}
+                      </span>
+                      <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[12rem] p-1">
+                    <div className="px-2 pb-2">
+                      <Input
+                        placeholder="ค้นหาแผนก..."
+                        value={departmentSearch}
+                        onChange={(e) => setDepartmentSearch(e.target.value)}
+                        className="h-8"
+                        onKeyDown={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    <div className="max-h-60 overflow-auto">
+                      <button
+                        type="button"
+                        className="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                        onClick={() => {
+                          setFormFilters({ ...formFilters, departmentCode: '' });
+                          setDepartmentDropdownOpen(false);
+                          setDepartmentSearch('');
+                        }}
+                      >
+                        -- ทุกแผนก --
+                      </button>
+                      {departments
+                        .filter(
+                          (d) =>
+                            !departmentSearch.trim() ||
+                            (d.DepName?.toLowerCase().includes(departmentSearch.toLowerCase()) ||
+                              d.DepName2?.toLowerCase().includes(departmentSearch.toLowerCase()))
+                        )
+                        .map((dept) => (
+                          <button
+                            key={dept.ID}
+                            type="button"
+                            className="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                            onClick={() => {
+                              setFormFilters({ ...formFilters, departmentCode: String(dept.ID) });
+                              setDepartmentDropdownOpen(false);
+                              setDepartmentSearch('');
+                            }}
+                          >
+                            {dept.DepName || dept.DepName2 || `แผนก ${dept.ID}`}
+                          </button>
+                        ))}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div className="space-y-2">

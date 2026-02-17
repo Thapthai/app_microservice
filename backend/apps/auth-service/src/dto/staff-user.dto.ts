@@ -1,4 +1,5 @@
-import { IsEmail, IsString, IsOptional, IsBoolean, IsDateString, MinLength } from 'class-validator';
+import { IsEmail, IsString, IsOptional, IsBoolean, IsDateString, MinLength, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateStaffUserDto {
   @IsEmail()
@@ -16,9 +17,15 @@ export class CreateStaffUserDto {
   @IsOptional()
   role_code?: string; // 'it1', 'it2', 'it3', 'warehouse1', 'warehouse2', 'warehouse3' (for backward compatibility)
 
-  @IsString()
   @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
   role_id?: number; // ID of StaffRole (preferred)
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  department_id?: number; // ID of Department
 
   @IsString()
   @MinLength(8)
@@ -49,9 +56,15 @@ export class UpdateStaffUserDto {
   @IsOptional()
   role_code?: string; // 'it1', 'it2', 'it3', 'warehouse1', 'warehouse2', 'warehouse3' (for backward compatibility)
 
-  @IsString()
   @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
   role_id?: number; // ID of StaffRole (preferred)
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  department_id?: number | null; // ID of Department (null to clear)
 
   @IsString()
   @MinLength(8)
@@ -79,6 +92,8 @@ export class StaffUserResponseDto {
     name: string;
     description: string | null;
   };
+  department_id?: number | null;
+  department?: { ID: number; DepName: string | null; DepName2: string | null } | null;
   client_id: string;
   expires_at: Date | null;
   is_active: boolean;

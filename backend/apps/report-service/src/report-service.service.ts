@@ -2542,7 +2542,17 @@ export class ReportServiceService {
         };
       });
 
-      const totalQty = reportData.reduce((sum, u) => sum + u.supply_items.reduce((s, i) => s + i.qty, 0), 0);
+      // นับเฉพาะอุปกรณ์ที่มีสถานะยืนยัน (Verified) — รายการยกเลิกไม่นำมาคิด
+      const isVerified = (status?: string) => {
+        const s = (status ?? '').toLowerCase();
+        return s === 'verified';
+      };
+      const totalQty = reportData.reduce(
+        (sum, u) =>
+          sum +
+          u.supply_items.filter((i) => isVerified(i.order_item_status)).reduce((s, i) => s + i.qty, 0),
+        0,
+      );
 
       return {
         filters: {

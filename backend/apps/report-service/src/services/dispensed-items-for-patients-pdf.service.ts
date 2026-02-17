@@ -154,7 +154,7 @@ export class DispensedItemsForPatientsPdfService {
         const itemHeight = 20;
         const cellPadding = 3;
         const totalTableWidth = contentWidth;
-        // 9 columns: ลำดับ, HN/EN, ชื่อคนไข้, วันที่เบิก, รหัสอุปกรณ์, ชื่ออุปกรณ์, จำนวนอุปกรณ์ที่ถูกใช้งาน, Assession No, สถานะ
+        // 9 columns: ลำดับ, HN/EN, ชื่อคนไข้, วันที่เบิก, รหัสอุปกรณ์, ชื่ออุปกรณ์, จำนวนอุปกรณ์, Assession No, สถานะ
         const colPct = [0.06, 0.12, 0.14, 0.12, 0.12, 0.18, 0.08, 0.10, 0.08];
         let colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
@@ -163,7 +163,7 @@ export class DispensedItemsForPatientsPdfService {
           sumW = colWidths.reduce((a, b) => a + b, 0);
         }
         if (sumW < totalTableWidth) colWidths[5] += totalTableWidth - sumW;
-        // หัวตาราง 9 คอลัมน์ (ให้ data ตรงกับ header)
+        // หัวตาราง 9 คอลัมน์ (ให้ data ตรงกับ header) — ใช้ "จำนวนอุปกรณ์" เพื่อไม่ให้ล้นบรรทัด
         const headers = [
           'ลำดับ',                    // 0
           'HN / EN',                  // 1
@@ -171,7 +171,7 @@ export class DispensedItemsForPatientsPdfService {
           'วันที่เบิก',               // 3
           'รหัสอุปกรณ์',              // 4
           'ชื่ออุปกรณ์',               // 5
-          'จำนวนอุปกรณ์ที่ถูกใช้งาน',  // 6
+          'จำนวนอุปกรณ์',             // 6
           'Assession No',             // 7
           'สถานะ',                    // 8
         ];
@@ -207,7 +207,10 @@ export class DispensedItemsForPatientsPdfService {
         } else {
           usages.forEach((usage, idx) => {
             const items = usage.supply_items ?? [];
-            const totalQty = items.reduce((s, i) => s + i.qty, 0);
+            // นับเฉพาะอุปกรณ์ที่มีสถานะยืนยัน (Verified) — รายการยกเลิกไม่นำมาคิด
+            const totalQty = items
+              .filter((i) => (i.order_item_status ?? '').toLowerCase() === 'verified')
+              .reduce((s, i) => s + i.qty, 0);
 
             const drawRow = (cellTexts: string[], bg: string, statusText?: string) => {
               if (doc.y + itemHeight > pageHeight - 35) {

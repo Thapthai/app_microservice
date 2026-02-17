@@ -1094,16 +1094,18 @@ export const staffUserApi = {
     fname: string;
     lname: string;
     role: string; // Keep for backward compatibility, will be converted to role_code
+    department_id?: number | null;
     password?: string;
     expires_at?: string;
   }): Promise<ApiResponse<any>> => {
     // Convert role to role_code for API
-    const requestData = {
+    const requestData: any = {
       ...data,
       role_code: data.role,
-      role: undefined, // Remove role field
+      role: undefined,
     };
     delete requestData.role;
+    if (data.department_id !== undefined) requestData.department_id = data.department_id;
     const response = await api.post('/staff-users', requestData);
     return response.data;
   },
@@ -1125,12 +1127,15 @@ export const staffUserApi = {
       fname?: string;
       lname?: string;
       role?: string;
+      department_id?: number | null;
       password?: string;
       is_active?: boolean;
       expires_at?: string;
     }
   ): Promise<ApiResponse<any>> => {
-    const response = await api.put(`/staff-users/${id}`, data);
+    const payload: any = { ...data };
+    if (data.role !== undefined) payload.role_code = data.role;
+    const response = await api.put(`/staff-users/${id}`, payload);
     return response.data;
   },
 

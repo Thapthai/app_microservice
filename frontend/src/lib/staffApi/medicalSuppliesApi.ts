@@ -22,6 +22,7 @@ export const staffMedicalSuppliesApi = {
         first_name?: string;
         lastname?: string;
         assession_no?: string;
+        department_code?: string;
     }): Promise<PaginatedResponse<any>> => {
         const response = await staffApi.get('/medical-supplies', { params: query });
 

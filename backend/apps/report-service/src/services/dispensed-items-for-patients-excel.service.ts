@@ -166,9 +166,12 @@ export class DispensedItemsForPatientsExcelService {
     data.data.forEach((usage, idx) => {
       const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA';
       const items = usage.supply_items ?? [];
-      const totalQty = items.reduce((s, i) => s + i.qty, 0);
+      // นับเฉพาะอุปกรณ์ที่มีสถานะยืนยัน (Verified) — รายการยกเลิกไม่นำมาคิด
+      const totalQty = items
+        .filter((i) => (i.order_item_status ?? '').toLowerCase() === 'verified')
+        .reduce((s, i) => s + i.qty, 0);
 
-      // Main row: ลำดับ, HN/EN, ชื่อคนไข้, วันที่เบิก, ว่าง, ว่าง, จำนวนอุปกรณ์ที่ถูกใช้งาน, ว่าง, ว่าง
+      // Main row: ลำดับ, HN/EN, ชื่อคนไข้, วันที่เบิก, ว่าง, ว่าง, จำนวนอุปกรณ์, ว่าง, ว่าง
       const hnEn = `${usage.patient_hn ?? '-'} / ${usage.en ?? '-'}`;
       const excelRow = worksheet.getRow(dataRowIndex);
       const mainCells: (string | number)[] = [

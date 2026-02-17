@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { staffUserApi, staffRoleApi } from '@/lib/api';
+import { staffUserApi, staffRoleApi, departmentApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,12 +14,20 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pencil, Trash2, Key, UserPlus, Copy, Eye, EyeOff } from 'lucide-react';
 
+interface DepartmentOption {
+  ID: number;
+  DepName: string | null;
+  DepName2: string | null;
+}
+
 interface StaffUser {
   id: number;
   email: string;
   fname: string;
   lname: string;
   role: string;
+  department_id?: number | null;
+  department_name?: string | null;
   client_id: string;
   expires_at: string | null;
   is_active: boolean;
@@ -30,6 +38,7 @@ interface StaffUser {
 export default function StaffUsersPage() {
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [staffRoles, setStaffRoles] = useState<Array<{ id: number; code: string; name: string; description: string | null }>>([]);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -53,6 +62,7 @@ export default function StaffUsersPage() {
     fname: '',
     lname: '',
     role: '',
+    department_id: '' as string,
     password: 'password123',
     expires_at: '',
   });
@@ -60,7 +70,19 @@ export default function StaffUsersPage() {
   useEffect(() => {
     fetchStaffUsers();
     fetchStaffRoles();
+    fetchDepartments();
   }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await departmentApi.getAll({});
+      if (response?.data && Array.isArray(response.data)) {
+        setDepartments(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch departments:', error);
+    }
+  };
 
   const fetchStaffRoles = async () => {
     try {
@@ -96,7 +118,11 @@ export default function StaffUsersPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await staffUserApi.createStaffUser(formData);
+      const payload = {
+        ...formData,
+        department_id: formData.department_id ? parseInt(formData.department_id, 10) : undefined,
+      };
+      const response = await staffUserApi.createStaffUser(payload);
       if (response.success) {
         showNotification('สำเร็จ!', 'สร้าง Staff User เรียบร้อยแล้ว');
         setClientCredentials({
@@ -104,7 +130,7 @@ export default function StaffUsersPage() {
           client_secret: response.data.client_secret,
         });
         fetchStaffUsers();
-        setFormData({ email: '', fname: '', lname: '', role: '', password: 'password123', expires_at: '' });
+        setFormData({ email: '', fname: '', lname: '', role: '', department_id: '', password: 'password123', expires_at: '' });
         // Don't close dialog yet - show credentials
       } else {
         showNotification('เกิดข้อผิดพลาด', response.message || 'ไม่สามารถสร้าง Staff User ได้', 'error');
@@ -127,6 +153,10 @@ export default function StaffUsersPage() {
 
       if (formData.role) {
         updateData.role_code = formData.role; // Use role_code instead of role
+      }
+
+      if (formData.department_id !== undefined) {
+        updateData.department_id = formData.department_id === '' ? null : parseInt(formData.department_id, 10);
       }
 
       if (formData.password && formData.password !== 'password123') {
@@ -193,6 +223,7 @@ export default function StaffUsersPage() {
       fname: staff.fname,
       lname: staff.lname,
       role: staff.role || '',
+      department_id: staff.department_id != null ? String(staff.department_id) : '',
       password: '',
       expires_at: staff.expires_at || '',
     });
@@ -206,14 +237,14 @@ export default function StaffUsersPage() {
 
   return (
     <ProtectedRoute>
-      <AppLayout>
+      <AppLayout fullWidth>
         <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-2xl font-bold">จัดการ Staff Users</CardTitle>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => {
-                setFormData({ email: '', fname: '', lname: '', role: '', password: 'password123', expires_at: '' });
+                setFormData({ email: '', fname: '', lname: '', role: '', department_id: '', password: 'password123', expires_at: '' });
                 setClientCredentials(null);
                 setIsCreateDialogOpen(true);
               }}>
@@ -271,6 +302,25 @@ export default function StaffUsersPage() {
                         {staffRoles.map((role: { id: number; code: string; name: string; description: string | null }) => (
                           <SelectItem key={role.id} value={role.code}>
                             {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="department">แผนก</Label>
+                    <Select
+                      value={formData.department_id || 'none'}
+                      onValueChange={(value) => setFormData({ ...formData, department_id: value === 'none' ? '' : value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="เลือกแผนก (ไม่บังคับ)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">-- ไม่ระบุ --</SelectItem>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept.ID} value={String(dept.ID)}>
+                            {dept.DepName || dept.DepName2 || `แผนก ${dept.ID}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -376,6 +426,7 @@ export default function StaffUsersPage() {
                   <TableHead>ชื่อ-นามสกุล</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>บทบาท</TableHead>
+                  <TableHead>แผนก</TableHead>
                   <TableHead>Client ID</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead>วันสร้าง</TableHead>
@@ -391,6 +442,7 @@ export default function StaffUsersPage() {
                     <TableCell>
                       <Badge variant="outline">{staff.role || '-'}</Badge>
                     </TableCell>
+                    <TableCell>{staff.department_name ?? '-'}</TableCell>
                     <TableCell className="font-mono text-sm">{staff.client_id.substring(0, 20)}...</TableCell>
                     <TableCell>
                       <Badge variant={staff.is_active ? 'default' : 'secondary'}>
@@ -480,6 +532,25 @@ export default function StaffUsersPage() {
                   {staffRoles.map((role: { id: number; code: string; name: string; description: string | null }) => (
                     <SelectItem key={role.id} value={role.code}>
                       {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-department">แผนก</Label>
+              <Select
+                value={formData.department_id || 'none'}
+                onValueChange={(value) => setFormData({ ...formData, department_id: value === 'none' ? '' : value })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="เลือกแผนก (ไม่บังคับ)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- ไม่ระบุ --</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.ID} value={String(dept.ID)}>
+                      {dept.DepName || dept.DepName2 || `แผนก ${dept.ID}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

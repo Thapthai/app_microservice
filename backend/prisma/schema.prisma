@@ -66,6 +66,7 @@ model StaffUser {
   email         String    @unique
   fname         String // First name
   lname         String // Last name
+  department_id Int?      @map("department_id") // Department ID
   role_id       Int       @map("role_id") // Foreign key to StaffRole
   password      String // Hashed password, default: password123
   client_id     String    @unique @map("client_id") // For API access
@@ -77,10 +78,12 @@ model StaffUser {
 
   // Relations
   role StaffRole @relation(fields: [role_id], references: [id])
+  department Department? @relation(fields: [department_id], references: [ID])
 
   @@index([role_id], name: "idx_role_id")
   @@index([email], name: "idx_email")
   @@index([is_active], name: "idx_is_active")
+  @@index([department_id], name: "idx_department_id")
   @@map("app_microservice_staff_users")
 }
 
@@ -590,6 +593,8 @@ model Department {
   IsStock           Int?    @default(0) @map("IsStock")
   RefDepID          String? @map("RefDepID") @db.VarChar(50)
 
+  // Relations
+  staffUsers         StaffUser[]
   cabinetDepartments cabinetDepartment[]
 
   @@map("department")

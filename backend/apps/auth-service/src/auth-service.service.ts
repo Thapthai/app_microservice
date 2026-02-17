@@ -1411,6 +1411,7 @@ export class AuthServiceService {
           fname: data.fname,
           lname: data.lname,
           role_id: roleId,
+          department_id: data.department_id ?? undefined,
           password: hashedPassword,
           client_id: clientId,
           client_secret: clientSecret, // Store plain text (not hashed)
@@ -1418,6 +1419,7 @@ export class AuthServiceService {
         },
         include: {
           role: true,
+          department: true,
         },
       });
 
@@ -1435,6 +1437,8 @@ export class AuthServiceService {
             code: staffUser.role.code,
             name: staffUser.role.name,
           } : null,
+          department_id: staffUser.department_id ?? null,
+          department_name: staffUser.department ? (staffUser.department.DepName ?? staffUser.department.DepName2) : null,
           client_id: clientId,
           client_secret: clientSecret, // Return plain text secret
           expires_at: staffUser.expires_at,
@@ -1489,6 +1493,7 @@ export class AuthServiceService {
       const staffUsers = await this.prisma.staffUser.findMany({
         include: {
           role: true,
+          department: true,
         },
         orderBy: {
           created_at: 'desc',
@@ -1505,6 +1510,8 @@ export class AuthServiceService {
           role_id: user.role_id,
           role: user.role ? user.role.code : null, // Return role code for backward compatibility
           role_name: user.role ? user.role.name : null,
+          department_id: user.department_id ?? null,
+          department_name: user.department ? (user.department.DepName ?? user.department.DepName2) : null,
           client_id: user.client_id,
           expires_at: user.expires_at,
           is_active: user.is_active,
@@ -1527,6 +1534,7 @@ export class AuthServiceService {
         where: { id },
         include: {
           role: true,
+          department: true,
         },
       });
 
@@ -1544,6 +1552,8 @@ export class AuthServiceService {
           role_id: staffUser.role_id,
           role: staffUser.role ? staffUser.role.code : null, // Return role code for backward compatibility
           role_name: staffUser.role ? staffUser.role.name : null,
+          department_id: staffUser.department_id ?? null,
+          department_name: staffUser.department ? (staffUser.department.DepName ?? staffUser.department.DepName2) : null,
           client_id: staffUser.client_id,
           expires_at: staffUser.expires_at,
           is_active: staffUser.is_active,
@@ -1602,6 +1612,7 @@ export class AuthServiceService {
         ...(data.fname && { fname: data.fname }),
         ...(data.lname && { lname: data.lname }),
         ...(roleId !== undefined && { role_id: roleId }),
+        ...(data.department_id !== undefined && { department_id: data.department_id === null ? null : data.department_id }),
         ...(data.is_active !== undefined && { is_active: data.is_active }),
         ...(data.expires_at && { expires_at: new Date(data.expires_at) }),
       };
@@ -1616,6 +1627,7 @@ export class AuthServiceService {
         data: updateData,
         include: {
           role: true,
+          department: true,
         },
       });
 
@@ -1630,6 +1642,8 @@ export class AuthServiceService {
           role_id: updatedStaff.role_id,
           role: updatedStaff.role ? updatedStaff.role.code : null, // Return role code for backward compatibility
           role_name: updatedStaff.role ? updatedStaff.role.name : null,
+          department_id: updatedStaff.department_id ?? null,
+          department_name: updatedStaff.department ? (updatedStaff.department.DepName ?? updatedStaff.department.DepName2) : null,
           client_id: updatedStaff.client_id,
           expires_at: updatedStaff.expires_at,
           is_active: updatedStaff.is_active,
@@ -1834,6 +1848,7 @@ export class AuthServiceService {
         where: { email },
         include: {
           role: true,
+          department: true,
         },
       });
 
@@ -1858,6 +1873,10 @@ export class AuthServiceService {
 
       const accessToken = this.jwtService.sign(payload);
 
+      const departmentName = staffUser.department
+        ? (staffUser.department.DepName ?? staffUser.department.DepName2)
+        : null;
+
       return {
         success: true,
         message: 'Login successful',
@@ -1869,6 +1888,8 @@ export class AuthServiceService {
             lname: staffUser.lname,
             role: staffUser.role ? staffUser.role.code : null, // Return role code for backward compatibility
             role_id: staffUser.role_id,
+            department_id: staffUser.department_id ?? null,
+            department_name: departmentName,
             client_id: staffUser.client_id,
             is_active: staffUser.is_active,
           },

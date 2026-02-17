@@ -30,7 +30,7 @@ interface MedicalSuppliesTableProps {
     lastName: string;
     assessionNo: string;
     itemName?: string;
-    departmentName?: string;
+    departmentCode?: string;
     printDate?: string;
     timePrintDate?: string;
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
 import { toast } from 'sonner';
@@ -22,6 +22,14 @@ export default function MedicalSuppliesPage() {
   const [selectedSupplyId, setSelectedSupplyId] = useState<number | null>(null);
   const [cancelBillDialogOpen, setCancelBillDialogOpen] = useState(false);
   const [selectedSupplyForCancel, setSelectedSupplyForCancel] = useState<any>(null);
+
+  // Staff user from localStorage (department_id, department_name from login)
+  const [staffDepartment, setStaffDepartment] = useState<{ department_id: number | null; department_name: string | null }>({
+    department_id: null,
+    department_name: null,
+  });
+  // โหลด staff_user ก่อนแล้วค่อย fetch เพื่อให้ส่ง department_code ตั้งแต่ครั้งแรก (ข้อมูลอิงแผนกของ staff)
+  const [staffUserLoaded, setStaffUserLoaded] = useState(false);
 
   // Get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
@@ -63,8 +71,10 @@ export default function MedicalSuppliesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
+  const fetchIdRef = useRef(0);
 
   const fetchSupplies = async (customFilters?: typeof activeFilters, customPage?: number) => {
+    const currentFetchId = ++fetchIdRef.current;
     try {
       setLoading(true);
       const filtersToUse = customFilters || activeFilters;
@@ -79,8 +89,13 @@ export default function MedicalSuppliesPage() {
       if (filtersToUse.endDate) params.endDate = filtersToUse.endDate;
       if (filtersToUse.userName) params.user_name = filtersToUse.userName;
       if (filtersToUse.itemName) params.keyword = filtersToUse.itemName; // ใช้ keyword สำหรับค้นหาชื่ออุปกรณ์
+      // Filter by staff's department (read-only, no selector) — ข้อมูลอิงแผนกของ staff
+      if (staffDepartment.department_id != null) params.department_code = String(staffDepartment.department_id);
 
       const response: any = await staffMedicalSuppliesApi.getAll(params);
+
+      // ใช้เฉพาะ response ล่าสุด (กัน stale response เขียนทับ)
+      if (currentFetchId !== fetchIdRef.current) return;
 
       if (response && response.data) {
         let dataArray: any[] = [];
@@ -106,18 +121,38 @@ export default function MedicalSuppliesPage() {
         setTotalItems(0);
       }
     } catch (error) {
+      if (currentFetchId !== fetchIdRef.current) return;
       console.error('Failed to fetch medical supplies:', error);
       toast.error('ไม่สามารถโหลดข้อมูลได้');
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) setLoading(false);
     }
   };
 
-  // Update fetchSupplies when activeFilters or currentPage change
+  // Load staff user from localStorage (client-side) for department filter — ทำก่อน fetch เสมอ
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('staff_user');
+      if (raw) {
+        const staffUser = JSON.parse(raw);
+        setStaffDepartment({
+          department_id: staffUser.department_id ?? null,
+          department_name: staffUser.department_name ?? null,
+        });
+      }
+    } catch {
+      // ignore
+    }
+    setStaffUserLoaded(true);
+  }, []);
+
+  // Fetch หลังโหลด staff_user แล้วเท่านั้น เพื่อให้ข้อมูลอิงแผนกของ staff ตั้งแต่ครั้งแรก
+  useEffect(() => {
+    if (!staffUserLoaded) return;
     fetchSupplies(activeFilters, currentPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFilters, currentPage]);
+  }, [staffUserLoaded, activeFilters, currentPage, staffDepartment.department_id]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -242,6 +277,14 @@ export default function MedicalSuppliesPage() {
                 onChange={(e) => setFormFilters({ ...formFilters, itemName: e.target.value })}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
+            </div>
+
+            {/* แผนกของ staff (แสดงอย่างเดียว ไม่ให้เลือก) */}
+            <div className="space-y-2">
+              <Label>แผนก</Label>
+              <p className="text-sm text-slate-600 dark:text-slate-400 py-2 px-3 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                {staffDepartment.department_name ?? '-'}
+              </p>
             </div>
           </div>
 

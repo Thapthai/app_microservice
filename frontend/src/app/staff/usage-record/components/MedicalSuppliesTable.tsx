@@ -220,10 +220,13 @@ export default function MedicalSuppliesTable({
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">ลำดับ</TableHead>
-                  <TableHead>ผู้เบิก</TableHead>
+                  <TableHead>คนไข้</TableHead>
+                  <TableHead>HN / EN คนไข้</TableHead>
+                  <TableHead>แผนก</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
+                  <TableHead>วันที่พิมพ์บิล</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
-                  <TableHead className="text-center">จำนวนอุปกรณ์</TableHead>
+                  <TableHead className="text-center">จำนวนอุปกรณ์ที่ถูกใช้งาน</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead className="text-center">จัดการ</TableHead>
                 </TableRow>
@@ -267,6 +270,16 @@ export default function MedicalSuppliesTable({
 
                   const isSelected = selectedSupplyId === id;
 
+                  const patientHn = supplyData.patient_hn || supplyData.hn || '-';
+                  const departmentName = supplyData.department_name || supplyData.department_code || '-';
+                  const printDate = supplyData.print_date || supply.print_date;
+                  const timePrintDate = supplyData.time_print_date || supply.time_print_date;
+                  const printDateDisplay = printDate
+                    ? timePrintDate
+                      ? `${printDate} ${timePrintDate}`
+                      : printDate
+                    : '-';
+
                   return (
                     <TableRow
                       key={id || index}
@@ -278,10 +291,19 @@ export default function MedicalSuppliesTable({
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm text-gray-700">{recordedByName}</span>
+                        <span className="text-sm text-gray-700">{patientName}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-700">{patientHn}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-700">{departmentName}</span>
                       </TableCell>
                       <TableCell>
                         {formatDate(supply.created_at || supplyData.created_at || supplyData.usage_datetime)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-700">{printDateDisplay}</span>
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold">
