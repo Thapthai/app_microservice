@@ -180,6 +180,7 @@ export class ItemServiceService {
       });
 
       // จำนวนอุปกรณ์ที่ถูกใช้งานในปัจจุบัน (จาก supply_usage_items: qty - qty_used_with_patient - qty_returned_to_cabinet)
+      // นับเฉพาะรายการที่ไม่เป็น Discontinue
       const itemCodes = filteredItems.map((i: any) => i.itemcode).filter(Boolean);
       const qtyInUseMap = new Map<string, number>();
       if (itemCodes.length > 0) {
@@ -192,7 +193,8 @@ export class ItemServiceService {
           WHERE sui.order_item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
             AND sui.order_item_code IS NOT NULL
             AND sui.order_item_code != ''
-            AND date(sui.created_at) = date(now())    
+            AND date(sui.created_at) = date(now())
+            AND (sui.order_item_status IS NULL OR sui.order_item_status != 'Discontinue' AND sui.order_item_status != 'discontinue' AND sui.order_item_status != 'Discontinued' AND sui.order_item_status != 'discontinued')
           GROUP BY sui.order_item_code
         `;
         qtyInUseRows.forEach((row) => {
@@ -774,8 +776,8 @@ export class ItemServiceService {
       const where: any = {};
       const skip = (page - 1) * limit;
 
-      // แสดงเฉพาะสต็อกปัจจุบันในตู้ (IsStock = 1)
-      where.IsStock = true;
+      // แสดงทั้งหมด (ทั้งที่อยู่ในตู้และถูกเบิก)
+      // where.IsStock = true; // ลบออกเพื่อแสดงทั้งหมด
 
       if (cabinet_id) {
         // Get stock_id from cabinet table
@@ -813,6 +815,7 @@ export class ItemServiceService {
           LastCabinetModify: true,
           Qty: true,
           ItemCode: true,
+          IsStock: true,
           CabinetUserID: true,
           CreateDate: true,
           ReturnDate: true,

@@ -2249,32 +2249,23 @@ export class ReportServiceService {
     departmentId?: number;
   }): Promise<CabinetStockReportData> {
     try {
-      let whereClause = Prisma.sql`ist.StockID > 0 AND ist.StockID = c.stock_id AND (ist.IsStock = 1 OR ist.IsStock = true)`;
-      if (params?.cabinetId != null) {
-        whereClause = Prisma.sql`${whereClause} AND c.id = ${params.cabinetId}`;
-      }
-      if (params?.cabinetCode) {
-        whereClause = Prisma.sql`${whereClause} AND c.cabinet_code = ${params.cabinetCode}`;
-      }
-
-      // Build query with optional department filter (เหมือนเว็บ)
+      // เปลี่ยนเป็นเริ่มจาก item table เพื่อแสดงทุก item เหมือนหน้าเว็บ (แม้ balance_qty = 0)
+      // GROUP BY department + item_code เพื่อรวม balance_qty จากทุก cabinet ในแผนกเดียวกัน
+      // แสดงทุก item ที่มี itemstock ในตู้ (แม้ balance_qty = 0 ถ้าถูกเบิกหมด) เหมือนหน้าเว็บ
       let query;
       if (params?.departmentId != null) {
-        // Filter by department_id: เพิ่ม JOIN เพื่อ filter cabinets ที่มี department_id นี้
+        // Filter by department_id: แสดงทุก item ที่มี itemstock ใน cabinet ที่มี department นี้ (รวม balance_qty จากทุก cabinet ในแผนก)
         query = this.prisma.$queryRaw<any[]>`
           SELECT
-            c.id AS cabinet_id,
-            c.cabinet_name,
-            c.cabinet_code,
             dept.DepName AS department_name,
-            ist.ItemCode AS item_code,
+            i.itemcode AS item_code,
             i.itemname AS item_name,
-            COUNT(*) AS balance_qty,
+            COALESCE(SUM(CASE WHEN ist.IsStock = 1 OR ist.IsStock = true THEN 1 ELSE 0 END), 0) AS balance_qty,
             i.stock_max,
             i.stock_min
-          FROM itemstock ist
-          INNER JOIN item i ON ist.ItemCode = i.itemcode
-          INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id
+          FROM item i
+          INNER JOIN itemstock ist ON ist.ItemCode = i.itemcode
+          INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id AND ist.StockID > 0
           INNER JOIN app_microservice_cabinet_departments cd_filter ON cd_filter.cabinet_id = c.id AND cd_filter.department_id = ${params.departmentId} AND cd_filter.status = 'ACTIVE'
           LEFT JOIN (
             SELECT cd.cabinet_id, MIN(d.DepName) AS DepName
@@ -2283,41 +2274,64 @@ export class ReportServiceService {
             WHERE cd.department_id = ${params.departmentId} AND cd.status = 'ACTIVE'
             GROUP BY cd.cabinet_id
           ) dept ON dept.cabinet_id = c.id
-          WHERE ${whereClause}
-          GROUP BY c.id, c.cabinet_name, c.cabinet_code, dept.DepName, ist.ItemCode, i.itemname, i.stock_max, i.stock_min
-          ORDER BY dept.DepName, c.cabinet_name, ist.ItemCode
+          WHERE 1=1
+            ${params?.cabinetId != null ? Prisma.sql`AND c.id = ${params.cabinetId}` : Prisma.empty}
+            ${params?.cabinetCode ? Prisma.sql`AND c.cabinet_code = ${params.cabinetCode}` : Prisma.empty}
+          GROUP BY dept.DepName, i.itemcode, i.itemname, i.stock_max, i.stock_min
+          ORDER BY dept.DepName, i.itemcode
         `;
-      } else {
-        // No department filter: query เดิม
+      } else if (params?.cabinetId != null || params?.cabinetCode) {
+        // Filter by cabinet: แสดงทุก item ที่มี itemstock ใน cabinet นี้ (รวม balance_qty จากทุก cabinet ในแผนกเดียวกัน)
         query = this.prisma.$queryRaw<any[]>`
           SELECT
-            c.id AS cabinet_id,
-            c.cabinet_name,
-            c.cabinet_code,
             dept.DepName AS department_name,
-            ist.ItemCode AS item_code,
+            i.itemcode AS item_code,
             i.itemname AS item_name,
-            COUNT(*) AS balance_qty,
+            COALESCE(SUM(CASE WHEN ist.IsStock = 1 OR ist.IsStock = true THEN 1 ELSE 0 END), 0) AS balance_qty,
             i.stock_max,
             i.stock_min
-          FROM itemstock ist
-          INNER JOIN item i ON ist.ItemCode = i.itemcode
-          INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id
+          FROM item i
+          INNER JOIN itemstock ist ON ist.ItemCode = i.itemcode
+          INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id AND ist.StockID > 0
           LEFT JOIN (
             SELECT cd.cabinet_id, MIN(d.DepName) AS DepName
             FROM app_microservice_cabinet_departments cd
             INNER JOIN department d ON d.ID = cd.department_id
             GROUP BY cd.cabinet_id
           ) dept ON dept.cabinet_id = c.id
-          WHERE ${whereClause}
-          GROUP BY c.id, c.cabinet_name, c.cabinet_code, dept.DepName, ist.ItemCode, i.itemname, i.stock_max, i.stock_min
-          ORDER BY dept.DepName, c.cabinet_name, ist.ItemCode
+          WHERE 1=1
+            ${params?.cabinetId != null ? Prisma.sql`AND c.id = ${params.cabinetId}` : Prisma.empty}
+            ${params?.cabinetCode ? Prisma.sql`AND c.cabinet_code = ${params.cabinetCode}` : Prisma.empty}
+          GROUP BY dept.DepName, i.itemcode, i.itemname, i.stock_max, i.stock_min
+          ORDER BY dept.DepName, i.itemcode
+        `;
+      } else {
+        // No filter: แสดงทุก item ที่มี itemstock ในตู้ใดตู้หนึ่ง (รวม balance_qty จากทุก cabinet ในแผนกเดียวกัน) เหมือนหน้าเว็บ
+        query = this.prisma.$queryRaw<any[]>`
+          SELECT
+            dept.DepName AS department_name,
+            i.itemcode AS item_code,
+            i.itemname AS item_name,
+            COALESCE(SUM(CASE WHEN ist.IsStock = 1 OR ist.IsStock = true THEN 1 ELSE 0 END), 0) AS balance_qty,
+            i.stock_max,
+            i.stock_min
+          FROM item i
+          INNER JOIN itemstock ist ON ist.ItemCode = i.itemcode
+          INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id AND ist.StockID > 0
+          LEFT JOIN (
+            SELECT cd.cabinet_id, MIN(d.DepName) AS DepName
+            FROM app_microservice_cabinet_departments cd
+            INNER JOIN department d ON d.ID = cd.department_id
+            GROUP BY cd.cabinet_id
+          ) dept ON dept.cabinet_id = c.id
+          GROUP BY dept.DepName, i.itemcode, i.itemname, i.stock_max, i.stock_min
+          ORDER BY dept.DepName, i.itemcode
         `;
       }
 
       const rows = await query;
 
-      // จำนวนอุปกรณ์ที่ถูกใช้งานวันนี้ (จาก supply_usage_items)
+      // จำนวนอุปกรณ์ที่ถูกใช้งานวันนี้ (จาก supply_usage_items) — นับเฉพาะรายการที่ไม่เป็น Discontinue ให้ตรงกับหน้าเว็บ
       const itemCodes = [...new Set((rows as any[]).map((r) => r.item_code).filter(Boolean))];
       const qtyInUseMap = new Map<string, number>();
       if (itemCodes.length > 0) {
@@ -2330,6 +2344,7 @@ export class ReportServiceService {
             AND sui.order_item_code IS NOT NULL
             AND sui.order_item_code != ''
             AND DATE(sui.created_at) = CURDATE()
+            AND (sui.order_item_status IS NULL OR sui.order_item_status != 'Discontinue' AND sui.order_item_status != 'discontinue' AND sui.order_item_status != 'Discontinued' AND sui.order_item_status != 'discontinued')
           GROUP BY sui.order_item_code
         `;
         qtyInUseRows.forEach((r) => {
