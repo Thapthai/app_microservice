@@ -45,7 +45,10 @@ export default function MedicalSuppliesPage() {
     firstName: '',
     lastName: '',
     assessionNo: '',
-    itemName: '', // ช่องค้นหาชื่ออุปกรณ์
+    itemName: '',
+    departmentName: '',
+    printDate: '',
+    timePrintDate: '',
   });
 
   // Active filters (for actual search, triggers fetchSupplies)
@@ -59,6 +62,9 @@ export default function MedicalSuppliesPage() {
     lastName: '',
     assessionNo: '',
     itemName: '',
+    departmentName: '',
+    printDate: '',
+    timePrintDate: '',
   });
 
   // Pagination
@@ -83,6 +89,13 @@ export default function MedicalSuppliesPage() {
       if (filtersToUse.endDate) params.endDate = filtersToUse.endDate;
       if (filtersToUse.userName) params.user_name = filtersToUse.userName;
       if (filtersToUse.itemName) params.keyword = filtersToUse.itemName;
+      if (filtersToUse.patientHN?.trim()) params.patient_hn = filtersToUse.patientHN.trim();
+      if (filtersToUse.firstName?.trim()) params.first_name = filtersToUse.firstName.trim();
+      if (filtersToUse.lastName?.trim()) params.lastname = filtersToUse.lastName.trim();
+      if (filtersToUse.assessionNo?.trim()) params.assession_no = filtersToUse.assessionNo.trim();
+      if (filtersToUse.departmentName?.trim()) params.department_name = filtersToUse.departmentName.trim();
+      if (filtersToUse.printDate?.trim()) params.print_date = filtersToUse.printDate.trim();
+      if (filtersToUse.timePrintDate?.trim()) params.time_print_date = filtersToUse.timePrintDate.trim();
 
       const response: any = await medicalSuppliesApi.getAll(params);
 
@@ -149,6 +162,9 @@ export default function MedicalSuppliesPage() {
       lastName: '',
       assessionNo: '',
       itemName: '',
+      departmentName: '',
+      printDate: '',
+      timePrintDate: '',
     };
     setFormFilters(resetFilters);
     setActiveFilters(resetFilters);
@@ -278,6 +294,37 @@ export default function MedicalSuppliesPage() {
                   value={formFilters.itemName}
                   onChange={(e) => setFormFilters({ ...formFilters, itemName: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="departmentName">ชื่อแผนก</Label>
+                <Input
+                  id="departmentName"
+                  placeholder="กรอกชื่อแผนก..."
+                  value={formFilters.departmentName}
+                  onChange={(e) => setFormFilters({ ...formFilters, departmentName: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="printDate">วันที่พิมพ์บิล</Label>
+                <Input
+                  id="printDate"
+                  type="date"
+                  value={formFilters.printDate}
+                  onChange={(e) => setFormFilters({ ...formFilters, printDate: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="timePrintDate">เวลาที่พิมพ์บิล</Label>
+                <Input
+                  id="timePrintDate"
+                  type="time"
+                  value={formFilters.timePrintDate}
+                  onChange={(e) => setFormFilters({ ...formFilters, timePrintDate: e.target.value })}
                 />
               </div>
             </div>

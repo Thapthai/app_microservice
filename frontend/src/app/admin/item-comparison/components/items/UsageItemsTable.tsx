@@ -151,7 +151,7 @@ export function UsageItemsTable({
                         <TableCell>{item.patient_name || '-'}</TableCell>
                         <TableCell>{item.patient_en || '-'}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{item.department_code || '-'}</Badge>
+                          <Badge variant="outline">{item.department_name || item.department_code || '-'}</Badge>
                         </TableCell>
                         <TableCell>
                           {item.created_at 

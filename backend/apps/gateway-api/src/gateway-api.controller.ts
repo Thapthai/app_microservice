@@ -814,6 +814,9 @@ export class GatewayApiController {
     @Query('patient_hn') patient_hn?: string,
     @Query('visit_date') visit_date?: string,
     @Query('department_code') department_code?: string,
+    @Query('department_name') department_name?: string,
+    @Query('print_date') print_date?: string,
+    @Query('time_print_date') time_print_date?: string,
     @Query('billing_status') billing_status?: string,
     @Query('usage_type') usage_type?: string,
     @Query('startDate') startDate?: string,
@@ -825,7 +828,7 @@ export class GatewayApiController {
     @Query('assession_no') assession_no?: string,
   ) {
     try {
-      const query = { page, limit, patient_hn, department_code, billing_status, usage_type, startDate, endDate, keyword, user_name, first_name, lastname, assession_no };
+      const query = { page, limit, patient_hn, department_code, department_name, print_date, time_print_date, billing_status, usage_type, startDate, endDate, keyword, user_name, first_name, lastname, assession_no };
       const result = await this.gatewayApiService.getMedicalSupplyUsages(query);
 
       // Return data from service directly, only filter by visit_date if needed

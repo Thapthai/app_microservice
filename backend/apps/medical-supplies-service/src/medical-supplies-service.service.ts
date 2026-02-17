@@ -134,7 +134,23 @@ export class MedicalSuppliesServiceService {
     }
   }
 
-  // Create - รับ JSON format ใหม่: Hospital, EN, HN, FirstName, Lastname, Order
+  /**
+   * Resolve department_code from PatientLocationwhenOrdered (เช็คกับ department.DepName2 แล้วดึง ID)
+   */
+  private async resolveDepartmentCodeFromDepName2(patientLocationWhenOrdered: string | undefined): Promise<string | null> {
+    if (!patientLocationWhenOrdered || !patientLocationWhenOrdered.trim()) return null;
+    try {
+      const dept = await this.prisma.department.findFirst({
+        where: { DepName2: patientLocationWhenOrdered.trim() },
+        select: { ID: true },
+      });
+      return dept ? String(dept.ID) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Create - รับ JSON format ใหม่: Hospital, EN, HN, FirstName, Lastname, Order, DateBillPrinted, TimeBillPrinted
   async create(data: CreateMedicalSupplyUsageDto, userContext?: { user: any; userType: string }): Promise<MedicalSupplyUsageResponse> {
     try {
       // Support both new format (EN, HN, FirstName, Lastname, Order) and legacy format
@@ -143,6 +159,16 @@ export class MedicalSuppliesServiceService {
       const firstName = data.FirstName || '';
       const lastname = data.Lastname || '';
       const hospital = data.Hospital || null;
+
+      // Resolve department_code from first Order item's PatientLocationwhenOrdered (เช็คกับ department.DepName2)
+      const orderItems = data.Order || [];
+      const firstOrderItem = orderItems[0];
+      const resolvedDepartmentCode = await this.resolveDepartmentCodeFromDepName2(
+        firstOrderItem?.PatientLocationwhenOrdered
+      );
+      const departmentCode = data.department_code ?? resolvedDepartmentCode ?? null;
+      const printDate = data.DateBillPrinted ?? null;
+      const timePrintDate = data.TimeBillPrinted ?? null;
 
       // Generate recorded_by_user_id from userContext
       let recordedByUserId = data.recorded_by_user_id;
@@ -177,7 +203,6 @@ export class MedicalSuppliesServiceService {
       }
 
       // Determine if using new format (Order) or legacy format (supplies)
-      const orderItems = data.Order || [];
       const legacySupplies = data.supplies || [];
 
       // Check if there's an existing usage with same EN, HN, FirstName, Lastname
@@ -264,20 +289,21 @@ export class MedicalSuppliesServiceService {
             // (existing items with same AssessionNo were already updated to Discontinue above)
             itemsToCreate.push(orderItem);
           } else {
-            // For non-Discontinue items, check if AssessionNo matches
+            // For non-Discontinue items: match by AssessionNo + ItemCode (หนึ่งบิลมีหลาย line ได้)
             const existingItem = existingUsage.supply_items.find(
               (item) => item.assession_no === orderItem.AssessionNo &&
+                item.order_item_code === orderItem.ItemCode &&
                 item.order_item_status?.toLowerCase() !== 'discontinue'
             );
 
             if (existingItem) {
-              // If AssessionNo matches, update ItemStatus
+              // If same AssessionNo + ItemCode found, update ItemStatus only
               itemsToUpdate.push({
                 item: existingItem,
                 newStatus: orderItem.ItemStatus || existingItem.order_item_status || 'Verified',
               });
             } else {
-              // If AssessionNo doesn't match, add new item
+              // Different line (AssessionNo+ItemCode) → add new item
               itemsToCreate.push(orderItem);
             }
           }
@@ -363,17 +389,24 @@ export class MedicalSuppliesServiceService {
           });
         }
 
-        // Update usage metadata if provided
-        if (data.billing_status || data.billing_total !== undefined) {
+        // Update usage metadata if provided (billing, print_date, time_print_date, department_code)
+        const hasBillingUpdate = data.billing_status || data.billing_total !== undefined;
+        const hasPrintUpdate = data.DateBillPrinted !== undefined || data.TimeBillPrinted !== undefined || departmentCode !== null;
+        if (hasBillingUpdate || hasPrintUpdate) {
+          const updateData: Prisma.MedicalSupplyUsageUpdateInput = {};
+          if (hasBillingUpdate) {
+            updateData.billing_status = data.billing_status || existingUsage.billing_status;
+            updateData.billing_subtotal = data.billing_subtotal ?? existingUsage.billing_subtotal;
+            updateData.billing_tax = data.billing_tax ?? existingUsage.billing_tax;
+            updateData.billing_total = data.billing_total ?? existingUsage.billing_total;
+            updateData.billing_currency = data.billing_currency || existingUsage.billing_currency || 'THB';
+          }
+          if (data.DateBillPrinted !== undefined) updateData.print_date = data.DateBillPrinted;
+          if (data.TimeBillPrinted !== undefined) updateData.time_print_date = data.TimeBillPrinted;
+          if (departmentCode !== null) updateData.department_code = departmentCode;
           await this.prisma.medicalSupplyUsage.update({
             where: { id: existingUsage.id },
-            data: {
-              billing_status: data.billing_status || existingUsage.billing_status,
-              billing_subtotal: data.billing_subtotal ?? existingUsage.billing_subtotal,
-              billing_tax: data.billing_tax ?? existingUsage.billing_tax,
-              billing_total: data.billing_total ?? existingUsage.billing_total,
-              billing_currency: data.billing_currency || existingUsage.billing_currency || 'THB',
-            },
+            data: updateData,
           });
         }
 
@@ -544,7 +577,9 @@ export class MedicalSuppliesServiceService {
           usage_datetime: data.usage_datetime,
           usage_type: data.usage_type,
           purpose: data.purpose,
-          department_code: data.department_code,
+          department_code: departmentCode,
+          print_date: printDate,
+          time_print_date: timePrintDate,
           recorded_by_user_id: recordedByUserId,
           billing_status: data.billing_status,
           billing_subtotal: data.billing_subtotal,
@@ -666,6 +701,30 @@ export class MedicalSuppliesServiceService {
       }
       if (query.department_code) {
         baseWhere.department_code = query.department_code;
+      } else if (query.department_name && query.department_name.trim()) {
+        // กรองตามชื่อแผนก (DepName/DepName2)
+        const nameTrim = query.department_name.trim();
+        const depts = await this.prisma.department.findMany({
+          where: {
+            OR: [
+              { DepName: { contains: nameTrim } },
+              { DepName2: { contains: nameTrim } },
+            ],
+          },
+          select: { ID: true },
+        });
+        const deptIds = depts.map((d) => String(d.ID));
+        if (deptIds.length > 0) {
+          baseWhere.department_code = { in: deptIds };
+        } else {
+          baseWhere.department_code = '__no_match__';
+        }
+      }
+      if (query.print_date && query.print_date.trim()) {
+        baseWhere.print_date = { contains: query.print_date.trim() };
+      }
+      if (query.time_print_date && query.time_print_date.trim()) {
+        baseWhere.time_print_date = { contains: query.time_print_date.trim() };
       }
       if (query.billing_status) {
         baseWhere.billing_status = query.billing_status;
@@ -813,8 +872,24 @@ export class MedicalSuppliesServiceService {
         this.prisma.medicalSupplyUsage.count({ where }),
       ]);
 
+      // Resolve department names (department_code → DepName/DepName2)
+      const deptCodes = [...new Set(data.map((u) => u.department_code).filter(Boolean))] as string[];
+      const departmentNameByCode = new Map<string, string>();
+      if (deptCodes.length > 0) {
+        const deptIds = deptCodes.map((c) => parseInt(c, 10)).filter((n) => !Number.isNaN(n));
+        if (deptIds.length > 0) {
+          const departments = await this.prisma.department.findMany({
+            where: { ID: { in: deptIds } },
+            select: { ID: true, DepName: true, DepName2: true },
+          });
+          departments.forEach((d) => {
+            const name = d.DepName ?? d.DepName2 ?? null;
+            if (name) departmentNameByCode.set(String(d.ID), name);
+          });
+        }
+      }
 
-      // Add qty_pending to each item and resolve user names
+      // Add qty_pending to each item and resolve user names + department_name
       const dataWithPending = await Promise.all(data.map(async (usage) => {
         // Resolve user name from recorded_by_user_id
         let recordedByName = '-';
@@ -900,8 +975,13 @@ export class MedicalSuppliesServiceService {
           };
         });
 
+        const departmentName = usage.department_code
+          ? departmentNameByCode.get(usage.department_code) ?? null
+          : null;
+
         const result: any = {
           ...usagePlain,
+          department_name: departmentName,
           recorded_by_user_id: recordedByUserId,
           recorded_by_name: recordedByName,
           recorded_by_display: recordedByDisplay,
@@ -2881,9 +2961,29 @@ export class MedicalSuppliesServiceService {
         },
       });
 
+      // ดึงชื่อแผนกจาก department (department_code = Department.ID)
+      const deptCodes = [...new Set(usageRecords.map((u) => u.department_code).filter(Boolean))] as string[];
+      const departmentNameMap = new Map<string, string>();
+      if (deptCodes.length > 0) {
+        const deptIds = deptCodes.map((c) => parseInt(c, 10)).filter((n) => !Number.isNaN(n));
+        if (deptIds.length > 0) {
+          const departments = await this.prisma.department.findMany({
+            where: { ID: { in: deptIds } },
+            select: { ID: true, DepName: true, DepName2: true },
+          });
+          departments.forEach((d) => {
+            const name = d.DepName ?? d.DepName2 ?? null;
+            if (name) departmentNameMap.set(String(d.ID), name);
+          });
+        }
+      }
+
       // Format result - create a row for each supply_item that matches
       const allResults: any[] = [];
       for (const usage of usageRecords) {
+        const departmentName = usage.department_code
+          ? departmentNameMap.get(usage.department_code) ?? null
+          : null;
         // Loop through all matching supply_items, not just the first one
         for (const supplyItem of usage.supply_items) {
           allResults.push({
@@ -2893,6 +2993,7 @@ export class MedicalSuppliesServiceService {
             patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
             patient_en: usage.en,
             department_code: usage.department_code,
+            department_name: departmentName,
             usage_datetime: usage.usage_datetime,
             itemcode: supplyItem?.order_item_code || supplyItem?.supply_code,
             itemname: supplyItem?.supply_name,
@@ -3165,10 +3266,26 @@ export class MedicalSuppliesServiceService {
 
                         ORDER BY i.itemcode
                         LIMIT ${limit}
-                        OFFSET ${offset}
-      `;
+                        OFFSET ${offset} `;
 
 
+
+      // ดึงชื่อแผนกเมื่อมี departmentCode (department_code = Department.ID)
+      let departmentName: string | null = null;
+      if (filters?.departmentCode && filters.departmentCode.trim()) {
+        try {
+          const deptId = parseInt(filters.departmentCode.trim(), 10);
+          if (!Number.isNaN(deptId)) {
+            const dept = await this.prisma.department.findUnique({
+              where: { ID: deptId },
+              select: { DepName: true, DepName2: true },
+            });
+            departmentName = dept?.DepName ?? dept?.DepName2 ?? null;
+          }
+        } catch {
+          departmentName = null;
+        }
+      }
 
       // Convert BigInt to Number for JSON serialization
       const result = paginatedDispensedItems.map(item => ({
@@ -3192,6 +3309,7 @@ export class MedicalSuppliesServiceService {
           totalPages,
         },
         filters,
+        department_name: departmentName,
       };
 
 

@@ -70,6 +70,8 @@ export default function ItemComparisonPage() {
 
       const response = await medicalSuppliesApi.compareDispensedVsUsage(params);
 
+      console.log(response);
+
       if (response.success || response.data) {
         const responseData: any = response.data || response;
         

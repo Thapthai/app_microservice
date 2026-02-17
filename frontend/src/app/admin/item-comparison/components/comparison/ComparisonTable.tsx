@@ -31,10 +31,10 @@ const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return '';
   try {
     // Handle ISO 8601 format (2025-12-23T02:00:12.260Z) or YYYY-MM-DD format
-    const dateOnly = dateString.includes('T') 
+    const dateOnly = dateString.includes('T')
       ? dateString.split('T')[0]  // Extract date part before T
       : dateString.split(' ')[0];  // Or extract before space
-    
+
     const [year, month, day] = dateOnly.split('-');
     return `${day}/${month}/${year}`;
   } catch {
@@ -86,7 +86,7 @@ export function ComparisonTable({
 
     try {
       setLoadingUsage(prev => new Set(prev).add(itemCode));
-      
+
       // If fetching page 1, clear existing data first to prevent accumulation
       if (page === 1) {
         setUsageData(prev => {
@@ -152,7 +152,7 @@ export function ComparisonTable({
 
   const toggleItemExpanded = (itemCode: string) => {
     const newExpanded = new Set(expandedItems);
-    
+
     if (newExpanded.has(itemCode)) {
       // Collapsing - remove from expanded set
       newExpanded.delete(itemCode);
@@ -160,10 +160,10 @@ export function ComparisonTable({
       // Expanding - add to expanded set
       newExpanded.add(itemCode);
     }
-    
+
     // Update expanded items first (this controls visibility)
     setExpandedItems(newExpanded);
-    
+
     // If collapsing, clean up all associated data
     if (newExpanded.has(itemCode) === false) {
       // Clear usage data
@@ -195,7 +195,7 @@ export function ComparisonTable({
     // Clear all usage data and pagination when filters change
     setUsageData(new Map());
     setUsagePagination(new Map());
-    
+
     // If there are expanded items, refetch their data with new filters
     if (expandedItems.size > 0) {
       expandedItems.forEach(itemCode => {
@@ -215,7 +215,7 @@ export function ComparisonTable({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  
+
   return (
     <Card>
       <CardHeader>
@@ -315,7 +315,7 @@ export function ComparisonTable({
                         >
                           {item.itemname || '-'}
                         </TableCell>
-                        
+
                         <TableCell
                           className="text-center font-semibold text-gray-900"
                           onClick={() => onSelectItem(item.itemcode)}
@@ -393,13 +393,10 @@ export function ComparisonTable({
                                 └
                               </TableCell>
                               <TableCell className="text-sm font-medium text-gray-700">
-                                {usage.patient_hn}
+                                HN/EN :<br /> {usage.patient_hn} <br /> {usage.patient_en}
                               </TableCell>
                               <TableCell className="text-sm text-gray-800">
-                                {/* <span className="font-medium">{usage.patient_name}</span> */}
-                                {usage.patient_en && (
-                                  <div className="text-sm text-gray-800">{usage.patient_en}</div>
-                                )}
+                                แผนก: {usage.department_name || usage.department_code || '-'}
                               </TableCell>
                               <TableCell className="text-sm text-gray-600">
                                 {formatDate(usage.created_at) || '-'}
@@ -424,7 +421,7 @@ export function ComparisonTable({
                                 {(() => {
                                   const status = usage.order_item_status || '-';
                                   const statusLower = status.toLowerCase();
-                                  
+
                                   if (statusLower === 'discontinue') {
                                     return (
                                       <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">

@@ -263,6 +263,10 @@ export const medicalSuppliesApi = {
     first_name?: string;
     lastname?: string;
     assession_no?: string;
+    department_code?: string;
+    department_name?: string;  // ชื่อแผนก (เช็คกับ DepName/DepName2)
+    print_date?: string;       // วันที่พิมพ์บิล
+    time_print_date?: string;  // เวลาที่พิมพ์บิล
   }): Promise<PaginatedResponse<any>> => {
     const response = await api.get('/medical-supplies', { params: query });
     return response.data;

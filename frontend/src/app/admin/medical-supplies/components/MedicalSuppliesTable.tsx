@@ -30,6 +30,9 @@ interface MedicalSuppliesTableProps {
     lastName: string;
     assessionNo: string;
     itemName?: string;
+    departmentName?: string;
+    printDate?: string;
+    timePrintDate?: string;
   };
 }
 
@@ -95,6 +98,30 @@ export default function MedicalSuppliesTable({
     } catch (e) {
       return dateString;
     }
+  };
+
+  /** แสดงวันที่/เวลาที่พิมพ์บิล (print_date อาจเป็น YYYY-MM-DD, time_print_date เป็น HH:mm:ss) */
+  const formatPrintDateTime = (printDate: string | null | undefined, timePrintDate: string | null | undefined): string => {
+    const datePart = printDate?.trim();
+    const timePart = timePrintDate?.trim();
+    if (!datePart && !timePart) return '-';
+    const parts: string[] = [];
+    if (datePart) {
+      if (/^\d{4}-\d{2}-\d{2}/.test(datePart)) {
+        try {
+          const d = new Date(datePart.includes('T') ? datePart : datePart + 'T00:00:00');
+          parts.push(d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }));
+        } catch {
+          parts.push(datePart);
+        }
+      } else {
+        parts.push(datePart);
+      }
+    }
+    if (timePart) {
+      parts.push(timePart.length > 8 ? timePart.slice(0, 8) : timePart);
+    }
+    return parts.join(' ') || '-';
   };
 
   const getBillingStatusBadge = (status: string | null | undefined) => {
@@ -251,7 +278,9 @@ export default function MedicalSuppliesTable({
                 <TableRow>
                   <TableHead className="w-[80px]">ลำดับ</TableHead>
                   <TableHead>HN / EN คนไข้</TableHead>
+                  <TableHead>แผนก</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
+                  <TableHead>วันที่พิมพ์บิล</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
                   <TableHead className="text-center">จำนวนอุปกรณ์ที่ถูกใช้งาน</TableHead>
                   <TableHead>สถานะ</TableHead>
@@ -314,7 +343,13 @@ export default function MedicalSuppliesTable({
                         </div>
                       </TableCell>
                       <TableCell>
+                        {supplyData.department_name || supplyData.department_code || '-'}
+                      </TableCell>
+                      <TableCell>
                         {formatDate(supply.created_at || supplyData.created_at || supplyData.usage_datetime)}
+                      </TableCell>
+                      <TableCell>
+                        {formatPrintDateTime(supplyData.print_date, supplyData.time_print_date)}
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold">

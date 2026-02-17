@@ -21,6 +21,7 @@ export interface UsageItem {
   patient_name: string;
   patient_en?: string;
   department_code?: string;
+  department_name?: string; // ชื่อแผนกจาก department.DepName/DepName2
   usage_datetime: string;
   itemcode: string;
   itemname: string;

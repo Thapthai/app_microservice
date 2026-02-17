@@ -23,6 +23,7 @@ export interface OrderItemInput {
   ItemStatus?: string;       // Order Item Status (Verified, Update, etc.)
   QTY: string | number;      // Quantity (can be string or number)
   UOM: string;               // Unit of Measure (Each)
+  PatientLocationwhenOrdered?: string; // แผนก/จุดที่สั่ง - ใช้เช็คกับ department.DepName2 เพื่อดึง ID → department_code
 }
 
 // Legacy Supply Item Input (for backward compatibility)
@@ -100,6 +101,16 @@ export class CreateMedicalSupplyUsageDto {
   @IsArray()
   @IsObject({ each: true })
   Order?: OrderItemInput[]; // Order Items
+
+  /** วันที่พิมพ์บิล (YYYY-MM-DD) → print_date */
+  @IsOptional()
+  @IsString()
+  DateBillPrinted?: string;
+
+  /** เวลาพิมพ์บิล (HH:mm:ss) → time_print_date */
+  @IsOptional()
+  @IsString()
+  TimeBillPrinted?: string;
 
   // Legacy fields (optional for backward compatibility)
   @IsOptional()
@@ -278,6 +289,21 @@ export class GetMedicalSupplyUsagesQueryDto {
   @IsOptional()
   @IsString()
   department_code?: string;
+
+  /** ชื่อแผนก (เช็คกับ DepName/DepName2 แล้วกรองตาม department_code) */
+  @IsOptional()
+  @IsString()
+  department_name?: string;
+
+  /** วันที่พิมพ์บิล (print_date) */
+  @IsOptional()
+  @IsString()
+  print_date?: string;
+
+  /** เวลาที่พิมพ์บิล (time_print_date) */
+  @IsOptional()
+  @IsString()
+  time_print_date?: string;
 
   @IsOptional()
   @IsString()
