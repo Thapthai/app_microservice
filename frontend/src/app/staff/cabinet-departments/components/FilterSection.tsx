@@ -209,7 +209,7 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
         </div>
 
         <div className="flex gap-3 pt-1">
-          <Button onClick={handleSearch} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+          <Button onClick={handleSearch} className="flex-1">
             <Search className="mr-2 h-4 w-4" />
             ค้นหา
           </Button>
