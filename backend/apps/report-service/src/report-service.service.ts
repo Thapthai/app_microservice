@@ -2338,7 +2338,7 @@ export class ReportServiceService {
         });
       }
 
-      // จำนวนที่แจ้งชำรุด/ปนเปื้อน (จาก app_microservice_supply_item_return_records - รวมทุกวันที่)
+      // จำนวนที่แจ้งชำรุด/ปนเปื้อน (จาก supply_item_return_records — เฉพาะวันนี้ + เหตุผล DAMAGED, CONTAMINATED ให้ตรงกับหน้า items)
       const damagedReturnMap = new Map<string, number>();
       if (itemCodes.length > 0) {
         const damagedRows = await this.prisma.$queryRaw<
@@ -2351,7 +2351,7 @@ export class ReportServiceService {
           WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
             AND srr.item_code IS NOT NULL
             AND srr.item_code != ''
-            AND srr.return_reason IN ('DAMAGED', 'CONTAMINATED')
+            AND DATE(srr.return_datetime) = CURDATE()
           GROUP BY srr.item_code
         `;
         damagedRows.forEach((row) => {

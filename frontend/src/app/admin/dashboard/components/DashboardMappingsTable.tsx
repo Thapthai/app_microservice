@@ -13,6 +13,7 @@ export interface CabinetDepartment {
   status: string;
   description?: string;
   itemstock_count?: number;
+  itemstock_dispensed_count?: number;
   cabinet?: {
     id: number;
     cabinet_name?: string;
@@ -110,12 +111,10 @@ export default function DashboardMappingsTable({ mappings, loading }: DashboardM
                         <TableCell>{mapping.cabinet?.cabinet_name || "-"}</TableCell>
                         <TableCell>{mapping.department?.DepName || "-"}</TableCell>
                         <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <Package className="h-4 w-4 text-blue-600" />
-                            <span className="font-semibold text-blue-600">
-                              {mapping.itemstock_count !== undefined ? mapping.itemstock_count : 0}
-                            </span>
-                          </div>
+                          <span className="font-medium text-slate-700">
+                            {mapping.itemstock_dispensed_count ?? 0} / {mapping.itemstock_count ?? 0}
+                          </span>
+                          <span className="text-xs text-slate-500 ml-1">(ถูกเบิก / ในตู้)</span>
                         </TableCell>
                         <TableCell>{getStatusDisplay(mapping.status)}</TableCell>
                         <TableCell className="max-w-xs truncate">

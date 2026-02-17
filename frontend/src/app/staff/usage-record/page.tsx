@@ -134,15 +134,18 @@ export default function MedicalSuppliesPage() {
     if (typeof window === 'undefined') return;
     try {
       const raw = localStorage.getItem('staff_user');
-      if (raw) {
-        const staffUser = JSON.parse(raw);
-        setStaffDepartment({
-          department_id: staffUser.department_id ?? null,
-          department_name: staffUser.department_name ?? null,
-        });
+      const trimmed = typeof raw === 'string' ? raw.trim() : '';
+      if (trimmed) {
+        const staffUser = JSON.parse(trimmed);
+        if (staffUser && typeof staffUser === 'object') {
+          setStaffDepartment({
+            department_id: staffUser.department_id ?? null,
+            department_name: staffUser.department_name ?? null,
+          });
+        }
       }
     } catch {
-      // ignore
+      // ignore invalid or empty JSON
     }
     setStaffUserLoaded(true);
   }, []);

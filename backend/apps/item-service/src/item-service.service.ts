@@ -201,8 +201,7 @@ export class ItemServiceService {
         });
       }
 
-      // จำนวนที่แจ้งชำรุด/ไม่ถูกใช้งาน (จาก app_microservice_supply_item_return_records - รวมทุกวันที่)
-      // รวมเฉพาะ DAMAGED (ชำรุด) และ CONTAMINATED (ปนเปื้อน)
+      // จำนวนที่แจ้งชำรุด/ปนเปื้อน (จาก app_microservice_supply_item_return_records — เฉพาะวันนี้ + DAMAGED, CONTAMINATED ให้ตรงกับรายงาน PDF/Excel)
       const damagedReturnMap = new Map<string, number>();
       if (itemCodes.length > 0) {
         const damagedRows = await this.prisma.$queryRaw<

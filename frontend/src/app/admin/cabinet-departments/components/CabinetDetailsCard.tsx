@@ -25,6 +25,7 @@ interface CabinetDepartment {
     DepName?: string;
   };
   itemstock_count?: number;
+  itemstock_dispensed_count?: number;
 }
 
 interface ItemStock {
@@ -129,12 +130,12 @@ export default function CabinetDetailsCard({ selectedRow, onClose }: CabinetDeta
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500 mb-2 block">จำนวนอุปกรณ์</label>
-              <div className="inline-flex items-center">
-                <Package className="text-blue-600" />
-                <span className="text-lg font-bold text-blue-600">
-                  {selectedRow.itemstock_count !== undefined ? selectedRow.itemstock_count.toLocaleString() : 0}
+              <div className="inline-flex items-center gap-1">
+                <Package className="text-blue-600 h-4 w-4" />
+                <span className="text-lg font-bold text-slate-700">
+                  {selectedRow.itemstock_dispensed_count ?? 0} / {selectedRow.itemstock_count ?? 0}
                 </span>
-                <span className="text-sm text-blue-600 font-medium">รายการ</span>
+                <span className="text-sm text-slate-500">(ถูกเบิก / ในตู้)</span>
               </div>
             </div>
           </div>

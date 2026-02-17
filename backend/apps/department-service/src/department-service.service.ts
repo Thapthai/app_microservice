@@ -457,19 +457,22 @@ export class DepartmentServiceService {
           const stockId = mapping.cabinet?.stock_id;
 
           if (!stockId) {
-            return { ...mapping, itemstock_count: 0 };
+            return { ...mapping, itemstock_count: 0, itemstock_dispensed_count: 0 };
           }
 
-          const itemStockCount = await this.prisma.itemStock.count({
-            where: {
-              StockID: stockId,
-              IsStock: true, // นับเฉพาะสต็อกที่สถานะ IsStock = 1
-            },
-          });
+          const [inCabinetCount, dispensedCount] = await Promise.all([
+            this.prisma.itemStock.count({
+              where: { StockID: stockId, IsStock: true },
+            }),
+            this.prisma.itemStock.count({
+              where: { StockID: stockId, IsStock: false },
+            }),
+          ]);
 
           return {
             ...mapping,
-            itemstock_count: itemStockCount,
+            itemstock_count: inCabinetCount,
+            itemstock_dispensed_count: dispensedCount,
           };
         })
       );
