@@ -2353,26 +2353,98 @@ export class ReportServiceService {
         });
       }
 
-      // จำนวนที่แจ้งชำรุด/ปนเปื้อน (จาก supply_item_return_records — เฉพาะวันนี้ + เหตุผล DAMAGED, CONTAMINATED ให้ตรงกับหน้า items)
+      // จำนวนชำรุด อ้างอิงตู้ (stock_id) — เฉพาะ return_reason = DAMAGED เฉพาะวันนี้ (ไม่รวมปนเปื้อน, ไม่นับซ้ำเมื่อตู้อยู่หลายแผนก)
       const damagedReturnMap = new Map<string, number>();
       if (itemCodes.length > 0) {
-        const damagedRows = await this.prisma.$queryRaw<
-          { item_code: string; total_returned: bigint }[]
-        >`
-          SELECT
-            srr.item_code,
-            SUM(COALESCE(srr.qty_returned, 0)) AS total_returned
-          FROM app_microservice_supply_item_return_records srr
-          WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
-            AND srr.item_code IS NOT NULL
-            AND srr.item_code != ''
-            AND DATE(srr.return_datetime) = CURDATE()
-          GROUP BY srr.item_code
-        `;
-        damagedRows.forEach((row) => {
-          const val = Number(row.total_returned ?? 0);
-          if (val > 0) damagedReturnMap.set(row.item_code, val);
-        });
+        const hasCabinetFilter = params?.cabinetId != null || !!params?.cabinetCode;
+        const hasDeptFilter = params?.departmentId != null;
+
+        if (hasCabinetFilter) {
+          const cabinetRow = await this.prisma.$queryRaw<{ stock_id: number }[]>(
+            params?.cabinetId != null
+              ? Prisma.sql`SELECT stock_id FROM app_microservice_cabinets WHERE id = ${params.cabinetId} AND stock_id IS NOT NULL LIMIT 1`
+              : Prisma.sql`SELECT stock_id FROM app_microservice_cabinets WHERE cabinet_code = ${params!.cabinetCode!} AND stock_id IS NOT NULL LIMIT 1`,
+          );
+          const stockId = cabinetRow?.[0]?.stock_id;
+          if (stockId != null) {
+            const damagedRows = await this.prisma.$queryRaw<
+              { item_code: string; total_returned: bigint }[]
+            >`
+              SELECT srr.item_code, SUM(COALESCE(srr.qty_returned, 0)) AS total_returned
+              FROM app_microservice_supply_item_return_records srr
+              WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
+                AND srr.item_code IS NOT NULL AND srr.item_code != ''
+                AND DATE(srr.return_datetime) = CURDATE()
+                AND srr.stock_id = ${stockId}
+              
+              GROUP BY srr.item_code
+            `;
+            damagedRows.forEach((row) => {
+              const val = Number(row.total_returned ?? 0);
+              if (val > 0) damagedReturnMap.set(row.item_code, val);
+            });
+          }
+        } else if (hasDeptFilter) {
+          // ให้ตรง item-service: ไม่ sum หลายตู้ — ใช้แค่ตู้แรกต่อ item_code (กรองแผนกแล้วก็ใช้ตู้แรกเท่านั้น)
+          const stockIdRows = await this.prisma.$queryRaw<{ stock_id: number }[]>`
+            SELECT c.stock_id FROM app_microservice_cabinets c
+            INNER JOIN app_microservice_cabinet_departments cd ON cd.cabinet_id = c.id AND cd.status = 'ACTIVE' AND cd.department_id = ${params!.departmentId!}
+            WHERE c.stock_id IS NOT NULL
+          `;
+          const stockIds = stockIdRows.map((r) => r.stock_id).filter((id): id is number => id != null);
+          if (stockIds.length > 0) {
+            const damagedRows = await this.prisma.$queryRaw<
+              { item_code: string; stock_id: number; total_returned: bigint }[]
+            >`
+              SELECT srr.item_code, srr.stock_id, SUM(COALESCE(srr.qty_returned, 0)) AS total_returned
+              FROM app_microservice_supply_item_return_records srr
+              WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
+                AND srr.item_code IS NOT NULL AND srr.item_code != ''
+                AND DATE(srr.return_datetime) = CURDATE()
+                AND srr.stock_id IN (${Prisma.join(stockIds.map((id) => Prisma.sql`${id}`))})
+                AND srr.stock_id IS NOT NULL
+              GROUP BY srr.item_code, srr.stock_id
+            `;
+            damagedRows.forEach((row) => {
+              const val = Number(row.total_returned ?? 0);
+              if (val > 0 && !damagedReturnMap.has(row.item_code)) damagedReturnMap.set(row.item_code, val);
+            });
+          }
+        } else {
+          // ไม่กรอง: นับชำรุดต่อ (item_code, cabinet) ก่อน แล้วใส่แผนกเดียวต่อตู้ (MIN) เพื่อไม่นับซ้ำเมื่อตู้อยู่หลายแผนก
+          const perCabinet = await this.prisma.$queryRaw<
+            { item_code: string; stock_id: number; total_returned: bigint }[]
+          >`
+            SELECT srr.item_code, srr.stock_id, SUM(COALESCE(srr.qty_returned, 0)) AS total_returned
+            FROM app_microservice_supply_item_return_records srr
+            WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
+              AND srr.item_code IS NOT NULL AND srr.item_code != ''
+              AND DATE(srr.return_datetime) = CURDATE()
+              AND srr.stock_id IS NOT NULL
+            GROUP BY srr.item_code, srr.stock_id
+          `;
+          const cabinetToDept = await this.prisma.$queryRaw<{ stock_id: number; DepName: string }[]>`
+            SELECT c.stock_id, MIN(d.DepName) AS DepName
+            FROM app_microservice_cabinets c
+            INNER JOIN app_microservice_cabinet_departments cd ON cd.cabinet_id = c.id AND cd.status = 'ACTIVE'
+            INNER JOIN department d ON d.ID = cd.department_id
+            WHERE c.stock_id IS NOT NULL
+            GROUP BY c.stock_id
+          `;
+          const stockToDept = new Map<number, string>();
+          cabinetToDept.forEach((r) => {
+            if (r.stock_id != null && r.DepName != null) stockToDept.set(r.stock_id, r.DepName);
+          });
+          // ใส่เฉพาะตู้แรกต่อ (item_code, แผนก) — ไม่ sum หลายตู้ (ให้ตรงกับหน้า /items ที่ไม่ sum)
+          perCabinet.forEach((row) => {
+            const val = Number(row.total_returned ?? 0);
+            if (val > 0) {
+              const deptName = stockToDept.get(row.stock_id) ?? '-';
+              const key = `${row.item_code}:${deptName}`;
+              if (!damagedReturnMap.has(key)) damagedReturnMap.set(key, val);
+            }
+          });
+        }
       }
 
       const data: CabinetStockReportData['data'] = [];
@@ -2384,7 +2456,10 @@ export class ReportServiceService {
         const stockMax = row.stock_max != null ? Number(row.stock_max) : null;
         const stockMin = row.stock_min != null ? Number(row.stock_min) : null;
         const qtyInUse = qtyInUseMap.get(row.item_code) ?? 0;
-        const damagedQty = damagedReturnMap.get(row.item_code) ?? 0;
+        const damagedQty =
+          params?.cabinetId != null || params?.cabinetCode || params?.departmentId != null
+            ? damagedReturnMap.get(row.item_code) ?? 0
+            : damagedReturnMap.get(`${row.item_code}:${row.department_name ?? '-'}`) ?? 0;
         // จำนวนที่ต้องเติม: M=Max, A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
         const M = stockMax ?? 0;
         const A = balanceQty;

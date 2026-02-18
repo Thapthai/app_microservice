@@ -110,7 +110,7 @@ export default function ItemsTable({
     }
     return pages;
   };
-
+console.log(items);
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4 pb-2">
@@ -228,9 +228,9 @@ export default function ItemsTable({
                           <TableCell className="text-center">
                             <span className={cn(
                               "font-medium",
-                              ((item as any).damaged_qty ?? 0) > 0 && "text-amber-700"
+                              (Number(item.damaged_qty) || 0) > 0 && "text-amber-700"
                             )}>
-                              {(item as any).damaged_qty ?? 0}
+                              {Number(item.damaged_qty) || 0}
                             </span>
                           </TableCell>
                           <TableCell className="text-center">

@@ -227,9 +227,9 @@ export default function ItemsTable({
                           <TableCell className="text-center">
                             <span className={cn(
                               "font-medium",
-                              ((item as any).damaged_qty ?? 0) > 0 && "text-amber-700"
+                              (Number(item.damaged_qty) || 0) > 0 && "text-amber-700"
                             )}>
-                              {(item as any).damaged_qty ?? 0}
+                              {Number(item.damaged_qty) || 0}
                             </span>
                           </TableCell>
                           <TableCell className="text-center">

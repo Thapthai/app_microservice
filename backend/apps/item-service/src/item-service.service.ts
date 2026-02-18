@@ -94,14 +94,15 @@ export class ItemServiceService {
         },
       };
 
-      // Filter by cabinet_id if provided
+      // Filter by cabinet_id if provided (เก็บ cabinetStockId สำหรับอ้างอิงจำนวนชุดรุดต่อตู้)
+      let cabinetStockId: number | null = null;
       if (cabinet_id) {
-        // Get stock_id from cabinet table
         const cabinet = await this.prisma.cabinet.findUnique({
           where: { id: cabinet_id },
           select: { stock_id: true },
         });
         if (cabinet?.stock_id) {
+          cabinetStockId = cabinet.stock_id;
           itemStocksWhere.StockID = cabinet.stock_id;
         }
       }
@@ -194,7 +195,11 @@ export class ItemServiceService {
             AND sui.order_item_code IS NOT NULL
             AND sui.order_item_code != ''
             AND date(sui.created_at) = date(now())
-            AND (sui.order_item_status IS NULL OR sui.order_item_status != 'Discontinue' AND sui.order_item_status != 'discontinue' AND sui.order_item_status != 'Discontinued' AND sui.order_item_status != 'discontinued')
+            AND (sui.order_item_status IS NULL 
+              OR sui.order_item_status != 'Discontinue' 
+              OR sui.order_item_status != 'discontinue' 
+              OR sui.order_item_status != 'Discontinued' 
+              OR sui.order_item_status != 'discontinued')
           GROUP BY sui.order_item_code
         `;
         qtyInUseRows.forEach((row) => {
@@ -203,31 +208,54 @@ export class ItemServiceService {
         });
       }
 
-      // จำนวนที่แจ้งชำรุด/ปนเปื้อน (จาก app_microservice_supply_item_return_records — เฉพาะวันนี้ + DAMAGED, CONTAMINATED ให้ตรงกับรายงาน PDF/Excel)
+      // จำนวนที่แจ้งชำรุด (อ้างอิงตู้/stock_id) — เฉพาะ return_reason = DAMAGED เฉพาะวันนี้ (คอลัมน์ "ชำรุด" ไม่รวมปนเปื้อน)
       const damagedReturnMap = new Map<string, number>();
       if (itemCodes.length > 0) {
-        const damagedRows = await this.prisma.$queryRaw<
-          { item_code: string; total_returned: bigint }[]
-        >` SELECT
-            srr.item_code,
-            SUM(COALESCE(srr.qty_returned, 0)) AS total_returned
-          FROM app_microservice_supply_item_return_records srr
-          WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
-            AND srr.item_code IS NOT NULL
-            AND srr.item_code != ''
-            AND date(srr.return_datetime) = date(now())
-          GROUP BY srr.item_code
-        `;
-        damagedRows.forEach((row) => {
-          const val = Number(row.total_returned ?? 0);
-          if (val > 0) damagedReturnMap.set(row.item_code, val);
-        });
+        if (cabinetStockId != null) {
+          const damagedRows = await this.prisma.$queryRaw<
+            { item_code: string; total_returned: bigint }[]
+          >` SELECT
+              srr.item_code,
+              SUM(COALESCE(srr.qty_returned, 0)) AS total_returned
+            FROM app_microservice_supply_item_return_records srr
+            WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
+              AND srr.item_code IS NOT NULL
+              AND srr.item_code != ''
+              AND DATE(srr.return_datetime) = CURDATE()
+              AND (srr.stock_id = ${cabinetStockId})
+            GROUP BY srr.item_code
+          `;
+        
+          damagedRows.forEach((row) => {
+            const val = Number(row.total_returned ?? 0);
+            if (val > 0) damagedReturnMap.set(row.item_code, val);
+          });
+        } else {
+          const damagedRows = await this.prisma.$queryRaw<
+            { item_code: string; stock_id: number; total_returned: bigint }[]
+          >` SELECT
+              srr.item_code,
+              srr.stock_id,
+              SUM(COALESCE(srr.qty_returned, 0)) AS total_returned
+            FROM app_microservice_supply_item_return_records srr
+            WHERE srr.item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
+              AND srr.item_code IS NOT NULL
+              AND srr.item_code != ''
+              AND DATE(srr.return_datetime) = CURDATE()
+              AND srr.stock_id IS NOT NULL
+            GROUP BY srr.item_code, srr.stock_id
+          `;
+         
+          damagedRows.forEach((row) => {
+            const val = Number(row.total_returned ?? 0);
+            if (val > 0) {
+              const key = `${row.item_code}:${row.stock_id}`;
+              damagedReturnMap.set(key, val);
+            }
+          });
+        }
       }
 
-      // จัดลำดับรายการตามสถานะของ itemStocks:
-      // 1) มี stock หมดอายุ
-      // 2) มี stock ใกล้หมดอายุ (ภายใน 7 วัน)
-      // 3) จำนวนชิ้น (count_itemstock) ต่ำกว่า stock_min
       const now = new Date();
       const in7Days = new Date(now);
       in7Days.setDate(in7Days.getDate() + 7);
@@ -270,8 +298,18 @@ export class ItemServiceService {
         const stockMin = item.stock_min ?? 0;
         const isLowStock = stockMin > 0 && countItemStock < stockMin;
 
-        // จำนวนที่แจ้งชำรุด/ไม่ถูกใช้งาน (จาก app_microservice_supply_item_return_records)
-        const damagedQty = damagedReturnMap.get(item.itemcode) ?? 0;
+        // จำนวนที่แจ้งชำรุด (อ้างอิงตู้/stock_id) — กรองตู้แล้วใช้ของตู้นั้น; ไม่กรองตู้แล้วใช้ของตู้แรกเท่านั้น (ไม่ sum หลายตู้เพราะจะทำให้ค่าเพี้ยน เช่น 10 ตู้ × 6 = 60)
+        let damagedQty: number;
+        if (cabinetStockId != null) {
+          damagedQty = damagedReturnMap.get(item.itemcode) ?? 0;
+        } else {
+          const firstStock = matchingItemStocks[0];
+          damagedQty = firstStock
+            ? (damagedReturnMap.get(`${item.itemcode}:${firstStock.StockID}`) ?? 0)
+            : 0;
+        }
+ 
+ 
         const qtyInUse = qtyInUseMap.get(item.itemcode) ?? 0;
 
         // จำนวนที่ต้องเติม: M=Max, A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y

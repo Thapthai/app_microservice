@@ -78,10 +78,11 @@ export default function ItemsPage() {
         }
  
         const response = await itemsApi.getAll(params);
-        if (response.data) {
-          setItems(response.data);
-          setTotalItems(response.total);
-          setTotalPages(response.lastPage);
+        const list = Array.isArray(response?.data) ? response.data : (response as any)?.data?.data;
+        if (Array.isArray(list)) {
+          setItems(list);
+          setTotalItems((response as any).total ?? list.length);
+          setTotalPages((response as any).lastPage ?? Math.ceil(((response as any).total ?? list.length) / itemsPerPage));
         }
       }
     } catch (error) {
