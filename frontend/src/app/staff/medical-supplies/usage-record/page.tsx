@@ -190,6 +190,30 @@ export default function MedicalSuppliesPage() {
     }
   };
 
+  /** แสดงวันที่/เวลาที่พิมพ์บิล (print_date อาจเป็น YYYY-MM-DD, time_print_date เป็น HH:mm:ss) */
+  const formatPrintDateTime = (printDate: string | null | undefined, timePrintDate: string | null | undefined): string => {
+    const datePart = printDate?.trim();
+    const timePart = timePrintDate?.trim();
+    if (!datePart && !timePart) return '-';
+    const parts: string[] = [];
+    if (datePart) {
+      if (/^\d{4}-\d{2}-\d{2}/.test(datePart)) {
+        try {
+          const d = new Date(datePart.includes('T') ? datePart : datePart + 'T00:00:00');
+          parts.push(d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }));
+        } catch {
+          parts.push(datePart);
+        }
+      } else {
+        parts.push(datePart);
+      }
+    }
+    if (timePart) {
+      parts.push(timePart.length > 8 ? timePart.slice(0, 8) : timePart);
+    }
+    return parts.join(' ') || '-';
+  };
+
   return (
     <>
       <div className="space-y-6">
@@ -297,7 +321,7 @@ export default function MedicalSuppliesPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-5">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div>
                       <p className="text-sm text-gray-500">ชื่อคนไข้</p>
                       <p className="font-semibold">
@@ -312,6 +336,13 @@ export default function MedicalSuppliesPage() {
                           selectedSupply.recorded_by_display ||
                           selectedSupply.recorded_by_name ||
                           selectedSupply.data?.recorded_by_name || '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">แผนก</p>
+                      <p className="font-semibold">
+                        {selectedSupply.data?.department_name || selectedSupply.department_name || 
+                         selectedSupply.data?.department_code || selectedSupply.department_code || '-'}
                       </p>
                     </div>
                     <div>
@@ -372,7 +403,7 @@ export default function MedicalSuppliesPage() {
                   </div>
                   <div className="pt-3 border-t border-gray-100">
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">วันเวลา</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">เวลาที่เบิก</p>
                         <p className="font-semibold">
@@ -380,6 +411,15 @@ export default function MedicalSuppliesPage() {
                             selectedSupply.created_at ||
                               selectedSupply.data?.created_at ||
                               selectedSupply.data?.usage_datetime
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Date and TimeBillPrinted</p>
+                        <p className="font-semibold">
+                          {formatPrintDateTime(
+                            selectedSupply.data?.print_date || selectedSupply.print_date,
+                            selectedSupply.data?.time_print_date || selectedSupply.time_print_date
                           )}
                         </p>
                       </div>

@@ -2516,8 +2516,8 @@ export class ReportServiceService {
           params?.cabinetId != null || params?.cabinetCode || params?.departmentId != null
             ? damagedReturnMap.get(row.item_code) ?? 0
             : damagedReturnMap.get(`${row.item_code}:${row.department_name ?? '-'}`) ?? 0;
-        // จำนวนที่ต้องเติม: M=Max, A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
-        const M = stockMax ?? 0;
+        // จำนวนที่ต้องเติม: M=Max (จาก CabinetItemSetting), A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
+        const M = stockMax ?? 0; // ใช้ stockMax จาก CabinetItemSetting (ถ้า null ใช้ 0)
         const A = balanceQty;
         const B = qtyInUse;
         const C = damagedQty;

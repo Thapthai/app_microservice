@@ -280,7 +280,7 @@ export default function MedicalSuppliesTable({
                   <TableHead>HN / EN คนไข้</TableHead>
                   <TableHead>แผนก</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
-                  <TableHead>วันที่พิมพ์บิล</TableHead>
+                  <TableHead>วันที่ และเวลาที่พิมพ์บิล</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
                   <TableHead className="text-center">จำนวนอุปกรณ์ที่ถูกใช้งาน</TableHead>
                   <TableHead>สถานะ</TableHead>

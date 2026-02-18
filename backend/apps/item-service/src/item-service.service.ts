@@ -195,11 +195,7 @@ export class ItemServiceService {
             AND sui.order_item_code IS NOT NULL
             AND sui.order_item_code != ''
             AND date(sui.created_at) = date(now())
-            AND (sui.order_item_status IS NULL 
-              OR sui.order_item_status != 'Discontinue' 
-              OR sui.order_item_status != 'discontinue' 
-              OR sui.order_item_status != 'Discontinued' 
-              OR sui.order_item_status != 'discontinued')
+            AND sui.order_item_status != 'Discontinue' 
           GROUP BY sui.order_item_code
         `;
         qtyInUseRows.forEach((row) => {
@@ -331,12 +327,12 @@ export class ItemServiceService {
  
         const qtyInUse = qtyInUseMap.get(item.itemcode) ?? 0;
 
-        // จำนวนที่ต้องเติม: M=Max, A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
-        const M = effectiveStockMax;
+        // จำนวนที่ต้องเติม: M=Max (จาก CabinetItemSetting), A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
+        const M = effectiveStockMax ?? 0; // ใช้ effectiveStockMax จาก CabinetItemSetting (ถ้า null ใช้ 0)
         const A = countItemStock;
         const B = qtyInUse;
         const C = damagedQty;
-        const X = M ? M - A : 0;
+        const X = M - A;
         const Y = B + C;
         const refillQty = X > Y ? X - Y : 0;
 
