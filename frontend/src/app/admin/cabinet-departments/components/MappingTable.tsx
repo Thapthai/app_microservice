@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, Fragment, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -114,6 +114,103 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
     }));
   };
 
+  // Helper function to group item stocks by item code
+  const groupItemStocksByCode = (stocks: ItemStock[]) => {
+    const grouped = stocks.reduce((acc: any, stock: ItemStock) => {
+      const itemCode = stock.item?.itemcode || stock.ItemCode || '-';
+      if (!acc[itemCode]) {
+        acc[itemCode] = {
+          itemcode: itemCode,
+          itemname: stock.item?.itemname || '-',
+          stocks: [],
+          totalQty: 0,
+          inStockCount: 0,
+          dispensedCount: 0,
+        };
+      }
+      acc[itemCode].stocks.push(stock);
+      acc[itemCode].totalQty += stock.Qty || 0;
+      const isStock = stock.IsStock === true || (stock as { IsStock?: boolean | number }).IsStock === 1;
+      if (isStock) {
+        acc[itemCode].inStockCount += 1;
+      } else {
+        acc[itemCode].dispensedCount += 1;
+      }
+      return acc;
+    }, {});
+    return Object.values(grouped);
+  };
+
+  // Render grouped item stocks
+  const renderGroupedItemStocks = (cabinetId: number, mappingId: number) => {
+    const stocks = itemStocks[cabinetId];
+    if (!stocks || stocks.length === 0) return null;
+
+    const groupedArray = groupItemStocksByCode(stocks);
+    const displayedItems = groupedArray.slice(
+      0,
+      (dropdownPage[cabinetId] || 1) * itemsPerDropdown
+    );
+
+    return (
+      <div>
+        <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
+          <Package className="h-4 w-4" />
+          รายการอุปกรณ์ในตู้ ({groupedArray.length} รายการ, รวม {stocks.length} ชิ้น)
+        </h4>
+        <div className="space-y-2">
+          {displayedItems.map((group: any, groupIndex: number) => (
+            <div
+              key={`mapping-${mappingId}-group-${group.itemcode}-${groupIndex}`}
+              className="border rounded-lg p-3 bg-white hover:shadow-sm transition-shadow"
+            >
+              <div className="grid grid-cols-2 md:grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] gap-2 md:gap-4 text-sm">
+                <div className="w-fit md:min-w-[60px]">
+                  <span className="text-gray-500">ลำดับ:</span>
+                  <span className="ml-1 font-medium">{groupIndex + 1}</span>
+                </div>
+                <div className="w-fit md:min-w-[200px]">
+                  <span className="text-gray-500">รหัสอุปกรณ์:</span>
+                  <span className="ml-2 font-medium font-mono">{group.itemcode}</span>
+                </div>
+                <div className="w-fit md:min-w-[500px]">
+                  <span className="text-gray-500">ชื่ออุปกรณ์:</span>
+                  <span className="ml-2 font-medium">{group.itemname}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">อยู่ในตู้:</span>
+                  <span className="ml-2 font-medium text-green-600">{group.inStockCount} ชิ้น</span>
+                </div>
+                <div >
+                  <span className="text-gray-500">ถูกเบิก:</span>
+                  <span className="ml-2 font-medium text-amber-600">{group.dispensedCount} ชิ้น</span>
+                </div>
+                <div >
+                  <span className="text-gray-500">จำนวนรวม:</span>
+                  <span className="ml-2 font-medium text-amber-600">{group.totalQty} ชิ้น</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {groupedArray.length >
+          (dropdownPage[cabinetId] || 1) * itemsPerDropdown && (
+            <div className="mt-4 text-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleLoadMore(cabinetId)}
+              >
+                ดูเพิ่มเติม ({groupedArray.length -
+                  (dropdownPage[cabinetId] || 1) * itemsPerDropdown}{" "}
+                รายการ)
+              </Button>
+            </div>
+          )}
+      </div>
+    );
+  };
+
   return (
     <>
       <Card className="border-slate-200/80 shadow-sm overflow-hidden rounded-xl">
@@ -150,9 +247,8 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                   currentMappings.map((mapping, index) => (
                     <Fragment key={mapping.id}>
                       <TableRow
-                        className={`cursor-pointer transition-colors ${
-                          selectedRow?.id === mapping.id ? "bg-blue-50/80" : "hover:bg-slate-50/80"
-                        }`}
+                        className={`cursor-pointer transition-colors ${selectedRow?.id === mapping.id ? "bg-blue-50/80" : "hover:bg-slate-50/80"
+                          }`}
                         onClick={() => handleRowClick(mapping)}
                       >
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -210,86 +306,7 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                                 <span className="ml-2 text-gray-600">กำลังโหลดข้อมูล...</span>
                               </div>
                             ) : itemStocks[mapping.cabinet_id]?.length > 0 ? (
-                              <div>
-                                <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
-                                  <Package className="h-4 w-4" />
-                                  รายการอุปกรณ์ในตู้ ({itemStocks[mapping.cabinet_id].length} รายการ)
-                                </h4>
-                                <div className="space-y-2">
-                                  {itemStocks[mapping.cabinet_id]
-                                    .slice(
-                                      0,
-                                      (dropdownPage[mapping.cabinet_id] || 1) * itemsPerDropdown
-                                    )
-                                    .map((stock, stockIndex) => (
-                                      <div
-                                        key={`mapping-${mapping.id}-stock-${stock.StockID}-${stockIndex}`}
-                                        className="border rounded-lg p-3 bg-white hover:shadow-sm transition-shadow"
-                                      >
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                                          <div>
-                                            <span className="text-gray-500">ลำดับ:</span>
-                                            <span className="ml-2 font-medium">{stockIndex + 1}</span>
-                                          </div>
-                                          <div>
-                                            <span className="text-gray-500">RFID:</span>
-                                            <span className="ml-2 font-medium">
-                                              {stock.RfidCode || "-"}
-                                            </span>
-                                          </div>
-                                          <div>
-                                            <span className="text-gray-500">รหัส:</span>
-                                            <span className="ml-2 font-medium">
-                                              {stock.item?.itemcode || stock.ItemCode || "-"}
-                                            </span>
-                                          </div>
-                                          <div>
-                                            <span className="text-gray-500">จำนวน:</span>
-                                            <span className="ml-2 font-medium">{stock.Qty || 0}</span>
-                                          </div>
-                                          <div>
-                                            <span className="text-gray-500">สถานะสต็อก:</span>
-                                            <span className="ml-2">
-                                              {stock.IsStock === true || (stock as { IsStock?: boolean | number }).IsStock === 1 ? (
-                                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
-                                                  อยู่ในตู้
-                                                </span>
-                                              ) : (
-                                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                                  ถูกเบิก
-                                                </span>
-                                              )}
-                                            </span>
-                                          </div>
-                                        </div>
-                                        <div className="mt-2 text-sm">
-                                          <span className="text-gray-500">ชื่ออุปกรณ์:</span>
-                                          <span className="ml-2">{stock.item?.itemname || "-"}</span>
-                                        </div>
-                                        <div className="mt-1 text-xs text-gray-500">
-                                          แก้ไขล่าสุด:{" "}
-                                          {stock.LastCabinetModify
-                                            ? new Date(stock.LastCabinetModify).toLocaleString("th-TH")
-                                            : "-"}
-                                        </div>
-                                      </div>
-                                    ))}
-                                </div>
-                                {itemStocks[mapping.cabinet_id].length >
-                                  (dropdownPage[mapping.cabinet_id] || 1) * itemsPerDropdown && (
-                                  <div className="mt-4 text-center">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleLoadMore(mapping.cabinet_id)}
-                                    >
-                                      ดูเพิ่มเติม ({itemStocks[mapping.cabinet_id].length -
-                                        (dropdownPage[mapping.cabinet_id] || 1) * itemsPerDropdown}{" "}
-                                      รายการ)
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
+                              renderGroupedItemStocks(mapping.cabinet_id, mapping.id)
                             ) : (
                               <div className="text-center py-4 text-gray-500">
                                 ไม่พบอุปกรณ์ในตู้นี้
@@ -348,9 +365,9 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
 
       {/* Selected Row Details Card */}
       {selectedRow && (
-        <CabinetDetailsCard 
-          selectedRow={selectedRow} 
-          onClose={() => setSelectedRow(null)} 
+        <CabinetDetailsCard
+          selectedRow={selectedRow}
+          onClose={() => setSelectedRow(null)}
         />
       )}
     </>
