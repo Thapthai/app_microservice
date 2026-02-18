@@ -1420,7 +1420,7 @@ export class GatewayApiController {
 
   @Post('medical-supply-items/record-stock-return')
   @UseGuards(FlexibleAuthGuard)
-  async recordStockReturn(@Body() data: { items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }>; return_by_user_id?: string }, @Request() req: any) {
+  async recordStockReturn(@Body() data: { items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }>; return_by_user_id?: string; stock_id?: number }, @Request() req: any) {
     try {
       if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
         throw new HttpException('items is required and must not be empty', HttpStatus.BAD_REQUEST);
@@ -1432,6 +1432,7 @@ export class GatewayApiController {
       const result = await this.gatewayApiService.recordStockReturns({
         items: data.items,
         return_by_user_id: String(returnByUserId),
+        stock_id: data.stock_id,
       });
       return result;
     } catch (error: any) {

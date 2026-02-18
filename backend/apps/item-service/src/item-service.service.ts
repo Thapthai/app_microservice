@@ -271,15 +271,25 @@ export class ItemServiceService {
         const isLowStock = stockMin > 0 && countItemStock < stockMin;
 
         // จำนวนที่แจ้งชำรุด/ไม่ถูกใช้งาน (จาก app_microservice_supply_item_return_records)
-        // ใช้ qty_returned จาก return_records โดยรวมทุกวันที่ (หรือเฉพาะ DAMAGED/CONTAMINATED ถ้าต้องการ)
         const damagedQty = damagedReturnMap.get(item.itemcode) ?? 0;
+        const qtyInUse = qtyInUseMap.get(item.itemcode) ?? 0;
+
+        // จำนวนที่ต้องเติม: M=Max, A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
+        const M = item.stock_max ?? 0;
+        const A = countItemStock;
+        const B = qtyInUse;
+        const C = damagedQty;
+        const X = M - A;
+        const Y = B + C;
+        const refillQty = X > Y ? X - Y : 0;
 
         const itemWithCount = {
           ...item,
           itemStocks: matchingItemStocks,
           count_itemstock: countItemStock,
-          qty_in_use: qtyInUseMap.get(item.itemcode) ?? 0,
+          qty_in_use: qtyInUse,
           damaged_qty: damagedQty,
+          refill_qty: refillQty,
         };
 
         return {
@@ -886,6 +896,10 @@ export class ItemServiceService {
     try {
       type Row = {
         ItemCode: string;
+        StockID: number;
+        cabinet_name: string | null;
+        cabinet_code: string | null;
+        department_name: string | null;
         itemname: string | null;
         withdraw_qty: number;
         used_qty: number;
@@ -897,6 +911,10 @@ export class ItemServiceService {
         FROM (
             SELECT
                 w.ItemCode,
+                w.StockID,
+                c.cabinet_name,
+                c.cabinet_code,
+                dept.DepName AS department_name,
                 i.itemname,
                 w.withdraw_qty,
                 COALESCE(u.used_qty, 0) AS used_qty,
@@ -907,29 +925,42 @@ export class ItemServiceService {
             FROM (
                 SELECT
                     ist.ItemCode,
-                    COUNT(*) AS withdraw_qty
+                    COUNT(*) AS withdraw_qty,
+                    ist.StockID
                 FROM itemstock ist
                 WHERE ist.IsStock = 0
                   AND DATE(ist.LastCabinetModify) = DATE(NOW())
-                GROUP BY ist.ItemCode
+                GROUP BY ist.StockID,
+                ist.ItemCode
             ) w
+            LEFT JOIN app_microservice_cabinets c ON c.stock_id = w.StockID
+            LEFT JOIN (
+                SELECT cabinet_id, MIN(department_id) AS department_id
+                FROM app_microservice_cabinet_departments
+                WHERE status = 'ACTIVE'
+                GROUP BY cabinet_id
+            ) cd ON cd.cabinet_id = c.id
+            LEFT JOIN department dept ON dept.ID = cd.department_id
             LEFT JOIN (
                 SELECT
                     sui.order_item_code AS ItemCode,
+                    msu.department_code,
                     SUM(sui.qty) AS used_qty
                 FROM app_microservice_supply_usage_items sui
-                WHERE DATE(sui.created_at) = DATE(NOW()) 
-                  AND sui.order_item_status != 'Discontinue'
-                GROUP BY sui.order_item_code
-            ) u ON u.ItemCode = w.ItemCode
+                INNER JOIN app_microservice_medical_supply_usages msu ON msu.id = sui.medical_supply_usage_id
+                WHERE DATE(sui.created_at) = DATE(NOW())
+                  AND (sui.order_item_status IS NULL OR sui.order_item_status != 'Discontinue')
+                GROUP BY sui.order_item_code, msu.department_code
+            ) u ON u.ItemCode = w.ItemCode AND (u.department_code COLLATE utf8mb4_unicode_ci = CAST(cd.department_id AS CHAR) COLLATE utf8mb4_unicode_ci)
             LEFT JOIN (
                 SELECT
                     srr.item_code AS ItemCode,
+                    srr.stock_id AS StockID,
                     SUM(srr.qty_returned) AS return_qty
                 FROM app_microservice_supply_item_return_records srr
                 WHERE DATE(srr.return_datetime) = DATE(NOW())
-                GROUP BY srr.item_code
-            ) r ON r.ItemCode = w.ItemCode
+                GROUP BY srr.item_code, srr.stock_id
+            ) r ON r.ItemCode = w.ItemCode AND r.StockID = w.StockID
             LEFT JOIN item i ON i.itemcode = w.ItemCode
         ) x
         WHERE x.max_available_qty > 0
@@ -938,6 +969,10 @@ export class ItemServiceService {
       // แปลง BigInt เป็น Number เพื่อให้ serialize ผ่าน TCP ได้ (JSON.stringify ไม่รองรับ BigInt)
       const data = result.map((row) => ({
         ItemCode: row.ItemCode,
+        StockID: Number(row.StockID),
+        cabinet_name: row.cabinet_name ?? null,
+        cabinet_code: row.cabinet_code ?? null,
+        department_name: row.department_name ?? null,
         itemname: row.itemname,
         withdraw_qty: Number(row.withdraw_qty),
         used_qty: Number(row.used_qty),

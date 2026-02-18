@@ -35,7 +35,17 @@ export default function ReturnHistoryTable({
 }: ReturnHistoryTableProps) {
   const [exportLoading, setExportLoading] = useState<'excel' | 'pdf' | null>(null);
 
-  if (!data) return null;
+  const rows = (data?.data ?? []) as ReturnHistoryRecord[];
+
+  if (!data) {
+    return (
+      <Card className="overflow-hidden border-0 shadow-sm bg-white rounded-xl">
+        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+          <p className="text-slate-500">กรุณากดค้นหาเพื่อดูประวัติการคืน</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleDownloadExcel = async () => {
     try {
@@ -126,6 +136,7 @@ export default function ReturnHistoryTable({
                 <TableHead className="w-14 text-center text-slate-600 font-medium">#</TableHead>
                 <TableHead className="text-slate-600 font-medium">รหัสอุปกรณ์</TableHead>
                 <TableHead className="text-slate-600 font-medium">ชื่ออุปกรณ์</TableHead>
+                <TableHead className="text-slate-600 font-medium">ตู้</TableHead>
                 <TableHead className="text-slate-600 font-medium">ชื่อผู้เติม</TableHead>
                 <TableHead className="text-center text-slate-600 font-medium w-24">จำนวน</TableHead>
                 <TableHead className="text-slate-600 font-medium">สาเหตุ</TableHead>
@@ -134,7 +145,7 @@ export default function ReturnHistoryTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.data?.map((record: ReturnHistoryRecord, index: number) => (
+              {rows.map((record: ReturnHistoryRecord, index: number) => (
                 <TableRow
                   key={record.id}
                   className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
@@ -147,6 +158,9 @@ export default function ReturnHistoryTable({
                   </TableCell>
                   <TableCell className="text-sm max-w-[200px]">
                     {record.supply_item?.order_item_description || record.supply_item?.supply_name || '-'}
+                  </TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">
+                    {[record.cabinet_name || record.cabinet_code, record.department_name].filter(Boolean).join(' / ') || '-'}
                   </TableCell>
                   <TableCell className="text-sm">{record.return_by_user_name || 'ไม่ระบุ'}</TableCell>
                   <TableCell className="text-center">
@@ -171,7 +185,7 @@ export default function ReturnHistoryTable({
           </Table>
         </div>
 
-        {data.data?.length === 0 && (
+        {rows.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="rounded-full bg-slate-100 p-4 mb-3">
               <FileText className="h-8 w-8 text-slate-400" />

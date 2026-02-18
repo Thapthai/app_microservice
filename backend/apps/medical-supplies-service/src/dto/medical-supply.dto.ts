@@ -436,6 +436,11 @@ export class RecordStockReturnDto {
 
   @IsString()
   return_by_user_id: string;
+
+  /** StockID (ตู้ที่คืน) — ใช้บันทึกใน SupplyItemReturnRecord */
+  @IsOptional()
+  @IsInt()
+  stock_id?: number;
 }
 
 // Query DTO สำหรับรายการที่รอดำเนินการ

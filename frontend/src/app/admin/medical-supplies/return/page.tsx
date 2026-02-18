@@ -25,9 +25,13 @@ import type { ReturnHistoryData } from './types';
 
 const ITEM_PAGE_SIZE = 15;
 
-/** รายการสรุปตาม ItemCode จาก GET /item-stocks/will-return */
+/** รายการจาก GET /item-stocks/will-return (แยกตามตู้ + ItemCode) */
 interface WillReturnItem {
   ItemCode: string;
+  StockID?: number;
+  cabinet_name?: string | null;
+  cabinet_code?: string | null;
+  department_name?: string | null;
   itemname: string | null;
   withdraw_qty: number;
   used_qty: number;
@@ -44,8 +48,9 @@ export default function ReturnMedicalSuppliesPage() {
   // รายการจาก /item-stocks/will-return (สรุปตาม ItemCode: max_available_qty)
   const [willReturnItems, setWillReturnItems] = useState<WillReturnItem[]>([]);
   const [loadingWillReturn, setLoadingWillReturn] = useState(false);
-  // ฟอร์มแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
+  // ฟอร์มแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน (เลือกตาม ItemCode + StockID เพื่อระบุตู้)
   const [selectedItemCode, setSelectedItemCode] = useState<string>('');
+  const [selectedStockID, setSelectedStockID] = useState<number | null>(null);
   const [qty, setQty] = useState<number>(1);
   const [reason, setReason] = useState<string>('UNWRAPPED_UNUSED');
   const [note, setNote] = useState<string>('');
@@ -63,7 +68,10 @@ export default function ReturnMedicalSuppliesPage() {
     return willReturnItems.filter(
       (i) =>
         (i.itemname ?? '').toLowerCase().includes(q) ||
-        (i.ItemCode ?? '').toLowerCase().includes(q),
+        (i.ItemCode ?? '').toLowerCase().includes(q) ||
+        (i.cabinet_code ?? '').toLowerCase().includes(q) ||
+        (i.cabinet_name ?? '').toLowerCase().includes(q) ||
+        (i.department_name ?? '').toLowerCase().includes(q),
     );
   }, [willReturnItems, itemSearch]);
 
@@ -128,7 +136,12 @@ export default function ReturnMedicalSuppliesPage() {
     new Date().toISOString().slice(0, 10)
   );
   const [returnHistoryReason, setReturnHistoryReason] = useState<string>('ALL');
-  const [returnHistoryData, setReturnHistoryData] = useState<ReturnHistoryData | null>(null);
+  const [returnHistoryData, setReturnHistoryData] = useState<ReturnHistoryData | null>({
+    data: [],
+    total: 0,
+    page: 1,
+    limit: 10,
+  });
   const [returnHistoryPage, setReturnHistoryPage] = useState(1);
   const [returnHistoryLimit] = useState(10);
 
@@ -152,7 +165,9 @@ export default function ReturnMedicalSuppliesPage() {
     loadWillReturnItems();
   }, [loadWillReturnItems]);
 
-  const selectedItem = willReturnItems.find((i) => i.ItemCode === selectedItemCode);
+  const selectedItem = willReturnItems.find(
+    (i) => i.ItemCode === selectedItemCode && (selectedStockID == null || i.StockID === selectedStockID),
+  );
   const maxQty = selectedItem?.max_available_qty ?? 0;
 
   const handleReturnSubmit = async () => {
@@ -195,6 +210,7 @@ export default function ReturnMedicalSuppliesPage() {
       const resp: any = await medicalSuppliesApi.recordStockReturn({
         items,
         return_by_user_id: user?.id != null ? `admin:${user.id}` : undefined,
+        ...(selectedItem?.StockID != null && { stock_id: selectedItem.StockID }),
       });
 
       if (resp?.success) {
@@ -203,6 +219,7 @@ export default function ReturnMedicalSuppliesPage() {
             `บันทึกการแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / ชำรุดสำเร็จ ${resp.updatedCount ?? items.length} รายการ`,
         );
         setSelectedItemCode('');
+        setSelectedStockID(null);
         setQty(1);
         setNote('');
         await loadWillReturnItems();
@@ -228,25 +245,21 @@ export default function ReturnMedicalSuppliesPage() {
       if (returnHistoryReason && returnHistoryReason !== 'ALL') params.return_reason = returnHistoryReason;
 
       const result = await medicalSuppliesApi.getReturnHistory(params);
-      if (result.success && result.data) {
-        setReturnHistoryData({
-          data: result.data,
-          total: (result as any).total || 0,
-          page: (result as any).page || returnHistoryPage,
-          limit: (result as any).limit || returnHistoryLimit,
-        });
-      } else if (result.data) {
-        setReturnHistoryData({
-          data: result.data,
-          total: (result as any).total || 0,
-          page: (result as any).page || returnHistoryPage,
-          limit: (result as any).limit || returnHistoryLimit,
-        });
-      } else {
-        toast.error('ไม่สามารถดึงข้อมูลประวัติการคืนได้');
-      }
+      const raw = result as { success?: boolean; data?: any[] | { data?: any[]; total?: number; page?: number; limit?: number }; total?: number; page?: number; limit?: number };
+      const list = Array.isArray(raw.data) ? raw.data : (raw.data && typeof raw.data === 'object' ? (raw.data as { data?: any[] }).data : undefined) ?? [];
+      const payload = raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data) ? (raw.data as { total?: number; page?: number; limit?: number }) : null;
+      const total = raw.total ?? payload?.total ?? 0;
+      const page = raw.page ?? payload?.page ?? returnHistoryPage;
+      const limitVal = raw.limit ?? payload?.limit ?? returnHistoryLimit;
+      setReturnHistoryData({
+        data: Array.isArray(list) ? list : [],
+        total: Number(total) || 0,
+        page: Number(page) || 1,
+        limit: Number(limitVal) || returnHistoryLimit,
+      });
     } catch (error: any) {
-      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+      toast.error(`เกิดข้อผิดพลาด: ${error?.message || error}`);
+      setReturnHistoryData({ data: [], total: 0, page: 1, limit: returnHistoryLimit });
     } finally {
       setHistoryLoading(false);
     }
@@ -321,7 +334,7 @@ export default function ReturnMedicalSuppliesPage() {
                 <CardContent className="space-y-6">
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-slate-500">
-                      เลือกรายการอุปกรณ์ (สรุปตามรหัส) แล้วระบุจำนวนสูงสุดที่แจ้งได้ตามค่าที่แสดง
+                      เลือกรายการอุปกรณ์ตามตู้และแผนก แล้วระบุจำนวนสูงสุดที่แจ้งได้ (แสดงชัดว่าอยู่ตู้ไหน)
                     </p>
                     <button
                       type="button"
@@ -363,13 +376,21 @@ export default function ReturnMedicalSuppliesPage() {
                           >
                             <span className="min-w-0 flex-1 truncate text-slate-800">
                               {selectedItem
-                                ? selectedItem.itemname ?? selectedItem.ItemCode
-                                : 'เลือกรายการอุปกรณ์'}
+                                ? (() => {
+                                    const name = selectedItem.itemname ?? selectedItem.ItemCode;
+                                    const cabinet = selectedItem.cabinet_code || selectedItem.cabinet_name;
+                                    const dept = selectedItem.department_name;
+                                    if (cabinet || dept)
+                                      return `${name} — ตู้ ${cabinet ?? '-'}${dept ? ` (แผนก ${dept})` : ''}`;
+                                    return name;
+                                  })()
+                                : 'เลือกรายการอุปกรณ์ (ระบุตู้)'}
                             </span>
                             <ChevronDown
                               className={cn('h-4 w-4 shrink-0 text-slate-400 transition-transform', itemDropdownOpen && 'rotate-180')}
                             />
                           </button>
+                      
                           {typeof document !== 'undefined' &&
                             itemDropdownOpen &&
                             itemDropdownRect &&
@@ -386,7 +407,7 @@ export default function ReturnMedicalSuppliesPage() {
                                   <div className="relative w-full">
                                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <Input
-                                      placeholder="ค้นหาชื่อหรือรหัส..."
+                                      placeholder="ค้นหาชื่อ, รหัส, ตู้ หรือแผนก..."
                                       value={itemSearch}
                                       onChange={(e) => setItemSearch(e.target.value)}
                                       className="h-9 w-full border-slate-200 bg-slate-50/50 pl-9 text-sm focus-visible:ring-2"
@@ -401,31 +422,43 @@ export default function ReturnMedicalSuppliesPage() {
                                     </div>
                                   ) : (
                                     <ul className="py-1">
-                                      {paginatedItems.map((item) => (
-                                        <li key={item.ItemCode}>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setSelectedItemCode(item.ItemCode);
-                                              setQty(Math.min(qty, item.max_available_qty || 1));
-                                              setItemDropdownOpen(false);
-                                              setItemSearch('');
-                                              setItemDropdownPage(0);
-                                            }}
-                                            className={cn(
-                                              'flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left transition-colors hover:bg-slate-50',
-                                              selectedItemCode === item.ItemCode && 'bg-emerald-50 hover:bg-emerald-50',
-                                            )}
-                                          >
-                                            <span className="line-clamp-2 text-sm font-medium text-slate-800">
-                                              {item.itemname ?? item.ItemCode}
-                                            </span>
-                                            <span className="text-xs text-slate-500">
-                                              {item.ItemCode} · สูงสุด {item.max_available_qty}
-                                            </span>
-                                          </button>
-                                        </li>
-                                      ))}
+                                      {paginatedItems.map((item) => {
+                                        const isSelected =
+                                          item.ItemCode === selectedItemCode &&
+                                          (item.StockID == null || item.StockID === selectedStockID);
+                                        const cabinetLabel = item.cabinet_code || item.cabinet_name || 'ตู้ไม่ระบุ';
+                                        const deptLabel = item.department_name ? `แผนก ${item.department_name}` : '';
+                                        return (
+                                          <li key={`${item.ItemCode}-${item.StockID ?? 0}`}>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setSelectedItemCode(item.ItemCode);
+                                                setSelectedStockID(item.StockID ?? null);
+                                                setQty(Math.min(qty, item.max_available_qty || 1));
+                                                setItemDropdownOpen(false);
+                                                setItemSearch('');
+                                                setItemDropdownPage(0);
+                                              }}
+                                              className={cn(
+                                                'flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left transition-colors hover:bg-slate-50',
+                                                isSelected && 'bg-emerald-50 hover:bg-emerald-50',
+                                              )}
+                                            >
+                                              <span className="line-clamp-2 text-sm font-medium text-slate-800">
+                                                {item.itemname ?? item.ItemCode}
+                                              </span>
+                                              <span className="text-xs font-medium text-blue-700">
+                                                ตู้: {cabinetLabel}
+                                                {deptLabel ? ` · ${deptLabel}` : ''}
+                                              </span>
+                                              <span className="text-xs text-slate-500">
+                                                {item.ItemCode} · สูงสุดแจ้งได้ {item.max_available_qty}
+                                              </span>
+                                            </button>
+                                          </li>
+                                        );
+                                      })}
                                     </ul>
                                   )}
                                 </div>
@@ -546,19 +579,17 @@ export default function ReturnMedicalSuppliesPage() {
                 onReasonChange={setReturnHistoryReason}
                 onSearch={fetchReturnHistory}
               />
-              {returnHistoryData && (
-                <ReturnHistoryTable
-                  data={returnHistoryData}
-                  currentPage={returnHistoryPage}
-                  limit={returnHistoryLimit}
-                  dateFrom={returnHistoryDateFrom}
-                  dateTo={returnHistoryDateTo}
-                  reason={returnHistoryReason}
-                  formatDate={formatDate}
-                  getReturnReasonLabel={getReturnReasonLabel}
-                  onPageChange={setReturnHistoryPage}
-                />
-              )}
+              <ReturnHistoryTable
+                data={returnHistoryData}
+                currentPage={returnHistoryPage}
+                limit={returnHistoryLimit}
+                dateFrom={returnHistoryDateFrom}
+                dateTo={returnHistoryDateTo}
+                reason={returnHistoryReason}
+                formatDate={formatDate}
+                getReturnReasonLabel={getReturnReasonLabel}
+                onPageChange={setReturnHistoryPage}
+              />
             </TabsContent>
           </Tabs>
         </div>

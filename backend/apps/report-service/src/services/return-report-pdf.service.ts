@@ -160,8 +160,8 @@ export class ReturnReportPdfService {
           doc.y += 18;
         }
 
-        // Table: 8 columns (ลำดับ, รหัส, ชื่อ, ชื่อผู้เติม, จำนวน, สาเหตุ, วันที่, หมายเหตุ)
-        const colPct = [0.06, 0.12, 0.22, 0.14, 0.08, 0.18, 0.10, 0.10];
+        // Table: 9 columns (ลำดับ, รหัส, ชื่อ, ตู้, ชื่อผู้เติม, จำนวน, สาเหตุ, วันที่, หมายเหตุ)
+        const colPct = [0.05, 0.10, 0.18, 0.14, 0.12, 0.07, 0.14, 0.09, 0.11];
         const colWidths = colPct.map((p) => Math.floor(contentWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
         if (sumW < contentWidth) {
@@ -171,6 +171,7 @@ export class ReturnReportPdfService {
           'ลำดับ',
           'รหัสอุปกรณ์',
           'ชื่ออุปกรณ์',
+          'ตู้',
           'ชื่อผู้เติม',
           'จำนวน',
           'สาเหตุ',
@@ -224,6 +225,8 @@ export class ReturnReportPdfService {
               record.supply_item?.order_item_description ||
               record.supply_item?.supply_name ||
               '-';
+            const cabinetDisplay =
+              [record.cabinet_name || record.cabinet_code, record.department_name].filter(Boolean).join(' / ') || '-';
             const returnByName = record.return_by_user_name ?? 'ไม่ระบุ';
             const returnDate =
               record.return_datetime instanceof Date
@@ -232,24 +235,25 @@ export class ReturnReportPdfService {
 
             const cellTexts = [
               String(index + 1),
-              String(itemCode).substring(0, 24),
-              String(itemName).substring(0, 24),
-              String(returnByName).substring(0, 14),
+              String(itemCode).substring(0, 20),
+              String(itemName).substring(0, 20),
+              String(cabinetDisplay).substring(0, 18),
+              String(returnByName).substring(0, 12),
               String(record.qty_returned),
-              this.getReturnReasonLabel(record.return_reason).substring(0, 38),
+              this.getReturnReasonLabel(record.return_reason).substring(0, 28),
               returnDate,
-              (record.return_note || '-').substring(0, 14),
+              (record.return_note || '-').substring(0, 12),
             ];
 
             let xPos = margin;
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 9; i++) {
               const cw = colWidths[i] ?? 0;
               const w = Math.max(4, cw - cellPadding * 2);
               doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');
               doc.fillColor('#333333');
               doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
                 width: w,
-                align: i === 1 || i === 2 || i === 3 || i === 7 ? 'left' : 'center',
+                align: i === 1 || i === 2 || i === 3 || i === 4 || i === 8 ? 'left' : 'center',
               });
               xPos += cw;
             }

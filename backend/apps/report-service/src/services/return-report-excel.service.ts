@@ -23,6 +23,9 @@ export interface ReturnReportData {
     return_by_user_id?: string;
     return_by_user_name?: string;
     return_note?: string;
+    cabinet_name?: string;
+    cabinet_code?: string;
+    department_name?: string;
     supply_item?: {
       order_item_code?: string;
       order_item_description?: string;
@@ -88,7 +91,7 @@ export class ReturnReportExcelService {
     worksheet.getRow(2).height = 20;
     worksheet.getColumn(1).width = 12;
 
-    worksheet.mergeCells('B1:H2');
+    worksheet.mergeCells('B1:I2');
     const headerCell = worksheet.getCell('B1');
     headerCell.value =
       'รายงานอุปกรณ์ที่ไม่ถูกใช้งาน\nReturn Report';
@@ -106,7 +109,7 @@ export class ReturnReportExcelService {
     };
 
     // แถว 3: วันที่รายงาน
-    worksheet.mergeCells('A3:H3');
+    worksheet.mergeCells('A3:I3');
     const dateCell = worksheet.getCell('A3');
     dateCell.value = `วันที่รายงาน: ${reportDate}`;
     dateCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF6C757D' } };
@@ -146,11 +149,13 @@ export class ReturnReportExcelService {
       const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA';
       const itemCode = record.supply_item?.order_item_code || record.supply_item?.supply_code || '-';
       const itemName = record.supply_item?.order_item_description || record.supply_item?.supply_name || '-';
+      const cabinetDisplay = [record.cabinet_name || record.cabinet_code, record.department_name].filter(Boolean).join(' / ') || '-';
       const returnByName = record.return_by_user_name ?? 'ไม่ระบุ';
       const cells = [
         idx + 1,
         itemCode,
         itemName,
+        cabinetDisplay,
         returnByName,
         record.qty_returned,
         this.getReturnReasonLabel(record.return_reason),
@@ -165,7 +170,7 @@ export class ReturnReportExcelService {
         cell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF212529' } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
         cell.alignment = {
-          horizontal: colIndex === 1 || colIndex === 2 || colIndex === 3 || colIndex === 7 ? 'left' : 'center',
+          horizontal: colIndex === 1 || colIndex === 2 || colIndex === 3 || colIndex === 4 || colIndex === 8 ? 'left' : 'center',
           vertical: 'middle',
         };
         cell.border = {
@@ -181,12 +186,13 @@ export class ReturnReportExcelService {
 
     worksheet.getColumn(1).width = 10;
     worksheet.getColumn(2).width = 18;
-    worksheet.getColumn(3).width = 32;
-    worksheet.getColumn(4).width = 18;
-    worksheet.getColumn(5).width = 14;
-    worksheet.getColumn(6).width = 28;
-    worksheet.getColumn(7).width = 18;
-    worksheet.getColumn(8).width = 24;
+    worksheet.getColumn(3).width = 28;
+    worksheet.getColumn(4).width = 22;
+    worksheet.getColumn(5).width = 18;
+    worksheet.getColumn(6).width = 14;
+    worksheet.getColumn(7).width = 28;
+    worksheet.getColumn(8).width = 18;
+    worksheet.getColumn(9).width = 24;
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);

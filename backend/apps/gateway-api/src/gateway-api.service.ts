@@ -298,6 +298,7 @@ export class GatewayApiService {
   async recordStockReturns(data: {
     items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }>;
     return_by_user_id: string;
+    stock_id?: number;
   }) {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_item.recordStockReturns' }, data).toPromise();
   }

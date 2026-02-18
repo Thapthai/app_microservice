@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileSpreadsheet, FileText, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -93,11 +93,12 @@ export default function ReturnHistoryTable({
               size="sm"
               onClick={handleDownloadExcel}
               disabled={exportLoading !== null}
+
             >
               {exportLoading === 'excel' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <FileSpreadsheet className="h-4 w-4" />
+                <Download className="h-4 w-4" />
               )}
               {exportLoading === 'excel' ? 'กำลังโหลด...' : 'Excel'}
             </Button>
@@ -110,7 +111,7 @@ export default function ReturnHistoryTable({
               {exportLoading === 'pdf' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <FileText className="h-4 w-4" />
+                <Download className="h-4 w-4" />
               )}
               {exportLoading === 'pdf' ? 'กำลังโหลด...' : 'PDF'}
             </Button>
@@ -125,6 +126,7 @@ export default function ReturnHistoryTable({
                 <TableHead className="w-14 text-center text-slate-600 font-medium">#</TableHead>
                 <TableHead className="text-slate-600 font-medium">รหัสอุปกรณ์</TableHead>
                 <TableHead className="text-slate-600 font-medium">ชื่ออุปกรณ์</TableHead>
+                <TableHead className="text-slate-600 font-medium">ตู้</TableHead>
                 <TableHead className="text-slate-600 font-medium">ชื่อผู้เติม</TableHead>
                 <TableHead className="text-center text-slate-600 font-medium w-24">จำนวน</TableHead>
                 <TableHead className="text-slate-600 font-medium">สาเหตุ</TableHead>
@@ -146,6 +148,9 @@ export default function ReturnHistoryTable({
                   </TableCell>
                   <TableCell className="text-sm max-w-[200px]">
                     {record.supply_item?.order_item_description || record.supply_item?.supply_name || '-'}
+                  </TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">
+                    {[record.cabinet_name || record.cabinet_code, record.department_name].filter(Boolean).join(' / ') || '-'}
                   </TableCell>
                   <TableCell className="text-sm">{record.return_by_user_name || 'ไม่ระบุ'}</TableCell>
                   <TableCell className="text-center">

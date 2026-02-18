@@ -23,7 +23,7 @@ interface ItemsTableProps {
   headerActions?: React.ReactNode;
 }
 
-const COLUMN_COUNT = 11;
+const COLUMN_COUNT = 12;
 const NEAR_EXPIRY_DAYS = 30;
 
 function isExpired(expireStr: string | null | undefined): boolean {
@@ -150,6 +150,7 @@ export default function ItemsTable({
                     <TableHead className="text-center">จำนวนอุปกรณ์ที่ถูกใช้งานในปัจจุบัน</TableHead>
                     <TableHead className="text-center">Min/Max</TableHead>
                     <TableHead className="text-center">ชำรุด</TableHead>
+                    <TableHead className="text-center">จำนวนที่ต้องเติม</TableHead>
                     <TableHead>สถานะ</TableHead>
 
                     <TableHead className="text-right">จัดการ</TableHead>
@@ -230,6 +231,11 @@ export default function ItemsTable({
                               ((item as any).damaged_qty ?? 0) > 0 && "text-amber-700"
                             )}>
                               {(item as any).damaged_qty ?? 0}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="font-medium text-slate-700">
+                              {(item as Item & { refill_qty?: number }).refill_qty ?? 0}
                             </span>
                           </TableCell>
                           <TableCell>{getStatusBadge(item.item_status)}</TableCell>

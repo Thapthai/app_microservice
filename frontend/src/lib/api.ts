@@ -392,6 +392,7 @@ export const medicalSuppliesApi = {
   recordStockReturn: async (data: {
     items: Array<{ item_stock_id: number; return_reason: string; return_note?: string }>;
     return_by_user_id?: string;
+    stock_id?: number;
   }): Promise<ApiResponse<any>> => {
     const response = await api.post('/medical-supply-items/record-stock-return', data);
     return response.data;

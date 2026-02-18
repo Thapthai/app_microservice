@@ -98,6 +98,8 @@ export interface Item {
   count_itemstock?: number;
   /** จำนวนอุปกรณ์ที่ถูกใช้งานในปัจจุบัน (จาก supply_usage_items) */
   qty_in_use?: number;
+  /** จำนวนที่ต้องเติม: X=M-A, Y=B+C; if X<Y then 0, if X>Y then X-Y */
+  refill_qty?: number;
 }
 
 export interface ItemStockRow {

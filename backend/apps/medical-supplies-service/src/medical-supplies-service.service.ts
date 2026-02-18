@@ -2043,7 +2043,7 @@ export class MedicalSuppliesServiceService {
       }
 
 
-      // SupplyItemReturnRecord เก็บ itemCode (อ้างอิง) — ไม่มี relation ไป ItemStock
+      // SupplyItemReturnRecord เก็บ itemCode (อ้างอิง) — include cabinet สำหรับแสดงตู้/แผนก
       const [records, total] = await Promise.all([
         this.prisma.supplyItemReturnRecord.findMany({
           where,
@@ -2051,6 +2051,16 @@ export class MedicalSuppliesServiceService {
           take: limit,
           orderBy: {
             return_datetime: 'desc',
+          },
+          include: {
+            cabinet: {
+              include: {
+                cabinetDepartments: {
+                  take: 1,
+                  include: { department: { select: { DepName: true } } },
+                },
+              },
+            },
           },
         }),
         this.prisma.supplyItemReturnRecord.count({ where }),
@@ -2120,10 +2130,18 @@ export class MedicalSuppliesServiceService {
         const itemName = ist?.item?.itemname ?? ist?.item?.itemcode ?? null;
         const itemCodeVal = ist?.ItemCode ?? ist?.item?.itemcode ?? record.itemCode ?? null;
 
+        const cab = record.cabinet;
+        const deptName =
+          cab?.cabinetDepartments?.[0]?.department?.DepName ?? undefined;
+
         return {
           id: record.id,
           item_stock_id: ist?.RowID ?? undefined,
           item_code: record.itemCode,
+          stock_id: record.stock_id ?? undefined,
+          cabinet_name: cab?.cabinet_name ?? undefined,
+          cabinet_code: cab?.cabinet_code ?? undefined,
+          department_name: deptName,
           qty_returned: record.qty_returned,
           return_reason: record.return_reason,
           return_datetime: record.return_datetime,
@@ -3783,16 +3801,24 @@ export class MedicalSuppliesServiceService {
 
       const rowIds = data.items.map((i) => i.item_stock_id);
 
+      const stockIdToUse = data.stock_id ?? null;
       await this.prisma.$transaction(async (tx) => {
         for (const item of data.items) {
           const stock = await tx.itemStock.findUnique({
             where: { RowID: item.item_stock_id },
-            select: { ItemCode: true },
+            select: { ItemCode: true, StockID: true },
           });
           const itemCode = stock?.ItemCode ?? '';
+          const recordStockId = stockIdToUse ?? stock?.StockID ?? 0;
+          if (recordStockId === 0) {
+            throw new BadRequestException(
+              `ไม่พบ stock_id สำหรับ RowID ${item.item_stock_id} กรุณาส่ง stock_id ใน request`,
+            );
+          }
           await tx.supplyItemReturnRecord.create({
             data: {
               itemCode,
+              stock_id: recordStockId,
               qty_returned: 1,
               return_reason: item.return_reason,
               return_by_user_id: data.return_by_user_id,

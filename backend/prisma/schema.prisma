@@ -77,7 +77,7 @@ model StaffUser {
   updated_at    DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  role StaffRole @relation(fields: [role_id], references: [id])
+  role       StaffRole   @relation(fields: [role_id], references: [id])
   department Department? @relation(fields: [department_id], references: [ID])
 
   @@index([role_id], name: "idx_role_id")
@@ -432,9 +432,10 @@ model SupplyUsageItem {
 
 // Supply Item Return Records - บันทึกรายการคืนอุปกรณ์แต่ละครั้ง
 model SupplyItemReturnRecord {
-  id       Int    @id @default(autoincrement())
-  // supply_usage_item_id Int @map("supply_usage_item_id")
+  id Int @id @default(autoincrement())
+
   itemCode String @map("item_code")
+  stock_id Int? @map("stock_id") // optional: รายการเก่าอาจไม่มี; ใช้ร่วมกับ cabinet.stock_id เมื่อมี
 
   // Return Details
   qty_returned      Int      @map("qty_returned") // จำนวนที่คืนในครั้งนี้
@@ -446,7 +447,11 @@ model SupplyItemReturnRecord {
   created_at DateTime @default(now()) @map("created_at")
   updated_at DateTime @updatedAt @map("updated_at")
 
+  // Relation: ระบุว่าคืนมาจากตู้ไหน (ผ่าน stock_id = cabinet.stock_id)
+  cabinet cabinet? @relation(fields: [stock_id], references: [stock_id])
+
   @@index([itemCode], map: "idx_return_itemCode")
+  @@index([stock_id])
   @@map("app_microservice_supply_item_return_records")
 }
 
@@ -609,8 +614,10 @@ model cabinet {
   stock_id           Int?                @unique() @map("stock_id")
   created_at         DateTime            @default(now()) @map("created_at")
   updated_at         DateTime            @updatedAt @map("updated_at")
+
   cabinetDepartments cabinetDepartment[]
   itemStocks         ItemStock[]
+  supplyItemReturnRecords SupplyItemReturnRecord[]
 
   @@map("app_microservice_cabinets")
 }

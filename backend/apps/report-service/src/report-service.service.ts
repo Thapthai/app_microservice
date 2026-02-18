@@ -2385,8 +2385,14 @@ export class ReportServiceService {
         const stockMin = row.stock_min != null ? Number(row.stock_min) : null;
         const qtyInUse = qtyInUseMap.get(row.item_code) ?? 0;
         const damagedQty = damagedReturnMap.get(row.item_code) ?? 0;
-        // จำนวนที่ต้องเติม = จำนวนอุปกรณ์ที่ถูกใช้งาน + ชำรุด
-        const refillQty = qtyInUse + damagedQty;
+        // จำนวนที่ต้องเติม: M=Max, A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
+        const M = stockMax ?? 0;
+        const A = balanceQty;
+        const B = qtyInUse;
+        const C = damagedQty;
+        const X = M - A;
+        const Y = B + C;
+        const refillQty = X > Y ? X - Y : 0;
         totalQty += balanceQty;
         totalRefillQty += refillQty;
         data.push({
