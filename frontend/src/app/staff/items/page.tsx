@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { staffItemsApi } from '@/lib/staffApi/itemsApi';
 import type { Item } from '@/types/item';
 import { toast } from 'sonner';
-import { Package, Plus, RefreshCw, FileSpreadsheet, FileText } from 'lucide-react';
+import { Package, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { staffReportApi } from '@/lib/staffApi/reportApi';
 import CreateItemDialog from './components/CreateItemDialog';
@@ -221,7 +221,7 @@ export default function ItemsPage() {
                 onClick={handleDownloadCabinetStockExcel}
                 disabled={reportLoading !== null}
               >
-                <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+                <Download className="h-4 w-4 mr-1.5" />
                 {reportLoading === 'excel' ? 'กำลังโหลด...' : 'Excel'}
               </Button>
               <Button
@@ -230,7 +230,7 @@ export default function ItemsPage() {
                 onClick={handleDownloadCabinetStockPdf}
                 disabled={reportLoading !== null}
               >
-                <FileText className="h-4 w-4 mr-1.5" />
+                <Download className="h-4 w-4 mr-1.5" />
                 {reportLoading === 'pdf' ? 'กำลังโหลด...' : 'PDF'}
               </Button>
             </div>

@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { RefreshCw, Package, XCircle, FileSpreadsheet, FileText } from 'lucide-react';
+import { RefreshCw, Package, XCircle, Download } from 'lucide-react';
 
 interface MedicalSuppliesTableProps {
   loading: boolean;
@@ -223,7 +223,7 @@ export default function MedicalSuppliesTable({
                 onClick={onExportExcel}
                 disabled={exportLoading !== undefined && exportLoading !== null}
               >
-                <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+                <Download className="h-4 w-4 mr-1.5" />
                 {exportLoading === 'excel' ? 'กำลังโหลด...' : 'Excel'}
               </Button>
             )}
@@ -234,7 +234,7 @@ export default function MedicalSuppliesTable({
                 onClick={onExportPdf}
                 disabled={exportLoading !== undefined && exportLoading !== null}
               >
-                <FileText className="h-4 w-4 mr-1.5" />
+                <Download className="h-4 w-4 mr-1.5" />
                 {exportLoading === 'pdf' ? 'กำลังโหลด...' : 'PDF'}
               </Button>
             )}

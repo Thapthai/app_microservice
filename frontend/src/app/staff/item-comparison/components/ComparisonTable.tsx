@@ -218,7 +218,7 @@ export default function ComparisonTable({
               variant="outline"
               size="sm"
             >
-              <FileText className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 mr-2" />
               Excel
             </Button>
             <Button
@@ -226,7 +226,7 @@ export default function ComparisonTable({
               variant="outline"
               size="sm"
             >
-              <FileText className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 mr-2" />
               PDF
             </Button>
           </div>

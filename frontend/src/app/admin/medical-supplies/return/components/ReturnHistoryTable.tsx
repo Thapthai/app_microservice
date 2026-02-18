@@ -98,7 +98,7 @@ export default function ReturnHistoryTable({
               {exportLoading === 'excel' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <FileSpreadsheet className="h-4 w-4" />
+                <Download className="h-4 w-4" />
               )}
               {exportLoading === 'excel' ? 'กำลังโหลด...' : 'Excel'}
             </Button>
@@ -111,7 +111,7 @@ export default function ReturnHistoryTable({
               {exportLoading === 'pdf' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <FileText className="h-4 w-4" />
+                <Download className="h-4 w-4" />
               )}
               {exportLoading === 'pdf' ? 'กำลังโหลด...' : 'PDF'}
             </Button>
