@@ -615,11 +615,29 @@ model cabinet {
   created_at         DateTime            @default(now()) @map("created_at")
   updated_at         DateTime            @updatedAt @map("updated_at")
 
-  cabinetDepartments cabinetDepartment[]
-  itemStocks         ItemStock[]
+  cabinetDepartments    cabinetDepartment[]
+  itemStocks            ItemStock[]
   supplyItemReturnRecords SupplyItemReturnRecord[]
+  cabinetItemSettings   CabinetItemSetting[]
 
   @@map("app_microservice_cabinets")
+}
+
+// Min/Max ต่อตู้ — override ของ item.stock_min/stock_max เมื่อมีแถวสำหรับ (cabinet_id, item_code)
+model CabinetItemSetting {
+  id          Int      @id @default(autoincrement())
+  cabinet_id  Int      @map("cabinet_id")
+  item_code   String   @map("item_code") @db.VarChar(25)
+  stock_min   Int?     @map("stock_min")
+  stock_max   Int?     @map("stock_max")
+  created_at  DateTime @default(now()) @map("created_at")
+  updated_at  DateTime @updatedAt @map("updated_at")
+
+  cabinet cabinet @relation(fields: [cabinet_id], references: [id], onDelete: Cascade)
+  @@unique([cabinet_id, item_code])
+  @@index([cabinet_id])
+  @@index([item_code])
+  @@map("app_microservice_cabinet_item_settings")
 }
 
 model cabinetDepartment {

@@ -95,7 +95,7 @@ export class CabinetStockReportExcelService {
 
     // ---- ตารางข้อมูล (แสดงก่อน สรุปผล/เงื่อนไข) ----
     const tableStartRow = 5;
-    const headers = ['ลำดับ', 'แผนก', 'รหัสอุปกรณ์', 'อุปกรณ์', 'จำนวนในตู้', 'จำนวนอุปกรณ์ที่ถูกใช้งาน', 'ชำรุด', 'Min / Max', 'จำนวนที่ต้องเติม'];
+    const headers = ['ลำดับ', 'แผนก', 'รหัสอุปกรณ์', 'อุปกรณ์', 'จำนวนในตู้', 'ถูกใช้งาน', 'ไม่ถูกใช้งาน', 'Min / Max', 'จำนวนที่ต้องเติม'];
     const headerRow = worksheet.getRow(tableStartRow);
     headers.forEach((h, i) => {
       const cell = headerRow.getCell(i + 1);
@@ -158,7 +158,7 @@ export class CabinetStockReportExcelService {
     const noteRow = footerRow + 1;
     worksheet.mergeCells(`A${noteRow}:I${noteRow}`);
     const noteCell = worksheet.getCell(`A${noteRow}`);
-    noteCell.value = 'หมายเหตุ: จำนวนในตู้ = จำนวนชิ้นในตู้ (IsStock=1) เท่านั้น | จำนวนอุปกรณ์ที่ถูกใช้งาน = จาก supply_usage_items วันที่รายงาน';
+    noteCell.value = 'หมายเหตุ: จำนวนในตู้ = จำนวนชิ้นในตู้ (IsStock=1) เท่านั้น | ถูกใช้งาน = จาก supply_usage_items วันที่รายงาน';
     noteCell.font = { name: 'Tahoma', size: 8, color: { argb: 'FF6C757D' } };
     noteCell.alignment = { horizontal: 'center', vertical: 'middle' };
     worksheet.getRow(noteRow).height = 16;

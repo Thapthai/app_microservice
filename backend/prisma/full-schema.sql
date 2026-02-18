@@ -540,6 +540,21 @@ CREATE TABLE IF NOT EXISTS `app_microservice_cabinets` (
   `updated_at` DATETIME(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Min/Max ต่อตู้ (override ต่อ cabinet + item_code)
+CREATE TABLE IF NOT EXISTS `app_microservice_cabinet_item_settings` (
+  `id` INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `cabinet_id` INTEGER NOT NULL,
+  `item_code` VARCHAR(25) NOT NULL,
+  `stock_min` INTEGER NULL,
+  `stock_max` INTEGER NULL,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL,
+  UNIQUE INDEX `app_microservice_cabinet_item_settings_cabinet_id_item_code_key`(`cabinet_id`, `item_code`),
+  INDEX `app_microservice_cabinet_item_settings_cabinet_id_idx`(`cabinet_id`),
+  INDEX `app_microservice_cabinet_item_settings_item_code_idx`(`item_code`),
+  CONSTRAINT `app_microservice_cabinet_item_settings_cabinet_id_fkey` FOREIGN KEY (`cabinet_id`) REFERENCES `app_microservice_cabinets`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- ===================================
 -- VERIFICATION QUERIES

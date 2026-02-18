@@ -235,8 +235,11 @@ export const itemsApi = {
     return response.data;
   },
 
-  updateMinMax: async (itemcode: string, data: { stock_min?: number; stock_max?: number }): Promise<ApiResponse<Item>> => {
-    const response = await api.patch(`/items/${itemcode}/minmax`, data);
+  updateMinMax: async (itemcode: string, data: { stock_min?: number; stock_max?: number }, cabinetId?: number): Promise<ApiResponse<Item>> => {
+    const url = cabinetId != null 
+      ? `/items/${itemcode}/minmax?cabinet_id=${cabinetId}`
+      : `/items/${itemcode}/minmax`;
+    const response = await api.patch(url, data);
     return response.data;
   },
 };

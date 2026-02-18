@@ -555,9 +555,14 @@ export class GatewayApiController {
   async updateItemMinMax(
     @Param('itemcode') itemcode: string,
     @Body() updateMinMaxDto: any,
+    @Query('cabinet_id') cabinet_id?: number,
     @Request() req: any
   ) {
     try {
+      // ถ้ามี cabinet_id จาก query string ให้ merge เข้าไปใน updateMinMaxDto
+      if (cabinet_id != null) {
+        updateMinMaxDto = { ...updateMinMaxDto, cabinet_id };
+      }
       const result = await this.gatewayApiService.updateItemMinMax(itemcode, updateMinMaxDto);
       return result;
     } catch (error) {

@@ -21,6 +21,7 @@ interface UpdateMinMaxDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item: Item | null;
+  cabinetId?: number;
   onSuccess: () => void;
 }
 
@@ -28,6 +29,7 @@ export default function UpdateMinMaxDialog({
   open,
   onOpenChange,
   item,
+  cabinetId,
   onSuccess,
 }: UpdateMinMaxDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -78,12 +80,17 @@ export default function UpdateMinMaxDialog({
       return;
     }
 
+    if (cabinetId == null || Number.isNaN(cabinetId)) {
+      toast.error('กรุณาเลือกตู้ก่อนจึงจะบันทึก Min/Max ได้');
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await itemsApi.updateMinMax(item.itemcode, formData);
+      const response = await itemsApi.updateMinMax(item.itemcode, formData, cabinetId);
 
       if (response.success) {
-        toast.success('อัปเดต Min/Max สำเร็จ');
+        toast.success('อัปเดต Min/Max ต่อตู้สำเร็จ');
         onOpenChange(false);
         onSuccess();
       } else {
@@ -103,11 +110,19 @@ export default function UpdateMinMaxDialog({
         <DialogHeader>
           <DialogTitle>อัปเดต Min/Max</DialogTitle>
           <DialogDescription>
-            ตั้งค่าจำนวนขั้นต่ำและสูงสุดของสินค้า
+            ตั้งค่าจำนวนขั้นต่ำและสูงสุดของสินค้าต่อตู้ (ต้องเลือกตู้ก่อนจึงจะบันทึกได้)
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ต้องเลือกตู้ */}
+          {(cabinetId == null || Number.isNaN(cabinetId)) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-amber-800">กรุณาเลือกตู้ใน Filter ด้านบนก่อน จึงจะบันทึก Min/Max ได้</p>
+            </div>
+          )}
+
           {/* Item Info */}
           <div className="bg-blue-50 p-3 rounded-lg space-y-2">
             <div className="text-sm">
@@ -213,7 +228,10 @@ export default function UpdateMinMaxDialog({
             >
               ยกเลิก
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="submit"
+              disabled={loading || cabinetId == null || Number.isNaN(cabinetId)}
+            >
               {loading ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
           </DialogFooter>

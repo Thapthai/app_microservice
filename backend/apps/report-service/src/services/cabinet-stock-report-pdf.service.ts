@@ -135,7 +135,7 @@ export class CabinetStockReportPdfService {
         const colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
         if (sumW < totalTableWidth) colWidths[3] += totalTableWidth - sumW;
-        const headers = ['ลำดับ', 'แผนก', 'รหัสอุปกรณ์', 'อุปกรณ์', 'จำนวนในตู้', 'จำนวนอุปกรณ์ที่ถูกใช้งาน', 'ชำรุด', 'Min / Max', 'จำนวนที่ต้องเติม'];
+        const headers = ['ลำดับ', 'แผนก', 'รหัสอุปกรณ์', 'อุปกรณ์', 'จำนวนในตู้', 'ถูกใช้งาน', 'ไม่ถูกใช้งาน', 'Min / Max', 'จำนวนที่ต้องเติม'];
 
         const drawTableHeader = (y: number) => {
           let x = margin;

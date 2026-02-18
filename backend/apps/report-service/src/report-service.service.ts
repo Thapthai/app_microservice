@@ -2077,24 +2077,52 @@ export class ReportServiceService {
   }
 
   /**
-   * ดึงชื่อแผนกและชื่อตู้จาก app_microservice_cabinet_departments + cabinets + department
+   * ดึงชื่อแผนกและชื่อตู้ — cabinetId ว่าง = ตู้ทั้งหมด, departmentId ว่าง = แผนกทั้งหมด
    */
   private async getCabinetDepartmentLabels(
     cabinetId?: string,
     departmentId?: string,
   ): Promise<{ cabinetName?: string; departmentName?: string }> {
-    if (!cabinetId || !departmentId) return {};
-    const cabId = parseInt(cabinetId, 10);
-    const deptId = parseInt(departmentId, 10);
-    if (Number.isNaN(cabId) || Number.isNaN(deptId)) return {};
+    const hasCab = cabinetId != null && String(cabinetId).trim() !== '';
+    const hasDept = departmentId != null && String(departmentId).trim() !== '';
+    if (!hasCab && !hasDept) return {};
+
     try {
-      const cd = await this.prisma.cabinetDepartment.findFirst({
-        where: { cabinet_id: cabId, department_id: deptId },
-        include: { cabinet: true, department: true },
+      if (hasCab && hasDept) {
+        const cabId = parseInt(String(cabinetId).trim(), 10);
+        const deptId = parseInt(String(departmentId).trim(), 10);
+        if (Number.isNaN(cabId) || Number.isNaN(deptId)) return {};
+        const cd = await this.prisma.cabinetDepartment.findFirst({
+          where: { cabinet_id: cabId, department_id: deptId },
+          include: { cabinet: true, department: true },
+        });
+        return {
+          cabinetName: cd?.cabinet?.cabinet_name ?? undefined,
+          departmentName: cd?.department?.DepName ?? undefined,
+        };
+      }
+      if (hasCab) {
+        const cabId = parseInt(String(cabinetId).trim(), 10);
+        if (Number.isNaN(cabId)) return {};
+        const cabinet = await this.prisma.cabinet.findUnique({
+          where: { id: cabId },
+          select: { cabinet_name: true },
+        });
+        return {
+          cabinetName: cabinet?.cabinet_name ?? undefined,
+          departmentName: undefined,
+        };
+      }
+      // !cabinetId && departmentId → แผนกที่เลือก, ตู้ = ทั้งหมด
+      const deptId = parseInt(String(departmentId).trim(), 10);
+      if (Number.isNaN(deptId)) return {};
+      const department = await this.prisma.department.findUnique({
+        where: { ID: deptId },
+        select: { DepName: true },
       });
       return {
-        cabinetName: cd?.cabinet?.cabinet_name ?? undefined,
-        departmentName: cd?.department?.DepName ?? undefined,
+        cabinetName: undefined,
+        departmentName: department?.DepName ?? undefined,
       };
     } catch {
       return {};
@@ -2331,8 +2359,34 @@ export class ReportServiceService {
 
       const rows = await query;
 
-      // จำนวนอุปกรณ์ที่ถูกใช้งานวันนี้ (จาก supply_usage_items) — นับเฉพาะรายการที่ไม่เป็น Discontinue ให้ตรงกับหน้าเว็บ
       const itemCodes = [...new Set((rows as any[]).map((r) => r.item_code).filter(Boolean))];
+
+      // Min/Max จาก CabinetItemSetting เท่านั้น (ให้ตรงกับหน้าเว็บ) — โหลดเมื่อมี cabinet
+      let cabinetIdForMinMax: number | null = null;
+      if (params?.cabinetId != null) {
+        cabinetIdForMinMax = params.cabinetId;
+      } else if (params?.cabinetCode) {
+        const cab = await this.prisma.cabinet.findFirst({
+          where: { cabinet_code: params.cabinetCode },
+          select: { id: true },
+        });
+        if (cab?.id != null) cabinetIdForMinMax = cab.id;
+      }
+      const overrideMap = new Map<string, { stock_min: number | null; stock_max: number | null }>();
+      if (cabinetIdForMinMax != null && itemCodes.length > 0) {
+        const overrides = await this.prisma.cabinetItemSetting.findMany({
+          where: { cabinet_id: cabinetIdForMinMax, item_code: { in: itemCodes } },
+          select: { item_code: true, stock_min: true, stock_max: true },
+        });
+        overrides.forEach((o) => {
+          overrideMap.set(o.item_code, {
+            stock_min: o.stock_min ?? null,
+            stock_max: o.stock_max ?? null,
+          });
+        });
+      }
+
+      // จำนวนอุปกรณ์ที่ถูกใช้งานวันนี้ (จาก supply_usage_items) — นับเฉพาะรายการที่ไม่เป็น Discontinue ให้ตรงกับหน้าเว็บ
       const qtyInUseMap = new Map<string, number>();
       if (itemCodes.length > 0) {
         const qtyInUseRows = await this.prisma.$queryRaw<{ order_item_code: string; qty_in_use: bigint }[]>`
@@ -2453,8 +2507,10 @@ export class ReportServiceService {
       let totalRefillQty = 0;
       for (const row of rows) {
         const balanceQty = Number(row.balance_qty ?? 0);
-        const stockMax = row.stock_max != null ? Number(row.stock_max) : null;
-        const stockMin = row.stock_min != null ? Number(row.stock_min) : null;
+        // Min/Max จาก CabinetItemSetting เท่านั้น (เหมือนหน้าเว็บ)
+        const override = overrideMap.get(row.item_code);
+        const stockMin = override?.stock_min ?? null;
+        const stockMax = override?.stock_max ?? null;
         const qtyInUse = qtyInUseMap.get(row.item_code) ?? 0;
         const damagedQty =
           params?.cabinetId != null || params?.cabinetCode || params?.departmentId != null
@@ -2478,7 +2534,7 @@ export class ReportServiceService {
           balance_qty: balanceQty,
           qty_in_use: qtyInUse,
           damaged_qty: damagedQty,
-          stock_max: row.stock_max != null ? Number(row.stock_max) : null,
+          stock_max: stockMax,
           stock_min: stockMin,
           refill_qty: refillQty,
         });

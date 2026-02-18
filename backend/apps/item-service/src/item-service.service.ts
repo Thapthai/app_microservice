@@ -256,6 +256,21 @@ export class ItemServiceService {
         }
       }
 
+      // Override min/max ต่อตู้: โหลด CabinetItemSetting เมื่อมี cabinet_id
+      const overrideMap = new Map<string, { stock_min?: number | null; stock_max?: number | null }>();
+      if (cabinet_id != null && itemCodes.length > 0) {
+        const overrides = await this.prisma.cabinetItemSetting.findMany({
+          where: {
+            cabinet_id,
+            item_code: { in: itemCodes },
+          },
+          select: { item_code: true, stock_min: true, stock_max: true },
+        });
+        overrides.forEach((o) => {
+          overrideMap.set(o.item_code, { stock_min: o.stock_min, stock_max: o.stock_max });
+        });
+      }
+
       const now = new Date();
       const in7Days = new Date(now);
       in7Days.setDate(in7Days.getDate() + 7);
@@ -295,7 +310,11 @@ export class ItemServiceService {
           }
         });
 
-        const stockMin = item.stock_min ?? 0;
+        // ดึง min/max จาก CabinetItemSetting เท่านั้น (ไม่ใช้ Item)
+        const override = overrideMap.get(item.itemcode);
+        const effectiveStockMin = override?.stock_min ?? null;
+        const effectiveStockMax = override?.stock_max ?? null;
+        const stockMin = effectiveStockMin ?? 0;
         const isLowStock = stockMin > 0 && countItemStock < stockMin;
 
         // จำนวนที่แจ้งชำรุด (อ้างอิงตู้/stock_id) — กรองตู้แล้วใช้ของตู้นั้น; ไม่กรองตู้แล้วใช้ของตู้แรกเท่านั้น (ไม่ sum หลายตู้เพราะจะทำให้ค่าเพี้ยน เช่น 10 ตู้ × 6 = 60)
@@ -313,16 +332,18 @@ export class ItemServiceService {
         const qtyInUse = qtyInUseMap.get(item.itemcode) ?? 0;
 
         // จำนวนที่ต้องเติม: M=Max, A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
-        const M = item.stock_max ?? 0;
+        const M = effectiveStockMax;
         const A = countItemStock;
         const B = qtyInUse;
         const C = damagedQty;
-        const X = M - A;
+        const X = M ? M - A : 0;
         const Y = B + C;
         const refillQty = X > Y ? X - Y : 0;
 
         const itemWithCount = {
           ...item,
+          stock_min: effectiveStockMin,
+          stock_max: effectiveStockMax,
           itemStocks: matchingItemStocks,
           count_itemstock: countItemStock,
           qty_in_use: qtyInUse,
@@ -719,25 +740,43 @@ export class ItemServiceService {
         }
       }
 
-      // Remove undefined values
-      const cleanData = Object.fromEntries(
-        Object.entries(updateMinMaxDto).filter(
-          ([_, value]) => value !== undefined,
-        ),
-      ) as any;
+      // อัปเดตเฉพาะ CabinetItemSetting เท่านั้น (ต้องส่ง cabinet_id)
+      const cabinetId = updateMinMaxDto.cabinet_id;
+      if (cabinetId == null) {
+        return {
+          success: false,
+          message: 'cabinet_id is required to update min/max',
+        };
+      }
 
-      // Add ModiflyDate
-      cleanData.ModiflyDate = new Date();
+      const overrideData: { stock_min?: number; stock_max?: number } = {};
+      if (updateMinMaxDto.stock_min !== undefined) overrideData.stock_min = updateMinMaxDto.stock_min;
+      if (updateMinMaxDto.stock_max !== undefined) overrideData.stock_max = updateMinMaxDto.stock_max;
 
-      const updatedItem = await this.prisma.item.update({
-        where: { itemcode },
-        data: cleanData,
+      const row = await this.prisma.cabinetItemSetting.upsert({
+        where: {
+          cabinet_id_item_code: { cabinet_id: cabinetId, item_code: itemcode },
+        },
+        create: {
+          cabinet_id: cabinetId,
+          item_code: itemcode,
+          stock_min: overrideData.stock_min ?? null,
+          stock_max: overrideData.stock_max ?? null,
+        },
+        update: {
+          ...(overrideData.stock_min !== undefined && { stock_min: overrideData.stock_min }),
+          ...(overrideData.stock_max !== undefined && { stock_max: overrideData.stock_max }),
+        },
       });
 
       return {
         success: true,
-        message: 'Item min/max updated successfully',
-        data: updatedItem,
+        message: 'Item min/max updated successfully (per cabinet)',
+        data: {
+          itemcode,
+          stock_min: row.stock_min,
+          stock_max: row.stock_max,
+        },
       };
     } catch (error) {
       console.error('❌ Update min/max error:', error.message);

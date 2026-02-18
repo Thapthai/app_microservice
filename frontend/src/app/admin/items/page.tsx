@@ -250,6 +250,10 @@ export default function ItemsPage() {
           open={showMinMaxDialog}
           onOpenChange={setShowMinMaxDialog}
           item={selectedItem}
+          cabinetId={activeFilters.cabinetId ? (() => {
+            const n = parseInt(activeFilters.cabinetId, 10);
+            return Number.isNaN(n) ? undefined : n;
+          })() : undefined}
           onSuccess={fetchItems}
         />
       </AppLayout>
