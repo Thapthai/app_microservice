@@ -4,9 +4,11 @@ import type { ApiResponse } from '@/types/common';
 export const itemComparisonApi = {
   compareDispensedVsUsage: async (query?: {
     itemCode?: string;
+    keyword?: string;
     itemTypeId?: number;
     startDate?: string;
     endDate?: string;
+    departmentCode?: string;
     page?: number;
     limit?: number;
   }): Promise<ApiResponse<any>> => {

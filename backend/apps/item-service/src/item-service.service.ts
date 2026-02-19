@@ -96,15 +96,32 @@ export class ItemServiceService {
 
       // Filter by cabinet_id if provided (เก็บ cabinetStockId สำหรับอ้างอิงจำนวนชุดรุดต่อตู้)
       let cabinetStockId: number | null = null;
+      // department_codes สำหรับกรอง qty_in_use (จาก MedicalSupplyUsage.department_code)
+      let deptCodesForUsage: string[] | null = null;
+
       if (cabinet_id) {
         const cabinet = await this.prisma.cabinet.findUnique({
           where: { id: cabinet_id },
-          select: { stock_id: true },
+          select: {
+            stock_id: true,
+            cabinetDepartments: {
+              where: { status: 'ACTIVE' },
+              select: { department_id: true },
+            },
+          },
         });
         if (cabinet?.stock_id) {
           cabinetStockId = cabinet.stock_id;
           itemStocksWhere.StockID = cabinet.stock_id;
         }
+        // รวบรวม department_code จาก cabinetDepartments ของตู้นี้
+        if (cabinet?.cabinetDepartments?.length) {
+          deptCodesForUsage = cabinet.cabinetDepartments
+            .map((cd) => String(cd.department_id))
+            .filter(Boolean);
+        }
+      } else if (department_id) {
+        deptCodesForUsage = [String(department_id)];
       }
 
       // Get all items matching the filter criteria (including keyword search)
@@ -181,21 +198,30 @@ export class ItemServiceService {
       });
 
       // จำนวนอุปกรณ์ที่ถูกใช้งานในปัจจุบัน (จาก supply_usage_items: qty - qty_used_with_patient - qty_returned_to_cabinet)
-      // นับเฉพาะรายการที่ไม่เป็น Discontinue
+      // นับเฉพาะรายการที่ไม่เป็น Discontinue และกรองตาม department_code ของ MedicalSupplyUsage
       const itemCodes = filteredItems.map((i: any) => i.itemcode).filter(Boolean);
       const qtyInUseMap = new Map<string, number>();
       if (itemCodes.length > 0) {
+        // สร้าง condition สำหรับ department_code (JOIN กับ MedicalSupplyUsage)
+        const deptCondition =
+          deptCodesForUsage && deptCodesForUsage.length > 0
+            ? Prisma.sql`AND msu.department_code IN (${Prisma.join(deptCodesForUsage.map((c) => Prisma.sql`${c}`))})`
+            : Prisma.empty;
+
         const qtyInUseRows = await this.prisma.$queryRaw<
           { order_item_code: string; qty_in_use: bigint }[]
-        >` SELECT
+        >`SELECT
             sui.order_item_code,
             SUM(COALESCE(sui.qty, 0) - COALESCE(sui.qty_used_with_patient, 0) - COALESCE(sui.qty_returned_to_cabinet, 0)) AS qty_in_use
           FROM app_microservice_supply_usage_items sui
+          INNER JOIN app_microservice_medical_supply_usages msu
+            ON sui.medical_supply_usage_id = msu.id
           WHERE sui.order_item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
             AND sui.order_item_code IS NOT NULL
             AND sui.order_item_code != ''
-            AND date(sui.created_at) = date(now())
-            AND sui.order_item_status != 'Discontinue' 
+            AND DATE(sui.created_at) = CURDATE()
+            AND sui.order_item_status != 'Discontinue'
+            ${deptCondition}
           GROUP BY sui.order_item_code
         `;
         qtyInUseRows.forEach((row) => {
@@ -221,7 +247,7 @@ export class ItemServiceService {
               AND (srr.stock_id = ${cabinetStockId})
             GROUP BY srr.item_code
           `;
-        
+
           damagedRows.forEach((row) => {
             const val = Number(row.total_returned ?? 0);
             if (val > 0) damagedReturnMap.set(row.item_code, val);
@@ -241,7 +267,7 @@ export class ItemServiceService {
               AND srr.stock_id IS NOT NULL
             GROUP BY srr.item_code, srr.stock_id
           `;
-         
+
           damagedRows.forEach((row) => {
             const val = Number(row.total_returned ?? 0);
             if (val > 0) {
@@ -323,18 +349,32 @@ export class ItemServiceService {
             ? (damagedReturnMap.get(`${item.itemcode}:${firstStock.StockID}`) ?? 0)
             : 0;
         }
- 
- 
+
+
         const qtyInUse = qtyInUseMap.get(item.itemcode) ?? 0;
 
         // จำนวนที่ต้องเติม: M=Max (จาก CabinetItemSetting), A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
         const M = effectiveStockMax ?? 0; // ใช้ effectiveStockMax จาก CabinetItemSetting (ถ้า null ใช้ 0)
         const A = countItemStock;
+
         const B = qtyInUse;
         const C = damagedQty;
-        const X = M - A;
-        const Y = B + C;
-        const refillQty = X > Y ? X - Y : 0;
+
+        const X = M - A; // จำนวนที่ต้องเติมในตู้
+        const Y = B + C; // จำนวนที่ถูกใช้งาน + ชำรุด
+
+        // จำนวนที่ต้องเติมในตู้ ให้เติม Y
+        let refillQty = Y;
+
+        // ถ้า X < Y แสดงว่า จำนวนที่ต้องเติมในตู้น้อยกว่า จำนวนที่ถูกใช้งาน + ชำรุด ให้เติม X
+        if (X < Y) {
+          refillQty = X;
+        }
+        // ถ้า X > Y แสดงว่า จำนวนที่ต้องเติมในตู้มากกว่า จำนวนที่ถูกใช้งาน + ชำรุด ให้เติม X - Y
+        else if (X > Y && Y == 0) {
+          refillQty = X - Y;
+          // refillQty = Y;
+        }
 
         const itemWithCount = {
           ...item,

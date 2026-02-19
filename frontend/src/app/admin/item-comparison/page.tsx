@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { medicalSuppliesApi } from '@/lib/api';
+import { medicalSuppliesApi, departmentApi } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import { toast } from 'sonner';
@@ -32,13 +32,15 @@ export default function ItemComparisonPage() {
   const [selectedItemCode, setSelectedItemCode] = useState<string | null>(null);
   const [comparisonList, setComparisonList] = useState<ComparisonItem[]>([]);
   const [filteredList, setFilteredList] = useState<ComparisonItem[]>([]);
-  
+  const [departments, setDepartments] = useState<{ ID: number; DepName: string }[]>([]);
+
   // Filters - default to today's date
   const [filters, setFilters] = useState<FilterState>({
     searchItemCode: '',
     startDate: getTodayDate(),
     endDate: getTodayDate(),
     itemTypeFilter: 'all',
+    departmentCode: '',
   });
 
   // Pagination for comparison list
@@ -50,8 +52,20 @@ export default function ItemComparisonPage() {
   useEffect(() => {
     if (user?.id) {
       fetchComparisonList();
+      fetchDepartments();
     }
   }, [user?.id]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await departmentApi.getAll({ limit: 1000 });
+      if (res.success && Array.isArray(res.data)) {
+        setDepartments(res.data.map((d: any) => ({ ID: d.ID, DepName: d.DepName || d.DepName2 || String(d.ID) })));
+      }
+    } catch {
+      // ไม่แสดง error ถ้าโหลดแผนกไม่ได้
+    }
+  };
 
   const fetchComparisonList = async (page: number = 1, customFilters?: FilterState) => {
     try {
@@ -67,6 +81,7 @@ export default function ItemComparisonPage() {
       if (activeFilters.itemTypeFilter && activeFilters.itemTypeFilter !== 'all') {
         params.itemTypeId = parseInt(activeFilters.itemTypeFilter);
       }
+      if (activeFilters.departmentCode) params.departmentCode = activeFilters.departmentCode;
 
       const response = await medicalSuppliesApi.compareDispensedVsUsage(params);
 
@@ -142,6 +157,7 @@ export default function ItemComparisonPage() {
       startDate: getTodayDate(),
       endDate: getTodayDate(),
       itemTypeFilter: 'all',
+      departmentCode: '',
     };
     setFilters(clearedFilters);
     setCurrentPage(1);
@@ -232,6 +248,7 @@ export default function ItemComparisonPage() {
             onClear={handleClearSearch}
             onRefresh={() => fetchComparisonList(currentPage)}
             itemTypes={getItemTypes()}
+            departments={departments}
             loading={loadingList}
             items={comparisonList}
           />

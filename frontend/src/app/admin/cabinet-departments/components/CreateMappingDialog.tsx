@@ -4,12 +4,10 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import SearchableSelect from "./SearchableSelect";
-import { cabinetApi, departmentApi, itemStockApi } from "@/lib/api";
+import { cabinetApi, departmentApi } from "@/lib/api";
 
 interface Department {
   ID: number;
@@ -94,12 +92,12 @@ export default function CreateMappingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="shrink-0">
           <DialogTitle>เพิ่มการเชื่อมโยงใหม่</DialogTitle>
           <DialogDescription>เชื่อมโยงตู้ Cabinets กับแผนก</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 py-4 overflow-y-auto flex-1 pr-1">
           <SearchableSelect
             label="ตู้ Cabinets"
             placeholder="เลือกตู้"
@@ -137,16 +135,14 @@ export default function CreateMappingDialog({
 
           <div>
             <Label>หมายเหตุ</Label>
-            <Textarea
+            <Input
               placeholder="หมายเหตุ..."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="resize-none"
             />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             ยกเลิก
           </Button>

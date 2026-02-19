@@ -178,9 +178,9 @@ export class MedicalSuppliesServiceService {
       const deptRecord = isNaN(deptIdNum)
         ? null
         : await this.prisma.department.findUnique({
-            where: { ID: deptIdNum },
-            select: { ID: true, DepName: true, DepName2: true },
-          });
+          where: { ID: deptIdNum },
+          select: { ID: true, DepName: true, DepName2: true },
+        });
       if (!deptRecord) {
         throw new BadRequestException(
           `ไม่พบแผนก (department_code: ${departmentCode}) ในระบบ`,
@@ -2091,9 +2091,9 @@ export class MedicalSuppliesServiceService {
       const stocks =
         itemCodes.length > 0
           ? await this.prisma.itemStock.findMany({
-              where: { ItemCode: { in: itemCodes } },
-              include: { item: { select: { itemcode: true, itemname: true } } },
-            })
+            where: { ItemCode: { in: itemCodes } },
+            include: { item: { select: { itemcode: true, itemname: true } } },
+          })
           : [];
       const stockByCode = new Map<string | null, (typeof stocks)[0]>();
       for (const s of stocks) {
@@ -2559,7 +2559,7 @@ export class MedicalSuppliesServiceService {
         LIMIT ${limit}
         OFFSET ${offset}
       `;
- 
+
 
       // Convert BigInt to Number for JSON serialization
       const result = returnedItems.map(item => ({
@@ -3182,17 +3182,44 @@ export class MedicalSuppliesServiceService {
           Prisma.raw(`(DATE(LastCabinetModify) BETWEEN '${filters.startDate}' AND '${filters.endDate}')`)
         );
       }
-
+ 
       sqlConditionsUsage.push(
-        Prisma.raw(`order_item_status != 'Discontinue' 
-          AND order_item_status != 'discontinue' 
-          AND order_item_status != 'Discontinued' 
-          AND order_item_status != 'discontinued'
-          AND order_item_status != 'Discontinue'
-          AND order_item_status != 'discontinue'
-          AND order_item_status != 'Discontinued'
-          AND order_item_status != 'discontinued'`)
+        Prisma.raw(`order_item_status NOT IN ('Discontinue', 'discontinue', 'Discontinued', 'discontinued')`)
       );
+
+      // กรองตาม department_code: หา stock_ids จาก cabinet_departments → cabinets
+      if (filters?.departmentCode && filters.departmentCode.trim()) {
+        const deptIdNum = parseInt(filters.departmentCode.trim(), 10);
+        const deptCode = filters.departmentCode.trim().replace(/'/g, "''");
+
+        // 1. กรอง supply_usage_items ตาม department_code ใน MedicalSupplyUsage
+        sqlConditionsUsage.push(
+          Prisma.raw(
+            `EXISTS (SELECT 1 FROM app_microservice_medical_supply_usages msu WHERE msu.id = medical_supply_usage_id AND msu.department_code = '${deptCode}')`,
+          ),
+        );
+
+        // 2. กรอง itemstock ตาม StockID ของตู้ที่ผูกกับแผนกนั้น
+        if (!Number.isNaN(deptIdNum)) {
+          const cabinetRows = await this.prisma.$queryRaw<{ stock_id: number }[]>`
+            SELECT c.stock_id
+            FROM app_microservice_cabinet_departments cd
+            INNER JOIN app_microservice_cabinets c ON c.id = cd.cabinet_id
+            WHERE cd.department_id = ${deptIdNum}
+              AND c.stock_id IS NOT NULL
+              AND cd.status = 'ACTIVE'
+          `;
+          const stockIds = cabinetRows.map((r) => r.stock_id).filter(Boolean);
+          if (stockIds.length > 0) {
+            sqlConditionsDispensed.push(
+              Prisma.sql`StockID IN (${Prisma.join(stockIds.map((id) => Prisma.sql`${id}`))})`,
+            );
+          } else {
+            // ไม่มีตู้ที่ผูกกับแผนกนี้ → ไม่มี dispensed items
+            sqlConditionsDispensed.push(Prisma.sql`1 = 0`);
+          }
+        }
+      }
 
       // จำนวนที่ยกเลิก ผ่าน app_microservice_supply_item_return_records (กรองวันที่ return_datetime ถ้ามี)
       const sqlConditionsReturn: Prisma.Sql[] = [];

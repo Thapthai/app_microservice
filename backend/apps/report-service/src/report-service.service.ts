@@ -2386,19 +2386,43 @@ export class ReportServiceService {
         });
       }
 
-      // จำนวนอุปกรณ์ที่ถูกใช้งานวันนี้ (จาก supply_usage_items) — นับเฉพาะรายการที่ไม่เป็น Discontinue ให้ตรงกับหน้าเว็บ
+      // รวบรวม department_codes สำหรับกรอง qty_in_use ให้ตรงกับหน้าเว็บ
+      let deptCodesForUsage: string[] | null = null;
+      if (cabinetIdForMinMax != null) {
+        const cabinetDepts = await this.prisma.cabinetDepartment.findMany({
+          where: { cabinet_id: cabinetIdForMinMax, status: 'ACTIVE' },
+          select: { department_id: true },
+        });
+        if (cabinetDepts.length > 0) {
+          deptCodesForUsage = cabinetDepts
+            .map((cd) => String(cd.department_id))
+            .filter(Boolean);
+        }
+      } else if (params?.departmentId != null) {
+        deptCodesForUsage = [String(params.departmentId)];
+      }
+
+      // จำนวนอุปกรณ์ที่ถูกใช้งานวันนี้ (จาก supply_usage_items JOIN MedicalSupplyUsage) — กรองตาม department_code ให้ตรงกับหน้าเว็บ
       const qtyInUseMap = new Map<string, number>();
       if (itemCodes.length > 0) {
+        const deptCondition =
+          deptCodesForUsage && deptCodesForUsage.length > 0
+            ? Prisma.sql`AND msu.department_code IN (${Prisma.join(deptCodesForUsage.map((c) => Prisma.sql`${c}`))})`
+            : Prisma.empty;
+
         const qtyInUseRows = await this.prisma.$queryRaw<{ order_item_code: string; qty_in_use: bigint }[]>`
           SELECT
             sui.order_item_code,
             SUM(COALESCE(sui.qty, 0) - COALESCE(sui.qty_used_with_patient, 0) - COALESCE(sui.qty_returned_to_cabinet, 0)) AS qty_in_use
           FROM app_microservice_supply_usage_items sui
+          INNER JOIN app_microservice_medical_supply_usages msu
+            ON sui.medical_supply_usage_id = msu.id
           WHERE sui.order_item_code IN (${Prisma.join(itemCodes.map((c) => Prisma.sql`${c}`))})
             AND sui.order_item_code IS NOT NULL
             AND sui.order_item_code != ''
             AND DATE(sui.created_at) = CURDATE()
-            AND (sui.order_item_status IS NULL OR sui.order_item_status != 'Discontinue' AND sui.order_item_status != 'discontinue' AND sui.order_item_status != 'Discontinued' AND sui.order_item_status != 'discontinued')
+            AND (sui.order_item_status IS NULL OR sui.order_item_status NOT IN ('Discontinue', 'discontinue', 'Discontinued', 'discontinued'))
+            ${deptCondition}
           GROUP BY sui.order_item_code
         `;
         qtyInUseRows.forEach((r) => {
@@ -2521,9 +2545,21 @@ export class ReportServiceService {
         const A = balanceQty;
         const B = qtyInUse;
         const C = damagedQty;
-        const X = M - A;
-        const Y = B + C;
-        const refillQty = X > Y ? X - Y : 0;
+        const X = M - A; // จำนวนที่ต้องเติมในตู้
+        const Y = B + C; // จำนวนที่ถูกใช้งาน + ชำรุด
+
+        // ถ้า X < Y แสดงว่าต้องเติมน้อยกว่าที่ใช้ + ชำรุด ให้เติม X
+        // ถ้า X > Y แสดงว่าต้องเติมมากกว่า ให้เติม X - Y
+        // ถ้า X == Y ให้เติม Y
+        let refillQty = Y;
+        if (X < Y) {
+          refillQty = X;
+        }
+        else if (X > Y && Y == 0) {
+          // refillQty = X - Y;
+          refillQty = Y;
+
+        }
         totalQty += balanceQty;
         totalRefillQty += refillQty;
         data.push({
@@ -2547,8 +2583,8 @@ export class ReportServiceService {
       });
 
       return {
-        filters: { 
-          cabinetId: params?.cabinetId, 
+        filters: {
+          cabinetId: params?.cabinetId,
           cabinetCode: params?.cabinetCode,
           departmentId: params?.departmentId,
         },

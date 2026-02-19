@@ -36,6 +36,7 @@ export interface FilterState {
   startDate: string;
   endDate: string;
   itemTypeFilter: string;
+  departmentCode: string;
 }
 
 export interface SummaryData {
