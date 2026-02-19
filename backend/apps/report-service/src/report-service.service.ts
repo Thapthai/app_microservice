@@ -2708,11 +2708,12 @@ export class ReportServiceService {
 
 
       const reportData: DispensedItemsForPatientsReportData['data'] = data.map((usage, index) => {
-        const supplyItems = (usage as { supply_items?: Array<{ order_item_code?: string; supply_code?: string; order_item_description?: string; supply_name?: string; qty?: number; quantity?: number; assession_no?: string; order_item_status?: string }> }).supply_items ?? [];
+        const supplyItems = (usage as { supply_items?: Array<{ order_item_code?: string; supply_code?: string; order_item_description?: string; supply_name?: string; qty?: number; quantity?: number; uom?: string; unit?: string; assession_no?: string; order_item_status?: string }> }).supply_items ?? [];
         const supply_items: DispensedItemsForPatientsReportData['data'][0]['supply_items'] = supplyItems.map((item) => ({
           itemcode: item?.order_item_code ?? item?.supply_code ?? '-',
           itemname: item?.order_item_description ?? item?.supply_name ?? '-',
           qty: Number(item?.qty ?? item?.quantity ?? 0),
+          uom: item?.uom ?? item?.unit ?? undefined,
           assession_no: item?.assession_no ?? undefined,
           order_item_status: item?.order_item_status ?? undefined,
         }));

@@ -45,7 +45,7 @@ export default function ItemComparisonPage() {
 
   // Pagination for comparison list
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
@@ -180,6 +180,7 @@ export default function ItemComparisonPage() {
         itemTypeId: filters.itemTypeFilter && filters.itemTypeFilter !== 'all' ? Number(filters.itemTypeFilter) : undefined,
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
+        departmentCode: filters.departmentCode || undefined,
         includeUsageDetails: itemCode ? 'true' : undefined,
       };
       if (format === 'excel') {

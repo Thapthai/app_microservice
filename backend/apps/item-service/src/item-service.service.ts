@@ -376,6 +376,10 @@ export class ItemServiceService {
           // refillQty = Y;
         }
 
+        if(refillQty < 0) {
+          refillQty = 0;
+        }
+
         const itemWithCount = {
           ...item,
           stock_min: effectiveStockMin,
@@ -1012,6 +1016,7 @@ export class ItemServiceService {
         StockID: number;
         cabinet_name: string | null;
         cabinet_code: string | null;
+        department_id: number | null;
         department_name: string | null;
         itemname: string | null;
         withdraw_qty: number;
@@ -1027,6 +1032,7 @@ export class ItemServiceService {
                 w.StockID,
                 c.cabinet_name,
                 c.cabinet_code,
+                cd.department_id,
                 dept.DepName AS department_name,
                 i.itemname,
                 w.withdraw_qty,
@@ -1085,6 +1091,7 @@ export class ItemServiceService {
         StockID: Number(row.StockID),
         cabinet_name: row.cabinet_name ?? null,
         cabinet_code: row.cabinet_code ?? null,
+        department_id: row.department_id != null ? Number(row.department_id) : null,
         department_name: row.department_name ?? null,
         itemname: row.itemname,
         withdraw_qty: Number(row.withdraw_qty),

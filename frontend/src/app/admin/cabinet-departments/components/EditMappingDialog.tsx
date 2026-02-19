@@ -182,20 +182,18 @@ export default function EditMappingDialog({
                 <SelectValue placeholder="เลือกสถานะ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                <SelectItem value="ACTIVE">ใช้งาน</SelectItem>
+                <SelectItem value="INACTIVE">ไม่ใช้งาน</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
             <Label>หมายเหตุ</Label>
-            <Textarea
+            <Input
               placeholder="หมายเหตุ..."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="resize-none"
             />
           </div>
         </div>

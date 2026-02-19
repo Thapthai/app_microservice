@@ -272,6 +272,7 @@ export default function MedicalSuppliesPage() {
         startDate: activeFilters.startDate || undefined,
         endDate: activeFilters.endDate || undefined,
         patientHn: activeFilters.patientHN || undefined,
+        departmentCode: activeFilters.departmentCode || undefined,
       };
 
       if (format === 'excel') {
@@ -641,7 +642,12 @@ export default function MedicalSuppliesPage() {
                             );
                           }
 
-                          return supplyItems.map((item: any, index: number) => (
+                          return supplyItems
+                            .filter((item: any) => {
+                              const s = (item.order_item_status || '').toLowerCase();
+                              return s !== 'discontinue' && s !== 'discontinued';
+                            })
+                            .map((item: any, index: number) => (
                             <TableRow key={index}>
                               <TableCell className="text-center">{index + 1}</TableCell>
                               <TableCell className="font-mono text-sm">

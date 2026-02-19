@@ -18,6 +18,7 @@ export interface DispensedItemLine {
   itemcode: string;
   itemname: string;
   qty: number;
+  uom?: string;
   assession_no?: string;
   order_item_status?: string;
 }
@@ -211,7 +212,7 @@ export class DispensedItemsForPatientsExcelService {
           '',                                           // 4 ว่าง (main: วันที่เบิก)
           '└ ' + (item.itemcode ?? '-'),                        // 5 รหัสอุปกรณ์
           item.itemname ?? '-',                        // 6 ชื่ออุปกรณ์
-          item.qty ?? 0,                               // 7 จำนวน
+          item.uom ? `${item.qty ?? 0} ${item.uom}` : (item.qty ?? 0), // 7 จำนวน (หน่วย)
           item.assession_no ?? '-',                    // 8 Assession No
           statusLabel,                                 // 9 สถานะ
         ];

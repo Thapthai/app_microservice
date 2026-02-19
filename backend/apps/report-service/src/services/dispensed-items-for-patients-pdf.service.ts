@@ -293,7 +293,7 @@ export class DispensedItemsForPatientsPdfService {
                 //  '└ ' ใส่ใน PDF ไม่ได้                                                  // 3 ว่าง (main: วันที่เบิก)
                 '- ' + (item.itemcode ?? '-').toString().substring(0, 24),     // 4 รหัสอุปกรณ์
                 (item.itemname ?? '-').toString().substring(0, 22),     // 5 ชื่ออุปกรณ์
-                String(item.qty ?? 0),                                   // 6 จำนวน
+                item.uom ? `${item.qty ?? 0} ${item.uom}` : String(item.qty ?? 0), // 6 จำนวน (หน่วย)
                 (item.assession_no ?? '-').toString().substring(0, 12), // 7 Assession No
                 statusLabel,                                             // 8 สถานะ
               ];

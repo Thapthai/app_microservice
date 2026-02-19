@@ -66,7 +66,7 @@ export function ComparisonTable({
   const [loadingUsage, setLoadingUsage] = useState<Set<string>>(new Set());
   const listDropdownRef = useRef<HTMLDivElement>(null);
 
-  const ITEMS_PER_PAGE = 5;
+  const ITEMS_PER_PAGE = 10;
 
   // Group items by type
   const groupedItems = items.reduce((acc: Map<string, ComparisonItem[]>, item) => {

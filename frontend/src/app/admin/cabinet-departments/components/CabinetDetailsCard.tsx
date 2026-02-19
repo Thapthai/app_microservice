@@ -120,7 +120,7 @@ export default function CabinetDetailsCard({ selectedRow, onClose }: CabinetDeta
               <label className="text-sm font-medium text-gray-500">สถานะ</label>
               <div className="mt-1">
                 <Badge variant={selectedRow.status === "ACTIVE" ? "default" : "secondary"}>
-                  {selectedRow.status}
+                  {selectedRow.status === "ACTIVE" ? "ใช้งาน" : "ไม่ใช้งาน"}
                 </Badge>
               </div>
             </div>

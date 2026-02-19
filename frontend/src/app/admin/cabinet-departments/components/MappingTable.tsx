@@ -278,7 +278,7 @@ export default function MappingTable({ mappings, onEdit, onDelete }: MappingTabl
                             variant={mapping.status === "ACTIVE" ? "default" : "secondary"}
                             className={mapping.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100" : ""}
                           >
-                            {mapping.status}
+                            {mapping.status === "ACTIVE" ? "ใช้งาน" : "ไม่ใช้งาน"}
                           </Badge>
                         </TableCell>
                         <TableCell className="max-w-xs truncate">

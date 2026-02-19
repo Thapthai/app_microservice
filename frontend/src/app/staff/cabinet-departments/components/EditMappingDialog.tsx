@@ -191,12 +191,10 @@ export default function EditMappingDialog({
 
           <div>
             <Label>หมายเหตุ</Label>
-            <Textarea
+            <Input
               placeholder="หมายเหตุ..."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="resize-none"
             />
           </div>
         </div>

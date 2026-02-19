@@ -137,7 +137,7 @@ export class ItemComparisonPdfService {
         const headers = [
           'ลำดับ',
           'HN/EN',
-          'ชื่อคนไข้',
+          'แผนก',
           'รหัสอุปกรณ์',
           'ชื่ออุปกรณ์',
           'จำนวนเบิก',
@@ -257,7 +257,7 @@ export class ItemComparisonPdfService {
                   ' ', // ลำดับ (ว่างในแถวลูก)
 
                   hnEn.substring(0, 38), // HN/EN
-                  (usage.patient_name ?? '-').toString().substring(0, 24), // ชื่อคนไข้
+                  (usage.department_name || usage.department_code || '-').toString().substring(0, 24), // แผนก
                   ' ', // รหัสอุปกรณ์
                   '', // ชื่ออุปกรณ์
                   ' ', // จำนวนเบิก

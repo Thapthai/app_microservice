@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
-import { RotateCcw, History, RefreshCw, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RotateCcw, History, RefreshCw, Search, ChevronDown, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -15,8 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { medicalSuppliesApi, itemsApi } from '@/lib/api';
+import { Label } from '@/components/ui/label';
+import { medicalSuppliesApi, itemsApi, departmentApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import ReturnHistoryFilter from './components/ReturnHistoryFilter';
@@ -31,6 +38,7 @@ interface WillReturnItem {
   StockID?: number;
   cabinet_name?: string | null;
   cabinet_code?: string | null;
+  department_id?: number | null;
   department_name?: string | null;
   itemname: string | null;
   withdraw_qty: number;
@@ -128,6 +136,9 @@ export default function ReturnMedicalSuppliesPage() {
     setItemDropdownPage(0);
   }, [itemSearch]);
 
+  // Departments for filter
+  const [departments, setDepartments] = useState<{ ID: number; DepName: string }[]>([]);
+
   // Return history (default date from/to = today)
   const [returnHistoryDateFrom, setReturnHistoryDateFrom] = useState(() =>
     new Date().toISOString().slice(0, 10)
@@ -136,6 +147,7 @@ export default function ReturnMedicalSuppliesPage() {
     new Date().toISOString().slice(0, 10)
   );
   const [returnHistoryReason, setReturnHistoryReason] = useState<string>('ALL');
+  const [returnHistoryDepartmentCode, setReturnHistoryDepartmentCode] = useState<string>('');
   const [returnHistoryData, setReturnHistoryData] = useState<ReturnHistoryData | null>({
     data: [],
     total: 0,
@@ -163,7 +175,19 @@ export default function ReturnMedicalSuppliesPage() {
 
   useEffect(() => {
     loadWillReturnItems();
+    fetchDepartments();
   }, [loadWillReturnItems]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await departmentApi.getAll({ limit: 1000 });
+      if (res.success && Array.isArray(res.data)) {
+        setDepartments(res.data.map((d: any) => ({ ID: d.ID, DepName: d.DepName || d.DepName2 || String(d.ID) })));
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const selectedItem = willReturnItems.find(
     (i) => i.ItemCode === selectedItemCode && (selectedStockID == null || i.StockID === selectedStockID),
@@ -243,6 +267,7 @@ export default function ReturnMedicalSuppliesPage() {
       if (returnHistoryDateFrom) params.date_from = returnHistoryDateFrom;
       if (returnHistoryDateTo) params.date_to = returnHistoryDateTo;
       if (returnHistoryReason && returnHistoryReason !== 'ALL') params.return_reason = returnHistoryReason;
+      if (returnHistoryDepartmentCode) params.department_code = returnHistoryDepartmentCode;
 
       const result = await medicalSuppliesApi.getReturnHistory(params);
       const raw = result as { success?: boolean; data?: any[] | { data?: any[]; total?: number; page?: number; limit?: number }; total?: number; page?: number; limit?: number };
@@ -573,10 +598,13 @@ export default function ReturnMedicalSuppliesPage() {
                 dateFrom={returnHistoryDateFrom}
                 dateTo={returnHistoryDateTo}
                 reason={returnHistoryReason}
+                departmentCode={returnHistoryDepartmentCode}
+                departments={departments}
                 loading={historyLoading}
                 onDateFromChange={setReturnHistoryDateFrom}
                 onDateToChange={setReturnHistoryDateTo}
                 onReasonChange={setReturnHistoryReason}
+                onDepartmentChange={setReturnHistoryDepartmentCode}
                 onSearch={fetchReturnHistory}
               />
               <ReturnHistoryTable

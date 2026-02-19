@@ -2049,6 +2049,18 @@ export class MedicalSuppliesServiceService {
         where.return_reason = query.return_reason;
       }
 
+      // Department filter via cabinet → cabinetDepartments
+      if (query.department_code) {
+        const deptId = parseInt(query.department_code, 10);
+        if (!isNaN(deptId)) {
+          where.cabinet = {
+            cabinetDepartments: {
+              some: { department_id: deptId },
+            },
+          };
+        }
+      }
+
       // Date range filter
       if (query.date_from || query.date_to) {
         where.return_datetime = {};

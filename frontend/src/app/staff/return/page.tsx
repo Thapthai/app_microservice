@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { RotateCcw, History, RefreshCw, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RotateCcw, History, RefreshCw, Search, ChevronDown, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -16,6 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { staffItemsApi } from '@/lib/staffApi/itemsApi';
 import { staffMedicalSuppliesApi } from '@/lib/staffApi/medicalSuppliesApi';
+import { staffDepartmentApi } from '@/lib/staffApi/departmentApi';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import ReturnHistoryFilter from './components/ReturnHistoryFilter';
@@ -30,6 +33,7 @@ interface WillReturnItem {
   StockID?: number;
   cabinet_name?: string | null;
   cabinet_code?: string | null;
+  department_id?: number | null;
   department_name?: string | null;
   itemname: string | null;
   withdraw_qty: number;
@@ -43,6 +47,10 @@ export default function ReturnMedicalSuppliesPage() {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('return');
+
+  // Departments for filter (ต้องอยู่ก่อน filteredItems useMemo)
+  const [departments, setDepartments] = useState<{ ID: number; DepName: string }[]>([]);
+  const [staffDepartmentCode, setStaffDepartmentCode] = useState<string>('');
 
   // รายการจาก /item-stocks/will-return (สรุปตาม ItemCode: max_available_qty)
   const [willReturnItems, setWillReturnItems] = useState<WillReturnItem[]>([]);
@@ -62,9 +70,15 @@ export default function ReturnMedicalSuppliesPage() {
   const [itemDropdownRect, setItemDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const filteredItems = useMemo(() => {
+    let items = willReturnItems;
+    // auto-filter ตามแผนก staff
+    if (staffDepartmentCode) {
+      const deptId = parseInt(staffDepartmentCode, 10);
+      items = items.filter((i) => i.department_id === deptId);
+    }
     const q = itemSearch.trim().toLowerCase();
-    if (!q) return willReturnItems;
-    return willReturnItems.filter(
+    if (!q) return items;
+    return items.filter(
       (i) =>
         (i.itemname ?? '').toLowerCase().includes(q) ||
         (i.ItemCode ?? '').toLowerCase().includes(q) ||
@@ -72,7 +86,7 @@ export default function ReturnMedicalSuppliesPage() {
         (i.cabinet_name ?? '').toLowerCase().includes(q) ||
         (i.department_name ?? '').toLowerCase().includes(q),
     );
-  }, [willReturnItems, itemSearch]);
+  }, [willReturnItems, itemSearch, staffDepartmentCode]);
 
   const totalItemPages = Math.max(1, Math.ceil(filteredItems.length / ITEM_PAGE_SIZE));
   const paginatedItems = useMemo(
@@ -135,6 +149,7 @@ export default function ReturnMedicalSuppliesPage() {
     new Date().toISOString().slice(0, 10)
   );
   const [returnHistoryReason, setReturnHistoryReason] = useState<string>('ALL');
+  const [returnHistoryDepartmentCode, setReturnHistoryDepartmentCode] = useState<string>('');
   const [returnHistoryData, setReturnHistoryData] = useState<ReturnHistoryData | null>(null);
   const [returnHistoryPage, setReturnHistoryPage] = useState(1);
   const [returnHistoryLimit] = useState(10);
@@ -157,7 +172,35 @@ export default function ReturnMedicalSuppliesPage() {
 
   useEffect(() => {
     loadWillReturnItems();
+    // Load staff department from localStorage and fetch departments
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('staff_user');
+        if (raw) {
+          const staffUser = JSON.parse(raw.trim());
+          if (staffUser?.department_id) {
+            const deptCode = String(staffUser.department_id);
+            setStaffDepartmentCode(deptCode);
+            setReturnHistoryDepartmentCode(deptCode);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    fetchDepartments();
   }, [loadWillReturnItems]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await staffDepartmentApi.getAll({ limit: 1000 });
+      if (res.success && Array.isArray(res.data)) {
+        setDepartments(res.data.map((d: any) => ({ ID: d.ID, DepName: d.DepName || d.DepName2 || String(d.ID) })));
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const selectedItem = willReturnItems.find(
     (i) => i.ItemCode === selectedItemCode && (selectedStockID == null || i.StockID === selectedStockID),
@@ -237,6 +280,7 @@ export default function ReturnMedicalSuppliesPage() {
       if (returnHistoryDateFrom) params.date_from = returnHistoryDateFrom;
       if (returnHistoryDateTo) params.date_to = returnHistoryDateTo;
       if (returnHistoryReason && returnHistoryReason !== 'ALL') params.return_reason = returnHistoryReason;
+      if (returnHistoryDepartmentCode) params.department_code = returnHistoryDepartmentCode;
 
       const result = await staffMedicalSuppliesApi.getReturnHistory(params);
       if (result.success && result.data) {
@@ -321,29 +365,62 @@ export default function ReturnMedicalSuppliesPage() {
           </TabsList>
 
           <TabsContent value="return" className="space-y-4">
+            {/* Filter Card — same style as ReturnHistoryFilter */}
+            <Card className="border-0 shadow-sm bg-white rounded-xl overflow-hidden">
+              <CardHeader className="border-b bg-slate-50/50 pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-emerald-100">
+                    <Filter className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold text-slate-800">กรองรายการอุปกรณ์</CardTitle>
+                    <CardDescription className="text-slate-500 mt-0.5">
+                      แสดงเฉพาะรายการในแผนกของคุณ
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-600 font-medium">แผนก</Label>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between font-normal rounded-lg border-slate-200 cursor-default"
+                      type="button"
+                      disabled
+                    >
+                      <span className="truncate">
+                        {staffDepartmentCode
+                          ? (departments.find((d) => String(d.ID) === staffDepartmentCode)?.DepName ?? `แผนก ${staffDepartmentCode}`)
+                          : 'ไม่ระบุแผนก'}
+                      </span>
+                    </Button>
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={loadWillReturnItems}
+                      disabled={loadingWillReturn}
+                      className="gap-2 rounded-lg border-slate-200"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${loadingWillReturn ? 'animate-spin' : ''}`} />
+                      รีเฟรช
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
               <CardHeader className="border-b bg-slate-50/50">
                 <CardTitle className="text-lg font-semibold text-slate-800">แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน / ชำรุด</CardTitle>
                 <CardDescription className="text-slate-500 mt-1">
-                  เลือกรายการจากตู้ที่ยังไม่ได้แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน แล้วกดปุ่มด้านล่างเพื่อบันทึกการแจ้งอุปกรณ์ที่ไม่ถูกใช้งาน
+                  เลือกรายการจากตู้ที่ยังไม่ได้แจ้งอุปกรณ์ที่ไม่ถูกใช้งาน แล้วกดปุ่มด้านล่างเพื่อบันทึก
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-slate-500">
-                    เลือกรายการอุปกรณ์ตามตู้และแผนก แล้วระบุจำนวนสูงสุดที่แจ้งได้ (แสดงชัดว่าอยู่ตู้ไหน)
-                  </p>
-                  <button
-                    type="button"
-                    onClick={loadWillReturnItems}
-                    disabled={loadingWillReturn}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                    title="โหลดรายการใหม่"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${loadingWillReturn ? 'animate-spin' : ''}`} />
-                    รีเฟรช
-                  </button>
-                </div>
 
                 {loadingWillReturn ? (
                   <div className="flex items-center justify-center py-10 text-slate-500">
@@ -570,10 +647,14 @@ export default function ReturnMedicalSuppliesPage() {
               dateFrom={returnHistoryDateFrom}
               dateTo={returnHistoryDateTo}
               reason={returnHistoryReason}
+              departmentCode={returnHistoryDepartmentCode}
+              departments={departments}
+              departmentDisabled={!!staffDepartmentCode}
               loading={historyLoading}
               onDateFromChange={setReturnHistoryDateFrom}
               onDateToChange={setReturnHistoryDateTo}
               onReasonChange={setReturnHistoryReason}
+              onDepartmentChange={setReturnHistoryDepartmentCode}
               onSearch={fetchReturnHistory}
             />
             {returnHistoryData && (

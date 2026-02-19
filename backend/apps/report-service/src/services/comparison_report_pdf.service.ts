@@ -262,7 +262,7 @@ export class ComparisonReportPdfService {
         }
 
         const qtyPending = item.qty_pending ?? (item.qty - item.qty_used_with_patient - item.qty_returned_to_cabinet);
-        const isMatch = qtyPending === 0 && item.qty_returned_to_cabinet === 0;
+        const isMatch = qtyPending === 0;
         
         if (isMatch) matchCount++;
         else notMatchCount++;

@@ -90,11 +90,11 @@ export class ItemComparisonExcelService {
 
     // ---- ตารางข้อมูล (โครงสร้างให้เหมือน PDF) ----
     const tableStartRow = 5;
-    // 10 คอลัมน์: ลำดับ, HN/EN, ชื่อคนไข้, รหัสอุปกรณ์, ชื่ออุปกรณ์, จำนวนเบิก, จำนวนใช้, ส่วนต่าง, วันที่, สถานะ
+    // 10 คอลัมน์: ลำดับ, HN/EN, แผนก, รหัสอุปกรณ์, ชื่ออุปกรณ์, จำนวนเบิก, จำนวนใช้, ส่วนต่าง, วันที่, สถานะ
     const tableHeaders = [
       'ลำดับ',        // 1
       'HN/EN',        // 2
-      'ชื่อคนไข้',     // 3
+      'แผนก',          // 3
       'รหัสอุปกรณ์',   // 4
       'ชื่ออุปกรณ์',    // 5
       'จำนวนเบิก',     // 6
@@ -190,15 +190,15 @@ export class ItemComparisonExcelService {
           const subRow = worksheet.getRow(dataRowIndex);
           const subBg = 'FFF0F8FF';
           const usageDate =
-            usage.usage_datetime != null
-              ? new Date(usage.usage_datetime).toLocaleDateString('th-TH')
+            usage.created_at != null
+              ? new Date(usage.created_at).toLocaleDateString('th-TH')
               : '-';
           const hnEn = `${usage.patient_hn ?? '-'} / ${usage.patient_en ?? '-'}`;
           const usageStatus = this.getUsageOrderStatusText(usage.order_item_status);
           const subCells = [
             ' ', // ลำดับ (ว่างในแถวลูก)
             hnEn, // HN/EN
-            usage.patient_name || '-', // ชื่อคนไข้
+            usage.department_name || usage.department_code || '-', // แผนก
             '', // รหัสอุปกรณ์ (อยู่ในแถวหลัก)
             '', // ชื่ออุปกรณ์ (อยู่ในแถวหลัก)
             '-', // จำนวนเบิก (รวมอยู่ในแถวหลัก)

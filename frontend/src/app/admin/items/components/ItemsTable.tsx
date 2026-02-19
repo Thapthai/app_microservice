@@ -161,7 +161,9 @@ console.log(items);
                     const countItemStock = (item as Item & { count_itemstock?: number }).count_itemstock ?? item.itemStocks?.length ?? 0;
                     const stockMin = item.stock_min ?? 0;
                     const isLowStock = stockMin > 0 && countItemStock < stockMin;
-                    const itemStocks = item.itemStocks ?? [];
+                    const itemStocks = (item.itemStocks ?? []).filter(
+                      (s) => s.IsStock === true || (s as { IsStock?: boolean | number }).IsStock === 1
+                    );
                     const isExpanded = expandedRow === item.itemcode;
                     const hasExpired = itemStocks.some((s) => isExpired(s.ExpireDate));
                     const hasNearExpiry = !hasExpired && itemStocks.some((s) => isNearExpiry(s.ExpireDate));
