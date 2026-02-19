@@ -279,6 +279,7 @@ export default function MedicalSuppliesTable({
                   <TableHead className="w-[80px]">ลำดับ</TableHead>
                   <TableHead>HN / EN คนไข้</TableHead>
                   <TableHead>แผนก</TableHead>
+                  <TableHead>ประเภท</TableHead>
                   <TableHead>เวลาที่เบิก</TableHead>
                   <TableHead>วันที่ และเวลาที่พิมพ์บิล</TableHead>
                   <TableHead className="text-center">จำนวนรายการ</TableHead>
@@ -344,6 +345,24 @@ export default function MedicalSuppliesTable({
                       </TableCell>
                       <TableCell>
                         {supplyData.department_name || supplyData.department_code || '-'}
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                            const ut = (supplyData.usage_type || '').toUpperCase();
+                            if (ut === 'OPD') return (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500" />
+                                ผู้ป่วยนอก (OPD)
+                              </Badge>
+                            );
+                            if (ut === 'IPD') return (
+                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-purple-500" />
+                                ผู้ป่วยใน (IPD)
+                              </Badge>
+                            );
+                            return <span className="text-gray-400 text-sm">-</span>;
+                          })()}
                       </TableCell>
                       <TableCell>
                         {formatDate(supply.created_at || supplyData.created_at || supplyData.usage_datetime)}

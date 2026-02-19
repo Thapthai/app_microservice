@@ -317,7 +317,7 @@ export default function MedicalSuppliesPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-5">
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <div>
                       <p className="text-sm text-gray-500">ชื่อคนไข้</p>
                       <p className="font-semibold">
@@ -340,6 +340,27 @@ export default function MedicalSuppliesPage() {
                         {selectedSupply.data?.department_name || selectedSupply.department_name || 
                          selectedSupply.data?.department_code || selectedSupply.department_code || '-'}
                       </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">ประเภทผู้ป่วย</p>
+                      <div className="mt-1">
+                        {(() => {
+                          const ut = (selectedSupply.data?.usage_type || selectedSupply.usage_type || '').toUpperCase();
+                          if (ut === 'OPD') return (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500" />
+                              ผู้ป่วยนอก (OPD)
+                            </Badge>
+                          );
+                          if (ut === 'IPD') return (
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-purple-500" />
+                              ผู้ป่วยใน (IPD)
+                            </Badge>
+                          );
+                          return <span className="text-gray-400 text-sm">-</span>;
+                        })()}
+                      </div>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">จำนวนรายการ</p>

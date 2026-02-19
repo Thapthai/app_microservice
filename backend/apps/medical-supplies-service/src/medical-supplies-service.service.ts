@@ -135,18 +135,32 @@ export class MedicalSuppliesServiceService {
   }
 
   /**
-   * Resolve department_code from PatientLocationwhenOrdered (เช็คกับ department.DepName2 แล้วดึง ID)
+   * Resolve department_code and usage_type from PatientLocationwhenOrdered
+   * Format: "{DepartmentName}-{OPD|IPD}" e.g. "Emergency-OPD", "Emergency-IPD"
+   * ส่วนหน้า "-" ใช้เทียบกับ department.DepName2, ส่วนหลัง "-" คือ usage_type (OPD/IPD)
    */
-  private async resolveDepartmentCodeFromDepName2(patientLocationWhenOrdered: string | undefined): Promise<string | null> {
-    if (!patientLocationWhenOrdered || !patientLocationWhenOrdered.trim()) return null;
+  private async resolveDepartmentCodeFromDepName2(
+    patientLocationWhenOrdered: string | undefined,
+  ): Promise<{ departmentCode: string | null; usageType: string | null }> {
+    if (!patientLocationWhenOrdered || !patientLocationWhenOrdered.trim()) {
+      return { departmentCode: null, usageType: null };
+    }
     try {
+      const raw = patientLocationWhenOrdered.trim();
+      const dashIdx = raw.lastIndexOf('-');
+      // ถ้ามี "-" ให้แยก departmentPart กับ usageTypePart
+      const departmentPart = dashIdx > 0 ? raw.substring(0, dashIdx).trim() : raw;
+      const usageTypePart = dashIdx > 0 ? raw.substring(dashIdx + 1).trim().toUpperCase() : null;
+      // รับเฉพาะ OPD / IPD เป็น usage_type
+      const usageType = usageTypePart === 'OPD' || usageTypePart === 'IPD' ? usageTypePart : null;
+
       const dept = await this.prisma.department.findFirst({
-        where: { DepName2: patientLocationWhenOrdered.trim() },
+        where: { DepName2: departmentPart },
         select: { ID: true },
       });
-      return dept ? String(dept.ID) : null;
+      return { departmentCode: dept ? String(dept.ID) : null, usageType };
     } catch {
-      return null;
+      return { departmentCode: null, usageType: null };
     }
   }
 
@@ -160,18 +174,23 @@ export class MedicalSuppliesServiceService {
       const lastname = data.Lastname || '';
       const hospital = data.Hospital || null;
 
-      // Resolve department_code from first Order item's PatientLocationwhenOrdered (เช็คกับ department.DepName2)
+      // Resolve department_code and usage_type from first Order item's PatientLocationwhenOrdered
       const orderItems = data.Order || [];
       const firstOrderItem = orderItems[0];
-      const resolvedDepartmentCode = await this.resolveDepartmentCodeFromDepName2(
-        firstOrderItem?.PatientLocationwhenOrdered
+      const resolved = await this.resolveDepartmentCodeFromDepName2(
+        firstOrderItem?.PatientLocationwhenOrdered,
       );
-      const departmentCode = data.department_code ?? resolvedDepartmentCode ?? null;
+      const departmentCode = data.department_code ?? resolved.departmentCode ?? null;
+      // usage_type: ใช้ค่าจาก data ก่อน ถ้าไม่มีให้ใช้ค่าที่ parse จาก PatientLocationwhenOrdered
+      const resolvedUsageType = data.usage_type ?? resolved.usageType ?? null;
 
       // Validate department: ต้องมี department อยู่ในระบบ
       if (!departmentCode) {
+        const rawLoc = firstOrderItem?.PatientLocationwhenOrdered ?? '';
+        const dashIdx = rawLoc.lastIndexOf('-');
+        const deptPart = dashIdx > 0 ? rawLoc.substring(0, dashIdx).trim() : rawLoc;
         throw new BadRequestException(
-          `ไม่พบข้อมูลแผนก: "${firstOrderItem?.PatientLocationwhenOrdered ?? ''}" กรุณาตรวจสอบ PatientLocationwhenOrdered หรือ department_code`,
+          `ไม่พบข้อมูลแผนก: "${deptPart || rawLoc}" กรุณาตรวจสอบ PatientLocationwhenOrdered (รูปแบบ: <ชื่อแผนก>-<OPD|IPD>) หรือ department_code`,
         );
       }
       const deptIdNum = parseInt(departmentCode, 10);
@@ -424,6 +443,7 @@ export class MedicalSuppliesServiceService {
           if (data.DateBillPrinted !== undefined) updateData.print_date = data.DateBillPrinted;
           if (data.TimeBillPrinted !== undefined) updateData.time_print_date = data.TimeBillPrinted;
           if (departmentCode !== null) updateData.department_code = departmentCode;
+          if (resolvedUsageType !== null) updateData.usage_type = resolvedUsageType;
           await this.prisma.medicalSupplyUsage.update({
             where: { id: existingUsage.id },
             data: updateData,
@@ -595,7 +615,7 @@ export class MedicalSuppliesServiceService {
           patient_name_th: data.patient_name_th || `${firstName} ${lastname}`,
           patient_name_en: data.patient_name_en || `${firstName} ${lastname}`,
           usage_datetime: data.usage_datetime,
-          usage_type: data.usage_type,
+          usage_type: resolvedUsageType,
           purpose: data.purpose,
           department_code: departmentCode,
           print_date: printDate,
