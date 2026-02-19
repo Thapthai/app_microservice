@@ -167,6 +167,26 @@ export class MedicalSuppliesServiceService {
         firstOrderItem?.PatientLocationwhenOrdered
       );
       const departmentCode = data.department_code ?? resolvedDepartmentCode ?? null;
+
+      // Validate department: ต้องมี department อยู่ในระบบ
+      if (!departmentCode) {
+        throw new BadRequestException(
+          `ไม่พบข้อมูลแผนก: "${firstOrderItem?.PatientLocationwhenOrdered ?? ''}" กรุณาตรวจสอบ PatientLocationwhenOrdered หรือ department_code`,
+        );
+      }
+      const deptIdNum = parseInt(departmentCode, 10);
+      const deptRecord = isNaN(deptIdNum)
+        ? null
+        : await this.prisma.department.findUnique({
+            where: { ID: deptIdNum },
+            select: { ID: true, DepName: true, DepName2: true },
+          });
+      if (!deptRecord) {
+        throw new BadRequestException(
+          `ไม่พบแผนก (department_code: ${departmentCode}) ในระบบ`,
+        );
+      }
+
       const printDate = data.DateBillPrinted ?? null;
       const timePrintDate = data.TimeBillPrinted ?? null;
 

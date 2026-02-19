@@ -142,7 +142,6 @@ export class CreateMedicalSupplyUsageDto {
   @IsString()
   purpose?: string;
 
-  @IsOptional()
   @IsString()
   department_code?: string;
 
