@@ -110,12 +110,12 @@ export default function DashboardPage() {
     < >
       {/* <DashboardHeader userName={user?.name} /> */}
 
-      <StatsCards
+      {/* <StatsCards
         loading={loadingStats}
         stats={stats}
         dispensedVsUsage={dispensedVsUsageSummary}
         loadingDispensedVsUsage={loadingDispensedVsUsage}
-      />
+      /> */}
 
       {/* แถว 1: สรุปการเชื่อมโยง (เล็ก) + รายการเชื่อมโยง (ตาราง) | Card อุปกรณ์ใกล้หมดอายุ ความสูงเท่ากัน */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-stretch">
