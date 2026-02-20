@@ -50,6 +50,7 @@ interface FilterSectionProps {
   onClear: () => void;
   onRefresh: () => void;
   loading: boolean;
+  departmentDisabled?: boolean;
 }
 
 export default function FilterSection({
@@ -59,6 +60,7 @@ export default function FilterSection({
   onClear,
   onRefresh,
   loading,
+  departmentDisabled,
 }: FilterSectionProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [cabinets, setCabinets] = useState<Cabinet[]>([]);
@@ -193,6 +195,7 @@ export default function FilterSection({
               placeholder="เลือกแผนก"
               value={filters.departmentId}
               onValueChange={(value) => {
+                if (departmentDisabled) return;
                 onFilterChange('departmentId', value);
                 onFilterChange('cabinetId', '');
               }}
@@ -207,6 +210,7 @@ export default function FilterSection({
               loading={loadingDepartments}
               onSearch={loadDepartments}
               searchPlaceholder="ค้นหาชื่อแผนก..."
+              disabled={departmentDisabled}
             />
             <SearchableSelect
               label="ตู้ Cabinet"

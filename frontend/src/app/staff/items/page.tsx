@@ -24,6 +24,7 @@ export default function ItemsPage() {
   const [showMinMaxDialog, setShowMinMaxDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [reportLoading, setReportLoading] = useState<'excel' | 'pdf' | null>(null);
+  const [staffDepartmentId, setStaffDepartmentId] = useState<string>('');
 
   // Active filters (after search button clicked)
   const [activeFilters, setActiveFilters] = useState({
@@ -39,6 +40,22 @@ export default function ItemsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10; // Table layout
+
+  // โหลด department_id จาก localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('staff_user');
+      if (raw) {
+        const staffUser = JSON.parse(raw.trim());
+        if (staffUser?.department_id) {
+          const deptId = String(staffUser.department_id);
+          setStaffDepartmentId(deptId);
+          setActiveFilters(prev => ({ ...prev, departmentId: deptId }));
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     fetchItems();
@@ -201,7 +218,12 @@ export default function ItemsPage() {
         </div>
 
         {/* Filter Section */}
-        <FilterSection onSearch={handleSearch} onBeforeSearch={() => setCurrentPage(1)} />
+        <FilterSection
+          onSearch={handleSearch}
+          onBeforeSearch={() => setCurrentPage(1)}
+          initialDepartmentId={staffDepartmentId}
+          departmentDisabled={!!staffDepartmentId}
+        />
 
         {/* Table Section */}
         <ItemsTable

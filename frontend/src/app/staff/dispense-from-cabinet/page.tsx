@@ -21,6 +21,7 @@ export default function DispenseFromCabinetPage() {
 
   const [loadingList, setLoadingList] = useState(true);
   const [dispensedList, setDispensedList] = useState<DispensedItem[]>([]);
+  const [staffDepartmentId, setStaffDepartmentId] = useState<string>('');
 
   // Filters
   const [filters, setFilters] = useState<FilterState>({
@@ -39,6 +40,21 @@ export default function DispenseFromCabinetPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
+  // โหลด department_id จาก localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('staff_user');
+      if (raw) {
+        const staffUser = JSON.parse(raw.trim());
+        if (staffUser?.department_id) {
+          const deptId = String(staffUser.department_id);
+          setStaffDepartmentId(deptId);
+          setFilters(prev => ({ ...prev, departmentId: deptId }));
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     fetchDispensedList();
@@ -101,7 +117,7 @@ export default function DispenseFromCabinetPage() {
       startDate: getTodayDate(),
       endDate: getTodayDate(),
       itemTypeFilter: 'all',
-      departmentId: '29',
+      departmentId: staffDepartmentId || '29',
       cabinetId: '1',
     };
     setFilters(clearedFilters);
@@ -198,6 +214,7 @@ export default function DispenseFromCabinetPage() {
           onClear={handleClearSearch}
           onRefresh={() => fetchDispensedList(currentPage)}
           loading={loadingList}
+          departmentDisabled={!!staffDepartmentId}
         />
 
         {/* Dispensed Items Table */}

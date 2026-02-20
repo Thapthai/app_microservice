@@ -41,6 +41,7 @@ export default function ItemStockDepartmentsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedMapping, setSelectedMapping] = useState<CabinetDepartment | null>(null);
   const [filterVersion, setFilterVersion] = useState(0);
+  const [staffDepartmentId, setStaffDepartmentId] = useState<string>("");
 
   // Active filters (applied after search button click)
   const [activeFilters, setActiveFilters] = useState({
@@ -59,6 +60,20 @@ export default function ItemStockDepartmentsPage() {
 
   useEffect(() => {
     loadData();
+    // โหลด department_id จาก localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('staff_user');
+        if (raw) {
+          const staffUser = JSON.parse(raw.trim());
+          if (staffUser?.department_id) {
+            const deptId = String(staffUser.department_id);
+            setStaffDepartmentId(deptId);
+            setActiveFilters(prev => ({ ...prev, departmentId: deptId }));
+          }
+        }
+      } catch { /* ignore */ }
+    }
   }, []);
 
   const loadData = async () => {
@@ -261,7 +276,12 @@ export default function ItemStockDepartmentsPage() {
           </Button>
         </div>
 
-      <FilterSection onSearch={handleSearch} key={filterVersion} />
+      <FilterSection
+        onSearch={handleSearch}
+        key={filterVersion}
+        initialDepartmentId={staffDepartmentId}
+        departmentDisabled={!!staffDepartmentId}
+      />
 
       <MappingTable
         mappings={filteredMappings}

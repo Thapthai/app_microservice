@@ -39,9 +39,11 @@ interface FilterSectionProps {
     departmentId: string;
     status: string;
   }) => void;
+  initialDepartmentId?: string;
+  departmentDisabled?: boolean;
 }
 
-export default function FilterSection({ onSearch }: FilterSectionProps) {
+export default function FilterSection({ onSearch, initialDepartmentId, departmentDisabled }: FilterSectionProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [cabinets, setCabinets] = useState<Cabinet[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
@@ -50,9 +52,16 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
   // Form state (local)
   const [formFilters, setFormFilters] = useState({
     cabinetId: "",
-    departmentId: "",
+    departmentId: initialDepartmentId ?? "",
     status: "ALL",
   });
+
+  // Sync initialDepartmentId ถ้าโหลดมาทีหลัง (จาก localStorage)
+  useEffect(() => {
+    if (initialDepartmentId) {
+      setFormFilters(prev => ({ ...prev, departmentId: initialDepartmentId }));
+    }
+  }, [initialDepartmentId]);
 
   // Load departments with search
   const loadDepartments = async (keyword?: string) => {
@@ -126,6 +135,11 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
     }
   };
 
+  // Load departments on mount
+  useEffect(() => {
+    loadDepartments();
+  }, []);
+
   // Load cabinets when department changes
   useEffect(() => {
     loadCabinetsByDepartment(formFilters.departmentId);
@@ -138,7 +152,7 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
   const handleReset = () => {
     const defaultFilters = {
       cabinetId: "",
-      departmentId: "",
+      departmentId: departmentDisabled ? (initialDepartmentId ?? "") : "",
       status: "ALL",
     };
     setFormFilters(defaultFilters);
@@ -160,6 +174,7 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
             placeholder="เลือกแผนก"
             value={formFilters.departmentId}
             onValueChange={(value) => {
+              if (departmentDisabled) return;
               setFormFilters({ 
                 ...formFilters, 
                 departmentId: value,
@@ -177,6 +192,7 @@ export default function FilterSection({ onSearch }: FilterSectionProps) {
             loading={loadingDepartments}
             onSearch={loadDepartments}
             searchPlaceholder="ค้นหาชื่อแผนก..."
+            disabled={departmentDisabled}
           />
 
           <SearchableSelect

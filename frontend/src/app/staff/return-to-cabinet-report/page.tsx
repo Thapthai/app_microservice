@@ -20,6 +20,7 @@ const getTodayDate = () => {
 export default function ReturnToCabinetReportPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [returnedList, setReturnedList] = useState<DispensedItem[]>([]);
+  const [staffDepartmentId, setStaffDepartmentId] = useState<string>('');
 
   // Filters (ค่าเริ่มต้นแผนก/ตู้ = 29 / 1 ตามที่ตั้งไว้)
   const [filters, setFilters] = useState<FilterState>({
@@ -37,9 +38,24 @@ export default function ReturnToCabinetReportPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
+  // โหลด department_id จาก localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('staff_user');
+      if (raw) {
+        const staffUser = JSON.parse(raw.trim());
+        if (staffUser?.department_id) {
+          const deptId = String(staffUser.department_id);
+          setStaffDepartmentId(deptId);
+          setFilters(prev => ({ ...prev, departmentId: deptId }));
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   // โหลดข้อมูลเมื่อมี user พร้อมค่าเริ่มต้นของแผนก/ตู้
   useEffect(() => {
-
     fetchReturnedList(1);
   }, []);
 
@@ -104,7 +120,7 @@ export default function ReturnToCabinetReportPage() {
       startDate: getTodayDate(),
       endDate: getTodayDate(),
       itemTypeFilter: 'all',
-      departmentId: '29',
+      departmentId: staffDepartmentId || '29',
       cabinetId: '1',
     };
     setFilters(resetFilters);
@@ -209,6 +225,7 @@ export default function ReturnToCabinetReportPage() {
           onRefresh={() => fetchReturnedList(currentPage)}
           itemTypes={getItemTypes()}
           loading={loadingList}
+          departmentDisabled={!!staffDepartmentId}
         />
 
         {/* Returned Items Table */}
