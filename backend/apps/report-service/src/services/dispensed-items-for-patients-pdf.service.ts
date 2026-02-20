@@ -149,36 +149,79 @@ export class DispensedItemsForPatientsPdfService {
           align: 'right',
         });
         doc.fillColor('#000000');
-        doc.y += 4;
+        doc.y += 6;
+
+        // ---- ตาราง Filter Summary (1 แถว) ----
+        const filters = data.filters ?? {};
+        const filterRowHeight = 22;
+        const filterY = doc.y;
+
+        // format วันที่
+        const fmtDate = (d?: string) => {
+          if (!d) return '-';
+          try {
+            return new Date(d).toLocaleDateString('th-TH', {
+              year: 'numeric', month: 'short', day: 'numeric',
+              timeZone: 'Asia/Bangkok',
+            });
+          } catch { return d; }
+        };
+
+        const filterCells = [
+          { label: 'วันที่เริ่มต้น', value: fmtDate(filters.startDate) },
+          { label: 'วันที่สิ้นสุด', value: fmtDate(filters.endDate) },
+          { label: 'แผนก', value: (filters as any).departmentName || filters.departmentCode || 'ทั้งหมด' },
+          { label: 'ประเภทผู้ป่วย', value: filters.usageType === 'OPD' ? 'ผู้ป่วยนอก (OPD)' : filters.usageType === 'IPD' ? 'ผู้ป่วยใน (IPD)' : 'ทั้งหมด' },
+          { label: 'คำค้นหา', value: filters.keyword || '-' },
+        ];
+
+        const filterColWidth = Math.floor(contentWidth / filterCells.length);
+        let fx = margin;
+        // แถว header
+        filterCells.forEach((fc, i) => {
+          const cw = i === filterCells.length - 1
+            ? contentWidth - filterColWidth * (filterCells.length - 1)
+            : filterColWidth;
+          doc.rect(fx, filterY, cw, filterRowHeight).fillAndStroke('#E8EDF2', '#DEE2E6');
+          doc.fontSize(6).font(finalFontBoldName).fillColor('#444444');
+          doc.text(fc.label, fx + 3, filterY + 4, { width: cw - 6, align: 'center' });
+          doc.fontSize(7).font(finalFontName).fillColor('#000000');
+          doc.text(fc.value, fx + 3, filterY + 13, { width: cw - 6, align: 'center' });
+          fx += cw;
+        });
+        doc.y = filterY + filterRowHeight + 6;
 
         const itemHeight = 20;
         const cellPadding = 3;
         const totalTableWidth = contentWidth;
-        // 9 columns: ลำดับ, HN/EN, ชื่อคนไข้, วันที่เบิก, รหัสอุปกรณ์, ชื่ออุปกรณ์, จำนวนอุปกรณ์, Assession No, สถานะ
-        const colPct = [0.06, 0.12, 0.14, 0.12, 0.12, 0.18, 0.08, 0.10, 0.08];
+        // 11 columns สำหรับ portrait A4 (content width ~525pt)
+        // ลำดับ, HN/EN, ชื่อคนไข้, แผนก(-), ประเภท, วันที่เบิก(-), รหัส, ชื่ออุปกรณ์, จำนวน(+), Assession, สถานะ
+        const colPct = [0.04, 0.10, 0.13, 0.09, 0.07, 0.09, 0.09, 0.15, 0.11, 0.07, 0.06];
         let colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
         if (sumW > totalTableWidth) {
           colWidths = colWidths.map((w) => Math.floor((w * totalTableWidth) / sumW));
           sumW = colWidths.reduce((a, b) => a + b, 0);
         }
-        if (sumW < totalTableWidth) colWidths[5] += totalTableWidth - sumW;
-        // หัวตาราง 9 คอลัมน์ (ให้ data ตรงกับ header) — ใช้ "จำนวนอุปกรณ์" เพื่อไม่ให้ล้นบรรทัด
+        if (sumW < totalTableWidth) colWidths[7] += totalTableWidth - sumW;
+        // หัวตาราง 11 คอลัมน์
         const headers = [
-          'ลำดับ',                    // 0
-          'HN / EN',                  // 1
-          'ชื่อคนไข้',                // 2
-          'วันที่เบิก',               // 3
-          'รหัสอุปกรณ์',              // 4
-          'ชื่ออุปกรณ์',               // 5
-          'จำนวนอุปกรณ์',             // 6
-          'Assession No',             // 7
-          'สถานะ',                    // 8
+          'ลำดับ',         // 0
+          'HN / EN',       // 1
+          'ชื่อคนไข้',     // 2
+          'แผนก',          // 3 (new)
+          'ประเภท',        // 4 (new)
+          'วันที่เบิก',    // 5
+          'รหัสอุปกรณ์',   // 6
+          'ชื่ออุปกรณ์',   // 7
+          'จำนวนอุปกรณ์',  // 8
+          'Assession No',  // 9
+          'สถานะ',         // 10
         ];
 
         const drawTableHeader = (y: number) => {
           let x = margin;
-          doc.fontSize(8).font(finalFontBoldName);
+          doc.fontSize(7).font(finalFontBoldName);
           doc.rect(margin, y, totalTableWidth, itemHeight).fillAndStroke('#1A365D', '#1A365D');
           doc.fillColor('#FFFFFF');
           headers.forEach((h, i) => {
@@ -195,7 +238,7 @@ export class DispensedItemsForPatientsPdfService {
         drawTableHeader(tableHeaderY);
         doc.y = tableHeaderY + itemHeight;
 
-        doc.fontSize(8).font(finalFontName).fillColor('#000000');
+        doc.fontSize(7).font(finalFontName).fillColor('#000000');
         if (usages.length === 0) {
           const rowY = doc.y;
           doc.rect(margin, rowY, totalTableWidth, itemHeight).fillAndStroke('#F8F9FA', '#DEE2E6');
@@ -222,43 +265,42 @@ export class DispensedItemsForPatientsPdfService {
               }
               const rowY = doc.y;
               let xPos = margin;
-              for (let i = 0; i < 9; i++) {
+              for (let i = 0; i < 11; i++) {
                 const cw = colWidths[i];
                 const w = Math.max(4, cw - cellPadding * 2);
-                // พื้นหลัง + สีตัวอักษรของสถานะ ให้เหมือน item-comparison-pdf.service.ts
-                // - สถานะคอลัมน์ที่ 8: สีพื้นเขียว/แดงอ่อน + ตัวอักษรเขียว/แดงเข้ม
+                // สถานะคอลัมน์ที่ 10: สีพื้นเขียว/แดงอ่อน + ตัวอักษรเขียว/แดงเข้ม
                 let cellBg = bg;
-                if (i === 8 && statusText) {
+                if (i === 10 && statusText) {
                   const statusLower = statusText.toLowerCase();
                   if (statusLower === 'ยืนยันแล้ว' || statusLower === 'verified') {
-                    cellBg = '#D4EDDA'; // เขียวอ่อน (เหมือน success background)
+                    cellBg = '#D4EDDA';
                   } else if (
                     statusLower === 'ยกเลิก' ||
                     statusLower === 'discontinue' ||
                     statusLower === 'discontinued'
                   ) {
-                    cellBg = '#F8D7DA'; // แดงอ่อน (เหมือน danger background)
+                    cellBg = '#F8D7DA';
                   }
                 }
                 doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(cellBg, '#DEE2E6');
 
                 let textColor = '#000000';
-                if (i === 8 && statusText) {
+                if (i === 10 && statusText) {
                   const statusLower = statusText.toLowerCase();
                   if (statusLower === 'ยืนยันแล้ว' || statusLower === 'verified') {
-                    textColor = '#155724'; // เขียวเข้ม
+                    textColor = '#155724';
                   } else if (
                     statusLower === 'ยกเลิก' ||
                     statusLower === 'discontinue' ||
                     statusLower === 'discontinued'
                   ) {
-                    textColor = '#721C24'; // แดงเข้ม
+                    textColor = '#721C24';
                   }
                 }
                 doc.fillColor(textColor);
                 doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
                   width: w,
-                  align: i === 2 || i === 5 ? 'left' : 'center',
+                  align: i === 2 || i === 7 ? 'left' : 'center',
                 });
                 xPos += cw;
               }
@@ -268,34 +310,40 @@ export class DispensedItemsForPatientsPdfService {
 
             const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
             const hnEn = `${usage.patient_hn ?? '-'} / ${usage.en ?? '-'}`;
-            // Main row: ลำดับ, HN/EN, ชื่อคนไข้, วันที่เบิก, ว่าง, ว่าง, จำนวนอุปกรณ์ที่ถูกใช้งาน, ว่าง, ว่าง
+            const usageTypeLabel = (usage.usage_type ?? '').toUpperCase() === 'IPD' ? 'ผู้ป่วยใน'
+              : (usage.usage_type ?? '').toUpperCase() === 'OPD' ? 'ผู้ป่วยนอก'
+              : (usage.usage_type ?? '-');
+            // Main row: ลำดับ, HN/EN, ชื่อคนไข้, แผนก, ประเภท, วันที่เบิก, ว่าง, ว่าง, จำนวน, ว่าง, ว่าง
             const mainCellTexts = [
-              String(usage.seq ?? idx + 1),                            // 0 ลำดับ
-              hnEn.substring(0, 18),                                    // 1 HN / EN
-              (usage.patient_name ?? '-').toString().substring(0, 20),  // 2 ชื่อคนไข้
-              formatReportDateTime(usage.dispensed_date).substring(0, 16), // 3 วันที่เบิก
-              '',                                                       // 4 ว่าง (sub: รหัสอุปกรณ์)
-              '',                                                       // 5 ว่าง (sub: ชื่ออุปกรณ์)
-              String(totalQty),                                         // 6 จำนวนอุปกรณ์ที่ถูกใช้งาน
-              '',                                                       // 7 ว่าง (sub: Assession No)
-              '',                                                       // 8 ว่าง (sub: สถานะ)
+              String(usage.seq ?? idx + 1),                               // 0 ลำดับ
+              hnEn.substring(0, 18),                                      // 1 HN / EN
+              (usage.patient_name ?? '-').toString().substring(0, 20),    // 2 ชื่อคนไข้
+              (usage.department_name ?? usage.department_code ?? '-').toString().substring(0, 18), // 3 แผนก
+              usageTypeLabel,                                             // 4 ประเภท
+              formatReportDateTime(usage.dispensed_date).substring(0, 16), // 5 วันที่เบิก
+              '',                                                         // 6 ว่าง (sub: รหัสอุปกรณ์)
+              '',                                                         // 7 ว่าง (sub: ชื่ออุปกรณ์)
+              String(totalQty),                                           // 8 จำนวนอุปกรณ์
+              '',                                                         // 9 ว่าง (sub: Assession No)
+              '',                                                         // 10 ว่าง (sub: สถานะ)
             ];
             drawRow(mainCellTexts, bg);
 
-            // Sub rows: ว่าง, ว่าง, ว่าง, ว่าง, รหัสอุปกรณ์, ชื่ออุปกรณ์, จำนวน, Assession No, สถานะ
+            // Sub rows: ว่าง×6, รหัสอุปกรณ์, ชื่ออุปกรณ์, จำนวน, Assession No, สถานะ
             items.forEach((item) => {
               const statusLabel = getStatusLabel(item.order_item_status);
               const subCellTexts = [
-                '',                                                       // 0 ว่าง (main: ลำดับ)
-                '',                                                       // 1 ว่าง (main: HN/EN)
-                '',                                                       // 2 ว่าง (main: ชื่อคนไข้)
-                '',     
-                //  '└ ' ใส่ใน PDF ไม่ได้                                                  // 3 ว่าง (main: วันที่เบิก)
-                '- ' + (item.itemcode ?? '-').toString().substring(0, 24),     // 4 รหัสอุปกรณ์
-                (item.itemname ?? '-').toString().substring(0, 22),     // 5 ชื่ออุปกรณ์
-                item.uom ? `${item.qty ?? 0} ${item.uom}` : String(item.qty ?? 0), // 6 จำนวน (หน่วย)
-                (item.assession_no ?? '-').toString().substring(0, 12), // 7 Assession No
-                statusLabel,                                             // 8 สถานะ
+                '',                                                                // 0 ว่าง (ลำดับ)
+                '',                                                                // 1 ว่าง (HN/EN)
+                '',                                                                // 2 ว่าง (ชื่อคนไข้)
+                '',                                                                // 3 ว่าง (แผนก)
+                '',                                                                // 4 ว่าง (ประเภท)
+                '',                                                                // 5 ว่าง (วันที่เบิก)
+                '- ' + (item.itemcode ?? '-').toString().substring(0, 24),         // 6 รหัสอุปกรณ์
+                (item.itemname ?? '-').toString().substring(0, 22),                // 7 ชื่ออุปกรณ์
+                item.uom ? `${item.qty ?? 0} ${item.uom}` : String(item.qty ?? 0), // 8 จำนวน
+                (item.assession_no ?? '-').toString().substring(0, 12),            // 9 Assession No
+                statusLabel,                                                       // 10 สถานะ
               ];
               drawRow(subCellTexts, '#F0F8FF', statusLabel);
             });

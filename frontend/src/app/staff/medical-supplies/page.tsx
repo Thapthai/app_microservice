@@ -26,6 +26,11 @@ export default function MedicalSuppliesPage() {
   const [selectedSupplyForCancel, setSelectedSupplyForCancel] = useState<any>(null);
   const [exportLoading, setExportLoading] = useState<'excel' | 'pdf' | null>(null);
 
+  const [staffDepartment, setStaffDepartment] = useState<{ department_id: string; department_name: string }>({
+    department_id: '',
+    department_name: '',
+  });
+
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -35,6 +40,7 @@ export default function MedicalSuppliesPage() {
     firstName: '',
     lastName: '',
     assessionNo: '',
+    usageType: '',
   });
 
   // Pagination
@@ -42,6 +48,23 @@ export default function MedicalSuppliesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
+
+  // โหลด department จาก localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('staff_user');
+      if (raw) {
+        const staffUser = JSON.parse(raw.trim());
+        if (staffUser?.department_id) {
+          setStaffDepartment({
+            department_id: String(staffUser.department_id),
+            department_name: staffUser.department_name ?? '',
+          });
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     if (user?.id) {
@@ -115,6 +138,7 @@ export default function MedicalSuppliesPage() {
       firstName: '',
       lastName: '',
       assessionNo: '',
+      usageType: '',
     });
     setCurrentPage(1);
     setSelectedSupply(null);
@@ -155,6 +179,8 @@ export default function MedicalSuppliesPage() {
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
         patientHn: filters.patientHN || undefined,
+        departmentCode: staffDepartment.department_id || undefined,
+        usageType: filters.usageType || undefined,
       };
       if (format === 'excel') {
         await staffVendingReportsApi.downloadDispensedItemsForPatientsExcel(params);
@@ -250,6 +276,7 @@ export default function MedicalSuppliesPage() {
                 onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="userName">ผู้เพิ่มรายการ</Label>
               <Input
@@ -259,6 +286,28 @@ export default function MedicalSuppliesPage() {
                 onChange={(e) => setFilters({ ...filters, userName: e.target.value })}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
+            </div>
+
+            {staffDepartment.department_id && (
+              <div className="space-y-2">
+                <Label>แผนก</Label>
+                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm text-muted-foreground">
+                  {staffDepartment.department_name || `แผนก ${staffDepartment.department_id}`}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>ประเภทผู้ป่วย</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={filters.usageType}
+                onChange={(e) => setFilters({ ...filters, usageType: e.target.value })}
+              >
+                <option value="">-- ทั้งหมด --</option>
+                <option value="OPD">ผู้ป่วยนอก (OPD)</option>
+                <option value="IPD">ผู้ป่วยใน (IPD)</option>
+              </select>
             </div>
           </div>
 

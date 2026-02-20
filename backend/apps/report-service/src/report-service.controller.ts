@@ -652,6 +652,7 @@ export class ReportServiceController {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }) {
     try {
       const result = await this.reportServiceService.generateDispensedItemsForPatientsExcel(data);
@@ -678,6 +679,7 @@ export class ReportServiceController {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }) {
     try {
       const result = await this.reportServiceService.generateDispensedItemsForPatientsPdf(data);
@@ -704,6 +706,7 @@ export class ReportServiceController {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }) {
     try {
       const result = await this.reportServiceService.getDispensedItemsForPatientsData(data);

@@ -733,6 +733,7 @@ export const vendingReportsApi = {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }): Promise<void> => {
     const queryParams = new URLSearchParams();
     if (params?.keyword) queryParams.append('keyword', params.keyword);
@@ -740,6 +741,7 @@ export const vendingReportsApi = {
     if (params?.endDate) queryParams.append('endDate', params.endDate);
     if (params?.patientHn) queryParams.append('patientHn', params.patientHn);
     if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
+    if (params?.usageType) queryParams.append('usageType', params.usageType);
     const response = await api.get(
       `/reports/dispensed-items-for-patients/export/excel?${queryParams.toString()}`,
       { responseType: 'blob' },
@@ -759,6 +761,7 @@ export const vendingReportsApi = {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }): Promise<void> => {
     const queryParams = new URLSearchParams();
     if (params?.keyword) queryParams.append('keyword', params.keyword);
@@ -766,6 +769,7 @@ export const vendingReportsApi = {
     if (params?.endDate) queryParams.append('endDate', params.endDate);
     if (params?.patientHn) queryParams.append('patientHn', params.patientHn);
     if (params?.departmentCode) queryParams.append('departmentCode', params.departmentCode);
+    if (params?.usageType) queryParams.append('usageType', params.usageType);
     const response = await api.get(
       `/reports/dispensed-items-for-patients/export/pdf?${queryParams.toString()}`,
       { responseType: 'blob' },

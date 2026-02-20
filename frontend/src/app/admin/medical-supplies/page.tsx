@@ -58,6 +58,7 @@ export default function MedicalSuppliesPage() {
     assessionNo: '',
     itemName: '',
     departmentCode: '',
+    usageType: '',
     printDate: '',
     timePrintDate: '',
   });
@@ -74,6 +75,7 @@ export default function MedicalSuppliesPage() {
     assessionNo: '',
     itemName: '',
     departmentCode: '',
+    usageType: '',
     printDate: '',
     timePrintDate: '',
   });
@@ -105,6 +107,7 @@ export default function MedicalSuppliesPage() {
       if (filtersToUse.lastName?.trim()) params.lastname = filtersToUse.lastName.trim();
       if (filtersToUse.assessionNo?.trim()) params.assession_no = filtersToUse.assessionNo.trim();
       if (filtersToUse.departmentCode?.trim()) params.department_code = filtersToUse.departmentCode.trim();
+      if (filtersToUse.usageType?.trim()) params.usage_type = filtersToUse.usageType.trim();
       if (filtersToUse.printDate?.trim()) params.print_date = filtersToUse.printDate.trim();
       if (filtersToUse.timePrintDate?.trim()) params.time_print_date = filtersToUse.timePrintDate.trim();
 
@@ -187,6 +190,7 @@ export default function MedicalSuppliesPage() {
       assessionNo: '',
       itemName: '',
       departmentCode: '',
+      usageType: '',
       printDate: '',
       timePrintDate: '',
     };
@@ -273,6 +277,7 @@ export default function MedicalSuppliesPage() {
         endDate: activeFilters.endDate || undefined,
         patientHn: activeFilters.patientHN || undefined,
         departmentCode: activeFilters.departmentCode || undefined,
+        usageType: activeFilters.usageType || undefined,
       };
 
       if (format === 'excel') {
@@ -412,6 +417,19 @@ export default function MedicalSuppliesPage() {
                     </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              </div>
+
+              <div className="space-y-2">
+                <Label>ประเภทผู้ป่วย</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={formFilters.usageType}
+                  onChange={(e) => setFormFilters({ ...formFilters, usageType: e.target.value })}
+                >
+                  <option value="">-- ทั้งหมด --</option>
+                  <option value="OPD">ผู้ป่วยนอก (OPD)</option>
+                  <option value="IPD">ผู้ป่วยใน (IPD)</option>
+                </select>
               </div>
 
               <div className="space-y-2">

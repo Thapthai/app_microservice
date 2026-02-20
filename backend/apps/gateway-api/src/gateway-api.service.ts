@@ -934,6 +934,7 @@ export class GatewayApiService {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }): Promise<any> {
     return firstValueFrom(
       this.reportClient.send({ cmd: 'report.dispensed_items_for_patients.excel' }, params)
@@ -946,6 +947,7 @@ export class GatewayApiService {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }): Promise<any> {
     return firstValueFrom(
       this.reportClient.send({ cmd: 'report.dispensed_items_for_patients.pdf' }, params)
@@ -958,6 +960,7 @@ export class GatewayApiService {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }): Promise<any> {
     return firstValueFrom(
       this.reportClient.send({ cmd: 'report.dispensed_items_for_patients.data' }, params)

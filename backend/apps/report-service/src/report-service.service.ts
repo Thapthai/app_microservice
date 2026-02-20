@@ -2659,6 +2659,7 @@ export class ReportServiceService {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }): Promise<DispensedItemsForPatientsReportData> {
     try {
       const baseWhere: any = {};
@@ -2676,6 +2677,9 @@ export class ReportServiceService {
       }
       if (params?.departmentCode) {
         baseWhere.department_code = params.departmentCode;
+      }
+      if (params?.usageType) {
+        baseWhere.usage_type = { contains: params.usageType };
       }
       if (params?.keyword?.trim()) {
         const keyword = params.keyword.trim();
@@ -2711,6 +2715,20 @@ export class ReportServiceService {
         this.prisma.medicalSupplyUsage.count({ where: baseWhere }),
       ]);
 
+      // Lookup ชื่อแผนกจาก Department table
+      const uniqueDeptCodes = [...new Set(
+        data.map((u) => u.department_code).filter((c): c is string => !!c)
+      )];
+      const deptIds = uniqueDeptCodes.map((c) => parseInt(c, 10)).filter((n) => !isNaN(n));
+      const departments = deptIds.length > 0
+        ? await this.prisma.department.findMany({
+            where: { ID: { in: deptIds } },
+            select: { ID: true, DepName: true },
+          })
+        : [];
+      const deptMap = new Map<number, string>(
+        departments.map((d) => [d.ID, d.DepName ?? ''])
+      );
 
       const reportData: DispensedItemsForPatientsReportData['data'] = data.map((usage, index) => {
         const supplyItems = (usage as { supply_items?: Array<{ order_item_code?: string; supply_code?: string; order_item_description?: string; supply_name?: string; qty?: number; quantity?: number; uom?: string; unit?: string; assession_no?: string; order_item_status?: string }> }).supply_items ?? [];
@@ -2724,6 +2742,8 @@ export class ReportServiceService {
         }));
         const patientName = [usage.first_name, usage.lastname].filter(Boolean).join(' ').trim()
           || (usage.patient_name_th ?? usage.patient_name_en ?? '-');
+        const deptCodeInt = usage.department_code ? parseInt(usage.department_code, 10) : NaN;
+        const resolvedDeptName = !isNaN(deptCodeInt) ? (deptMap.get(deptCodeInt) || usage.department_code) : (usage.department_code ?? undefined);
         return {
           usage_id: usage.id,
           seq: index + 1,
@@ -2731,6 +2751,8 @@ export class ReportServiceService {
           patient_name: patientName,
           en: usage.en ?? undefined,
           department_code: usage.department_code ?? undefined,
+          department_name: resolvedDeptName ?? undefined,
+          usage_type: (usage as any).usage_type ?? undefined,
           dispensed_date: usage.usage_datetime ?? usage.created_at?.toISOString() ?? '',
           supply_items,
         };
@@ -2748,6 +2770,10 @@ export class ReportServiceService {
         0,
       );
 
+      // หาชื่อแผนกจาก filter param
+      const filterDeptId = params.departmentCode ? parseInt(params.departmentCode, 10) : NaN;
+      const filterDeptName = !isNaN(filterDeptId) ? (deptMap.get(filterDeptId) || params.departmentCode) : params.departmentCode;
+
       return {
         filters: {
           keyword: params.keyword,
@@ -2755,6 +2781,8 @@ export class ReportServiceService {
           endDate: params.endDate,
           patientHn: params.patientHn,
           departmentCode: params.departmentCode,
+          departmentName: filterDeptName,
+          usageType: params.usageType,
         },
         summary: {
           total_records: total,
@@ -2779,6 +2807,7 @@ export class ReportServiceService {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const reportData = await this.getDispensedItemsForPatientsData(params);
@@ -2802,6 +2831,7 @@ export class ReportServiceService {
     endDate?: string;
     patientHn?: string;
     departmentCode?: string;
+    usageType?: string;
   }): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const reportData = await this.getDispensedItemsForPatientsData(params);

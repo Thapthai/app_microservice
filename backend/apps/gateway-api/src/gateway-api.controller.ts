@@ -1108,6 +1108,7 @@ export class GatewayApiController {
     @Query('endDate') endDate?: string,
     @Query('patientHn') patientHn?: string,
     @Query('departmentCode') departmentCode?: string,
+    @Query('usageType') usageType?: string,
     @Res() res?: any,
   ) {
     try {
@@ -1117,6 +1118,7 @@ export class GatewayApiController {
       if (endDate) params.endDate = endDate;
       if (patientHn) params.patientHn = patientHn;
       if (departmentCode) params.departmentCode = departmentCode;
+      if (usageType) params.usageType = usageType;
 
       const result = await this.gatewayApiService.generateDispensedItemsForPatientsReportExcel(params);
 
@@ -1143,6 +1145,7 @@ export class GatewayApiController {
     @Query('endDate') endDate?: string,
     @Query('patientHn') patientHn?: string,
     @Query('departmentCode') departmentCode?: string,
+    @Query('usageType') usageType?: string,
     @Res() res?: any,
   ) {
     try {
@@ -1152,6 +1155,7 @@ export class GatewayApiController {
       if (endDate) params.endDate = endDate;
       if (patientHn) params.patientHn = patientHn;
       if (departmentCode) params.departmentCode = departmentCode;
+      if (usageType) params.usageType = usageType;
       const result = await this.gatewayApiService.generateDispensedItemsForPatientsReportPdf(params);
 
       if (!result.success) {
