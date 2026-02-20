@@ -110,7 +110,7 @@ export default function CancelBillPage() {
         const usagesWithItems = usagesList.filter((usage: any) => {
           const usageData = usage.data || usage;
           return usageData.supply_items?.some((item: any) => {
-            return item.order_item_status?.toLowerCase() !== 'discontinue';
+            return !['discontinue', 'discontinued'].includes(item.order_item_status?.toLowerCase() ?? '');
           });
         });
         setUsages(usagesWithItems);

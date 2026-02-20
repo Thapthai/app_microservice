@@ -23,6 +23,7 @@ export const itemComparisonApi = {
     first_name?: string;
     lastname?: string;
     assession_no?: string;
+    departmentCode?: string;
     page?: number;
     limit?: number;
   }): Promise<ApiResponse<any>> => {

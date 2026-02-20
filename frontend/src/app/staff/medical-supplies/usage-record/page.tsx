@@ -491,7 +491,7 @@ export default function MedicalSuppliesPage() {
                                 const status = item.order_item_status || '-';
                                 const statusLower = status.toLowerCase();
 
-                                if (statusLower === 'discontinue') {
+                                if (statusLower === 'discontinue' || statusLower === 'discontinued') {
                                   return (
                                     <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                                       <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>

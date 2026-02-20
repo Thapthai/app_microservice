@@ -800,7 +800,7 @@ export class MedicalSuppliesServiceService {
             supply_items: {
               some: {
                 order_item_status: {
-                  not: 'Discontinue',
+                  // not: 'Discontinue',
                 },
                 OR: [
                   { order_item_description: { contains: keyword } },
@@ -2931,6 +2931,7 @@ export class MedicalSuppliesServiceService {
     first_name?: string;
     lastname?: string;
     assession_no?: string;
+    departmentCode?: string;
     page?: number;
     limit?: number;
   }) {
@@ -2948,6 +2949,11 @@ export class MedicalSuppliesServiceService {
           }
         }
       };
+
+      // Filter by departmentCode
+      if (filters?.departmentCode) {
+        whereConditions.department_code = filters.departmentCode;
+      }
 
       // Filter by first_name
       if (filters?.first_name) {

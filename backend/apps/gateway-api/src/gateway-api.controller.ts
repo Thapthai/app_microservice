@@ -1290,6 +1290,7 @@ export class GatewayApiController {
     @Query('first_name') first_name?: string,
     @Query('lastname') lastname?: string,
     @Query('assession_no') assession_no?: string,
+    @Query('departmentCode') departmentCode?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -1301,6 +1302,7 @@ export class GatewayApiController {
       if (first_name) filters.first_name = first_name;
       if (lastname) filters.lastname = lastname;
       if (assession_no) filters.assession_no = assession_no;
+      if (departmentCode) filters.departmentCode = departmentCode;
       if (page) filters.page = parseInt(page, 10);
       if (limit) filters.limit = parseInt(limit, 10);
 

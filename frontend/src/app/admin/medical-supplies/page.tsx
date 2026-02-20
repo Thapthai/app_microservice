@@ -511,8 +511,8 @@ export default function MedicalSuppliesPage() {
                       <div>
                         <p className="text-sm text-gray-500">แผนก</p>
                         <p className="font-semibold">
-                          {selectedSupply.data?.department_name || selectedSupply.department_name || 
-                           selectedSupply.data?.department_code || selectedSupply.department_code || '-'}
+                          {selectedSupply.data?.department_name || selectedSupply.department_name ||
+                            selectedSupply.data?.department_code || selectedSupply.department_code || '-'}
                         </p>
                       </div>
                       <div>
@@ -602,8 +602,8 @@ export default function MedicalSuppliesPage() {
                           <p className="font-semibold">
                             {formatDate(
                               selectedSupply.created_at ||
-                                selectedSupply.data?.created_at ||
-                                selectedSupply.data?.usage_datetime
+                              selectedSupply.data?.created_at ||
+                              selectedSupply.data?.usage_datetime
                             )}
                           </p>
                         </div>
@@ -664,59 +664,55 @@ export default function MedicalSuppliesPage() {
                           }
 
                           return supplyItems
-                            .filter((item: any) => {
-                              const s = (item.order_item_status || '').toLowerCase();
-                              return s !== 'discontinue' && s !== 'discontinued';
-                            })
                             .map((item: any, index: number) => (
-                            <TableRow key={index}>
-                              <TableCell className="text-center">{index + 1}</TableCell>
-                              <TableCell className="font-mono text-sm">
-                                {item.order_item_code || item.supply_code || '-'}
-                              </TableCell>
-                              <TableCell>
-                                {item.order_item_description || item.supply_name || '-'}
-                              </TableCell>
-                              <TableCell className="text-center font-semibold">
-                                {item.qty || item.quantity || 0}
-                              </TableCell>
-                              <TableCell>{item.uom || item.unit || '-'}</TableCell>
-                              <TableCell className="font-mono text-sm">
-                                {item.assession_no || '-'}
-                              </TableCell>
-                              <TableCell>
-                                {(() => {
-                                  const status = item.order_item_status || '-';
-                                  const statusLower = status.toLowerCase();
+                              <TableRow key={index}>
+                                <TableCell className="text-center">{index + 1}</TableCell>
+                                <TableCell className="font-mono text-sm">
+                                  {item.order_item_code || item.supply_code || '-'}
+                                </TableCell>
+                                <TableCell>
+                                  {item.order_item_description || item.supply_name || '-'}
+                                </TableCell>
+                                <TableCell className="text-center font-semibold">
+                                  {item.qty || item.quantity || 0}
+                                </TableCell>
+                                <TableCell>{item.uom || item.unit || '-'}</TableCell>
+                                <TableCell className="font-mono text-sm">
+                                  {item.assession_no || '-'}
+                                </TableCell>
+                                <TableCell>
+                                  {(() => {
+                                    const status = item.order_item_status || '-';
+                                    const statusLower = status.toLowerCase();
 
-                                  if (statusLower === 'discontinue') {
-                                    return (
-                                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                        <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>
-                                        ยกเลิก
-                                      </Badge>
-                                    );
-                                  } else if (statusLower === 'verified') {
-                                    return (
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                        <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-green-500"></span>
-                                        ยืนยันแล้ว
-                                      </Badge>
-                                    );
-                                  } else if (status === '-') {
-                                    return <span className="text-gray-400">-</span>;
-                                  } else {
-                                    return (
-                                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                        <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
-                                        {status}
-                                      </Badge>
-                                    );
-                                  }
-                                })()}
-                              </TableCell>
-                            </TableRow>
-                          ));
+                                    if (statusLower === 'discontinue' || statusLower === 'discontinued') {
+                                      return (
+                                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                          <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>
+                                          ยกเลิก
+                                        </Badge>
+                                      );
+                                    } else if (statusLower === 'verified') {
+                                      return (
+                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                          <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-green-500"></span>
+                                          ยืนยันแล้ว
+                                        </Badge>
+                                      );
+                                    } else if (status === '-') {
+                                      return <span className="text-gray-400">-</span>;
+                                    } else {
+                                      return (
+                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                          <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-blue-500"></span>
+                                          {status}
+                                        </Badge>
+                                      );
+                                    }
+                                  })()}
+                                </TableCell>
+                              </TableRow>
+                            ));
                         })()}
                       </TableBody>
                     </Table>

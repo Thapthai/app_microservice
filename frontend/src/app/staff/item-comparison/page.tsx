@@ -284,6 +284,7 @@ export default function ItemComparisonPage() {
           itemTypeFilter={filters.itemTypeFilter}
           startDate={filters.startDate}
           endDate={filters.endDate}
+          departmentCode={filters.departmentCode}
           onSelectItem={handleSelectItem}
           onPageChange={handlePageChange}
           onExportExcel={() => handleExportReport('excel')}

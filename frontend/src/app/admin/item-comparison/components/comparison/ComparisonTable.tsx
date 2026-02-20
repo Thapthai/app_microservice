@@ -21,6 +21,7 @@ interface ComparisonTableProps {
   itemTypeFilter: string;
   startDate?: string;
   endDate?: string;
+  departmentCode?: string;
   onSelectItem: (itemCode: string) => void;
   onPageChange: (page: number) => void;
   onExportExcel: () => void;
@@ -54,6 +55,7 @@ export function ComparisonTable({
   itemTypeFilter,
   startDate,
   endDate,
+  departmentCode,
   onSelectItem,
   onPageChange,
   onExportExcel,
@@ -110,6 +112,7 @@ export function ComparisonTable({
       // Add date filters if provided
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
+      if (departmentCode) params.departmentCode = departmentCode;
 
       const response = await medicalSuppliesApi.getUsageByItemCodeFromItemTable(params) as any;
 
@@ -190,7 +193,7 @@ export function ComparisonTable({
     }
   };
 
-  // Refresh sub data when date filter changes
+  // Refresh sub data when date/department filter changes
   useEffect(() => {
     // Clear all usage data and pagination when filters change
     setUsageData(new Map());
@@ -202,7 +205,7 @@ export function ComparisonTable({
         fetchUsageData(itemCode, 1);
       });
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, departmentCode]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -379,7 +382,7 @@ export function ComparisonTable({
                         const hasMorePages = itemUsageData.length < currentTotal;
 
                         itemUsageData.forEach((usage: UsageItem, usageIndex: number) => {
-                          const isDiscontinued = usage.order_item_status?.toLowerCase() === 'discontinue';
+                          const isDiscontinued = ['discontinue', 'discontinued'].includes(usage.order_item_status?.toLowerCase() ?? '');
                           // Use combination of usage_id and supply_item_id for unique key (same as UsageItemsTable)
                           const uniqueKey = usage.supply_item_id
                             ? `${item.itemcode}-usage-${usage.usage_id}-${usage.supply_item_id}`
@@ -422,7 +425,7 @@ export function ComparisonTable({
                                   const status = usage.order_item_status || '-';
                                   const statusLower = status.toLowerCase();
 
-                                  if (statusLower === 'discontinue') {
+                                  if (statusLower === 'discontinue' || statusLower === 'discontinued') {
                                     return (
                                       <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
                                         <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>

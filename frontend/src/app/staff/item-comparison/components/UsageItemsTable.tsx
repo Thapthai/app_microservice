@@ -131,7 +131,7 @@ export default function UsageItemsTable({
                 </TableHeader>
                 <TableBody>
                   {items.map((item, index) => {
-                    const isDiscontinued = item.order_item_status?.toLowerCase() === 'discontinue';
+                    const isDiscontinued = ['discontinue', 'discontinued'].includes(item.order_item_status?.toLowerCase() ?? '');
                     // Use combination of usage_id and supply_item_id for unique key
                     const uniqueKey = item.supply_item_id 
                       ? `${item.usage_id}-${item.supply_item_id}` 
@@ -165,7 +165,7 @@ export default function UsageItemsTable({
                             const status = item.order_item_status || '-';
                             const statusLower = status.toLowerCase();
                             
-                            if (statusLower === 'discontinue') {
+                            if (statusLower === 'discontinue' || statusLower === 'discontinued') {
                               return (
                                 <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                                   <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>

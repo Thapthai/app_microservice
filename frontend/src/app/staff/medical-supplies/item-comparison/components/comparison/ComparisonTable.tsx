@@ -372,7 +372,7 @@ export function ComparisonTable({
                         const hasMorePages = itemUsageData.length < currentTotal;
 
                         itemUsageData.forEach((usage: UsageItem, usageIndex: number) => {
-                          const isDiscontinued = usage.order_item_status?.toLowerCase() === 'discontinue';
+                          const isDiscontinued = ['discontinue', 'discontinued'].includes(usage.order_item_status?.toLowerCase() ?? '');
                           // Use combination of usage_id and supply_item_id for unique key (same as UsageItemsTable)
                           const uniqueKey = usage.supply_item_id
                             ? `${item.itemcode}-usage-${usage.usage_id}-${usage.supply_item_id}`
@@ -417,7 +417,7 @@ export function ComparisonTable({
                                   const status = usage.order_item_status || '-';
                                   const statusLower = status.toLowerCase();
                                   
-                                  if (statusLower === 'discontinue') {
+                                  if (statusLower === 'discontinue' || statusLower === 'discontinued') {
                                     return (
                                       <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
                                         <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-red-500"></span>

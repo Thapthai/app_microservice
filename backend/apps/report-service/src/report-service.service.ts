@@ -698,6 +698,7 @@ export class ReportServiceService {
                 itemCode: item.itemcode,
                 startDate: params.startDate,
                 endDate: params.endDate,
+                departmentCode: params.departmentCode,
                 page: 1,
                 limit: 100,
               })
@@ -815,6 +816,7 @@ export class ReportServiceService {
                 itemCode: item.itemcode,
                 startDate: params.startDate,
                 endDate: params.endDate,
+                departmentCode: params.departmentCode,
                 page: 1,
                 limit: 100,
               })
@@ -2540,26 +2542,29 @@ export class ReportServiceService {
           params?.cabinetId != null || params?.cabinetCode || params?.departmentId != null
             ? damagedReturnMap.get(row.item_code) ?? 0
             : damagedReturnMap.get(`${row.item_code}:${row.department_name ?? '-'}`) ?? 0;
+
+        let refillQty = qtyInUse + damagedQty;
+
         // จำนวนที่ต้องเติม: M=Max (จาก CabinetItemSetting), A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
-        const M = stockMax ?? 0; // ใช้ stockMax จาก CabinetItemSetting (ถ้า null ใช้ 0)
-        const A = balanceQty;
-        const B = qtyInUse;
-        const C = damagedQty;
-        const X = M - A; // จำนวนที่ต้องเติมในตู้
-        const Y = B + C; // จำนวนที่ถูกใช้งาน + ชำรุด
+        // const M = stockMax ?? 0; // ใช้ stockMax จาก CabinetItemSetting (ถ้า null ใช้ 0)
+        // const A = balanceQty;
+        // const B = qtyInUse;
+        // const C = damagedQty;
+        // const X = M - A; // จำนวนที่ต้องเติมในตู้
+        // const Y = B + C; // จำนวนที่ถูกใช้งาน + ชำรุด
 
-        // ถ้า X < Y แสดงว่าต้องเติมน้อยกว่าที่ใช้ + ชำรุด ให้เติม X
-        // ถ้า X > Y แสดงว่าต้องเติมมากกว่า ให้เติม X - Y
-        // ถ้า X == Y ให้เติม Y
-        let refillQty = Y;
-        if (X < Y) {
-          refillQty = X;
-        }
-        else if (X > Y && Y == 0) {
-          // refillQty = X - Y;
-          refillQty = Y;
+        // // ถ้า X < Y แสดงว่าต้องเติมน้อยกว่าที่ใช้ + ชำรุด ให้เติม X
+        // // ถ้า X > Y แสดงว่าต้องเติมมากกว่า ให้เติม X - Y
+        // // ถ้า X == Y ให้เติม Y
+        // let refillQty = Y;
+        // if (X < Y) {
+        //   refillQty = X;
+        // }
+        // else if (X > Y && Y == 0) {
+        //   // refillQty = X - Y;
+        //   refillQty = Y;
 
-        }
+        // }
         totalQty += balanceQty;
         totalRefillQty += refillQty;
         data.push({
