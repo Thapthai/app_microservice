@@ -50,11 +50,13 @@ export class CabinetStockReportPdfService {
     const doc = new PDFDocument({
       size: 'A4',
       layout: 'portrait',
-      margin: 40,
+      margin: 10,
       bufferPages: true,
     });
 
     const chunks: Buffer[] = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+
     let finalFontName = 'Helvetica';
     let finalFontBoldName = 'Helvetica-Bold';
     try {
@@ -62,6 +64,9 @@ export class CabinetStockReportPdfService {
       if (hasThai) {
         finalFontName = 'ThaiFont';
         finalFontBoldName = 'ThaiFontBold';
+        // prime ฟอนต์บน page แรก เพื่อให้ PDFKit embed font ใน resource ของ page 1
+        doc.font(finalFontBoldName).fontSize(13);
+        doc.font(finalFontName).fontSize(13);
       }
     } catch {
       // keep default
@@ -76,12 +81,11 @@ export class CabinetStockReportPdfService {
     });
 
     return new Promise((resolve, reject) => {
-      doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
       try {
-        const margin = 40;
+        const margin = 10;
         const pageWidth = doc.page.width;
         const pageHeight = doc.page.height;
         const contentWidth = pageWidth - margin * 2;
@@ -106,12 +110,12 @@ export class CabinetStockReportPdfService {
           }
         }
 
-        doc.fontSize(14).font(finalFontBoldName).fillColor('#1A365D');
+        doc.fontSize(16).font(finalFontBoldName).fillColor('#1A365D');
         doc.text('รายงานสต็อกอุปกรณ์ในตู้', margin, headerTop + 6, {
           width: contentWidth,
           align: 'center',
         });
-        doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
+        doc.fontSize(11).font(finalFontName).fillColor('#6C757D');
         doc.text('Cabinet Stock Report', margin, headerTop + 22, {
           width: contentWidth,
           align: 'center',
@@ -120,18 +124,47 @@ export class CabinetStockReportPdfService {
         doc.y = headerTop + headerHeight + 14;
 
         // วันที่รายงาน
-        doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
+        doc.fontSize(11).font(finalFontName).fillColor('#6C757D');
         doc.text(`วันที่รายงาน: ${reportDate}`, margin, doc.y, {
           width: contentWidth,
           align: 'right',
         });
         doc.fillColor('#000000');
-        doc.y += 4;
+        doc.y += 6;
 
-        const itemHeight = 18;
+        // ---- ตาราง Filter Summary (1 แถว) ----
+        const filters = data.filters ?? {};
+        const filterRowHeight = 34;
+        const filterY = doc.y;
+        const filterCells = [
+          { label: 'ตู้ Cabinet', value: filters.cabinetName ?? filters.cabinetCode ?? 'ทั้งหมด' },
+          { label: 'แผนก', value: filters.departmentName ?? (filters.departmentId != null ? `แผนก ${filters.departmentId}` : 'ทั้งหมด') },
+          { label: 'จำนวนรายการ', value: `${data.summary?.total_rows ?? 0} รายการ` },
+        ];
+        const filterColWidth = Math.floor(contentWidth / filterCells.length);
+        let fx = margin;
+        filterCells.forEach((fc, i) => {
+          const cw = i === filterCells.length - 1
+            ? contentWidth - filterColWidth * (filterCells.length - 1)
+            : filterColWidth;
+          doc.rect(fx, filterY, cw, filterRowHeight).fillAndStroke('#E8EDF2', '#DEE2E6');
+          doc.fontSize(11).font(finalFontBoldName).fillColor('#444444');
+          doc.text(fc.label, fx + 3, filterY + 4, { width: cw - 6, align: 'center' });
+          doc.fontSize(13).font(finalFontName).fillColor('#1A365D');
+          doc.text(fc.value, fx + 3, filterY + 16, { width: cw - 6, align: 'center' });
+          fx += cw;
+        });
+        doc.fillColor('#000000');
+        doc.y = filterY + filterRowHeight + 8;
+
+        const itemHeight = 28;
         const cellPadding = 4;
         const totalTableWidth = contentWidth;
-        const colPct = [0.05, 0.11, 0.09, 0.20, 0.09, 0.13, 0.09, 0.11, 0.13];
+        // 5 คอลัมน์ตัวเลข (index 4-8) กว้างเท่ากัน, รหัส+อุปกรณ์กว้างขึ้น
+        // ลำดับ:0.04 แผนก:0.09 รหัส:0.11 อุปกรณ์:0.21 | 5x0.11
+        // ลำดับ, แผนก, รหัสอุปกรณ์(เหลือ), อุปกรณ์, จำนวนในตู้, ถูกใช้งาน, ไม่ถูกใช้งาน, Min/Max, จำนวนที่ต้องเติม
+ 
+        const colPct = [0.05, 0.09, 0.17, 0.19, 0.10, 0.09, 0.09, 0.09, 0.12];
         const colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
         if (sumW < totalTableWidth) colWidths[3] += totalTableWidth - sumW;
@@ -139,14 +172,22 @@ export class CabinetStockReportPdfService {
 
         const drawTableHeader = (y: number) => {
           let x = margin;
-          doc.fontSize(7).font(finalFontBoldName);
-          doc.rect(margin, y, totalTableWidth, itemHeight).fillAndStroke('#1A365D', '#1A365D');
+          doc.fontSize(13).font(finalFontBoldName);
+          // พื้นหลังทั้งแถว
+          doc.rect(margin, y, totalTableWidth, itemHeight).fill('#1A365D');
           doc.fillColor('#FFFFFF');
           headers.forEach((h, i) => {
-            doc.text(h, x + cellPadding, y + 5, {
+            doc.text(h, x + cellPadding, y + 8, {
               width: Math.max(2, colWidths[i] - cellPadding * 2),
               align: 'center',
             });
+            // เส้นกั้นแนวตั้งระหว่างคอลัมน์ (ยกเว้นคอลัมน์สุดท้าย)
+            if (i < headers.length - 1) {
+              doc.save();
+              doc.strokeColor('#4A6FA0').lineWidth(0.5);
+              doc.moveTo(x + colWidths[i], y + 4).lineTo(x + colWidths[i], y + itemHeight - 4).stroke();
+              doc.restore();
+            }
             x += colWidths[i];
           });
           doc.fillColor('#000000');
@@ -156,11 +197,11 @@ export class CabinetStockReportPdfService {
         drawTableHeader(tableHeaderY);
         doc.y = tableHeaderY + itemHeight;
 
-        doc.fontSize(7).font(finalFontName).fillColor('#000000');
+        doc.fontSize(13).font(finalFontName).fillColor('#000000');
         if (rows.length === 0) {
           const rowY = doc.y;
           doc.rect(margin, rowY, totalTableWidth, itemHeight).fillAndStroke('#F8F9FA', '#DEE2E6');
-          doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 5, {
+          doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 7, {
             width: totalTableWidth - cellPadding * 2,
             align: 'center',
           });
@@ -168,18 +209,6 @@ export class CabinetStockReportPdfService {
         } else {
           for (let idx = 0; idx < rows.length; idx++) {
             const row = rows[idx];
-            if (doc.y + itemHeight > pageHeight - 35) {
-              doc.addPage({ size: 'A4', layout: 'portrait', margin: 40 });
-              doc.y = margin;
-              const newHeaderY = doc.y;
-              drawTableHeader(newHeaderY);
-              doc.y = newHeaderY + itemHeight;
-            }
-
-            const rowY = doc.y;
-            const hasRefill = ((row as { refill_qty?: number }).refill_qty ?? 0) > 0;
-            const bg = hasRefill ? '#F8D7D7' : (idx % 2 === 0 ? '#FFFFFF' : '#F8F9FA');
-            let xPos = margin;
             const seq = row.seq ?? idx + 1;
             const dept = (row as { department_name?: string }).department_name ?? '-';
             const code = (row as { item_code?: string }).item_code ?? '-';
@@ -200,32 +229,55 @@ export class CabinetStockReportPdfService {
                     : '-';
             const cellTexts = [
               String(seq),
-              String(dept).substring(0, 18),
-              String(code).substring(0, 14),
-              String(name).substring(0, 28),
+              String(dept),
+              String(code),
+              String(name),
               String(bal),
               String(qtyInUse),
               String(damagedQty),
               minMaxStr,
               String(refill),
             ];
+
+            // คำนวณความสูงแถวตามข้อความที่อาจขึ้นบรรทัดใหม่
+            doc.fontSize(13).font(finalFontName);
+            const cellHeights = cellTexts.map((text, i) => {
+              const w = Math.max(4, colWidths[i] - cellPadding * 2);
+              return doc.heightOfString(text ?? '-', { width: w });
+            });
+            const rowHeight = Math.max(itemHeight, Math.max(...cellHeights) + cellPadding * 2);
+
+            if (doc.y + rowHeight > pageHeight - 35) {
+              doc.addPage({ size: 'A4', layout: 'portrait', margin: 10 });
+              doc.y = margin;
+              const newHeaderY = doc.y;
+              drawTableHeader(newHeaderY);
+              doc.y = newHeaderY + itemHeight;
+              // reset font กลับเป็น regular หลัง drawTableHeader
+              doc.fontSize(13).font(finalFontName).fillColor('#000000');
+            }
+
+            const rowY = doc.y;
+            const hasRefill = ((row as { refill_qty?: number }).refill_qty ?? 0) > 0;
+            const bg = hasRefill ? '#F8D7D7' : (idx % 2 === 0 ? '#FFFFFF' : '#F8F9FA');
+            let xPos = margin;
             for (let i = 0; i < 9; i++) {
               const cw = colWidths[i];
               const w = Math.max(4, cw - cellPadding * 2);
-              doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');
-              doc.fillColor('#000000');
-              doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 5, {
+              doc.rect(xPos, rowY, cw, rowHeight).fillAndStroke(bg, '#DEE2E6');
+              doc.fontSize(13).font(finalFontName).fillColor('#000000');
+              doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + cellPadding, {
                 width: w,
                 align: i === 1 || i === 2 || i === 3 ? 'left' : 'center',
               });
               xPos += cw;
             }
-            doc.y = rowY + itemHeight;
+            doc.y = rowY + rowHeight;
           }
         }
 
         // หมายเหตุ: คงเหลือ = จำนวนชิ้นในตู้ (IsStock=1)
-        doc.fontSize(8).font(finalFontName).fillColor('#6C757D');
+        doc.fontSize(11).font(finalFontName).fillColor('#6C757D');
         doc.text('หมายเหตุ: คงเหลือ = จำนวนชิ้นในตู้ (IsStock=1, อยู่ในตู้) เท่านั้น', margin, doc.y + 6, {
           width: contentWidth,
           align: 'center',

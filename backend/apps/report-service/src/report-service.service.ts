@@ -668,6 +668,19 @@ export class ReportServiceService {
         comparisonData = [];
       }
 
+      // Resolve department name
+      let deptNameForExcel: string | undefined;
+      if (params.departmentCode) {
+        const deptId = parseInt(params.departmentCode, 10);
+        if (!Number.isNaN(deptId)) {
+          const dept = await this.prisma.department.findUnique({
+            where: { ID: deptId },
+            select: { DepName: true },
+          });
+          deptNameForExcel = dept?.DepName ?? undefined;
+        }
+      }
+
       const reportData: ItemComparisonReportData = {
         filters: {
           itemCode: params.itemCode,
@@ -675,6 +688,7 @@ export class ReportServiceService {
           startDate: params.startDate,
           endDate: params.endDate,
           departmentCode: params.departmentCode,
+          departmentName: deptNameForExcel,
         },
         summary: comparisonResponse.summary || {
           total_items: 0,
@@ -786,6 +800,19 @@ export class ReportServiceService {
         comparisonData = [];
       }
 
+      // Resolve department name
+      let deptNameForPdf: string | undefined;
+      if (params.departmentCode) {
+        const deptId = parseInt(params.departmentCode, 10);
+        if (!Number.isNaN(deptId)) {
+          const dept = await this.prisma.department.findUnique({
+            where: { ID: deptId },
+            select: { DepName: true },
+          });
+          deptNameForPdf = dept?.DepName ?? undefined;
+        }
+      }
+
       const reportData: ItemComparisonReportData = {
         filters: {
           itemCode: params.itemCode,
@@ -793,6 +820,7 @@ export class ReportServiceService {
           startDate: params.startDate,
           endDate: params.endDate,
           departmentCode: params.departmentCode,
+          departmentName: deptNameForPdf,
         },
         summary: comparisonResponse.summary || {
           total_items: 0,
@@ -2587,11 +2615,37 @@ export class ReportServiceService {
         row.seq = i + 1;
       });
 
+      // Lookup ชื่อแผนกและชื่อตู้สำหรับ filter summary
+      let filterDeptName: string | undefined;
+      let filterCabinetName: string | undefined;
+      if (params?.departmentId != null) {
+        const dept = await this.prisma.department.findUnique({
+          where: { ID: params.departmentId },
+          select: { DepName: true },
+        });
+        filterDeptName = dept?.DepName ?? undefined;
+      }
+      if (params?.cabinetId != null) {
+        const cab = await this.prisma.cabinet.findUnique({
+          where: { id: params.cabinetId },
+          select: { cabinet_name: true, cabinet_code: true },
+        });
+        filterCabinetName = cab?.cabinet_name ?? cab?.cabinet_code ?? undefined;
+      } else if (params?.cabinetCode) {
+        const cab = await this.prisma.cabinet.findFirst({
+          where: { cabinet_code: params.cabinetCode },
+          select: { cabinet_name: true },
+        });
+        filterCabinetName = cab?.cabinet_name ?? params.cabinetCode;
+      }
+
       return {
         filters: {
           cabinetId: params?.cabinetId,
           cabinetCode: params?.cabinetCode,
+          cabinetName: filterCabinetName,
           departmentId: params?.departmentId,
+          departmentName: filterDeptName,
         },
         summary: {
           total_rows: data.length,

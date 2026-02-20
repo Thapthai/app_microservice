@@ -5,6 +5,7 @@ export interface ItemComparisonReportData {
     startDate?: string;
     endDate?: string;
     departmentCode?: string;
+    departmentName?: string;
   };
   summary: {
     total_items: number;
@@ -35,8 +36,11 @@ export interface UsageDetail {
   patient_name?: string;
   patient_en?: string;
   department_code?: string;
+  department_name?: string;
+  usage_type?: string | null;
   usage_datetime: Date | string;
   qty_used: number;
   qty_returned: number;
+  order_item_status?: string;
 }
 

@@ -59,7 +59,7 @@ export default function DashboardItemsTable({
                 <TableHeader>
                   <TableRow>
                     <TableHead>ลำดับ</TableHead>
-                    <TableHead>รหัสอุปกรณ์</TableHead>
+                    {/* <TableHead>รหัสอุปกรณ์</TableHead> */}
                     <TableHead>ชื่อสินค้า</TableHead>
                     <TableHead>แผนก</TableHead>
                     <TableHead className="text-center">จำนวนในตู้</TableHead>
@@ -88,7 +88,7 @@ export default function DashboardItemsTable({
                           }`}
                         >
                           <TableCell>{startIndex + index + 1}</TableCell>
-                          <TableCell>{item.itemcode}</TableCell>
+                          {/* <TableCell>{item.itemcode}</TableCell> */}
                           <TableCell>{item.itemname || "-"}</TableCell>
                           <TableCell>{item.department?.DepName || item.department?.DepName2 || (item.DepartmentID != null ? String(item.DepartmentID) : "-")}</TableCell>
                           <TableCell className="text-center">

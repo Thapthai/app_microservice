@@ -66,11 +66,13 @@ export class DispensedItemsPdfService {
     const doc = new PDFDocument({
       size: 'A4',
       layout: 'portrait',
-      margin: 40,
+      margin: 10,
       bufferPages: true,
     });
 
     const chunks: Buffer[] = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+
     let finalFontName = 'Helvetica';
     let finalFontBoldName = 'Helvetica-Bold';
     try {
@@ -78,6 +80,9 @@ export class DispensedItemsPdfService {
       if (hasThai) {
         finalFontName = 'ThaiFont';
         finalFontBoldName = 'ThaiFontBold';
+        // prime ฟอนต์บน page แรก เพื่อให้ PDFKit embed font ใน resource ของ page 1
+        doc.font(finalFontBoldName).fontSize(13);
+        doc.font(finalFontName).fontSize(13);
       }
     } catch {
       // keep default
@@ -92,92 +97,109 @@ export class DispensedItemsPdfService {
     });
 
     return new Promise((resolve, reject) => {
-      doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
       try {
-        const margin = 28;
+        const margin = 10;
         const pageWidth = doc.page.width;
         const pageHeight = doc.page.height;
         const contentWidth = pageWidth - margin * 2;
-        const summary = data.summary ?? { total_records: 0, total_qty: 0 };
         const rows = data.data ?? [];
 
-        // ---- Header block with logo (เหมือน cabinet-stock) ----
-        const headerTop = 28;
-        const headerHeight = 40;
+        // ---- Header block with logo ----
+        const headerTop = 35;
+        const headerHeight = 48;
         doc.rect(margin, headerTop, contentWidth, headerHeight)
           .fillAndStroke('#F8F9FA', '#DEE2E6');
 
         if (logoBuffer && logoBuffer.length > 0) {
           try {
-            doc.image(logoBuffer, margin + 6, headerTop + 4, { fit: [56, 32] });
+            doc.image(logoBuffer, margin + 8, headerTop + 6, { fit: [70, 36] });
           } catch {
             try {
-              doc.image(logoBuffer, margin + 6, headerTop + 4, { width: 56 });
+              doc.image(logoBuffer, margin + 8, headerTop + 6, { width: 70 });
             } catch {
               // skip logo
             }
           }
         }
 
-        doc.fontSize(14).font(finalFontBoldName).fillColor('#1A365D');
+        doc.fontSize(16).font(finalFontBoldName).fillColor('#1A365D');
         doc.text('รายงานการเบิกอุปกรณ์', margin, headerTop + 6, {
           width: contentWidth,
           align: 'center',
         });
-        doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
+        doc.fontSize(11).font(finalFontName).fillColor('#6C757D');
         doc.text('Dispensed Items Report', margin, headerTop + 22, {
           width: contentWidth,
           align: 'center',
         });
         doc.fillColor('#000000');
-        doc.y = headerTop + headerHeight + 8;
+        doc.y = headerTop + headerHeight + 14;
 
-        // แถวเงื่อนไข: ด้านซ้าย แผนก, ตู้, วันที่เริ่ม, วันที่สิ้นสุด | ด้านขวา วันที่รายงาน
-        doc.text(`วันที่รายงาน: ${reportDate}`, margin + contentWidth / 2, doc.y, {
-          width: contentWidth / 2,
+        // วันที่รายงาน
+        doc.fontSize(11).font(finalFontName).fillColor('#6C757D');
+        doc.text(`วันที่รายงาน: ${reportDate}`, margin, doc.y, {
+          width: contentWidth,
           align: 'right',
         });
         doc.fillColor('#000000');
+        doc.y += 6;
+
+        // ---- ตาราง Filter Summary (1 แถว 4 ช่อง) ----
         const filters = data.filters ?? {};
-        const deptLabel = filters.departmentName ? `แผนก: ${filters.departmentName}` : (filters.departmentId ? `แผนก: ${filters.departmentId}` : 'แผนก: ทั้งหมด');
-        const cabLabel = filters.cabinetName ? `ตู้: ${filters.cabinetName}` : (filters.cabinetId ? `ตู้: ${filters.cabinetId}` : 'ตู้: ทั้งหมด');
-        const startLabel = filters.startDate ? `วันที่เริ่ม: ${filters.startDate}` : 'วันที่เริ่ม: ทั้งหมด';
-        const endLabel = filters.endDate ? `วันที่สิ้นสุด: ${filters.endDate}` : 'วันที่สิ้นสุด: ทั้งหมด';
-        const leftConditionStr = `${deptLabel}    ${cabLabel}    ${startLabel}    ${endLabel}`;
-        doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
-        doc.text(leftConditionStr, margin, doc.y, { width: contentWidth / 2, align: 'left' });
+        const filterRowHeight = 34;
+        const filterY = doc.y;
+        const filterCells = [
+          { label: 'แผนก', value: filters.departmentName ?? (filters.departmentId ? filters.departmentId : 'ทั้งหมด') },
+          { label: 'ตู้ Cabinet', value: filters.cabinetName ?? (filters.cabinetId ? filters.cabinetId : 'ทั้งหมด') },
+          { label: 'วันที่เริ่ม', value: filters.startDate ?? 'ทั้งหมด' },
+          { label: 'วันที่สิ้นสุด', value: filters.endDate ?? 'ทั้งหมด' },
+        ];
+        const filterColWidth = Math.floor(contentWidth / filterCells.length);
+        let fx = margin;
+        filterCells.forEach((fc, i) => {
+          const cw = i === filterCells.length - 1
+            ? contentWidth - filterColWidth * (filterCells.length - 1)
+            : filterColWidth;
+          doc.rect(fx, filterY, cw, filterRowHeight).fillAndStroke('#E8EDF2', '#DEE2E6');
+          doc.fontSize(11).font(finalFontBoldName).fillColor('#444444');
+          doc.text(fc.label, fx + 3, filterY + 4, { width: cw - 6, align: 'center' });
+          doc.fontSize(13).font(finalFontName).fillColor('#1A365D');
+          doc.text(fc.value, fx + 3, filterY + 16, { width: cw - 6, align: 'center' });
+          fx += cw;
+        });
+        doc.fillColor('#000000');
+        doc.y = filterY + filterRowHeight + 8;
 
-        doc.y += 2;
-
-        const itemHeight = 14;
-        const cellPadding = 3;
+        // ---- ตารางข้อมูล ----
+        const itemHeight = 28;
+        const cellPadding = 4;
         const totalTableWidth = contentWidth;
-        // 8 columns: ลำดับ, รหัสอุปกรณ์, ชื่ออุปกรณ์, วันที่เบิก, ชื่อผู้เบิก, RFID Code, ตู้, แผนก
-        const colPct = [0.045, 0.117, 0.208, 0.10, 0.13, 0.26, 0.10, 0.10];
-        let colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
+        // ลำดับ, รหัสอุปกรณ์, ชื่ออุปกรณ์, วันที่เบิก, ชื่อผู้เบิก, แผนก, ตู้
+        const colPct = [0.06, 0.13, 0.20, 0.1, 0.19, 0.10, 0.08];
+        const colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
-        if (sumW > totalTableWidth) {
-          colWidths = colWidths.map((w) => Math.floor((w * totalTableWidth) / sumW));
-          sumW = colWidths.reduce((a, b) => a + b, 0);
-        }
         if (sumW < totalTableWidth) colWidths[2] += totalTableWidth - sumW;
-        const headers = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่เบิก', 'ชื่อผู้เบิก', 'RFID Code', 'แผนก', 'ตู้',];
+        const headers = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'วันที่เบิก', 'ชื่อผู้เบิก', 'แผนก', 'ตู้'];
 
         const drawTableHeader = (y: number) => {
           let x = margin;
-          doc.fontSize(6).font(finalFontBoldName);
-          doc.rect(margin, y, totalTableWidth, itemHeight).fillAndStroke('#1A365D', '#1A365D');
+          doc.fontSize(13).font(finalFontBoldName);
+          doc.rect(margin, y, totalTableWidth, itemHeight).fill('#1A365D');
           doc.fillColor('#FFFFFF');
           headers.forEach((h, i) => {
-            doc.text(h, x + cellPadding, y + 3, {
+            doc.text(h, x + cellPadding, y + 8, {
               width: Math.max(2, colWidths[i] - cellPadding * 2),
-              height: itemHeight - 6,
               align: 'center',
-              ellipsis: true,
             });
+            if (i < headers.length - 1) {
+              doc.save();
+              doc.strokeColor('#4A6FA0').lineWidth(0.5);
+              doc.moveTo(x + colWidths[i], y + 4).lineTo(x + colWidths[i], y + itemHeight - 4).stroke();
+              doc.restore();
+            }
             x += colWidths[i];
           });
           doc.fillColor('#000000');
@@ -187,63 +209,72 @@ export class DispensedItemsPdfService {
         drawTableHeader(tableHeaderY);
         doc.y = tableHeaderY + itemHeight;
 
-        doc.fontSize(6).font(finalFontName).fillColor('#000000');
+        doc.fontSize(13).font(finalFontName).fillColor('#000000');
         if (rows.length === 0) {
           const rowY = doc.y;
           doc.rect(margin, rowY, totalTableWidth, itemHeight).fillAndStroke('#F8F9FA', '#DEE2E6');
-          doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 3, {
+          doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 7, {
             width: totalTableWidth - cellPadding * 2,
-            height: itemHeight - 6,
             align: 'center',
-            ellipsis: true,
           });
           doc.y = rowY + itemHeight;
         } else {
-          rows.forEach((item, idx) => {
-            if (doc.y + itemHeight > pageHeight - 32) {
-              doc.addPage({ size: 'A4', layout: 'portrait', margin: 28 });
+          for (let idx = 0; idx < rows.length; idx++) {
+            const item = rows[idx];
+
+            const cellTexts = [
+              String(idx + 1),
+              item?.itemcode ?? '-',
+              item?.itemname ?? '-',
+              formatReportDate(item?.modifyDate as string),
+              item?.cabinetUserName ?? 'ไม่ระบุ',
+              item?.departmentName ?? '-',
+              item?.cabinetName ?? item?.cabinetCode ?? '-',
+            ];
+
+            // คำนวณความสูงแถวตามข้อความที่อาจขึ้นบรรทัดใหม่
+            doc.fontSize(13).font(finalFontName);
+            const cellHeights = cellTexts.map((text, i) => {
+              const w = Math.max(4, colWidths[i] - cellPadding * 2);
+              return doc.heightOfString(text ?? '-', { width: w });
+            });
+            const rowHeight = Math.max(itemHeight, Math.max(...cellHeights) + cellPadding * 2);
+
+            if (doc.y + rowHeight > pageHeight - 35) {
+              doc.addPage({ size: 'A4', layout: 'portrait', margin: 10 });
               doc.y = margin;
               const newHeaderY = doc.y;
               drawTableHeader(newHeaderY);
               doc.y = newHeaderY + itemHeight;
+              // reset font กลับเป็น regular หลัง drawTableHeader
+              doc.fontSize(13).font(finalFontName).fillColor('#000000');
             }
 
             const rowY = doc.y;
             const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
             let xPos = margin;
-            // ใช้ค่า field แบบเดียวกับ Excel (ไม่ตัด substring) เพื่อให้ data ตรงกัน
-            const cellTexts = [
-              String(idx + 1),
-              item?.itemcode ?? '-',
-              item?.itemname ?? '-',
-              formatReportDate(item?.modifyDate as any),
-              item?.cabinetUserName ?? 'ไม่ระบุ',
-              item?.RfidCode ?? '-',
-              item?.departmentName ?? '-',
-              item?.cabinetName ?? item?.cabinetCode ?? '-',
-            ];
-            const textOpts = (w: number) => ({
-              width: Math.max(4, w),
-              height: itemHeight - 6,
-              align: 'center' as const,
-              ellipsis: true,
-            });
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 7; i++) {
               const cw = colWidths[i];
               const w = Math.max(4, cw - cellPadding * 2);
-              doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(bg, '#DEE2E6');
-              doc.fillColor('#000000');
-              doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 3, {
-                ...textOpts(w),
-                align: i === 2 ? 'left' : 'center',
+              doc.rect(xPos, rowY, cw, rowHeight).fillAndStroke(bg, '#DEE2E6');
+              doc.fontSize(13).font(finalFontName).fillColor('#000000');
+              doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + cellPadding, {
+                width: w,
+                align: i === 1 || i === 2 || i === 4 ? 'left' : 'center',
               });
               xPos += cw;
             }
-            doc.y = rowY + itemHeight;
-          });
+            doc.y = rowY + rowHeight;
+          }
         }
 
-        doc.y += 6;
+        // footer note
+        doc.fontSize(11).font(finalFontName).fillColor('#6C757D');
+        doc.text(`จำนวนรายการทั้งหมด: ${data.summary?.total_records ?? 0} รายการ`, margin, doc.y + 6, {
+          width: contentWidth,
+          align: 'center',
+        });
+        doc.fillColor('#000000');
 
         doc.end();
       } catch (err) {

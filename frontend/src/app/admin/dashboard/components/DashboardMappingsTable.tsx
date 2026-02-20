@@ -85,7 +85,7 @@ export default function DashboardMappingsTable({ mappings, loading }: DashboardM
                 <TableHeader>
                   <TableRow>
                     <TableHead>ลำดับ</TableHead>
-                    <TableHead>รหัสตู้</TableHead>
+                    {/* <TableHead>รหัสตู้</TableHead> */}
                     <TableHead>ชื่อตู้</TableHead>
                     <TableHead>แผนก</TableHead>
                     <TableHead className="text-center">จำนวนอุปกรณ์</TableHead>
@@ -107,7 +107,7 @@ export default function DashboardMappingsTable({ mappings, loading }: DashboardM
                         className="cursor-pointer hover:bg-gray-50"
                       >
                         <TableCell>{startIndex + index + 1}</TableCell>
-                        <TableCell>{mapping.cabinet?.cabinet_code || "-"}</TableCell>
+                        {/* <TableCell>{mapping.cabinet?.cabinet_code || "-"}</TableCell> */}
                         <TableCell>{mapping.cabinet?.cabinet_name || "-"}</TableCell>
                         <TableCell>{mapping.department?.DepName || "-"}</TableCell>
                         <TableCell className="text-center">

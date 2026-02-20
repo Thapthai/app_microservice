@@ -153,7 +153,7 @@ function ItemsTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-[80px]">ลำดับ</TableHead>
-            <TableHead>รหัสสินค้า</TableHead>
+            {/* <TableHead>รหัสสินค้า</TableHead> */}
             <TableHead>อุปกรณ์</TableHead>
             <TableHead className="text-center">Stock Balance</TableHead>
             <TableHead className="text-center">Min/Max</TableHead>
@@ -172,9 +172,9 @@ function ItemsTable({
                   {(currentPage - 1) * itemsPerPage + index + 1}
                 </TableCell>
                 <TableCell>
-                  <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                  {/* <code className="text-xs bg-gray-100 px-2 py-1 rounded">
                     {item.itemcode}
-                  </code>
+                  </code> */}
                 </TableCell>
                 <TableCell className="font-medium">{item.itemname || '-'}</TableCell>
                 <TableCell className="text-center">

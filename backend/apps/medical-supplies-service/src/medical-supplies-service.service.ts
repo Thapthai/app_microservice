@@ -3064,12 +3064,13 @@ export class MedicalSuppliesServiceService {
         for (const supplyItem of usage.supply_items) {
           allResults.push({
             usage_id: usage.id,
-            supply_item_id: supplyItem?.id, // Add supply_item_id for unique key
+            supply_item_id: supplyItem?.id,
             patient_hn: usage.patient_hn,
             patient_name: `${usage.first_name || ''} ${usage.lastname || ''}`.trim(),
             patient_en: usage.en,
             department_code: usage.department_code,
             department_name: departmentName,
+            usage_type: usage.usage_type ?? null,
             usage_datetime: usage.usage_datetime,
             itemcode: supplyItem?.order_item_code || supplyItem?.supply_code,
             itemname: supplyItem?.supply_name,

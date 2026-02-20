@@ -50,14 +50,17 @@ export class ItemComparisonPdfService {
     }
 
     const comparisonData = Array.isArray(data.comparison) ? data.comparison : [];
+
     const doc = new PDFDocument({
       size: 'A4',
       layout: 'portrait',
-      margin: 35,
+      margin: 10,
       bufferPages: true,
     });
 
     const chunks: Buffer[] = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+
     let finalFontName = 'Helvetica';
     let finalFontBoldName = 'Helvetica-Bold';
     try {
@@ -65,6 +68,8 @@ export class ItemComparisonPdfService {
       if (hasThai) {
         finalFontName = 'ThaiFont';
         finalFontBoldName = 'ThaiFontBold';
+        doc.font(finalFontBoldName).fontSize(13);
+        doc.font(finalFontName).fontSize(13);
       }
     } catch {
       // keep default
@@ -79,25 +84,20 @@ export class ItemComparisonPdfService {
     });
 
     return new Promise((resolve, reject) => {
-      doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
       try {
-        const margin = 35;
+        const margin = 10;
         const pageWidth = doc.page.width;
         const pageHeight = doc.page.height;
         const contentWidth = pageWidth - margin * 2;
-        const itemHeight = 20;
-        const cellPadding = 3;
 
-        // ---- Header block with logo (เหมือน dispensed-items-for-patients) ----
+        // ---- Header block with logo ----
         const headerTop = 35;
         const headerHeight = 48;
-        doc.save();
         doc.rect(margin, headerTop, contentWidth, headerHeight)
           .fillAndStroke('#F8F9FA', '#DEE2E6');
-        doc.restore();
 
         if (logoBuffer && logoBuffer.length > 0) {
           try {
@@ -111,12 +111,12 @@ export class ItemComparisonPdfService {
           }
         }
 
-        doc.fontSize(14).font(finalFontBoldName).fillColor('#1A365D');
+        doc.fontSize(16).font(finalFontBoldName).fillColor('#1A365D');
         doc.text('รายงานเปรียบเทียบการเบิกอุปกรณ์และการบันทึกใช้กับคนไข้', margin, headerTop + 6, {
           width: contentWidth,
           align: 'center',
         });
-        doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
+        doc.fontSize(11).font(finalFontName).fillColor('#6C757D');
         doc.text('Comparative Report on Dispensing and Patient Usage', margin, headerTop + 22, {
           width: contentWidth,
           align: 'center',
@@ -125,52 +125,70 @@ export class ItemComparisonPdfService {
         doc.y = headerTop + headerHeight + 14;
 
         // วันที่รายงาน
-        doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
+        doc.fontSize(11).font(finalFontName).fillColor('#6C757D');
         doc.text(`วันที่รายงาน: ${reportDate}`, margin, doc.y, {
           width: contentWidth,
           align: 'right',
         });
         doc.fillColor('#000000');
-        doc.y += 4;
+        doc.y += 6;
 
-        // Table: 10 columns
-        const headers = [
-          'ลำดับ',
-          'HN/EN',
-          'แผนก',
-          'รหัสอุปกรณ์',
-          'ชื่ออุปกรณ์',
-          'จำนวนเบิก',
-          'จำนวนใช้',
-          'ส่วนต่าง',
-          'วันที่',
-          'สถานะ',
+        // ---- ตาราง Filter Summary ----
+        const filters = data.filters ?? {};
+        const filterRowHeight = 34;
+        const filterY = doc.y;
+        const filterCells = [
+          { label: 'วันที่เริ่ม', value: filters.startDate ?? 'ทั้งหมด' },
+          { label: 'วันที่สิ้นสุด', value: filters.endDate ?? 'ทั้งหมด' },
+          { label: 'แผนก', value: filters.departmentName ?? filters.departmentCode ?? 'ทั้งหมด' },
+          { label: 'จำนวนรายการ', value: `${data.summary?.total_items ?? 0} รายการ` },
         ];
-        // ปรับสัดส่วนความกว้างคอลัมน์ให้เหมาะสมกับความยาวข้อมูลแต่ละช่อง
-        // ขยาย HN/EN (index 1) ให้กว้างขึ้นเล็กน้อย
-        const colPct = [0.05, 0.13, 0.15, 0.10, 0.18, 0.07, 0.07, 0.07, 0.09, 0.08];
-        let colWidths = colPct.map((p) => Math.floor(contentWidth * p));
+        const filterColWidth = Math.floor(contentWidth / filterCells.length);
+        let fx = margin;
+        filterCells.forEach((fc, i) => {
+          const cw = i === filterCells.length - 1
+            ? contentWidth - filterColWidth * (filterCells.length - 1)
+            : filterColWidth;
+          doc.rect(fx, filterY, cw, filterRowHeight).fillAndStroke('#E8EDF2', '#DEE2E6');
+          doc.fontSize(11).font(finalFontBoldName).fillColor('#444444');
+          doc.text(fc.label, fx + 3, filterY + 4, { width: cw - 6, align: 'center' });
+          doc.fontSize(13).font(finalFontName).fillColor('#1A365D');
+          doc.text(fc.value, fx + 3, filterY + 16, { width: cw - 6, align: 'center' });
+          fx += cw;
+        });
+        doc.fillColor('#000000');
+        doc.y = filterY + filterRowHeight + 8;
+
+        // ---- ตารางข้อมูล ----
+        // ลำดับ, HN/EN, แผนก/ชนิดผู้ป่วย, ชื่ออุปกรณ์, จำนวนเบิก, จำนวนใช้, ส่วนต่าง, วันที่, สถานะ
+        const itemHeight = 28;
+        const cellPadding = 4;
+        const totalTableWidth = contentWidth;
+        const colPct = [0.05, 0.12, 0.15, 0.25, 0.08, 0.08, 0.08, 0.09, 0.1];
+        const colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
-        if (sumW < contentWidth) {
-          colWidths[2] += contentWidth - sumW;
-        }
-        // ป้องกัน NaN / ค่าไม่ถูกต้องใน colWidths (กัน error unsupported number: NaN ของ PDFKit)
-        const defaultColWidth = Math.floor(contentWidth / headers.length);
-        colWidths = colWidths.map((w) =>
-          !Number.isFinite(w) || w <= 0 ? defaultColWidth : w,
-        );
+        if (sumW < totalTableWidth) colWidths[3] += totalTableWidth - sumW;
+        const headers = [
+          'ลำดับ', 'HN / EN', 'แผนก', 'ชื่ออุปกรณ์',
+          'จำนวนเบิก', 'จำนวนใช้', 'ส่วนต่าง', 'วันที่', 'สถานะ',
+        ];
 
         const drawTableHeader = (y: number) => {
           let x = margin;
-          doc.fontSize(8).font(finalFontBoldName);
-          doc.rect(margin, y, contentWidth, itemHeight).fillAndStroke('#1A365D', '#1A365D');
+          doc.fontSize(13).font(finalFontBoldName);
+          doc.rect(margin, y, totalTableWidth, itemHeight).fill('#1A365D');
           doc.fillColor('#FFFFFF');
           headers.forEach((h, i) => {
-            doc.text(h, x + cellPadding, y + 6, {
+            doc.text(h, x + cellPadding, y + 8, {
               width: Math.max(2, colWidths[i] - cellPadding * 2),
-              // ให้ header ทุกคอลัมน์อยู่กึ่งกลาง
               align: 'center',
             });
+            if (i < headers.length - 1) {
+              doc.save();
+              doc.strokeColor('#4A6FA0').lineWidth(0.5);
+              doc.moveTo(x + colWidths[i], y + 4).lineTo(x + colWidths[i], y + itemHeight - 4).stroke();
+              doc.restore();
+            }
             x += colWidths[i];
           });
           doc.fillColor('#000000');
@@ -180,232 +198,213 @@ export class ItemComparisonPdfService {
         drawTableHeader(tableHeaderY);
         doc.y = tableHeaderY + itemHeight;
 
-        doc.fontSize(8).font(finalFontName).fillColor('#000000');
+        doc.fontSize(13).font(finalFontName).fillColor('#000000');
+
         if (comparisonData.length === 0) {
           const rowY = doc.y;
-          doc.rect(margin, rowY, contentWidth, itemHeight).fillAndStroke('#F8F9FA', '#DEE2E6');
-          doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 6, {
-            width: contentWidth - cellPadding * 2,
+          doc.rect(margin, rowY, totalTableWidth, itemHeight).fillAndStroke('#F8F9FA', '#DEE2E6');
+          doc.text('ไม่มีข้อมูล', margin + cellPadding, rowY + 7, {
+            width: totalTableWidth - cellPadding * 2,
             align: 'center',
           });
           doc.y = rowY + itemHeight;
         } else {
-          let rowIndex = 0;
-          comparisonData.forEach((item) => {
-            if (doc.y + itemHeight > pageHeight - 35) {
-              doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
+          const drawRow = (
+            cellTexts: string[],
+            bg: string,
+            statusText?: string,
+            isMatch?: boolean,
+            hasDiff?: boolean,
+          ) => {
+            doc.fontSize(13).font(finalFontName);
+            const cellHeights = cellTexts.map((text, i) => {
+              const w = Math.max(4, colWidths[i] - cellPadding * 2);
+              return doc.heightOfString(text ?? '-', { width: w });
+            });
+            const rowHeight = Math.max(itemHeight, Math.max(...cellHeights) + cellPadding * 2);
+
+            if (doc.y + rowHeight > pageHeight - 35) {
+              doc.addPage({ size: 'A4', layout: 'portrait', margin: 10 });
               doc.y = margin;
-              drawTableHeader(doc.y);
-              doc.y += itemHeight;
+              const newHeaderY = doc.y;
+              drawTableHeader(newHeaderY);
+              doc.y = newHeaderY + itemHeight;
+              doc.fontSize(13).font(finalFontName).fillColor('#000000');
             }
 
             const rowY = doc.y;
-            const bg = rowIndex % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
-            const difference = (item.total_dispensed ?? 0) - (item.total_used ?? 0) - (item.total_returned ?? 0);
-            const isMatch = item.status === 'MATCHED';
             let xPos = margin;
-            const statusText = this.getStatusText(item.status || 'UNKNOWN').substring(0, 14);
-            const cellTexts = [
-              String(rowIndex + 1), // ลำดับ
-              '-', // HN/EN (รายละเอียดอยู่ในแถวย่อย)
-              '-', // ชื่อคนไข้ (รายละเอียดอยู่ในแถวย่อย)
-              (item.itemcode ?? '-').toString().substring(0, 40), // รหัสอุปกรณ์
-              (item.itemname ?? '-').toString().substring(0, 28), // ชื่ออุปกรณ์
-              item.total_dispensed != null ? String(item.total_dispensed) : '0', // จำนวนเบิก
-              item.total_used != null ? String(item.total_used) : '0', // จำนวนใช้
-              String(difference), // ส่วนต่าง
-              '-', // วันที่ (รายละเอียดอยู่ในแถวย่อย)
-              statusText, // สถานะ (สรุปต่อรายการอุปกรณ์)
-            ];
-            for (let i = 0; i < headers.length; i++) {
+            for (let i = 0; i < 9; i++) {
               const cw = colWidths[i];
               const w = Math.max(4, cw - cellPadding * 2);
-              let fillColor = bg;
-              if (i === 5 && difference !== 0) fillColor = '#FFF3CD';
-              if (i === 9) fillColor = isMatch ? '#D4EDDA' : '#F8D7DA';
-              doc.rect(xPos, rowY, cw, itemHeight).fillAndStroke(fillColor, '#DEE2E6');
-              doc.fillColor(i === 9 ? (isMatch ? '#155724' : '#721C24') : '#000000');
-              doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
+              let cellBg = bg;
+              let textColor = '#000000';
+              if (i === 6 && hasDiff) {
+                cellBg = '#FFF3CD';
+                textColor = '#856404';
+              }
+              if (i === 8 && statusText != null) {
+                cellBg = isMatch ? '#D4EDDA' : '#F8D7DA';
+                textColor = isMatch ? '#155724' : '#721C24';
+              }
+              doc.rect(xPos, rowY, cw, rowHeight).fillAndStroke(cellBg, '#DEE2E6');
+              doc.fontSize(13).font(finalFontName).fillColor(textColor);
+              doc.text(cellTexts[i] ?? '-', xPos + cellPadding, rowY + cellPadding, {
                 width: w,
-                // ชิดซ้ายสำหรับ รหัสอุปกรณ์ (1), ชื่ออุปกรณ์ (2), HN/EN (3), ชื่อคนไข้ (4)
-                align: i === 1 || i === 2 || i === 3 || i === 4 ? 'left' : 'center',
+                align: i === 1 || i === 2 || i === 3 ? 'left' : 'center',
               });
               xPos += cw;
             }
             doc.fillColor('#000000');
-            doc.y = rowY + itemHeight;
-            rowIndex++;
+            doc.y = rowY + rowHeight;
+          };
 
-            // Sub rows for usage items
+          comparisonData.forEach((item, idx) => {
+            const difference = (item.total_dispensed ?? 0) - (item.total_used ?? 0) - (item.total_returned ?? 0);
+            const isMatch = item.status === 'MATCHED';
+            const statusText = this.getStatusText(item.status || 'UNKNOWN');
+            const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
+
+            drawRow([
+              String(idx + 1),
+              '-',
+              '-',
+              item.itemname ?? '-',
+              String(item.total_dispensed ?? 0),
+              String(item.total_used ?? 0),
+              String(difference),
+              '-',
+              statusText,
+            ], bg, statusText, isMatch, difference !== 0);
+
             if (item.usageItems && Array.isArray(item.usageItems) && item.usageItems.length > 0) {
               item.usageItems.forEach((usage: any) => {
-                if (doc.y + itemHeight > pageHeight - 35) {
-                  doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
-                  doc.y = margin;
-                  drawTableHeader(doc.y);
-                  doc.y += itemHeight;
-                }
-                const subY = doc.y;
-                xPos = margin;
-                const usageDate =
-                  usage.created_at != null
-                    ? new Date(usage.created_at).toLocaleDateString('th-TH')
-                    : '-';
+                const usageDate = usage.usage_datetime != null
+                  ? new Date(usage.usage_datetime).toLocaleDateString('th-TH')
+                  : '-';
                 const hnEn = `${usage.patient_hn ?? '-'} / ${usage.patient_en ?? '-'}`;
+                const deptLabel = usage.department_name || usage.department_code || '-';
+                const usageType = (usage.usage_type ?? '').toUpperCase();
+                const patientTypeLabel = usageType === 'IPD' ? 'ผู้ป่วยใน'
+                  : usageType === 'OPD' ? 'ผู้ป่วยนอก' : '';
+                const deptAndType = patientTypeLabel ? `${deptLabel}\n${patientTypeLabel}` : deptLabel;
                 const usageStatus = this.getUsageOrderStatusText(usage.order_item_status);
-                const subTexts = [
-                  ' ', // ลำดับ (ว่างในแถวลูก)
+                const usageIsVerified = usageStatus === 'ยืนยันแล้ว';
 
-                  hnEn.substring(0, 38), // HN/EN
-                  (usage.department_name || usage.department_code || '-').toString().substring(0, 24), // แผนก
-                  ' ', // รหัสอุปกรณ์
-                  '', // ชื่ออุปกรณ์
-                  ' ', // จำนวนเบิก
-                  (usage.qty_used ?? 0).toString(), // จำนวนใช้
-                  ' ', // ส่วนต่าง
-                  usageDate, // วันที่
-                  usageStatus, // สถานะ (แปลงให้เหมือนเว็บ)
-                ];
-                for (let i = 0; i < headers.length; i++) {
-                  const cw = colWidths[i];
-                  // ใส่สีสถานะในคอลัมน์สุดท้ายให้เหมือนเว็บ
-                  let cellBg = '#F0F8FF';
-                  let textColor = '#000000';
-                  if (i === 9) {
-                    const lower = usageStatus.toLowerCase();
-                    if (lower === 'ยืนยันแล้ว' || lower === 'verified') {
-                      cellBg = '#D4EDDA'; // เขียวอ่อน
-                      textColor = '#155724'; // เขียวเข้ม
-                    } else if (
-                      lower === 'ยกเลิก' ||
-                      lower === 'discontinue' ||
-                      lower === 'discontinued'
-                    ) {
-                      cellBg = '#F8D7DA'; // แดงอ่อน
-                      textColor = '#721C24'; // แดงเข้ม
-                    } else if (usageStatus === '-') {
-                      cellBg = '#F8F9FA'; // เทาอ่อน
-                      textColor = '#6C757D'; // เทากลาง
-                    } else {
-                      cellBg = '#E0E7FF'; // น้ำเงินอ่อน (เทียบ badge ฟ้าในเว็บ)
-                      textColor = '#3730A3'; // น้ำเงินเข้ม
-                    }
-                  }
-                  doc.rect(xPos, subY, cw, itemHeight).fillAndStroke(cellBg, '#DEE2E6');
-                  doc.fillColor(textColor);
-                  doc.text(subTexts[i] ?? '-', xPos + cellPadding, subY + 6, {
-                    width: Math.max(4, cw - cellPadding * 2),
-                    // ชิดซ้ายสำหรับ รหัสอุปกรณ์ (1), ชื่ออุปกรณ์ (2), HN/EN (3), ชื่อคนไข้ (4)
-                    align: i === 1 || i === 2 || i === 3 || i === 4 ? 'left' : 'center',
-                  });
-                  xPos += cw;
-                }
-                doc.y = subY + itemHeight;
+                drawRow([
+                  ' ',
+                  hnEn,
+                  deptAndType,
+                  '',
+                  ' ',
+                  String(usage.qty_used ?? 0),
+                  ' ',
+                  usageDate,
+                  usageStatus,
+                ], '#F0F8FF', usageStatus, usageIsVerified);
               });
             }
           });
         }
 
         // =========================================================
-        // Summary Page: สรุปรายการเบิกตามเวชภัณฑ์ (แสดงเป็นหน้าใหม่)
+        // Summary Page: สรุปรายการเบิกตามเวชภัณฑ์
         // =========================================================
         if (comparisonData.length > 0) {
-          doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
-          const sMargin = margin;
-          const sPageWidth = doc.page.width;
-          const sPageHeight = doc.page.height;
-          const sContentWidth = sPageWidth - sMargin * 2;
-          const sItemHeight = itemHeight;
+          doc.addPage({ size: 'A4', layout: 'portrait', margin: 10 });
+          doc.y = margin;
 
-          doc.y = sMargin;
-          doc.fontSize(12).font(finalFontBoldName).fillColor('#1A365D');
-          doc.text('สรุปรายการเบิกตามเวชภัณฑ์', sMargin, doc.y, {
-            width: sContentWidth,
+          doc.fontSize(14).font(finalFontBoldName).fillColor('#1A365D');
+          doc.text('สรุปรายการเบิกตามเวชภัณฑ์', margin, doc.y, {
+            width: contentWidth,
             align: 'left',
           });
           doc.y += 10;
-          doc.fontSize(9).font(finalFontName).fillColor('#6C757D');
-          doc.text('รวมจำนวนเบิกทั้งหมดของแต่ละรายการเวชภัณฑ์ ตามช่วงวันที่ที่เลือก', sMargin, doc.y, {
-            width: sContentWidth,
+          doc.fontSize(11).font(finalFontName).fillColor('#6C757D');
+          doc.text('รวมจำนวนเบิกทั้งหมดของแต่ละรายการเวชภัณฑ์ ตามช่วงวันที่ที่เลือก', margin, doc.y, {
+            width: contentWidth,
             align: 'left',
           });
           doc.fillColor('#000000');
           doc.y += 14;
 
-          // 6 columns: ลำดับ, รหัส, ชื่อ, จำนวนเบิก, จำนวนใช้, ส่วนต่าง
-          const sHeaders = ['ลำดับ', 'รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'จำนวนเบิก', 'จำนวนใช้', 'ส่วนต่าง'];
-          const sColPct = [0.07, 0.16, 0.35, 0.14, 0.14, 0.14];
-          let sColWidths = sColPct.map((p) => Math.floor(sContentWidth * p));
+          // 5 columns: ลำดับ, ชื่ออุปกรณ์, จำนวนเบิก, จำนวนใช้, ส่วนต่าง
+          const sColPct = [0.06, 0.52, 0.14, 0.14, 0.14];
+          const sColWidths = sColPct.map((p) => Math.floor(contentWidth * p));
           let sSumW = sColWidths.reduce((a, b) => a + b, 0);
-          if (sSumW < sContentWidth) {
-            sColWidths[2] += sContentWidth - sSumW;
-          }
-          // ป้องกัน NaN / ค่าไม่ถูกต้องใน sColWidths
-          const sDefaultColWidth = Math.floor(sContentWidth / sHeaders.length);
-          sColWidths = sColWidths.map((w) =>
-            !Number.isFinite(w) || w <= 0 ? sDefaultColWidth : w,
-          );
+          if (sSumW < contentWidth) sColWidths[1] += contentWidth - sSumW;
+          const sHeaders = ['ลำดับ', 'ชื่ออุปกรณ์', 'จำนวนเบิก', 'จำนวนใช้', 'ส่วนต่าง'];
 
           const drawSummaryHeader = (y: number) => {
-            let x = sMargin;
-            doc.fontSize(8).font(finalFontBoldName);
-            doc.rect(sMargin, y, sContentWidth, sItemHeight).fillAndStroke('#1A365D', '#1A365D');
+            let x = margin;
+            doc.fontSize(13).font(finalFontBoldName);
+            doc.rect(margin, y, contentWidth, itemHeight).fill('#1A365D');
             doc.fillColor('#FFFFFF');
             sHeaders.forEach((h, i) => {
-              doc.text(h, x + cellPadding, y + 6, {
+              doc.text(h, x + cellPadding, y + 8, {
                 width: Math.max(2, sColWidths[i] - cellPadding * 2),
-                // align: i === 1 || i === 2 ? 'left' : 'center',
                 align: 'center',
               });
+              if (i < sHeaders.length - 1) {
+                doc.save();
+                doc.strokeColor('#4A6FA0').lineWidth(0.5);
+                doc.moveTo(x + sColWidths[i], y + 4).lineTo(x + sColWidths[i], y + itemHeight - 4).stroke();
+                doc.restore();
+              }
               x += sColWidths[i];
             });
             doc.fillColor('#000000');
           };
 
-          const summaryHeaderY = doc.y;
-          drawSummaryHeader(summaryHeaderY);
-          doc.y = summaryHeaderY + sItemHeight;
+          drawSummaryHeader(doc.y);
+          doc.y += itemHeight;
+          doc.fontSize(13).font(finalFontName).fillColor('#000000');
 
-          let sIndex = 0;
-          doc.fontSize(8).font(finalFontName).fillColor('#000000');
-          comparisonData.forEach((item) => {
-            if (doc.y + sItemHeight > sPageHeight - 35) {
-              doc.addPage({ size: 'A4', layout: 'portrait', margin: 35 });
-              doc.y = sMargin;
-              drawSummaryHeader(doc.y);
-              doc.y += sItemHeight;
-            }
-
+          comparisonData.forEach((item, sIdx) => {
             const difference = (item.total_dispensed ?? 0) - (item.total_used ?? 0) - (item.total_returned ?? 0);
-            const rowY = doc.y;
-            const bg = sIndex % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
-            let xPos = sMargin;
+
+            doc.fontSize(13).font(finalFontName);
             const sTexts = [
-              String(sIndex + 1),
-              (item.itemcode ?? '-').toString().substring(0, 18),
-              (item.itemname ?? '-').toString().substring(0, 40),
-              item.total_dispensed != null ? String(item.total_dispensed) : '0',
-              item.total_used != null ? String(item.total_used) : '0',
+              String(sIdx + 1),
+              item.itemname ?? '-',
+              String(item.total_dispensed ?? 0),
+              String(item.total_used ?? 0),
               String(difference),
             ];
+            const sHeights = sTexts.map((text, i) => {
+              const w = Math.max(4, sColWidths[i] - cellPadding * 2);
+              return doc.heightOfString(text ?? '-', { width: w });
+            });
+            const sRowHeight = Math.max(itemHeight, Math.max(...sHeights) + cellPadding * 2);
 
-            for (let i = 0; i < 6; i++) {
+            if (doc.y + sRowHeight > pageHeight - 35) {
+              doc.addPage({ size: 'A4', layout: 'portrait', margin: 10 });
+              doc.y = margin;
+              drawSummaryHeader(doc.y);
+              doc.y += itemHeight;
+              doc.fontSize(13).font(finalFontName).fillColor('#000000');
+            }
+
+            const rowY = doc.y;
+            const bg = sIdx % 2 === 0 ? '#FFFFFF' : '#F8F9FA';
+            let xPos = margin;
+            for (let i = 0; i < 5; i++) {
               const cw = sColWidths[i];
               const w = Math.max(4, cw - cellPadding * 2);
-              doc.rect(xPos, rowY, cw, sItemHeight).fillAndStroke(bg, '#DEE2E6');
-              doc.fillColor('#000000');
-              doc.text(sTexts[i] ?? '-', xPos + cellPadding, rowY + 6, {
+              let cellBg = bg;
+              if (i === 4 && difference !== 0) cellBg = '#FFF3CD';
+              doc.rect(xPos, rowY, cw, sRowHeight).fillAndStroke(cellBg, '#DEE2E6');
+              doc.fontSize(13).font(finalFontName).fillColor(i === 4 && difference !== 0 ? '#856404' : '#000000');
+              doc.text(sTexts[i] ?? '-', xPos + cellPadding, rowY + cellPadding, {
                 width: w,
-                align: i === 1 || i === 2 ? 'left' : 'center',
+                align: i === 1 ? 'left' : 'center',
               });
               xPos += cw;
             }
-            doc.y = rowY + sItemHeight;
-            sIndex++;
+            doc.y = rowY + sRowHeight;
           });
         }
 
-        doc.y += 6;
         doc.end();
       } catch (err) {
         reject(err);
@@ -415,24 +414,16 @@ export class ItemComparisonPdfService {
 
   private getStatusText(status: string): string {
     switch (status) {
-      case 'MATCHED':
-        return 'ตรงกัน';
-      case 'DISPENSED_NOT_USED':
-        return 'เบิกแล้วไม่ใช้';
-      case 'USED_WITHOUT_DISPENSE':
-        return 'ใช้โดยไม่เบิก';
-      case 'DISPENSE_EXCEEDS_USAGE':
-        return 'เบิกมากกว่าใช้';
-      case 'USAGE_EXCEEDS_DISPENSE':
-        return 'ใช้มากกว่าเบิก';
-      case 'UNKNOWN':
-        return 'ไม่ทราบสถานะ';
-      default:
-        return status || '-';
+      case 'MATCHED': return 'ตรงกัน';
+      case 'DISPENSED_NOT_USED': return 'เบิกแล้วไม่ใช้';
+      case 'USED_WITHOUT_DISPENSE': return 'ใช้โดยไม่เบิก';
+      case 'DISPENSE_EXCEEDS_USAGE': return 'เบิกมากกว่าใช้';
+      case 'USAGE_EXCEEDS_DISPENSE': return 'ใช้มากกว่าเบิก';
+      case 'UNKNOWN': return 'ไม่ทราบสถานะ';
+      default: return status || '-';
     }
   }
 
-  /** แปลง usage.order_item_status ให้เหมือนบนเว็บ: discontinue→ยกเลิก, verified→ยืนยันแล้ว, ค่าว่าง→'-' */
   private getUsageOrderStatusText(status?: string): string {
     if (status == null || status === '') return '-';
     const lower = status.toLowerCase();

@@ -14,6 +14,7 @@ export interface ItemWithExpiry {
   RfidCode: string | null;
   cabinet_name?: string;
   cabinet_code?: string;
+  department_name?: string;
 }
 
 const EXPIRY_ITEMS_PER_PAGE = 5;
@@ -150,8 +151,7 @@ export default function ItemsWithExpirySidebar({
                             {item.itemname || item.ItemCode || '-'}
                           </p>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            {item.ItemCode}
-                            {item.cabinet_name && ` · ${item.cabinet_name}`}
+                            {item.department_name || item.cabinet_name || item.ItemCode || '-'}
                           </p>
                           <div className="mt-2 flex items-center justify-between">
                             <span

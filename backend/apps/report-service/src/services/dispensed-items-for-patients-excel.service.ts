@@ -61,7 +61,6 @@ export interface DispensedItemsForPatientsReportData {
     total_qty: number;
     total_patients: number;
   };
-  /** แบบ grouped: แต่ละ element = 1 usage มี supply_items หลายรายการ (สำหรับ main row + sub rows) */
   data: DispensedUsageGroup[];
 }
 
@@ -87,7 +86,7 @@ export class DispensedItemsForPatientsExcelService {
       timeZone: 'Asia/Bangkok',
     });
 
-    // ---- แถว 1-2: โลโก้ (A1:A2) + ชื่อรายงาน (B1:I2) ----
+    // ---- แถว 1-2: โลโก้ (A1:A2) + ชื่อรายงาน (B1:K2) ----
     worksheet.mergeCells('A1:A2');
     worksheet.getCell('A1').fill = {
       type: 'pattern',
@@ -101,10 +100,7 @@ export class DispensedItemsForPatientsExcelService {
     const logoPath = resolveReportLogoPath();
     if (logoPath && fs.existsSync(logoPath)) {
       try {
-        const imageId = workbook.addImage({
-          filename: logoPath,
-          extension: 'png',
-        });
+        const imageId = workbook.addImage({ filename: logoPath, extension: 'png' });
         worksheet.addImage(imageId, 'A1:A2');
       } catch {
         // skip logo on error
@@ -119,35 +115,65 @@ export class DispensedItemsForPatientsExcelService {
     headerCell.value = 'รายการเบิกอุปกรณ์ใช้กับคนไข้\nDispensed Items for Patients Report';
     headerCell.font = { name: 'Tahoma', size: 14, bold: true, color: { argb: 'FF1A365D' } };
     headerCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-    headerCell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFF8F9FA' },
-    };
+    headerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
     headerCell.border = {
       left: { style: 'thin' },
       bottom: { style: 'thin' },
       right: { style: 'thin' },
     };
 
-    // แถว 3: วันที่รายงาน
+    // ---- แถว 3: วันที่รายงาน ----
     worksheet.mergeCells('A3:K3');
     const dateCell = worksheet.getCell('A3');
     dateCell.value = `วันที่รายงาน: ${reportDate}`;
-    dateCell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF6C757D' } };
+    dateCell.font = { name: 'Tahoma', size: 12, color: { argb: 'FF6C757D' } };
     dateCell.alignment = { horizontal: 'right', vertical: 'middle' };
     worksheet.getRow(3).height = 20;
-    worksheet.addRow([]);
 
-    // ---- ตารางข้อมูล: main row ต่อ usage + sub rows ต่อ supply_item (เหมือน item-comparison) ----
+    // ---- แถว 4: Filter summary (วันที่เริ่ม | วันที่สิ้นสุด | แผนก | ประเภทผู้ป่วย) ----
+    const filters = data.filters ?? {};
+    const fmtDate = (d?: string) => {
+      if (!d) return 'ทั้งหมด';
+      try {
+        return new Date(d).toLocaleDateString('th-TH', {
+          year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Bangkok',
+        });
+      } catch { return d; }
+    };
+    const filterLabels = ['วันที่เริ่ม', 'วันที่สิ้นสุด', 'แผนก', 'ประเภทผู้ป่วย'];
+    const filterValues = [
+      fmtDate(filters.startDate),
+      fmtDate(filters.endDate),
+      (filters as any).departmentName ?? filters.departmentCode ?? 'ทั้งหมด',
+      filters.usageType === 'OPD' ? 'ผู้ป่วยนอก (OPD)'
+        : filters.usageType === 'IPD' ? 'ผู้ป่วยใน (IPD)'
+        : 'ทั้งหมด',
+    ];
+    // 11 columns → 4 กลุ่ม: A-C(3), D-F(3), G-I(3), J-K(2)
+    const filterColMap = [['A', 'C'], ['D', 'F'], ['G', 'I'], ['J', 'K']];
+    filterLabels.forEach((lbl, gi) => {
+      const cols = filterColMap[gi];
+      worksheet.mergeCells(`${cols[0]}4:${cols[1]}4`);
+      const cell = worksheet.getCell(`${cols[0]}4`);
+      cell.value = `${lbl}: ${filterValues[gi]}`;
+      cell.font = { name: 'Tahoma', size: 11, bold: true, color: { argb: 'FF1A365D' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EDF2' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = {
+        top: { style: 'thin' }, left: { style: 'thin' },
+        bottom: { style: 'thin' }, right: { style: 'thin' },
+      };
+    });
+    worksheet.getRow(4).height = 20;
+
+    // ---- แถว 5: Table header (11 คอลัมน์) ----
     const tableStartRow = 5;
-    // หัวตาราง 11 คอลัมน์
     const tableHeaders = [
       'ลำดับ',        // 1
       'HN / EN',      // 2
       'ชื่อคนไข้',    // 3
-      'แผนก',         // 4 (new)
-      'ประเภท',       // 5 (new)
+      'แผนก',         // 4
+      'ประเภท',       // 5
       'วันที่เบิก',   // 6
       'รหัสอุปกรณ์',  // 7
       'ชื่ออุปกรณ์',  // 8
@@ -159,7 +185,7 @@ export class DispensedItemsForPatientsExcelService {
     tableHeaders.forEach((h, i) => {
       const cell = headerRow.getCell(i + 1);
       cell.value = h;
-      cell.font = { name: 'Tahoma', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.font = { name: 'Tahoma', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A365D' } };
       cell.alignment = {
         horizontal: i === 2 || i === 7 ? 'left' : 'center',
@@ -169,38 +195,35 @@ export class DispensedItemsForPatientsExcelService {
     });
     headerRow.height = 26;
 
+    // ---- แถวข้อมูล ----
     let dataRowIndex = tableStartRow + 1;
     data.data.forEach((usage, idx) => {
       const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8F9FA';
       const items = usage.supply_items ?? [];
-      // นับเฉพาะอุปกรณ์ที่มีสถานะยืนยัน (Verified) — รายการยกเลิกไม่นำมาคิด
       const totalQty = items
         .filter((i) => (i.order_item_status ?? '').toLowerCase() === 'verified')
         .reduce((s, i) => s + i.qty, 0);
 
-      // Main row: ลำดับ, HN/EN, ชื่อคนไข้, แผนก, ประเภท, วันที่เบิก, ว่าง, ว่าง, จำนวน, ว่าง, ว่าง
       const hnEn = `${usage.patient_hn ?? '-'} / ${usage.en ?? '-'}`;
       const usageTypeLabel = (usage.usage_type ?? '').toUpperCase() === 'IPD' ? 'ผู้ป่วยใน (IPD)'
         : (usage.usage_type ?? '').toUpperCase() === 'OPD' ? 'ผู้ป่วยนอก (OPD)'
         : (usage.usage_type ?? '-');
-      const excelRow = worksheet.getRow(dataRowIndex);
+
+      // Main row
       const mainCells: (string | number)[] = [
-        usage.seq,                                     // 1 ลำดับ
-        hnEn,                                          // 2 HN / EN
-        usage.patient_name ?? '-',                     // 3 ชื่อคนไข้
-        usage.department_name ?? usage.department_code ?? '-', // 4 แผนก
-        usageTypeLabel,                                // 5 ประเภท
-        formatReportDateTime(usage.dispensed_date),    // 6 วันที่เบิก
-        '',                                            // 7 ว่าง (sub: รหัสอุปกรณ์)
-        '',                                            // 8 ว่าง (sub: ชื่ออุปกรณ์)
-        totalQty,                                      // 9 จำนวนอุปกรณ์
-        '',                                            // 10 ว่าง (sub: Assession No)
-        '',                                            // 11 ว่าง (sub: สถานะ)
+        usage.seq,
+        hnEn,
+        usage.patient_name ?? '-',
+        usage.department_name ?? usage.department_code ?? '-',
+        usageTypeLabel,
+        formatReportDateTime(usage.dispensed_date),
+        '', '', totalQty, '', '',
       ];
+      const excelRow = worksheet.getRow(dataRowIndex);
       mainCells.forEach((val, colIndex) => {
         const cell = excelRow.getCell(colIndex + 1);
         cell.value = val;
-        cell.font = { name: 'Tahoma', size: 10, color: { argb: 'FF212529' } };
+        cell.font = { name: 'Tahoma', size: 12, color: { argb: 'FF212529' } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
         cell.alignment = {
           horizontal: colIndex === 2 || colIndex === 7 ? 'left' : 'center',
@@ -211,64 +234,76 @@ export class DispensedItemsForPatientsExcelService {
       excelRow.height = 22;
       dataRowIndex++;
 
-      // Sub rows: ว่าง×6, รหัสอุปกรณ์, ชื่ออุปกรณ์, จำนวน, Assession No, สถานะ
+      // Sub rows
       items.forEach((item) => {
         const subRow = worksheet.getRow(dataRowIndex);
-        const subBg = 'FFF0F8FF';
         const statusLabel = getStatusLabel(item.order_item_status);
         const subCells: (string | number)[] = [
-          '',                                            // 1 ว่าง (ลำดับ)
-          '',                                            // 2 ว่าง (HN/EN)
-          '',                                            // 3 ว่าง (ชื่อคนไข้)
-          '',                                            // 4 ว่าง (แผนก)
-          '',                                            // 5 ว่าง (ประเภท)
-          '',                                            // 6 ว่าง (วันที่เบิก)
-          '└ ' + (item.itemcode ?? '-'),                 // 7 รหัสอุปกรณ์
-          item.itemname ?? '-',                          // 8 ชื่ออุปกรณ์
-          item.uom ? `${item.qty ?? 0} ${item.uom}` : (item.qty ?? 0), // 9 จำนวน
-          item.assession_no ?? '-',                      // 10 Assession No
-          statusLabel,                                   // 11 สถานะ
+          '', '', '', '', '', '',
+          '└ ' + (item.itemcode ?? '-'),
+          item.itemname ?? '-',
+          item.qty ?? 0,
+          item.assession_no ?? '-',
+          statusLabel,
         ];
         subCells.forEach((val, colIndex) => {
           const cell = subRow.getCell(colIndex + 1);
           cell.value = val;
-          // สถานะ (คอลัมน์ 11, index 10)
           if (colIndex === 10) {
             const statusLower = String(val).toLowerCase();
             if (statusLower === 'ยืนยันแล้ว' || statusLower === 'verified') {
-              cell.font = { name: 'Tahoma', size: 9, color: { argb: 'FF16A34A' }, bold: true };
+              cell.font = { name: 'Tahoma', size: 11, color: { argb: 'FF16A34A' }, bold: true };
             } else if (statusLower === 'ยกเลิก' || statusLower === 'discontinue' || statusLower === 'discontinued') {
-              cell.font = { name: 'Tahoma', size: 9, color: { argb: 'FFDC2626' }, bold: true };
+              cell.font = { name: 'Tahoma', size: 11, color: { argb: 'FFDC2626' }, bold: true };
             } else {
-              cell.font = { name: 'Tahoma', size: 9, color: { argb: 'FF212529' } };
+              cell.font = { name: 'Tahoma', size: 11, color: { argb: 'FF212529' } };
             }
           } else {
-            cell.font = { name: 'Tahoma', size: 9, color: { argb: 'FF212529' } };
+            cell.font = { name: 'Tahoma', size: 11, color: { argb: 'FF212529' } };
           }
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: subBg } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F8FF' } };
           cell.alignment = {
             horizontal: colIndex === 7 ? 'left' : 'center',
             vertical: 'middle',
           };
           cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         });
-        subRow.height = 20;
+        subRow.height = 22;
         dataRowIndex++;
       });
     });
 
     worksheet.addRow([]);
-    worksheet.getColumn(1).width = 10;   // ลำดับ
-    worksheet.getColumn(2).width = 18;   // HN / EN
-    worksheet.getColumn(3).width = 22;   // ชื่อคนไข้
-    worksheet.getColumn(4).width = 20;   // แผนก
-    worksheet.getColumn(5).width = 16;   // ประเภท
-    worksheet.getColumn(6).width = 20;   // วันที่เบิก
-    worksheet.getColumn(7).width = 16;   // รหัสอุปกรณ์
-    worksheet.getColumn(8).width = 28;   // ชื่ออุปกรณ์
-    worksheet.getColumn(9).width = 14;   // จำนวนอุปกรณ์
-    worksheet.getColumn(10).width = 18;  // Assession No
-    worksheet.getColumn(11).width = 12;  // สถานะ
+
+    // ---- Footer + หมายเหตุ ----
+    const footerRow = dataRowIndex + 1;
+    worksheet.mergeCells(`A${footerRow}:K${footerRow}`);
+    const footerCell = worksheet.getCell(`A${footerRow}`);
+    footerCell.value = 'เอกสารนี้สร้างจากระบบรายงานอัตโนมัติ';
+    footerCell.font = { name: 'Tahoma', size: 11, color: { argb: 'FFADB5BD' } };
+    footerCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getRow(footerRow).height = 18;
+
+    const noteRow = footerRow + 1;
+    worksheet.mergeCells(`A${noteRow}:K${noteRow}`);
+    const noteCell = worksheet.getCell(`A${noteRow}`);
+    noteCell.value = `จำนวนรายการทั้งหมด: ${data.summary?.total_records ?? 0} รายการ | จำนวนคนไข้: ${data.summary?.total_patients ?? 0} ราย`;
+    noteCell.font = { name: 'Tahoma', size: 11, color: { argb: 'FF6C757D' } };
+    noteCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getRow(noteRow).height = 16;
+
+    // ---- ความกว้างคอลัมน์ ----
+    worksheet.getColumn(1).width = 13;
+    worksheet.getColumn(2).width = 18;
+    worksheet.getColumn(3).width = 22;
+    worksheet.getColumn(4).width = 20;
+    worksheet.getColumn(5).width = 16;
+    worksheet.getColumn(6).width = 20;
+    worksheet.getColumn(7).width = 20;
+    worksheet.getColumn(8).width = 28;
+    worksheet.getColumn(9).width = 14;
+    worksheet.getColumn(10).width = 18;
+    worksheet.getColumn(11).width = 12;
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);

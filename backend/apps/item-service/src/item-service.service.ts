@@ -465,6 +465,7 @@ export class ItemServiceService {
         RfidCode: {
           not: '',
         },
+        IsStock: true,
       };
 
       // Filter by cabinet_id if provided
@@ -506,12 +507,16 @@ export class ItemServiceService {
                     where: department_id ? {
                       department_id: department_id,
                       status: 'ACTIVE',
-                    } : undefined,
+                    } : { status: 'ACTIVE' },
                     select: {
                       id: true,
                       department_id: true,
                       status: true,
+                      department: {
+                        select: { DepName: true },
+                      },
                     },
+                    take: 1,
                   },
                 },
               },
@@ -543,7 +548,7 @@ export class ItemServiceService {
       let activeItems = 0;
       let inactiveItems = 0;
       let lowStockItems = 0;
-      const allMatchingStocks: Array<{ RowID: number; ItemCode: string | null; itemname: string | null; ExpireDate: Date | null; RfidCode: string | null; cabinet_name?: string; cabinet_code?: string }> = [];
+      const allMatchingStocks: Array<{ RowID: number; ItemCode: string | null; itemname: string | null; ExpireDate: Date | null; RfidCode: string | null; cabinet_name?: string; cabinet_code?: string; department_name?: string }> = [];
 
       filteredItems.forEach((item: any) => {
         // Count itemStocks (only matching ones if department_id provided)
@@ -579,6 +584,7 @@ export class ItemServiceService {
             RfidCode: stock.RfidCode ?? null,
             cabinet_name: stock.cabinet?.cabinet_name ?? undefined,
             cabinet_code: stock.cabinet?.cabinet_code ?? undefined,
+            department_name: stock.cabinet?.cabinetDepartments?.[0]?.department?.DepName ?? undefined,
           });
         });
       });
@@ -611,6 +617,7 @@ export class ItemServiceService {
           RfidCode: s.RfidCode,
           cabinet_name: s.cabinet_name,
           cabinet_code: s.cabinet_code,
+          department_name: s.department_name,
         }))
         .sort((a, b) => (a.ExpireDate && b.ExpireDate ? new Date(a.ExpireDate).getTime() - new Date(b.ExpireDate).getTime() : 0));
 
