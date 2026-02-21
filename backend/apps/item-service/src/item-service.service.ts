@@ -335,7 +335,7 @@ export class ItemServiceService {
         // ดึง min/max จาก CabinetItemSetting เท่านั้น (ไม่ใช้ Item)
         const override = overrideMap.get(item.itemcode);
         const effectiveStockMin = override?.stock_min ?? null;
-        const effectiveStockMax = override?.stock_max ?? null;
+        const effectiveStockMax = override?.stock_max ?? 0;
         const stockMin = effectiveStockMin ?? 0;
         const isLowStock = stockMin > 0 && countItemStock < stockMin;
 
@@ -388,7 +388,7 @@ export class ItemServiceService {
 
 
         //สมาการ 3 
-        let refillQty = effectiveStockMax ?? 0; - countItemStock;
+        let refillQty = effectiveStockMax - countItemStock;
 
         if (refillQty < 0) {
           refillQty = 0;

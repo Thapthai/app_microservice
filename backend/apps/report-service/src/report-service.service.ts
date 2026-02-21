@@ -2564,7 +2564,7 @@ export class ReportServiceService {
         // Min/Max จาก CabinetItemSetting เท่านั้น (เหมือนหน้าเว็บ)
         const override = overrideMap.get(row.item_code);
         const stockMin = override?.stock_min ?? null;
-        const stockMax = override?.stock_max ?? null;
+        const stockMax = override?.stock_max ?? 0;
         const qtyInUse = qtyInUseMap.get(row.item_code) ?? 0;
         const damagedQty =
           params?.cabinetId != null || params?.cabinetCode || params?.departmentId != null
@@ -2599,7 +2599,7 @@ export class ReportServiceService {
         // }
 
         // สมการที่ 3
-        let refillQty = stockMax ?? 0; - balanceQty;
+        let refillQty = stockMax - balanceQty;
         if (refillQty < 0) {
           refillQty = 0;
         }
