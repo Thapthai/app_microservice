@@ -2320,7 +2320,10 @@ export class ReportServiceService {
             i.itemname AS item_name,
             COALESCE(SUM(CASE WHEN ist.IsStock = 1 OR ist.IsStock = true THEN 1 ELSE 0 END), 0) AS balance_qty,
             i.stock_max,
-            i.stock_min
+            i.stock_min,
+            MIN(ist.ExpireDate) AS earliest_expire_date,
+            MAX(CASE WHEN ist.ExpireDate IS NOT NULL AND ist.ExpireDate < CURDATE() THEN 1 ELSE 0 END) AS has_expired,
+            MAX(CASE WHEN ist.ExpireDate IS NOT NULL AND ist.ExpireDate >= CURDATE() AND ist.ExpireDate <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS has_near_expire
           FROM item i
           INNER JOIN itemstock ist ON ist.ItemCode = i.itemcode
           INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id AND ist.StockID > 0
@@ -2347,7 +2350,10 @@ export class ReportServiceService {
             i.itemname AS item_name,
             COALESCE(SUM(CASE WHEN ist.IsStock = 1 OR ist.IsStock = true THEN 1 ELSE 0 END), 0) AS balance_qty,
             i.stock_max,
-            i.stock_min
+            i.stock_min,
+            MIN(ist.ExpireDate) AS earliest_expire_date,
+            MAX(CASE WHEN ist.ExpireDate IS NOT NULL AND ist.ExpireDate < CURDATE() THEN 1 ELSE 0 END) AS has_expired,
+            MAX(CASE WHEN ist.ExpireDate IS NOT NULL AND ist.ExpireDate >= CURDATE() AND ist.ExpireDate <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS has_near_expire
           FROM item i
           INNER JOIN itemstock ist ON ist.ItemCode = i.itemcode
           INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id AND ist.StockID > 0
@@ -2372,7 +2378,10 @@ export class ReportServiceService {
             i.itemname AS item_name,
             COALESCE(SUM(CASE WHEN ist.IsStock = 1 OR ist.IsStock = true THEN 1 ELSE 0 END), 0) AS balance_qty,
             i.stock_max,
-            i.stock_min
+            i.stock_min,
+            MIN(ist.ExpireDate) AS earliest_expire_date,
+            MAX(CASE WHEN ist.ExpireDate IS NOT NULL AND ist.ExpireDate < CURDATE() THEN 1 ELSE 0 END) AS has_expired,
+            MAX(CASE WHEN ist.ExpireDate IS NOT NULL AND ist.ExpireDate >= CURDATE() AND ist.ExpireDate <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS has_near_expire
           FROM item i
           INNER JOIN itemstock ist ON ist.ItemCode = i.itemcode
           INNER JOIN app_microservice_cabinets c ON ist.StockID = c.stock_id AND ist.StockID > 0
@@ -2621,10 +2630,37 @@ export class ReportServiceService {
         seq++;
       }
 
-      data.sort((a, b) => (b.refill_qty || 0) - (a.refill_qty || 0));
-      data.forEach((row, i) => {
+      // เรียงลำดับให้ตรงกับหน้าเว็บ (item-service): 1) หมดอายุ 2) ใกล้หมดอายุ 3) ต่ำกว่า MIN 4) วันที่หมดอายุเร็วไปช้า 5) itemcode
+      const sortedData = data
+        .map((dataRow, i) => ({ dataRow, rawRow: (rows as any[])[i] }))
+        .sort((a, b) => {
+          const hasExpiredA = Number(a.rawRow?.has_expired ?? 0) === 1;
+          const hasExpiredB = Number(b.rawRow?.has_expired ?? 0) === 1;
+          if (hasExpiredA !== hasExpiredB) return hasExpiredA ? -1 : 1;
+
+          const hasNearExpireA = Number(a.rawRow?.has_near_expire ?? 0) === 1;
+          const hasNearExpireB = Number(b.rawRow?.has_near_expire ?? 0) === 1;
+          if (hasNearExpireA !== hasNearExpireB) return hasNearExpireA ? -1 : 1;
+
+          const stockMinA = a.dataRow.stock_min ?? 0;
+          const stockMinB = b.dataRow.stock_min ?? 0;
+          const isLowStockA = stockMinA > 0 && a.dataRow.balance_qty < stockMinA;
+          const isLowStockB = stockMinB > 0 && b.dataRow.balance_qty < stockMinB;
+          if (isLowStockA !== isLowStockB) return isLowStockA ? -1 : 1;
+
+          const expA = a.rawRow?.earliest_expire_date ? new Date(a.rawRow.earliest_expire_date).getTime() : 0;
+          const expB = b.rawRow?.earliest_expire_date ? new Date(b.rawRow.earliest_expire_date).getTime() : 0;
+          if (expA && expB) return expA - expB;
+
+          return (a.dataRow.item_code || '').localeCompare(b.dataRow.item_code || '');
+        })
+        .map((x) => x.dataRow);
+      sortedData.forEach((row, i) => {
         row.seq = i + 1;
       });
+      // อ้างอิง data ที่เรียงแล้วสำหรับ return
+      data.length = 0;
+      data.push(...sortedData);
 
       // Lookup ชื่อแผนกและชื่อตู้สำหรับ filter summary
       let filterDeptName: string | undefined;
