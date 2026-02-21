@@ -2571,8 +2571,12 @@ export class ReportServiceService {
             ? damagedReturnMap.get(row.item_code) ?? 0
             : damagedReturnMap.get(`${row.item_code}:${row.department_name ?? '-'}`) ?? 0;
 
-        let refillQty = qtyInUse + damagedQty;
 
+        // สมการที่ 1
+        // let refillQty = qtyInUse + damagedQty;
+
+
+        // สมการที่ 2
         // จำนวนที่ต้องเติม: M=Max (จาก CabinetItemSetting), A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
         // const M = stockMax ?? 0; // ใช้ stockMax จาก CabinetItemSetting (ถ้า null ใช้ 0)
         // const A = balanceQty;
@@ -2593,6 +2597,13 @@ export class ReportServiceService {
         //   refillQty = Y;
 
         // }
+
+        // สมการที่ 3
+        let refillQty = stockMax ?? 0; - balanceQty;
+        if (refillQty < 0) {
+          refillQty = 0;
+        }
+
         totalQty += balanceQty;
         totalRefillQty += refillQty;
         data.push({
@@ -2776,9 +2787,9 @@ export class ReportServiceService {
       const deptIds = uniqueDeptCodes.map((c) => parseInt(c, 10)).filter((n) => !isNaN(n));
       const departments = deptIds.length > 0
         ? await this.prisma.department.findMany({
-            where: { ID: { in: deptIds } },
-            select: { ID: true, DepName: true },
-          })
+          where: { ID: { in: deptIds } },
+          select: { ID: true, DepName: true },
+        })
         : [];
       const deptMap = new Map<number, string>(
         departments.map((d) => [d.ID, d.DepName ?? ''])

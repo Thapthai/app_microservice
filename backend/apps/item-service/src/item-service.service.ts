@@ -352,16 +352,19 @@ export class ItemServiceService {
 
 
         const qtyInUse = qtyInUseMap.get(item.itemcode) ?? 0;
-        let refillQty = qtyInUse + damagedQty;
+
+        // สมาการที่ 1
+        // let refillQty = qtyInUse + damagedQty;
 
 
+        // สมาการที่ 2
         // จำนวนที่ต้องเติม: M=Max (จาก CabinetItemSetting), A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
         // const M = effectiveStockMax ?? 0; // ใช้ effectiveStockMax จาก CabinetItemSetting (ถ้า null ใช้ 0)
         // const A = countItemStock;
 
         // const B = qtyInUse;
         // const C = damagedQty;
-        
+
 
         // const X = M - A; // จำนวนที่ต้องเติมในตู้
         // const Y = B + C; // จำนวนที่ถูกใช้งาน + ชำรุด
@@ -383,6 +386,13 @@ export class ItemServiceService {
         //   refillQty = 0;
         // }
 
+
+        //สมาการ 3 
+        let refillQty = effectiveStockMax ?? 0; - countItemStock;
+
+        if (refillQty < 0) {
+          refillQty = 0;
+        }
 
 
         const itemWithCount = {
