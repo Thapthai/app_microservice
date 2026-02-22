@@ -131,7 +131,7 @@ export class DispensedItemsForPatientsPdfService {
         }
 
         doc.fontSize(16).font(finalFontBoldName).fillColor('#1A365D');
-        doc.text('รายการเบิกอุปกรณ์ใช้กับคนไข้', margin, headerTop + 6, {
+        doc.text('รายการเบิกอุปกรณ์ใช้กับคนไข้กกกก', margin, headerTop + 6, {
           width: contentWidth,
           align: 'center',
         });
@@ -191,7 +191,7 @@ export class DispensedItemsForPatientsPdfService {
         const cellPadding = 4;
         const totalTableWidth = contentWidth;
         // ลำดับ, HN/EN, ชื่อคนไข้, แผนก/ประเภท(รวม), วันที่เบิก, ชื่ออุปกรณ์, จำนวน, Assession, สถานะ
-        const colPct = [0.05, 0.10, 0.14, 0.13, 0.10, 0.18, 0.08, 0.12, 0.07];
+        const colPct = [0.06, 0.10, 0.13, 0.13, 0.10, 0.16, 0.08, 0.12, 0.09];
         const colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
         if (sumW < totalTableWidth) colWidths[5] += totalTableWidth - sumW;

@@ -206,7 +206,7 @@ export class DispensedItemsExcelService {
     // ---- ความกว้างคอลัมน์ ----
     worksheet.getColumn(1).width = 13;
     worksheet.getColumn(2).width = 20;
-    worksheet.getColumn(3).width = 36;
+    worksheet.getColumn(3).width = 45;
     worksheet.getColumn(4).width = 22;
     worksheet.getColumn(5).width = 24;
     worksheet.getColumn(6).width = 20;

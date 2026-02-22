@@ -177,7 +177,7 @@ export class ReturnToCabinetReportPdfService {
         const cellPadding = 4;
         const totalTableWidth = contentWidth;
         // ลำดับ, รหัสอุปกรณ์, ชื่ออุปกรณ์, วันที่คืน, ชื่อผู้เบิก, แผนก, ตู้, สถานะ
-        const colPct = [0.05, 0.12, 0.22, 0.11, 0.15, 0.12, 0.13, 0.10];
+        const colPct = [0.06, 0.12, 0.21, 0.11, 0.15, 0.12, 0.13, 0.10];
         const colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
         if (sumW < totalTableWidth) colWidths[2] += totalTableWidth - sumW;

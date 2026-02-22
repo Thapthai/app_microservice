@@ -359,41 +359,42 @@ export class ItemServiceService {
 
         // สมาการที่ 2
         // จำนวนที่ต้องเติม: M=Max (จาก CabinetItemSetting), A=ของที่อยู่ในตู้, B=ถูกใช้งาน, C=ชำรุด | X=M-A, Y=B+C | if X<Y then 0, if X>Y then X-Y
-        // const M = effectiveStockMax ?? 0; // ใช้ effectiveStockMax จาก CabinetItemSetting (ถ้า null ใช้ 0)
-        // const A = countItemStock;
+        const M = effectiveStockMax ?? 0; // ใช้ effectiveStockMax จาก CabinetItemSetting (ถ้า null ใช้ 0)
+        const A = countItemStock;
 
-        // const B = qtyInUse;
-        // const C = damagedQty;
-
-
-        // const X = M - A; // จำนวนที่ต้องเติมในตู้
-        // const Y = B + C; // จำนวนที่ถูกใช้งาน + ชำรุด
-
-        // // จำนวนที่ต้องเติมในตู้ ให้เติม Y
-        // let refillQty = Y;
-
-        // // ถ้า X < Y แสดงว่า จำนวนที่ต้องเติมในตู้น้อยกว่า จำนวนที่ถูกใช้งาน + ชำรุด ให้เติม X
-        // if (X < Y) {
-        //   refillQty = X;
-        // }
-        // // ถ้า X > Y แสดงว่า จำนวนที่ต้องเติมในตู้มากกว่า จำนวนที่ถูกใช้งาน + ชำรุด ให้เติม X - Y
-        // else if (X > Y && Y == 0) {
-        //   refillQty = X - Y;
-        //   // refillQty = Y;
-        // }
-
-        // if(refillQty < 0) {
-        //   refillQty = 0;
-        // }
+        const B = qtyInUse;
+        const C = damagedQty;
 
 
-        //สมาการ 3 
-        let refillQty = effectiveStockMax - countItemStock;
+        const X = M - A; // จำนวนที่ต้องเติมในตู้
+        const Y = B + C; // จำนวนที่ถูกใช้งาน + ชำรุด
 
-        if (refillQty < 0) {
+        // จำนวนที่ต้องเติมในตู้ ให้เติม Y
+        let refillQty = Y;
+
+        // ถ้า X < Y แสดงว่า จำนวนที่ต้องเติมในตู้น้อยกว่า จำนวนที่ถูกใช้งาน + ชำรุด ให้เติม X
+        if (X < Y) {
+          refillQty = X;
+        }
+        // ถ้า X > Y แสดงว่า จำนวนที่ต้องเติมในตู้มากกว่า จำนวนที่ถูกใช้งาน + ชำรุด ให้เติม X - Y
+        else if (X > Y && Y == 0) {
+          refillQty = X - Y;
+          // refillQty = Y;
+        }
+
+        if(refillQty < 0) {
           refillQty = 0;
         }
 
+      
+        //สมาการ 3 
+        // let refillQty = effectiveStockMax - countItemStock;
+
+        // if (refillQty < 0) {
+        //   refillQty = 0;
+        // }
+
+        console.log('item.itemcode', item.itemcode, 'refillQty', refillQty);
 
         const itemWithCount = {
           ...item,
