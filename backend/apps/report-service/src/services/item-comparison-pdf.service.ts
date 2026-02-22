@@ -164,7 +164,7 @@ export class ItemComparisonPdfService {
         const itemHeight = 28;
         const cellPadding = 4;
         const totalTableWidth = contentWidth;
-        const colPct = [0.06, 0.12, 0.15, 0.24, 0.08, 0.08, 0.08, 0.09, 0.1];
+        const colPct = [0.06, 0.12, 0.14, 0.24, 0.09, 0.08, 0.08, 0.09, 0.1];
         const colWidths = colPct.map((p) => Math.floor(totalTableWidth * p));
         let sumW = colWidths.reduce((a, b) => a + b, 0);
         if (sumW < totalTableWidth) colWidths[3] += totalTableWidth - sumW;
