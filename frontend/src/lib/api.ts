@@ -309,6 +309,8 @@ export const medicalSuppliesApi = {
     limit?: number;
     usage_id?: number;
     action?: string;
+    method?: string;
+    status?: string;
     startDate?: string;
     endDate?: string;
   }): Promise<{ success: boolean; data: any[]; total: number; page: number; limit: number; totalPages: number }> => {

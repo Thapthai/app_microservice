@@ -209,45 +209,38 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white transition-all duration-300 ease-in-out shadow-2xl",
+          "fixed top-0 left-0 z-40 h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl overflow-x-hidden",
+          "transition-[width,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
           isCollapsed ? "lg:w-16" : "w-64 lg:w-64",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
+          <div className={cn("flex items-center justify-between border-b border-slate-700/50 transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] p-4", isCollapsed && "lg:p-2")}>
             {!isCollapsed && (
               <Link
                 href="/admin/dashboard"
                 className="flex items-center space-x-3 flex-1 min-w-0"
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
+                <div className="w-45 h-15 rounded-lg bg-white flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden ring-1 ring-slate-600/50 p-1">
                   <img
                     src={ASSETS.LOGO}
                     alt="POSE Logo"
-                    width={24}
-                    height={24}
-                    className="object-contain"
+                    className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-bold truncate bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
-                    POSE Intelligence
-                  </h2>
-                </div>
+
               </Link>
             )}
             {isCollapsed && (
               <Link
                 href="/admin/dashboard"
-                className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto shadow-lg overflow-hidden"
+                className="w-50 h-15 rounded-lg bg-white flex items-center justify-center mx-auto shadow-lg overflow-hidden ring-1 ring-slate-600/50 p-1"
               >
                 <img
                   src={ASSETS.LOGO}
                   alt="POSE"
-                  width={24}
-                  height={24}
-                  className="object-contain"
+                  className="w-full h-full object-contain"
                 />
               </Link>
             )}
@@ -256,12 +249,12 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
               onClick={() =>
                 isMobileOpen ? setIsMobileOpen(false) : setIsCollapsed(!isCollapsed)
               }
-              className="hidden lg:flex flex-shrink-0 items-center justify-center w-9 h-9 rounded-md text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors"
+              className="hidden lg:flex flex-shrink-0 items-center justify-center w-9 h-9 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200"
             >
               {isCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 transition-transform duration-200" />
               ) : (
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4 transition-transform duration-200" />
               )}
             </button>
           </div>
@@ -299,8 +292,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                           isCollapsed && "lg:justify-center lg:px-2"
                         )}
                       >
-                        <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-slate-300", isCollapsed ? "lg:mx-auto" : "mr-3")} />
-                        {!isCollapsed && <span className="flex-1 text-left truncate">{item.name}</span>}
+                        <Icon className={cn("h-5 w-5 flex-shrink-0 transition-all duration-200", isActive ? "text-white" : "text-slate-300", isCollapsed ? "lg:mx-auto" : "mr-3")} />
+                        <span className={cn("flex-1 text-left truncate transition-opacity duration-200", isCollapsed && "lg:opacity-0 lg:w-0 lg:min-w-0 lg:overflow-hidden")}>{item.name}</span>
                       </button>
                     ) : (
                       <Link
@@ -312,8 +305,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                           isCollapsed && "lg:justify-center lg:px-2"
                         )}
                       >
-                        <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-slate-300", isCollapsed ? "lg:mx-auto" : "mr-3")} />
-                        {!isCollapsed && <span className="flex-1 text-left truncate">{item.name}</span>}
+                        <Icon className={cn("h-5 w-5 flex-shrink-0 transition-all duration-200", isActive ? "text-white" : "text-slate-300", isCollapsed ? "lg:mx-auto" : "mr-3")} />
+                        <span className={cn("flex-1 text-left truncate transition-opacity duration-200", isCollapsed && "lg:opacity-0 lg:w-0 lg:min-w-0 lg:overflow-hidden")}>{item.name}</span>
                       </Link>
                     )}
                     {hasSubmenu && !isCollapsed && (
@@ -331,7 +324,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                         aria-expanded={open}
                         aria-label={open ? "ปิดเมนูย่อย" : "เปิดเมนูย่อย"}
                       >
-                        <ChevronRight className={cn("h-4 w-4", open && "rotate-90")} />
+                        <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", open && "rotate-90")} />
                       </button>
                     )}
                   </div>
@@ -372,7 +365,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                                   aria-expanded={nestedOpen}
                                   aria-label={nestedOpen ? "ปิดเมนูย่อย" : "เปิดเมนูย่อย"}
                                 >
-                                  <ChevronRight className={cn("h-4 w-4", nestedOpen && "rotate-90")} />
+                                  <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", nestedOpen && "rotate-90")} />
                                 </button>
                               </div>
                               {nestedOpen && (
@@ -423,12 +416,10 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             })}
           </nav>
 
-          <div className={cn("p-4 border-t border-slate-700/50", isCollapsed && "lg:px-2")}>
-            <div className={cn("flex items-center gap-2 text-slate-400", isCollapsed && "lg:justify-center")}>
+          <div className={cn("p-4 border-t border-slate-700/50 transition-all duration-300", isCollapsed && "lg:px-2")}>
+            <div className={cn("flex items-center gap-2 text-slate-400 overflow-hidden", isCollapsed && "lg:justify-center")}>
               <img src={ASSETS.LOGO} alt="POSE" width={20} height={20} className="object-contain flex-shrink-0" />
-              {!isCollapsed && (
-                <span className="text-[10px] font-medium">© 2026 POSE Intelligence</span>
-              )}
+              <span className={cn("text-[10px] font-medium whitespace-nowrap transition-opacity duration-200", isCollapsed && "lg:opacity-0 lg:w-0 lg:min-w-0 lg:overflow-hidden")}>© 2026 POSE Intelligence</span>
             </div>
           </div>
         </div>

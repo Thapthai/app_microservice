@@ -294,6 +294,7 @@ export default function MedicalSuppliesPage() {
     }
   };
 
+
   return (
     <ProtectedRoute>
       <AppLayout fullWidth>
@@ -628,10 +629,15 @@ export default function MedicalSuppliesPage() {
                         <div>
                           <p className="text-sm text-gray-500">วันที่และเวลาที่พิมพ์บิล</p>
                           <p className="font-semibold">
-                            {formatPrintDateTime(
-                              selectedSupply.data?.print_date || selectedSupply.print_date,
-                              selectedSupply.data?.time_print_date || selectedSupply.time_print_date
-                            )}
+                            {(() => {
+                              const printDate = selectedSupply.data?.print_date || selectedSupply.print_date;
+                              const timePrintDate = selectedSupply.data?.time_print_date || selectedSupply.time_print_date;
+                              if (!printDate?.trim() && !timePrintDate?.trim()) return '-';
+                              const dateTimeStr = printDate?.trim()
+                                ? (printDate.includes('T') ? printDate : `${printDate}T${timePrintDate?.trim() || '00:00:00'}`)
+                                : null;
+                              return dateTimeStr ? formatDate(dateTimeStr) : '-';
+                            })()}
                           </p>
                         </div>
                         <div>

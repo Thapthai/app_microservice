@@ -61,6 +61,13 @@ export class ApiKeyCreateDto {
   expires_at?: string; // ISO date string
 }
 
+/** Update client credential (e.g. set expires_at to null = ไม่มีวันหมดอายุ) */
+export class UpdateClientCredentialDto {
+  /** ISO date string, or null for never expire (ไม่มีวันหมดอายุ). Omit to leave unchanged. */
+  @IsOptional()
+  expires_at?: string | null;
+}
+
 export class RefreshTokenDto {
   @IsNotEmpty()
   @IsString()

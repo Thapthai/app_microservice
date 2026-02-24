@@ -198,9 +198,9 @@ export default function ReturnToCabinetReportPage() {
             <h1 className="text-2xl font-bold text-gray-900">
               รายงานเติมอุปกรณ์จากตู้
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
+            {/* <p className="text-sm text-gray-500 mt-1">
               รายการอุปกรณ์ทั้งหมดที่เติมจากตู้
-            </p>
+            </p> */}
           </div>
         </div>
 

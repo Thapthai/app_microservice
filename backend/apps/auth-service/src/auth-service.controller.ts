@@ -6,6 +6,7 @@ import {
   RegisterDto,
   FirebaseLoginDto,
   ApiKeyCreateDto,
+  UpdateClientCredentialDto,
   RefreshTokenDto,
   Enable2FADto,
   Verify2FASetupDto,
@@ -101,6 +102,11 @@ export class AuthServiceController {
   @MessagePattern('auth.client-credential.revoke')
   async revokeClientCredential(@Payload() data: { user_id: number; credentialId: number }) {
     return this.authServiceService.revokeClientCredential(data.user_id, data.credentialId);
+  }
+
+  @MessagePattern('auth.client-credential.update')
+  async updateClientCredential(@Payload() data: { user_id: number; credentialId: number; dto: UpdateClientCredentialDto }) {
+    return this.authServiceService.updateClientCredential(data.user_id, data.credentialId, data.dto);
   }
 
   @MessagePattern('auth.client-credential.validate')

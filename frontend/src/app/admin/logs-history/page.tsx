@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function LogsPage() {
   const { user } = useAuth();
@@ -30,12 +31,16 @@ export default function LogsPage() {
 
   const [formFilters, setFormFilters] = useState({
     usage_id: '',
-    startDate: '',
+    method: '',
+    status: '',
+    startDate: getTodayDate(),
     endDate: getTodayDate(),
   });
   const [activeFilters, setActiveFilters] = useState({
     usage_id: '',
-    startDate: '',
+    method: '',
+    status: '',
+    startDate: getTodayDate(),
     endDate: getTodayDate(),
   });
 
@@ -45,6 +50,8 @@ export default function LogsPage() {
       const f = customFilters ?? activeFilters;
       const params: any = { page: page ?? currentPage, limit };
       if (f.usage_id?.trim()) params.usage_id = parseInt(f.usage_id, 10);
+      if (f.method?.trim()) params.method = f.method;
+      if (f.status?.trim()) params.status = f.status;
       if (f.startDate) params.startDate = f.startDate;
       if (f.endDate) params.endDate = f.endDate;
 
@@ -76,10 +83,53 @@ export default function LogsPage() {
   };
 
   const handleReset = () => {
-    const reset = { usage_id: '', startDate: '', endDate: getTodayDate() };
+    const reset = { usage_id: '', method: '', status: '', startDate: getTodayDate(), endDate: getTodayDate() };
     setFormFilters(reset);
     setActiveFilters(reset);
     setCurrentPage(1);
+  };
+
+  const METHOD_OPTIONS = [
+    { value: '', label: 'ทั้งหมด' },
+    { value: 'GET', label: 'QUERY (อ่าน)' },
+    { value: 'POST', label: 'CREATE (สร้าง)' },
+    { value: 'PUT', label: 'UPDATE (แก้ไข)' },
+    { value: 'DELETE', label: 'DELETE (ลบ)' },
+    { value: 'OTHER', label: 'อื่นๆ' },
+  ];
+
+  const getMethodFromAction = (action: any): string => {
+    if (!action || typeof action !== 'object') return '-';
+    const type = String((action as Record<string, unknown>).type ?? '').toUpperCase();
+    if (type === 'QUERY') return 'GET';
+    if (type === 'CREATE') return 'POST';
+    if (type === 'UPDATE' || type === 'UPDATE_PRINT_INFO') return 'PUT';
+    if (type === 'DELETE') return 'DELETE';
+    return 'OTHER';
+  };
+
+  const getActionTypeLabel = (action: any): string => {
+    if (!action || typeof action !== 'object') return '-';
+    const type = String((action as Record<string, unknown>).type ?? '').toUpperCase();
+    if (type === 'UPDATE_PRINT_INFO') return 'UPDATE_PRINT_INFO';
+    return type || '-';
+  };
+
+  const getMethodBadge = (action: any) => {
+    const typeLabel = getActionTypeLabel(action);
+    const method = getMethodFromAction(action);
+    const classes: Record<string, string> = {
+      GET: 'bg-blue-50 text-blue-700 border-blue-200',
+      POST: 'bg-green-50 text-green-700 border-green-200',
+      PUT: 'bg-amber-50 text-amber-700 border-amber-200',
+      DELETE: 'bg-red-50 text-red-700 border-red-200',
+      OTHER: 'bg-slate-50 text-slate-600 border-slate-200',
+    };
+    return (
+      <Badge variant="outline" className={cn('text-xs font-mono', classes[method] ?? classes.OTHER)}>
+        {typeLabel}
+      </Badge>
+    );
   };
 
   const formatDate = (v: string | Date) => {
@@ -110,12 +160,6 @@ export default function LogsPage() {
     } catch {
       return '-';
     }
-  };
-
-  const getActionType = (action: any): string => {
-    if (!action || typeof action !== 'object') return '-';
-    const a = action as Record<string, unknown>;
-    return [a.type, a.action].filter(Boolean).join(' / ') || '-';
   };
 
   const getStatusBadge = (action: any) => {
@@ -159,10 +203,10 @@ export default function LogsPage() {
           <Card>
             <CardHeader>
               <CardTitle>ตัวกรอง</CardTitle>
-              <CardDescription>กรองตาม Usage ID หรือช่วงวันที่</CardDescription>
+              <CardDescription>กรองตาม Usage ID, ประเภท (CREATE / QUERY), สถานะ (SUCCESS / ERROR) หรือช่วงวันที่</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <div>
                   <Label>Usage ID</Label>
                   <Input
@@ -172,6 +216,30 @@ export default function LogsPage() {
                     onChange={(e) => setFormFilters((p) => ({ ...p, usage_id: e.target.value }))}
                     className="mt-1"
                   />
+                </div>
+                <div>
+                  <Label>ประเภท (CREATE / QUERY)</Label>
+                  <select
+                    value={formFilters.method}
+                    onChange={(e) => setFormFilters((p) => ({ ...p, method: e.target.value }))}
+                    className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                  >
+                    {METHOD_OPTIONS.map((opt) => (
+                      <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>สถานะ</Label>
+                  <select
+                    value={formFilters.status}
+                    onChange={(e) => setFormFilters((p) => ({ ...p, status: e.target.value }))}
+                    className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                  >
+                    <option value="">ทั้งหมด</option>
+                    <option value="SUCCESS">SUCCESS</option>
+                    <option value="ERROR">ERROR</option>
+                  </select>
                 </div>
                 <div>
                   <Label>วันที่เริ่ม</Label>
@@ -225,7 +293,7 @@ export default function LogsPage() {
                         <TableHead className="w-[60px]">ID</TableHead>
                         <TableHead className="w-[180px]">วันเวลา</TableHead>
                         <TableHead className="w-[100px]">Usage ID</TableHead>
-                        <TableHead className="w-[200px]">ประเภท / Action</TableHead>
+                        <TableHead className="w-[200px]">ประเภท (CREATE / QUERY / UPDATE)</TableHead>
                         <TableHead className="w-[100px]">สถานะ</TableHead>
                         <TableHead className="min-w-[300px]">รายละเอียด</TableHead>
                       </TableRow>
@@ -240,8 +308,8 @@ export default function LogsPage() {
                           <TableCell className="font-mono text-sm w-[100px]">
                             {row.usage_id ?? '-'}
                           </TableCell>
-                          <TableCell className="text-sm w-[200px] truncate" title={getActionType(row.action)}>
-                            {getActionType(row.action)}
+                          <TableCell className="text-sm w-[200px]">
+                            {getMethodBadge(row.action)}
                           </TableCell>
                           <TableCell className="w-[100px]">{getStatusBadge(row.action)}</TableCell>
                           <TableCell className="text-sm text-gray-600 min-w-[300px] truncate" title={getActionSummary(row.action)}>

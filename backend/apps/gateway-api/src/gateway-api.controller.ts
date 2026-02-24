@@ -260,6 +260,28 @@ export class GatewayApiController {
     }
   }
 
+  @Patch('auth/client-credential/update')
+  @UseGuards(JwtAuthGuard)
+  async updateClientCredential(@Body() data: { credentialId: number; expires_at?: string | null }, @Request() req: any) {
+    try {
+      const user_id = req.user.user.id;
+      const result = await this.gatewayApiService.updateClientCredential(user_id, data.credentialId, {
+        expires_at: data.expires_at,
+      });
+
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+      }
+
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update client credential',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post('auth/user/change-password')
   @UseGuards(JwtAuthGuard)
   async changePassword(@Body() changePasswordDto: ChangePasswordDto, @Request() req: any) {
@@ -876,11 +898,13 @@ export class GatewayApiController {
     @Query('limit') limit?: number,
     @Query('usage_id') usage_id?: number,
     @Query('action') action?: string,
+    @Query('method') method?: string,
+    @Query('status') status?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
     try {
-      const query = { page, limit, usage_id, action, startDate, endDate };
+      const query = { page, limit, usage_id, action, method, status, startDate, endDate };
       const result = await this.gatewayApiService.getMedicalSupplyUsageLogs(query);
       return result;
     } catch (error) {

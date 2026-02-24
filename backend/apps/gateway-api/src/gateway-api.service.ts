@@ -261,7 +261,7 @@ export class GatewayApiService {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage.statistics' }, {}).toPromise();
   }
 
-  async getMedicalSupplyUsageLogs(query: { page?: number; limit?: number; usage_id?: number; action?: string; startDate?: string; endDate?: string }) {
+  async getMedicalSupplyUsageLogs(query: { page?: number; limit?: number; usage_id?: number; action?: string; method?: string; status?: string; startDate?: string; endDate?: string }) {
     return this.medicalSuppliesClient.send({ cmd: 'medical_supply_usage_logs.findAll' }, query).toPromise();
   }
 
@@ -408,6 +408,14 @@ export class GatewayApiService {
     return this.authClient.send('auth.client-credential.revoke', {
       user_id,
       credentialId
+    }).toPromise();
+  }
+
+  async updateClientCredential(user_id: number, credentialId: number, dto: { expires_at?: string | null }) {
+    return this.authClient.send('auth.client-credential.update', {
+      user_id,
+      credentialId,
+      dto
     }).toPromise();
   }
 

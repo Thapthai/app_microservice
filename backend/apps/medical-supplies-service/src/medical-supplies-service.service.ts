@@ -14,7 +14,6 @@ import {
   ItemStatus,
   ReturnReason,
 } from './dto';
-import { log } from 'console';
 
 @Injectable()
 export class MedicalSuppliesServiceService {
@@ -41,6 +40,48 @@ export class MedicalSuppliesServiceService {
       console.error('Failed to create log:', error);
     }
   }
+
+  /**
+   * Normalize DateBillPrinted to YYYY-MM-DD.
+   * Accepts: "23/02/2026" (DD/MM/YYYY), "2026-02-23" (YYYY-MM-DD), or "23-02-2026" (DD-MM-YYYY).
+   * Returns null if input is empty or invalid.
+   */
+  private normalizeDateToYyyyMmDd(value: string | null | undefined): string | null {
+    const s = typeof value === 'string' ? value.trim() : '';
+    if (!s) return null;
+    // Already YYYY-MM-DD
+    const isoMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+    if (isoMatch) {
+      const [, y, m, d] = isoMatch;
+      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+    // DD/MM/YYYY (e.g. 23/02/2026)
+    const dmySlash = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+    if (dmySlash) {
+      const [, d, m, y] = dmySlash;
+      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+    // DD-MM-YYYY
+    const dmyDash = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(s);
+    if (dmyDash) {
+      const [, d, m, y] = dmyDash;
+      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+    // Fallback: try Date parse and format as YYYY-MM-DD
+    try {
+      const date = new Date(s);
+      if (!Number.isNaN(date.getTime())) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+
 
   // Validate single ItemCode - ตรวจสอบว่า ItemCode มีในระบบหรือไม่
   async validateItemCode(itemCode: string): Promise<{ exists: boolean; item?: any }> {
@@ -206,7 +247,7 @@ export class MedicalSuppliesServiceService {
         );
       }
 
-      const printDate = data.DateBillPrinted ?? null;
+      const printDate = this.normalizeDateToYyyyMmDd(data.DateBillPrinted) ?? (data.DateBillPrinted?.trim() || null);
       const timePrintDate = data.TimeBillPrinted ?? null;
 
       // Generate recorded_by_user_id from userContext
@@ -440,7 +481,9 @@ export class MedicalSuppliesServiceService {
             updateData.billing_total = data.billing_total ?? existingUsage.billing_total;
             updateData.billing_currency = data.billing_currency || existingUsage.billing_currency || 'THB';
           }
-          if (data.DateBillPrinted !== undefined) updateData.print_date = data.DateBillPrinted;
+          if (data.DateBillPrinted !== undefined) {
+            updateData.print_date = this.normalizeDateToYyyyMmDd(data.DateBillPrinted) ?? data.DateBillPrinted?.trim() ?? undefined;
+          }
           if (data.TimeBillPrinted !== undefined) updateData.time_print_date = data.TimeBillPrinted;
           if (departmentCode !== null) updateData.department_code = departmentCode;
           if (resolvedUsageType !== null) updateData.usage_type = resolvedUsageType;
@@ -1111,6 +1154,7 @@ export class MedicalSuppliesServiceService {
   }
 
   // Get Logs (MedicalSupplyUsageLog) with pagination and filters
+  // action JSON shape: { "type": "CREATE" | "QUERY" | "UPDATE" | "UPDATE_PRINT_INFO" | "DELETE", ... }
   async findAllLogs(query: GetMedicalSupplyUsageLogsQueryDto): Promise<{
     data: Array<{ id: number; usage_id: number | null; action: any; created_at: Date }>;
     total: number;
@@ -1122,18 +1166,87 @@ export class MedicalSuppliesServiceService {
     const limit = Math.min(100, Math.max(1, query.limit || 20));
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (query.usage_id != null) {
-      where.usage_id = query.usage_id;
-    }
-    if (query.startDate || query.endDate) {
-      where.created_at = {};
+    const method = (query as any).method?.toString?.()?.trim?.()?.toUpperCase?.();
+    const typeFilter: string[] = []; // action.type values to allow (from method: GET->QUERY, POST->CREATE, etc.)
+    if (method === 'GET') typeFilter.push('QUERY');
+    else if (method === 'POST') typeFilter.push('CREATE');
+    else if (method === 'PUT') typeFilter.push('UPDATE', 'UPDATE_PRINT_INFO');
+    else if (method === 'DELETE') typeFilter.push('DELETE');
+    else if (method === 'OTHER') typeFilter.push(''); // will use NOT IN known types
+
+    const table = 'app_microservice_medical_supply_usages_logs';
+    const hasTypeFilter = typeFilter.length > 0 && (method === 'OTHER' || typeFilter.some((t) => t.length > 0));
+    const statusVal = (query as any).status?.toString?.()?.trim?.()?.toUpperCase?.();
+    const hasStatusFilter = statusVal === 'SUCCESS' || statusVal === 'ERROR';
+
+    if (hasTypeFilter || hasStatusFilter) {
+      // Use raw SQL so JSON filter on action.type / action.status works reliably in MySQL
+      const conditions: string[] = ['1=1'];
+      const params: (string | number | Date)[] = [];
+
+      if (query.usage_id != null) {
+        conditions.push(`usage_id = ?`);
+        params.push(query.usage_id);
+      }
       if (query.startDate) {
-        where.created_at.gte = new Date(query.startDate + 'T00:00:00.000Z');
+        conditions.push(`created_at >= ?`);
+        params.push(new Date(query.startDate + 'T00:00:00.000Z'));
       }
       if (query.endDate) {
-        where.created_at.lte = new Date(query.endDate + 'T23:59:59.999Z');
+        conditions.push(`created_at <= ?`);
+        params.push(new Date(query.endDate + 'T23:59:59.999Z'));
       }
+
+      if (hasTypeFilter) {
+        if (method === 'OTHER') {
+          conditions.push(`(JSON_UNQUOTE(JSON_EXTRACT(action, '$.type')) NOT IN ('QUERY','CREATE','UPDATE','UPDATE_PRINT_INFO','DELETE') OR JSON_EXTRACT(action, '$.type') IS NULL)`);
+        } else {
+          const placeholders = typeFilter.map(() => '?').join(',');
+          conditions.push(`JSON_UNQUOTE(JSON_EXTRACT(action, '$.type')) IN (${placeholders})`);
+          params.push(...typeFilter);
+        }
+      }
+
+      if (hasStatusFilter) {
+        conditions.push(`JSON_UNQUOTE(JSON_EXTRACT(action, '$.status')) = ?`);
+        params.push(statusVal);
+      }
+
+      const whereSql = conditions.join(' AND ');
+      const countResult = await this.prisma.$queryRawUnsafe<[{ cnt: bigint }]>(
+        `SELECT COUNT(*) as cnt FROM \`${table}\` WHERE ${whereSql}`,
+        ...params,
+      );
+      const total = Number(countResult[0]?.cnt ?? 0);
+      const rows = await this.prisma.$queryRawUnsafe<any[]>(
+        `SELECT id, usage_id, action, created_at FROM \`${table}\` WHERE ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        ...params,
+        limit,
+        skip,
+      );
+      const data = rows.map((r) => ({
+        id: r.id,
+        usage_id: r.usage_id,
+        action: typeof r.action === 'string' ? JSON.parse(r.action) : r.action,
+        created_at: r.created_at,
+      }));
+
+      return {
+        data,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    }
+
+    // No type filter: use Prisma findMany
+    const where: any = {};
+    if (query.usage_id != null) where.usage_id = query.usage_id;
+    if (query.startDate || query.endDate) {
+      where.created_at = {};
+      if (query.startDate) where.created_at.gte = new Date(query.startDate + 'T00:00:00.000Z');
+      if (query.endDate) where.created_at.lte = new Date(query.endDate + 'T23:59:59.999Z');
     }
 
     const [logs, total] = await Promise.all([

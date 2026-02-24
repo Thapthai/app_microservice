@@ -358,7 +358,17 @@ export class GetMedicalSupplyUsageLogsQueryDto {
 
   @IsOptional()
   @IsString()
-  action?: string; // filter by action type (e.g. create_medical_supply_usage, discontinue_item)
+  action?: string;
+
+  /** Filter by method category: GET (QUERY), POST (CREATE), PUT (UPDATE), DELETE, OTHER */
+  @IsOptional()
+  @IsString()
+  method?: string;
+
+  /** Filter by action.status: SUCCESS, ERROR */
+  @IsOptional()
+  @IsString()
+  status?: string;
 
   @IsOptional()
   @IsString()

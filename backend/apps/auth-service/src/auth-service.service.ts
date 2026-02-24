@@ -411,6 +411,46 @@ export class AuthServiceService {
     }
   }
 
+  /** Update client credential (e.g. set expires_at to null = ไม่มีวันหมดอายุ) */
+  async updateClientCredential(
+    user_id: number,
+    credentialId: number,
+    dto: { expires_at?: string | null },
+  ) {
+    try {
+      const credential = await this.prisma.clientCredential.findFirst({
+        where: { id: credentialId, user_id, is_active: true },
+      });
+
+      if (!credential) {
+        return { success: false, message: 'Client credential not found' };
+      }
+
+      const data: { expires_at?: Date | null } = {};
+      if (dto.expires_at !== undefined) {
+        data.expires_at = dto.expires_at === null ? null : new Date(dto.expires_at);
+      }
+
+      if (Object.keys(data).length === 0) {
+        return { success: true, message: 'No changes', data: { id: credential.id, expires_at: credential.expires_at } };
+      }
+
+      const updated = await this.prisma.clientCredential.update({
+        where: { id: credentialId },
+        data,
+        select: { id: true, name: true, client_id: true, expires_at: true },
+      });
+
+      return {
+        success: true,
+        message: data.expires_at === null ? 'Client credential set to never expire (ไม่มีวันหมดอายุ)' : 'Client credential updated',
+        data: updated,
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to update client credential', error: error.message };
+    }
+  }
+
   async validateClientCredential(client_id: string, client_secret: string) {
     try {
      
