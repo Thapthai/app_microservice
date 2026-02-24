@@ -612,13 +612,10 @@ export class ItemServiceService {
         if (exp < now || exp <= in7Days) nearExpire7Days++;
       });
 
-      // รายการ item_stock ที่หมดอายุแล้ว หรือหมดอายุภายใน 7 วัน (สอดคล้องกับตู้ RFID — แสดงแค่น้อยกว่า 7 วัน)
+      // รายการ item_stock ที่มีวันหมดอายุทั้งหมด — เรียง: หมดอายุก่อน -> ใกล้หมดอายุ ตามวันหมดอายุ (เร็วไปช้า)
+      const nowTime = now.getTime();
       const itemsWithExpiry = allMatchingStocks
-        .filter((s) => {
-          if (s.ExpireDate == null) return false;
-          const exp = new Date(s.ExpireDate);
-          return exp < now || exp <= in7Days;
-        })
+        .filter((s) => s.ExpireDate != null)
         .map((s) => ({
           RowID: s.RowID,
           ItemCode: s.ItemCode,
@@ -630,7 +627,16 @@ export class ItemServiceService {
           cabinet_code: s.cabinet_code,
           department_name: s.department_name,
         }))
-        .sort((a, b) => (a.ExpireDate && b.ExpireDate ? new Date(a.ExpireDate).getTime() - new Date(b.ExpireDate).getTime() : 0));
+        .sort((a, b) => {
+          if (!a.ExpireDate || !b.ExpireDate) return 0;
+          const aT = new Date(a.ExpireDate).getTime();
+          const bT = new Date(b.ExpireDate).getTime();
+          const aExpired = aT < nowTime;
+          const bExpired = bT < nowTime;
+          if (aExpired && !bExpired) return -1;
+          if (!aExpired && bExpired) return 1;
+          return aT - bT;
+        });
 
       return {
         success: true,
