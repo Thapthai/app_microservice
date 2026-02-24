@@ -600,16 +600,18 @@ export class ItemServiceService {
         });
       });
 
-      // นับจำนวนชิ้นใกล้หมดอายุ (ภายใน 7 วัน — สอดคล้องตู้ RFID)
+      // นับ: หมดอายุแล้ว | ใกล้หมดอายุ 1-7 วัน (ถ้าหมดอายุไม่นับ)
       const now = new Date();
       const in7Days = new Date(now);
       in7Days.setDate(in7Days.getDate() + 7);
 
+      let expiredCount = 0;
       let nearExpire7Days = 0;
       allMatchingStocks.forEach((s) => {
         if (!s.ExpireDate) return;
         const exp = new Date(s.ExpireDate);
-        if (exp < now || exp <= in7Days) nearExpire7Days++;
+        if (exp < now) expiredCount++;
+        else if (exp <= in7Days) nearExpire7Days++;
       });
 
       // รายการ item_stock ที่มีวันหมดอายุทั้งหมด — เรียง: หมดอายุก่อน -> ใกล้หมดอายุ ตามวันหมดอายุ (เร็วไปช้า)
@@ -651,6 +653,7 @@ export class ItemServiceService {
           },
           item_stock: {
             expire: {
+              expired_count: expiredCount,
               near_expire_7_days: nearExpire7Days,
             },
             items_with_expiry: itemsWithExpiry,

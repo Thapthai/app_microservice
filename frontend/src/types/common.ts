@@ -25,6 +25,7 @@ export interface GetItemsStatsData {
   };
   item_stock: {
     expire: {
+      expired_count: number;
       near_expire_7_days: number;
     };
     items_with_expiry: Array<{
