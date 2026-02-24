@@ -22,7 +22,6 @@ const EXPIRY_ITEMS_PER_PAGE = 5;
 interface ItemsWithExpirySidebarProps {
   itemsWithExpiry: ItemWithExpiry[];
   nearExpire7Days: number;
-  nearExpire3Days: number;
   loading?: boolean;
 }
 
@@ -47,7 +46,6 @@ function formatExpiryLabel(daysLeft: number | null): string {
 export default function ItemsWithExpirySidebar({
   itemsWithExpiry,
   nearExpire7Days,
-  nearExpire3Days,
   loading = false,
 }: ItemsWithExpirySidebarProps) {
   const [expiryPage, setExpiryPage] = useState(1);
@@ -82,7 +80,7 @@ export default function ItemsWithExpirySidebar({
 
   return (
     <div className="flex flex-col h-full min-h-0 gap-4">
-      {/* การ์ดสรุปใกล้หมดอายุ - ตัวเลข 7 วัน / 3 วัน แสดงใหญ่ */}
+      {/* การ์ดสรุปใกล้หมดอายุ - น้อยกว่า 7 วัน (สอดคล้องตู้ RFID) */}
       <Card className="bg-gradient-to-br from-amber-500 to-orange-600 border-0 text-white overflow-hidden shadow-lg shrink-0 relative">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <CardHeader className="relative flex flex-row items-start justify-between space-y-0 pb-2">
@@ -95,16 +93,9 @@ export default function ItemsWithExpirySidebar({
           </div>
         </CardHeader>
         <CardContent className="relative">
-          <p className="text-xs text-white/90 mb-2">เร่งด่วนภายใน 3 วัน</p>
-          <div className="text-4xl sm:text-5xl font-bold tracking-tight">
-            {nearExpire3Days}
-          </div>
-          <div className="mt-4 flex gap-3 flex-wrap">
+          <div className="flex gap-3 flex-wrap">
             <span className="rounded-lg bg-white/25 px-4 py-2 text-sm font-semibold">
-            น้อยกว่า 7 วัน: <span className="text-lg sm:text-xl font-bold">{nearExpire7Days}</span>
-            </span>
-            <span className="rounded-lg bg-white/25 px-4 py-2 text-sm font-semibold">
-              น้อยกว่า 3 วัน: <span className="text-lg sm:text-xl font-bold">{nearExpire3Days}</span>
+              น้อยกว่า 7 วัน: <span className="text-lg sm:text-xl font-bold">{nearExpire7Days}</span>
             </span>
           </div>
         </CardContent>

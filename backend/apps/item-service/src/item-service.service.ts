@@ -600,25 +600,25 @@ export class ItemServiceService {
         });
       });
 
-      // นับจำนวนชิ้นใกล้หมดอายุ (ภายใน 7 วัน และ 3 วัน)
+      // นับจำนวนชิ้นใกล้หมดอายุ (ภายใน 7 วัน — สอดคล้องตู้ RFID)
       const now = new Date();
       const in7Days = new Date(now);
       in7Days.setDate(in7Days.getDate() + 7);
-      const in3Days = new Date(now);
-      in3Days.setDate(in3Days.getDate() + 3);
 
       let nearExpire7Days = 0;
-      let nearExpire3Days = 0;
       allMatchingStocks.forEach((s) => {
         if (!s.ExpireDate) return;
         const exp = new Date(s.ExpireDate);
-        if (exp <= in7Days && exp >= now) nearExpire7Days++;
-        if (exp <= in3Days && exp >= now) nearExpire3Days++;
+        if (exp < now || exp <= in7Days) nearExpire7Days++;
       });
 
-      // รายการ item_stock พร้อมวันหมดอายุ (เรียงจากใกล้หมดก่อน)
+      // รายการ item_stock ที่หมดอายุแล้ว หรือหมดอายุภายใน 7 วัน (สอดคล้องกับตู้ RFID — แสดงแค่น้อยกว่า 7 วัน)
       const itemsWithExpiry = allMatchingStocks
-        .filter((s) => s.ExpireDate != null)
+        .filter((s) => {
+          if (s.ExpireDate == null) return false;
+          const exp = new Date(s.ExpireDate);
+          return exp < now || exp <= in7Days;
+        })
         .map((s) => ({
           RowID: s.RowID,
           ItemCode: s.ItemCode,
@@ -646,7 +646,6 @@ export class ItemServiceService {
           item_stock: {
             expire: {
               near_expire_7_days: nearExpire7Days,
-              near_expire_3_days: nearExpire3Days,
             },
             items_with_expiry: itemsWithExpiry,
           },

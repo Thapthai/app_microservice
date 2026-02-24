@@ -3252,10 +3252,6 @@ export class MedicalSuppliesServiceService {
       const total_used = Number(usageRow?.total_used ?? 0);
       const difference = total_dispensed - total_used;
 
-
-      console.log('total_dispensed', total_dispensed);
-      console.log('total_used', total_used);
-      console.log('difference', difference);
       return {
         success: true,
         data: {
@@ -3334,7 +3330,7 @@ export class MedicalSuppliesServiceService {
           Prisma.raw(`(DATE(LastCabinetModify) BETWEEN '${filters.startDate}' AND '${filters.endDate}')`)
         );
       }
- 
+
       sqlConditionsUsage.push(
         Prisma.raw(`order_item_status NOT IN ('Discontinue', 'discontinue', 'Discontinued', 'discontinued')`)
       );

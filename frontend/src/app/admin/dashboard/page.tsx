@@ -24,7 +24,6 @@ export default function DashboardPage() {
   });
   const [itemsWithExpiry, setItemsWithExpiry] = useState<ItemWithExpiry[]>([]);
   const [nearExpire7Days, setNearExpire7Days] = useState(0);
-  const [nearExpire3Days, setNearExpire3Days] = useState(0);
   const [dispensedVsUsageSummary, setDispensedVsUsageSummary] = useState<{
     total_dispensed: number;
     total_used: number;
@@ -52,7 +51,6 @@ export default function DashboardPage() {
             const itemStock = data.item_stock;
             if (itemStock) {
               setNearExpire7Days(itemStock.expire?.near_expire_7_days ?? 0);
-              setNearExpire3Days(itemStock.expire?.near_expire_3_days ?? 0);
               setItemsWithExpiry(Array.isArray(itemStock.items_with_expiry) ? itemStock.items_with_expiry : []);
             }
           }
@@ -141,7 +139,6 @@ export default function DashboardPage() {
             <ItemsWithExpirySidebar
               itemsWithExpiry={itemsWithExpiry}
               nearExpire7Days={nearExpire7Days}
-              nearExpire3Days={nearExpire3Days}
               loading={loadingStats}
             />
           </div>
