@@ -183,11 +183,11 @@ export default function ReturnToCabinetReportPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                รายงานเติมอุปกรณ์จากตู้
+                รายงานเติมอุปกรณ์เข้าตู้
               </h1>
-              {/* <p className="text-sm text-gray-500 mt-1">
-                รายการอุปกรณ์ทั้งหมดที่เติมจากตู้
-              </p> */}
+              <p className="text-sm text-gray-500 mt-1">
+                รายการอุปกรณ์ทั้งหมดที่เติมเข้าตู้ SmartCabinet
+              </p>
             </div>
           </div>
 

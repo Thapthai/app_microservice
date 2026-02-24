@@ -89,10 +89,10 @@ export default function ItemsWithExpirySidebar({
           <CardTitle className="text-sm font-medium text-white/95">
             อุปกรณ์ใกล้หมดอายุ
           </CardTitle>
-          <div className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-sm font-semibold">
+          {/* <div className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-sm font-semibold">
             <AlertCircle className="h-4 w-4" />
             {expiredCount + nearExpire7Days} ชิ้น
-          </div>
+          </div> */}
         </CardHeader>
         <CardContent className="relative">
           <div className="flex gap-3 flex-wrap">
